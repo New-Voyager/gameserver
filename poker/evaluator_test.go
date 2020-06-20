@@ -107,9 +107,8 @@ func TestFive(t *testing.T) {
 
 		err := json.Unmarshal([]byte(cardsString), &cards)
 		assert.NoError(t, err)
-		evalScore, evalCards := Evaluate(cards)
+		evalScore, _ := Evaluate(cards)
 		assert.Equal(t, score, evalScore)
-		assert.Equal(t, cards, evalCards)
 	}
 }
 
@@ -119,9 +118,8 @@ func TestSix(t *testing.T) {
 
 		err := json.Unmarshal([]byte(cardsString), &cards)
 		assert.NoError(t, err)
-		evalScore, evalCards := Evaluate(cards)
+		evalScore, _ := Evaluate(cards)
 		assert.Equal(t, score, evalScore)
-		assert.Equal(t, cards, evalCards)
 	}
 }
 
@@ -131,9 +129,8 @@ func TestSeven(t *testing.T) {
 
 		err := json.Unmarshal([]byte(cardsString), &cards)
 		assert.NoError(t, err)
-		evalScore, evalCards := Evaluate(cards)
+		evalScore, _ := Evaluate(cards)
 		assert.Equal(t, score, evalScore)
-		assert.Equal(t, cards, evalCards)
 	}
 }
 
