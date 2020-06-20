@@ -102,32 +102,38 @@ var dataJoker3 = []string{
 }
 
 func TestFive(t *testing.T) {
-	for score := range data1 {
+	for score, cardsString := range data1 {
 		var cards []Card
 
-		err := json.Unmarshal([]byte(data1[score]), &cards)
+		err := json.Unmarshal([]byte(cardsString), &cards)
 		assert.NoError(t, err)
-		assert.Equal(t, score, Evaluate(cards))
+		evalScore, evalCards := Evaluate(cards)
+		assert.Equal(t, score, evalScore)
+		assert.Equal(t, cards, evalCards)
 	}
 }
 
 func TestSix(t *testing.T) {
-	for score := range data2 {
+	for score, cardsString := range data2 {
 		var cards []Card
 
-		err := json.Unmarshal([]byte(data2[score]), &cards)
+		err := json.Unmarshal([]byte(cardsString), &cards)
 		assert.NoError(t, err)
-		assert.Equal(t, score, Evaluate(cards))
+		evalScore, evalCards := Evaluate(cards)
+		assert.Equal(t, score, evalScore)
+		assert.Equal(t, cards, evalCards)
 	}
 }
 
 func TestSeven(t *testing.T) {
-	for score := range data3 {
+	for score, cardsString := range data3 {
 		var cards []Card
 
-		err := json.Unmarshal([]byte(data3[score]), &cards)
+		err := json.Unmarshal([]byte(cardsString), &cards)
 		assert.NoError(t, err)
-		assert.Equal(t, score, Evaluate(cards))
+		evalScore, evalCards := Evaluate(cards)
+		assert.Equal(t, score, evalScore)
+		assert.Equal(t, cards, evalCards)
 	}
 }
 
