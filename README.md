@@ -14,6 +14,7 @@ http://google.github.io/proto-lens/installing-protoc.html
 
 ### install go generator
 go install google.golang.org/protobuf/cmd/protoc-gen-go
+or this
 go get -u github.com/golang/protobuf/protoc-gen-go
 
 You may need to update the path, if you get the following error:
