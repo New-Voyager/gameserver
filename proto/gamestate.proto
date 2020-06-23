@@ -1,0 +1,163 @@
+syntax = "proto3";
+package game;
+option go_package = "game";
+
+
+message PlayerState {
+  float buy_in = 1;
+  float current_balance = 2;
+
+  enum Status {
+    PLAYING = 0;
+    IN_QUEUE = 1;
+    BREAK = 2;
+    STANDING_UP = 3;
+    LEFT = 4;
+    KICKED_OUT = 5;
+    BLOCKED = 6;
+    WAIT_FOR_SITTING_APPROVAL = 7;
+    LOST_CONNECTION = 8;
+  }
+  Status status = 3;
+}
+
+message HandPlayerState {
+  enum Status {
+    ACTIVE = 0;
+    FOLDED = 1;
+    SAT_OUT = 2;
+  }
+  Status status = 1;
+  float balance = 2;
+}
+
+message GameState {
+
+  enum Status {
+    RUNNING = 0;
+    PAUSED = 1;
+    WAITING_FOR_PLAYERS = 2;
+    ENDED = 3;
+  }
+
+  enum GameType {
+    UNKNOWN = 0;
+    HOLDEM = 1;
+    PLO = 2;
+    PLO_HILO = 3;
+  }
+
+  uint64 game_num = 1;
+  // max 15 seats reserved
+  repeated uint32 players_in_seats = 2 [packed=true];
+
+  // players in the table and the queue
+  repeated uint32 players_in_game = 3 [packed=true];
+
+  // players 
+  map<uint32, PlayerState> players_state = 4;
+
+  bool utg_straddle_allowed = 5;
+
+  bool button_straddle_allowed = 6;
+
+  // game status
+  Status status = 7;
+
+  // game type
+  GameType game_type = 8;
+
+  // current hand num
+  uint32 hand_num = 9;
+
+  uint32 button_pos = 10;
+
+  float small_blind = 11;
+
+  float big_blind = 12;
+
+  uint32 max_seats = 13;
+}
+
+enum ACTION {
+  SB = 0;
+  BB = 1;
+  STRADDLE = 2;
+  CHECK = 3;
+  CALL = 4;
+  FOLD = 5;
+  BET = 6;
+  RAISE = 7;
+  ALL_IN = 8;
+}
+
+message SeatAction {
+  uint32    seat_no = 1;
+  ACTION    action = 2;
+  float     amount = 3;
+}
+
+message SeatActionLog {
+  float pot = 1;
+  repeated SeatAction actions = 2; 
+}
+
+message PlayersInPots {
+  repeated uint32 players  = 1;
+  float amount = 2;
+}
+
+message HandState {
+  uint64 unique_hand_id = 1;
+
+  uint64 game_num = 2;
+
+  uint32 hand_num = 3;
+
+  bytes deck = 4;
+  // maximum 10 seats
+  // tracks the players sitting on each seat
+  // the seats are arranged as in typical poker table
+  // seat 1 is left side of the dealer, seat 0 is right side of the dealer
+  // if a seat is empty, then the player id is 0
+  repeated uint32 players_in_seats = 5 [packed=true];
+
+  enum State {
+    DEAL = 0;
+    PREFLOP = 1;
+    FLOP = 2;
+    TURN = 3;
+    RIVER = 4;
+    SHOW_DOWN = 5;
+    EVALUATE_HAND = 6;
+    HAND_CLOSED = 7;
+  }
+
+  // player current stack
+  uint32 button_pos = 7;
+  State current_state = 8;
+
+  // updated as players fold
+  map <uint32, float> active_seats = 9;
+  
+  uint32 next_action_seat = 10;
+  float current_raise = 11;
+  uint32 action_complete_at_seat = 12;
+  bool straddle_bet = 13;
+
+  SeatActionLog preflop_actions = 14;
+  SeatActionLog flop_actions = 15;
+  SeatActionLog turn_actions = 16;
+  SeatActionLog river_actions = 17;
+
+  repeated PlayersInPots pots = 18;
+  map <uint32, bytes> players_cards = 19;
+  bytes board_cards = 20;
+  bytes board_cards_2 = 21;  // run it twice
+
+  uint32 small_blind_pos = 22;
+  uint32 big_blind_pos = 23;
+
+  map <uint32, HandPlayerState> players_state = 24;
+  float next_min_raise = 25;
+}

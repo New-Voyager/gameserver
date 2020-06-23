@@ -3,20 +3,24 @@ package main
 import (
 	"bufio"
 	"fmt"
+	proto "github.com/golang/protobuf/proto"
 	"os"
 
 	//"voyager.com/server/internal"
+	"voyager.com/server/game"
 	"voyager.com/server/poker"
 )
 
 func main() {
 	reader := bufio.NewReader(os.Stdin)
+
 	//fmt.Println("Hello New Beginning")
 	//TestHoldem2()
 	//TestHoldem()
 	for {
-		TestOmahaHiLo()
-		fmt.Print("Press 'Enter' to get next hand...")
+		//TestOmahaHiLo()
+		TestNewGame()
+		fmt.Print("Press 'Enter' to get next hand...\n")
 		reader.ReadBytes('\n')
 	}
 	/*
@@ -123,4 +127,21 @@ func TestOmaha1() {
 	//result := hand.EvaulateHoldem()
 	//fmt.Printf("%s\n", hand.PrettyPrintResult())
 	//fmt.Printf("Result: \n%s", result.PrettyPrintResult())
+}
+
+var gameObject, gameId = game.NewGame()
+
+func TestNewGame() {
+	gameObject, err := game.LoadGame(gameId)
+	if err != nil {
+		fmt.Printf("Game ID: %d is not found. Error: %v", gameId, err)
+	}
+
+	_, handID := gameObject.DealNextHand()
+	handState := game.LoadHandState(handID)
+
+	handStateProto, err := proto.Marshal(handState)
+	//gameStateProto, err := proto.Marshal(handState)
+
+	fmt.Printf("Handstate protobuf Size: %d HandState: %s\n", len(handStateProto), handState.PrettyPrint())
 }

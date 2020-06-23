@@ -1,0 +1,4 @@
+small blind may have less than the blind
+big blind may have less than the blind
+determine legal raise for next raise
+track short raise with all in 

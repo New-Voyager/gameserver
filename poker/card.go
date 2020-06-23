@@ -44,21 +44,21 @@ func init() {
 	}
 }
 
-func PrintCards(cards []Card) string {
-	var b strings.Builder
-	b.Grow(32)
-	fmt.Fprintf(&b, "[")
-	for _, c := range cards {
-		suit := int(c.Suit())
-		fmt.Fprintf(&b, " %s%s ", string(strRanks[c.Rank()]), string(prettySuits[suit]))
-	}
-	fmt.Fprintf(&b, "]")
-	return b.String()
-}
-
 func NewCard(s string) Card {
 	rankInt := charRankToIntRank[s[0]]
 	suitInt := charSuitToIntSuit[s[1]]
+	rankPrime := primes[rankInt]
+
+	bitRank := int32(1) << uint32(rankInt) << 16
+	suit := suitInt << 12
+	rank := rankInt << 8
+
+	return Card(bitRank | suit | rank | rankPrime)
+}
+
+func NewCardFromByte(cardByte uint8) Card {
+	rankInt := int32(cardByte >> 4)
+	suitInt := int32(cardByte & 0xF)
 	rankPrime := primes[rankInt]
 
 	bitRank := int32(1) << uint32(rankInt) << 16
@@ -117,4 +117,37 @@ func primeProductFromRankBits(rankBits int32) int32 {
 	}
 
 	return product
+}
+
+func (c Card) GetByte() uint8 {
+	rank := c.Rank()
+	suit := c.Suit()
+	b := uint8((rank << 4) | suit)
+	return b
+}
+
+func CardsToString(cards []byte) string {
+	var b strings.Builder
+	b.Grow(32)
+	fmt.Fprintf(&b, "[")
+	for _, c := range cards {
+		suit := int(c & 0xF)
+		rank := int((c >> 4) & 0xF)
+		fmt.Fprintf(&b, " %s%s ", string(strRanks[rank]), string(prettySuits[suit]))
+	}
+	fmt.Fprintf(&b, "]")
+	return b.String()
+}
+
+func PrintCards(cards []Card) string {
+	var b strings.Builder
+	b.Grow(32)
+	fmt.Fprintf(&b, "[")
+	for _, c := range cards {
+		suit := int(c.Suit())
+		rank := c.Rank()
+		fmt.Fprintf(&b, " %s%s ", string(strRanks[rank]), string(prettySuits[suit]))
+	}
+	fmt.Fprintf(&b, "]")
+	return b.String()
 }
