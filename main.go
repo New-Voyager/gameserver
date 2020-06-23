@@ -21,7 +21,9 @@ func main() {
 		//TestOmahaHiLo()
 		TestNewGame()
 		fmt.Print("Press 'Enter' to get next hand...\n")
-		reader.ReadBytes('\n')
+		if false {
+			reader.ReadBytes('\n')
+		}
 	}
 	/*
 		err := internal.Run(os.Args)
@@ -129,18 +131,13 @@ func TestOmaha1() {
 	//fmt.Printf("Result: \n%s", result.PrettyPrintResult())
 }
 
-var gameObject, gameId = game.NewGame()
+var gamePersist = game.NewMemoryGameStateTracker()
+var handPersist = game.NewMemoryHandStateTracker()
+var gameObject, gameId = game.NewGame(1, gamePersist, handPersist)
 
 func TestNewGame() {
-	gameObject, err := game.LoadGame(gameId)
-	if err != nil {
-		fmt.Printf("Game ID: %d is not found. Error: %v", gameId, err)
-	}
-
-	_, handID := gameObject.DealNextHand()
-	handState := game.LoadHandState(handID)
-
-	handStateProto, err := proto.Marshal(handState)
+	handState, _ := gameObject.DealNextHand()
+	handStateProto, _ := proto.Marshal(handState)
 	//gameStateProto, err := proto.Marshal(handState)
 
 	fmt.Printf("Handstate protobuf Size: %d HandState: %s\n", len(handStateProto), handState.PrettyPrint())

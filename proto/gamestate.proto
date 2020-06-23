@@ -47,36 +47,37 @@ message GameState {
     PLO_HILO = 3;
   }
 
-  uint64 game_num = 1;
+  uint32 club_id = 1;
+  uint32 game_num = 2;
   // max 15 seats reserved
-  repeated uint32 players_in_seats = 2 [packed=true];
+  repeated uint32 players_in_seats = 3 [packed=true];
 
   // players in the table and the queue
-  repeated uint32 players_in_game = 3 [packed=true];
+  repeated uint32 players_in_game = 4 [packed=true];
 
   // players 
-  map<uint32, PlayerState> players_state = 4;
+  map<uint32, PlayerState> players_state = 5;
 
-  bool utg_straddle_allowed = 5;
+  bool utg_straddle_allowed = 6;
 
-  bool button_straddle_allowed = 6;
+  bool button_straddle_allowed = 7;
 
   // game status
-  Status status = 7;
+  Status status = 8;
 
   // game type
-  GameType game_type = 8;
+  GameType game_type = 9;
 
   // current hand num
-  uint32 hand_num = 9;
+  uint32 hand_num = 10;
 
-  uint32 button_pos = 10;
+  uint32 button_pos = 11;
 
-  float small_blind = 11;
+  float small_blind = 12;
 
-  float big_blind = 12;
+  float big_blind = 13;
 
-  uint32 max_seats = 13;
+  uint32 max_seats = 14;
 }
 
 enum ACTION {
@@ -108,9 +109,9 @@ message PlayersInPots {
 }
 
 message HandState {
-  uint64 unique_hand_id = 1;
+  uint32 club_id = 1;
 
-  uint64 game_num = 2;
+  uint32 game_num = 2;
 
   uint32 hand_num = 3;
 

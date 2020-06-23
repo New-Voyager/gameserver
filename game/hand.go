@@ -4,24 +4,19 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/rs/zerolog/log"
 	"voyager.com/server/poker"
 )
 
 var handLogger = log.With().Str("logger_name", "game::hand").Logger()
 
-func LoadHandState(handID uint64) *HandState {
-	handStateBytes, ok := runningHands[handID]
-	if !ok {
-		panic(fmt.Sprintf("Hand id: %d is not found", handID))
-	}
-	handState := &HandState{}
-	err := proto.Unmarshal(handStateBytes, handState)
+func LoadHandState(handStatePersist PersistHandState, clubID uint32, gameNum uint32, handNum uint32) (*HandState, error) {
+	handState, err := handStatePersist.Load(clubID, gameNum, handNum)
 	if err != nil {
-		panic(fmt.Sprintf("Hand id: %d could not be unmarshalled", handID))
+		return nil, err
 	}
-	return handState
+
+	return handState, nil
 }
 
 func (h *HandState) PrettyPrint() string {
@@ -210,7 +205,7 @@ func (h *HandState) getNextActivePlayer(g *Game, seatNo uint32) uint32 {
 func (h *HandState) nextAction(g *Game, action *SeatAction) {
 	if action.SeatNo != h.NextActionSeat {
 		handLogger.Error().
-			Uint64("game", g.state.GetGameNum()).
+			Uint32("game", g.state.GetGameNum()).
 			Uint32("hand", g.state.GetHandNum()).
 			Msg(fmt.Sprintf("Invalid seat %d made action. Ignored. The next valid action seat is: %d", action.SeatNo, h.NextActionSeat))
 	}
@@ -220,7 +215,7 @@ func (h *HandState) nextAction(g *Game, action *SeatAction) {
 	if playerID == 0 {
 		// something wrong
 		handLogger.Error().
-			Uint64("game", g.state.GetGameNum()).
+			Uint32("game", g.state.GetGameNum()).
 			Uint32("hand", g.state.GetHandNum()).
 			Uint32("seat", action.SeatNo).
 			Msg(fmt.Sprintf("Invalid seat %d. PlayerID is 0", action.SeatNo))
@@ -262,7 +257,7 @@ func (h *HandState) nextAction(g *Game, action *SeatAction) {
 			if action.Amount < h.GetCurrentRaise() {
 				// invalid
 				handLogger.Error().
-					Uint64("game", g.state.GetGameNum()).
+					Uint32("game", g.state.GetGameNum()).
 					Uint32("hand", g.state.GetHandNum()).
 					Uint32("seat", action.SeatNo).
 					Msg(fmt.Sprintf("Invalid raise %f. Current bet: %f", action.Amount, h.GetCurrentRaise()))
@@ -277,5 +272,4 @@ func (h *HandState) nextAction(g *Game, action *SeatAction) {
 		log.Pot = log.Pot + action.Amount
 		h.NextActionSeat = h.getNextActivePlayer(g, action.SeatNo)
 	}
-
 }

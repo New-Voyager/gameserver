@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/rs/zerolog/log"
 )
 
@@ -24,17 +23,15 @@ var players = map[uint32]string{
 // this should be (club num + game num + hand num)
 var uniqueHandId = 1
 
-//var runningGames = map[uint64]*GameState{}
-//var runningHands = map[uint64]*HandState{}
-
-var runningGames = map[uint64][]byte{}
-var runningHands = map[uint64][]byte{}
-
 type Game struct {
-	state *GameState
+	clubID           uint32
+	gameNum          uint32
+	gameStatePersist PersistGameState
+	handStatePersist PersistHandState
+	state            *GameState
 }
 
-func NewGame() (*Game, uint64) {
+func NewGame(clubID uint32, gameStatePersist PersistGameState, handStatePersist PersistHandState) (*Game, error) {
 	playersState := make(map[uint32]*PlayerState)
 
 	playersState[1000] = &PlayerState{BuyIn: 100, CurrentBalance: 100, Status: PlayerState_PLAYING}
@@ -43,9 +40,11 @@ func NewGame() (*Game, uint64) {
 	playersState[1003] = &PlayerState{BuyIn: 100, CurrentBalance: 100, Status: PlayerState_PLAYING}
 	playersState[1004] = &PlayerState{BuyIn: 150, CurrentBalance: 150, Status: PlayerState_PLAYING}
 
-	runningGamesLen := uint64(len(runningGames))
+	gameNum := gameStatePersist.NextGameId(clubID)
+
 	gameState := GameState{
-		GameNum:               runningGamesLen + 1,
+		ClubId:                clubID,
+		GameNum:               gameNum,
 		PlayersInSeats:        []uint32{1000, 0, 1001, 0, 1002, 1003, 0, 1004, 0},
 		PlayersState:          playersState,
 		UtgStraddleAllowed:    false,
@@ -60,65 +59,59 @@ func NewGame() (*Game, uint64) {
 	}
 
 	game := &Game{
-		state: &gameState,
+		clubID:           clubID,
+		gameNum:          gameNum,
+		gameStatePersist: gameStatePersist,
+		handStatePersist: handStatePersist,
+		state:            &gameState,
 	}
-	game.save()
-	return game, gameState.GameNum
+
+	gameStatePersist.Save(clubID, gameNum, &gameState)
+	return game, nil
 }
 
-func LoadGame(gameNum uint64) (Game, error) {
-	if _, ok := runningGames[gameNum]; !ok {
-		gameLogger.Error().Msg(fmt.Sprintf("Game %d is not found", gameNum))
-
-		// we need to try to load from redis cache here
-		return Game{}, fmt.Errorf(fmt.Sprintf("Game %d is not found", gameNum))
-	}
-	stateInBytes, _ := runningGames[gameNum]
-
-	gameState := &GameState{}
-	err := proto.Unmarshal(stateInBytes, gameState)
+func LoadGame(clubID uint32, gameNum uint32, gameStatePersist PersistGameState, handStatePersist PersistHandState) (*Game, error) {
+	gameState, err := gameStatePersist.Load(clubID, gameNum)
 	if err != nil {
-		panic("Error occured when unmarshalling game state")
+		gameLogger.Error().Msg(fmt.Sprintf("Game %d is not found", gameNum))
+		// we need to try to load from redis cache here
+		return nil, fmt.Errorf(fmt.Sprintf("Game %d is not found", gameNum))
 	}
-	return Game{
-		state: gameState,
+	return &Game{
+		clubID:           clubID,
+		gameNum:          gameNum,
+		state:            gameState,
+		gameStatePersist: gameStatePersist,
+		handStatePersist: handStatePersist,
 	}, nil
 }
 
-func (g *Game) save() error {
-	var err error
-	runningGames[g.state.GetGameNum()], err = proto.Marshal(g.state)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (g *Game) DealNextHand() (HandState, uint64) {
+func (g *Game) DealNextHand() (*HandState, uint64) {
 	g.state.HandNum++
 
 	// TODO: we need to add club number to the unique id
 	handID := uint64(uint64(g.state.GameNum<<32) | uint64(g.state.HandNum))
 	handState := HandState{
-		UniqueHandId: handID,
-		GameNum:      g.state.GetGameNum(),
-		HandNum:      g.state.GetHandNum(),
+		ClubId:  g.state.ClubId,
+		GameNum: g.state.GetGameNum(),
+		HandNum: g.state.GetHandNum(),
 	}
 
 	handState.initialize(g)
-	// store hand state in memory
-	handStateBytes, err := proto.Marshal(&handState)
-	if err != nil {
-		panic("Handstate couldn't be marshalled")
-	}
-	// TODO: Store in redis
-	runningHands[handID] = handStateBytes
-	g.state.ButtonPos = handState.GetButtonPos()
 
+	// TODO: Store in redis
+	// save the hand state
+	g.handStatePersist.Save(g.clubID, g.gameNum, handState.HandNum, &handState)
+
+	g.state.ButtonPos = handState.GetButtonPos()
 	// save the game
-	g.save()
+	g.gameStatePersist.Save(g.clubID, g.gameNum, g.state)
 
 	_ = handState
-	return handState, handID
+	return &handState, handID
+}
+
+func (g *Game) LoadHand(handNum uint32) (*HandState, error) {
+	handState, err := LoadHandState(g.handStatePersist, g.clubID, g.gameNum, handNum)
+	return handState, err
 }

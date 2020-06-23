@@ -3,3 +3,9 @@ compile-proto:
 
 build: compile-proto
 	go build
+
+fmt:
+	go fmt
+	cd game && go fmt
+	cd internal && go fmt
+	cd poker && go fmt
