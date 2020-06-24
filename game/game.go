@@ -12,14 +12,6 @@ NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 
 var gameLogger = log.With().Str("logger_name", "game::game").Logger()
 
-var players = map[uint32]string{
-	1000: "rob",
-	1001: "steve",
-	1002: "arun",
-	1003: "bob",
-	1004: "jacob",
-}
-
 // this should be (club num + game num + hand num)
 var uniqueHandId = 1
 
@@ -29,6 +21,7 @@ type Game struct {
 	gameStatePersist PersistGameState
 	handStatePersist PersistHandState
 	state            *GameState
+	players          map[uint32]string
 }
 
 func NewGame(clubID uint32, gameStatePersist PersistGameState, handStatePersist PersistHandState) (*Game, error) {
@@ -50,7 +43,7 @@ func NewGame(clubID uint32, gameStatePersist PersistGameState, handStatePersist 
 		UtgStraddleAllowed:    false,
 		ButtonStraddleAllowed: false,
 		Status:                GameState_RUNNING,
-		GameType:              GameState_HOLDEM,
+		GameType:              GameType_HOLDEM,
 		HandNum:               0,
 		ButtonPos:             5,
 		SmallBlind:            1.0,
@@ -58,12 +51,20 @@ func NewGame(clubID uint32, gameStatePersist PersistGameState, handStatePersist 
 		MaxSeats:              9,
 	}
 
+	players := map[uint32]string{
+		1000: "rob",
+		1001: "steve",
+		1002: "arun",
+		1003: "bob",
+		1004: "jacob",
+	}
 	game := &Game{
 		clubID:           clubID,
 		gameNum:          gameNum,
 		gameStatePersist: gameStatePersist,
 		handStatePersist: handStatePersist,
 		state:            &gameState,
+		players:          players,
 	}
 
 	gameStatePersist.Save(clubID, gameNum, &gameState)
@@ -92,9 +93,10 @@ func (g *Game) DealNextHand() (*HandState, uint64) {
 	// TODO: we need to add club number to the unique id
 	handID := uint64(uint64(g.state.GameNum<<32) | uint64(g.state.HandNum))
 	handState := HandState{
-		ClubId:  g.state.ClubId,
-		GameNum: g.state.GetGameNum(),
-		HandNum: g.state.GetHandNum(),
+		ClubId:   g.state.ClubId,
+		GameNum:  g.state.GetGameNum(),
+		HandNum:  g.state.GetHandNum(),
+		GameType: g.state.GetGameType(),
 	}
 
 	handState.initialize(g)
@@ -114,4 +116,29 @@ func (g *Game) DealNextHand() (*HandState, uint64) {
 func (g *Game) LoadHand(handNum uint32) (*HandState, error) {
 	handState, err := LoadHandState(g.handStatePersist, g.clubID, g.gameNum, handNum)
 	return handState, err
+}
+
+func (g *Game) HandleAction(handNum uint32, action *SeatAction) (*NextSeatAction, error) {
+	handState, err := LoadHandState(g.handStatePersist, g.clubID, g.gameNum, handNum)
+	if err != nil {
+		gameLogger.Error().
+			Uint32("club", g.clubID).
+			Uint32("game", g.gameNum).
+			Uint32("hand", handNum).
+			Msg(fmt.Sprintf("Hand state could not be loaded. Error: %v", err))
+		return nil, err
+	}
+	err = handState.actionReceived(g, action)
+	if err != nil {
+		gameLogger.Error().
+			Uint32("club", g.clubID).
+			Uint32("game", g.gameNum).
+			Uint32("hand", handNum).
+			Msg(fmt.Sprintf("Could not handle received action. Error: %v", err))
+		return nil, err
+	}
+
+	// save hand state
+	g.handStatePersist.Save(g.clubID, g.gameNum, handState.HandNum, handState)
+	return handState.NextSeatAction, nil
 }

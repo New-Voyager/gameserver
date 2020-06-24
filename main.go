@@ -21,9 +21,7 @@ func main() {
 		//TestOmahaHiLo()
 		TestNewGame()
 		fmt.Print("Press 'Enter' to get next hand...\n")
-		if false {
-			reader.ReadBytes('\n')
-		}
+		reader.ReadBytes('\n')
 	}
 	/*
 		err := internal.Run(os.Args)
@@ -137,8 +135,25 @@ var gameObject, gameId = game.NewGame(1, gamePersist, handPersist)
 
 func TestNewGame() {
 	handState, _ := gameObject.DealNextHand()
+	nextSeatAction := handState.GetNextSeatAction()
+	//fmt.Printf("Handstate protobuf Size: %d HandState: %s\n", len(handStateProto), handState.PrettyPrint())
+	fmt.Printf("Hands: %s\n", handState.PrettyPrint(gameObject))
+	fmt.Printf("Current action log: %s", handState.PrintCurrentActionLog(gameObject))
+	fmt.Printf("%s\n", nextSeatAction.PrettyPrint(handState, gameObject))
+
+	action := game.SeatAction{
+		SeatNo: nextSeatAction.SeatNo,
+		Action: game.ACTION_CALL,
+		Amount: nextSeatAction.CallAmount,
+	}
+	// get next seat action
+	nextSeatAction, _ = gameObject.HandleAction(handState.HandNum, &action)
+	handState, _ = gameObject.LoadHand(handState.HandNum)
+	fmt.Printf("Current action log: %s", handState.PrintCurrentActionLog(gameObject))
+	fmt.Printf("%s\n", nextSeatAction.PrettyPrint(handState, gameObject))
+
 	handStateProto, _ := proto.Marshal(handState)
+	fmt.Printf("Handstate protobuf Size: %d \n", len(handStateProto))
 	//gameStateProto, err := proto.Marshal(handState)
 
-	fmt.Printf("Handstate protobuf Size: %d HandState: %s\n", len(handStateProto), handState.PrettyPrint())
 }
