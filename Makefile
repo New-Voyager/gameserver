@@ -19,7 +19,7 @@ fmt:
 	cd poker && go fmt
 
 .PHONY: test
-test:
+test: build
 	go test voyager.com/server/poker
 
 .PHONY: install-protoc
