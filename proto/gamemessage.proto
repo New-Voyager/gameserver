@@ -1,0 +1,29 @@
+syntax = "proto3";
+package game;
+option go_package = "game";
+
+message GameJoinMessage {
+  uint32 clubID = 1;
+  uint32 gameNum = 2;
+  uint32 playerID = 3;
+}
+
+message GameSatMessage {
+  uint32 club_id = 1;
+  uint32 game_num = 2;
+  uint32 player_id = 3;
+  uint32 seat_no = 4;
+}
+
+message GameStartedMessage {
+  uint32 club_id = 1;
+  uint32 game_num = 2;
+  // add players in the seat
+}
+
+message HandDealCards {
+  uint32 club_id = 1;
+  uint32 game_num = 2;
+  uint32 hand_num = 3;
+  bytes cards = 4;
+}

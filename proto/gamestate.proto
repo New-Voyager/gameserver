@@ -155,7 +155,6 @@ message HandState {
   // updated as players fold
   map <uint32, float> active_seats = 9;
   
-  uint32 next_action_seat = 10;
   float current_raise = 11;
   uint32 action_complete_at_seat = 12;
   bool straddle_bet = 13;
