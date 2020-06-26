@@ -71,6 +71,14 @@ func NewGame(clubID uint32, gameStatePersist PersistGameState, handStatePersist 
 	return game, nil
 }
 
+func (g *Game) GetPlayers() map[uint32]string {
+	return g.players
+}
+
+func (g *Game) State() *GameState {
+	return g.state
+}
+
 func LoadGame(clubID uint32, gameNum uint32, gameStatePersist PersistGameState, handStatePersist PersistHandState) (*Game, error) {
 	gameState, err := gameStatePersist.Load(clubID, gameNum)
 	if err != nil {
@@ -99,7 +107,7 @@ func (g *Game) DealNextHand() (*HandState, uint64) {
 		GameType: g.state.GetGameType(),
 	}
 
-	handState.initialize(g)
+	handState.initialize(g.state)
 
 	// TODO: Store in redis
 	// save the hand state
@@ -128,7 +136,7 @@ func (g *Game) HandleAction(handNum uint32, action *SeatAction) (*NextSeatAction
 			Msg(fmt.Sprintf("Hand state could not be loaded. Error: %v", err))
 		return nil, err
 	}
-	err = handState.actionReceived(g, action)
+	err = handState.actionReceived(g.state, action)
 	if err != nil {
 		gameLogger.Error().
 			Uint32("club", g.clubID).

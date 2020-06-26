@@ -19,7 +19,7 @@ func LoadHandState(handStatePersist PersistHandState, clubID uint32, gameNum uin
 	return handState, nil
 }
 
-func (h *HandState) PrettyPrint(g *Game) string {
+func (h *HandState) PrintTable(players map[uint32]string) string {
 	var b strings.Builder
 	b.Grow(32)
 	fmt.Fprintf(&b, "Game Num: %d Hand Num: %d, Seats: [", h.GameNum, h.HandNum)
@@ -29,7 +29,7 @@ func (h *HandState) PrettyPrint(g *Game) string {
 			// empty seat
 			fmt.Fprintf(&b, " {%d: Empty}, ", seatNo)
 		} else {
-			player, _ := g.players[playerID]
+			player, _ := players[playerID]
 			playerState, _ := h.PlayersState[playerID]
 			playerCards, _ := h.PlayersCards[playerID]
 			cardString := poker.CardsToString(playerCards)
@@ -49,56 +49,55 @@ func (h *HandState) PrettyPrint(g *Game) string {
 	return b.String()
 }
 
-func (h *HandState) initialize(g *Game) {
+func (h *HandState) initialize(gameState *GameState) {
 	// settle players in the seats
-	h.PlayersInSeats = g.state.GetPlayersInSeats()
+	h.PlayersInSeats = gameState.GetPlayersInSeats()
 
 	// determine button and blinds
-	h.ButtonPos = h.moveButton(g)
-	h.SmallBlindPos, h.BigBlindPos = h.getBlindPos(g)
+	h.ButtonPos = h.moveButton(gameState)
+	h.SmallBlindPos, h.BigBlindPos = h.getBlindPos(gameState)
 
 	// copy player's stack (we need to copy only the players that are in the hand)
-	h.PlayersState = h.getPlayersState(g)
+	h.PlayersState = h.getPlayersState(gameState)
 
 	deck := poker.NewDeck().Shuffle()
 	h.Deck = deck.GetBytes()
-	h.PlayersCards = h.getPlayersCards(g, deck)
+	h.PlayersCards = h.getPlayersCards(gameState, deck)
 
 	// setup hand for preflop
-	h.setupPreflob(g)
+	h.setupPreflob(gameState)
 }
 
-func (h *HandState) setupPreflob(g *Game) {
+func (h *HandState) setupPreflob(gameState *GameState) {
 	h.CurrentState = HandState_PREFLOP
 
 	// set next action information
-	h.CurrentRaise = g.state.BigBlind
+	h.CurrentRaise = gameState.BigBlind
 	h.ActionCompleteAtSeat = h.BigBlindPos
 	h.PreflopActions = &SeatActionLog{Actions: make([]*SeatAction, 0)}
 	h.FlopActions = &SeatActionLog{Actions: make([]*SeatAction, 0)}
 	h.TurnActions = &SeatActionLog{Actions: make([]*SeatAction, 0)}
 	h.RiverActions = &SeatActionLog{Actions: make([]*SeatAction, 0)}
-	h.NextActionSeat = h.SmallBlindPos
-	h.actionReceived(g, &SeatAction{
+	h.actionReceived(gameState, &SeatAction{
 		SeatNo: h.SmallBlindPos,
 		Action: ACTION_SB,
-		Amount: g.state.SmallBlind,
+		Amount: gameState.SmallBlind,
 	})
-	h.actionReceived(g, &SeatAction{
+	h.actionReceived(gameState, &SeatAction{
 		SeatNo: h.BigBlindPos,
 		Action: ACTION_BB,
-		Amount: g.state.BigBlind,
+		Amount: gameState.BigBlind,
 	})
 }
 
-func (h *HandState) getPlayersState(game *Game) map[uint32]*HandPlayerState {
+func (h *HandState) getPlayersState(gameState *GameState) map[uint32]*HandPlayerState {
 	handPlayerState := make(map[uint32]*HandPlayerState, 0)
-	for j := 1; j <= int(game.state.GetMaxSeats()); j++ {
+	for j := 1; j <= int(gameState.GetMaxSeats()); j++ {
 		playerID := h.GetPlayersInSeats()[j-1]
 		if playerID == 0 {
 			continue
 		}
-		playerState, _ := game.state.GetPlayersState()[playerID]
+		playerState, _ := gameState.GetPlayersState()[playerID]
 		if playerState.GetStatus() != PlayerState_PLAYING {
 			continue
 		}
@@ -110,11 +109,11 @@ func (h *HandState) getPlayersState(game *Game) map[uint32]*HandPlayerState {
 	return handPlayerState
 }
 
-func (h *HandState) getBlindPos(game *Game) (uint32, uint32) {
+func (h *HandState) getBlindPos(gameState *GameState) (uint32, uint32) {
 
 	buttonSeat := uint32(h.GetButtonPos())
-	smallBlindPos := h.getNextActivePlayer(game, buttonSeat)
-	bigBlindPos := h.getNextActivePlayer(game, smallBlindPos)
+	smallBlindPos := h.getNextActivePlayer(gameState, buttonSeat)
+	bigBlindPos := h.getNextActivePlayer(gameState, smallBlindPos)
 
 	if smallBlindPos == 0 || bigBlindPos == 0 {
 		// TODO: handle not enough players condition
@@ -123,10 +122,10 @@ func (h *HandState) getBlindPos(game *Game) (uint32, uint32) {
 	return uint32(smallBlindPos), uint32(bigBlindPos)
 }
 
-func (h *HandState) getPlayersCards(g *Game, deck *poker.Deck) map[uint32][]byte {
+func (h *HandState) getPlayersCards(gameState *GameState, deck *poker.Deck) map[uint32][]byte {
 	//playerState := g.state.GetPlayersState()
 	noOfCards := 2
-	switch g.state.GetGameType() {
+	switch gameState.GetGameType() {
 	case GameType_HOLDEM:
 		noOfCards = 2
 	case GameType_PLO:
@@ -136,23 +135,25 @@ func (h *HandState) getPlayersCards(g *Game, deck *poker.Deck) map[uint32][]byte
 	}
 
 	playerCards := make(map[uint32][]byte)
-	for _, playerID := range g.state.GetPlayersInSeats() {
-		playerCards[playerID] = make([]byte, 0, 4)
+	for _, playerID := range gameState.GetPlayersInSeats() {
+		if playerID != 0 {
+			playerCards[playerID] = make([]byte, 0, 4)
+		}
 	}
 
 	for i := 0; i < noOfCards; i++ {
-		seatNo := g.state.ButtonPos
+		seatNo := gameState.ButtonPos
 		for {
-			seatNo = h.getNextActivePlayer(g, seatNo)
-			playerID := g.state.GetPlayersInSeats()[seatNo-1]
+			seatNo = h.getNextActivePlayer(gameState, seatNo)
+			playerID := gameState.GetPlayersInSeats()[seatNo-1]
 			card := deck.Draw(1)
 			playerCards[playerID] = append(playerCards[playerID], card[0].GetByte())
-			if seatNo == g.state.ButtonPos {
+			if seatNo == gameState.ButtonPos {
 				// next round of cards
 				break
 			}
 		}
-		for j := uint32(1); j <= g.state.MaxSeats; j++ {
+		for j := uint32(1); j <= gameState.MaxSeats; j++ {
 
 		}
 	}
@@ -160,9 +161,9 @@ func (h *HandState) getPlayersCards(g *Game, deck *poker.Deck) map[uint32][]byte
 	return playerCards
 }
 
-func (h *HandState) moveButton(g *Game) uint32 {
-	seatNo := uint32(g.state.GetButtonPos())
-	newButtonPos := h.getNextActivePlayer(g, seatNo)
+func (h *HandState) moveButton(gameState *GameState) uint32 {
+	seatNo := uint32(gameState.GetButtonPos())
+	newButtonPos := h.getNextActivePlayer(gameState, seatNo)
 	if newButtonPos == 0 {
 		// TODO: return proper error code
 		panic("Not enough players")
@@ -174,16 +175,16 @@ func (h *HandState) moveButton(g *Game) uint32 {
 This helper method returns the next active player from the specified seat number.
 It is a useful function to determine moving button, blinds, next action
 **/
-func (h *HandState) getNextActivePlayer(g *Game, seatNo uint32) uint32 {
+func (h *HandState) getNextActivePlayer(gameState *GameState, seatNo uint32) uint32 {
 	nextSeat := uint32(0)
 	var j uint32
-	for j = 1; j <= g.state.MaxSeats; j++ {
+	for j = 1; j <= gameState.MaxSeats; j++ {
 		seatNo++
-		if seatNo > g.state.MaxSeats {
+		if seatNo > gameState.MaxSeats {
 			seatNo = 1
 		}
 
-		playerID := g.state.GetPlayersInSeats()[seatNo-1]
+		playerID := gameState.GetPlayersInSeats()[seatNo-1]
 		// check to see whether the player is playing or sitting out
 		if playerID == 0 {
 			continue
@@ -202,23 +203,23 @@ func (h *HandState) getNextActivePlayer(g *Game, seatNo uint32) uint32 {
 	return nextSeat
 }
 
-func (h *HandState) actionReceived(g *Game, action *SeatAction) error {
+func (h *HandState) actionReceived(gameState *GameState, action *SeatAction) error {
 	if h.NextSeatAction != nil {
 		if action.SeatNo != h.NextSeatAction.SeatNo {
 			handLogger.Error().
-				Uint32("game", g.state.GetGameNum()).
-				Uint32("hand", g.state.GetHandNum()).
-				Msg(fmt.Sprintf("Invalid seat %d made action. Ignored. The next valid action seat is: %d", action.SeatNo, h.NextActionSeat))
+				Uint32("game", gameState.GetGameNum()).
+				Uint32("hand", gameState.GetHandNum()).
+				Msg(fmt.Sprintf("Invalid seat %d made action. Ignored. The next valid action seat is: %d", action.SeatNo, h.NextSeatAction.SeatNo))
 		}
 	}
 
 	// get player ID from the seat
-	playerID := g.state.GetPlayersInSeats()[action.SeatNo-1]
+	playerID := gameState.GetPlayersInSeats()[action.SeatNo-1]
 	if playerID == 0 {
 		// something wrong
 		handLogger.Error().
-			Uint32("game", g.state.GetGameNum()).
-			Uint32("hand", g.state.GetHandNum()).
+			Uint32("game", gameState.GetGameNum()).
+			Uint32("hand", gameState.GetHandNum()).
 			Uint32("seat", action.SeatNo).
 			Msg(fmt.Sprintf("Invalid seat %d. PlayerID is 0", action.SeatNo))
 	}
@@ -259,8 +260,8 @@ func (h *HandState) actionReceived(g *Game, action *SeatAction) error {
 			if action.Amount < h.GetCurrentRaise() {
 				// invalid
 				handLogger.Error().
-					Uint32("game", g.state.GetGameNum()).
-					Uint32("hand", g.state.GetHandNum()).
+					Uint32("game", gameState.GetGameNum()).
+					Uint32("hand", gameState.GetHandNum()).
 					Uint32("seat", action.SeatNo).
 					Msg(fmt.Sprintf("Invalid raise %f. Current bet: %f", action.Amount, h.GetCurrentRaise()))
 			}
@@ -275,7 +276,7 @@ func (h *HandState) actionReceived(g *Game, action *SeatAction) error {
 		log.Actions = append(log.Actions, action)
 		log.Pot = log.Pot + action.Amount
 
-		h.NextSeatAction = h.prepareNextAction(g, action)
+		h.NextSeatAction = h.prepareNextAction(gameState, action)
 	}
 	return nil
 }
@@ -289,9 +290,9 @@ func (h *HandState) getPlayerFromSeat(seatNo uint32) *HandPlayerState {
 	return playerState
 }
 
-func (h *HandState) prepareNextAction(g *Game, currentAction *SeatAction) *NextSeatAction {
+func (h *HandState) prepareNextAction(gameState *GameState, currentAction *SeatAction) *NextSeatAction {
 	// compute next action
-	actionSeat := h.getNextActivePlayer(g, currentAction.SeatNo)
+	actionSeat := h.getNextActivePlayer(gameState, currentAction.SeatNo)
 	playerState := h.getPlayerFromSeat(actionSeat)
 	if playerState == nil {
 		// something wrong
@@ -303,10 +304,10 @@ func (h *HandState) prepareNextAction(g *Game, currentAction *SeatAction) *NextS
 	if h.CurrentState == HandState_PREFLOP {
 		if currentAction.Action == ACTION_BB {
 			// the player can straddle, if he has enough money
-			straddleAmount := 2.0 * g.state.BigBlind
+			straddleAmount := 2.0 * gameState.BigBlind
 			if playerState.Balance >= straddleAmount {
 				availableActions = append(availableActions, ACTION_STRADDLE)
-				nextAction.StraddleAmount = g.state.BigBlind * 2.0
+				nextAction.StraddleAmount = gameState.BigBlind * 2.0
 			}
 		}
 	}
@@ -344,11 +345,11 @@ func (h *HandState) prepareNextAction(g *Game, currentAction *SeatAction) *NextS
 	return nextAction
 }
 
-func (n *NextSeatAction) PrettyPrint(h *HandState, g *Game) string {
+func (n *NextSeatAction) PrettyPrint(h *HandState, gameState *GameState, players map[uint32]string) string {
 	seatNo := n.SeatNo
 	playerState := h.getPlayerFromSeat(seatNo)
-	playerID := g.state.GetPlayersInSeats()[seatNo-1]
-	player, _ := g.players[playerID]
+	playerID := gameState.GetPlayersInSeats()[seatNo-1]
+	player, _ := players[playerID]
 	var b strings.Builder
 	b.Grow(32)
 	fmt.Fprintf(&b, " Next Action: {Seat No: %d, Player: %s, balance: %f}, ", seatNo, player, playerState.Balance)
@@ -372,7 +373,7 @@ func (n *NextSeatAction) PrettyPrint(h *HandState, g *Game) string {
 	return b.String()
 }
 
-func (h *HandState) PrintCurrentActionLog(g *Game) string {
+func (h *HandState) PrintCurrentActionLog(gameState *GameState, players map[uint32]string) string {
 	var log *SeatActionLog
 	var b strings.Builder
 	b.Grow(32)
@@ -392,13 +393,13 @@ func (h *HandState) PrintCurrentActionLog(g *Game) string {
 		fmt.Fprintf(&b, "River: \n")
 	}
 	for _, seatAction := range log.Actions {
-		fmt.Fprintf(&b, "%s\n", seatAction.Print(h, g))
+		fmt.Fprintf(&b, "%s\n", seatAction.Print(h, gameState, players))
 	}
 	fmt.Fprintf(&b, "Pot: %f\n", log.Pot)
 	return b.String()
 }
 
-func (a *SeatAction) Print(h *HandState, g *Game) string {
+func (a *SeatAction) Print(h *HandState, gameState *GameState, players map[uint32]string) string {
 	action := ""
 	switch a.Action {
 	case ACTION_FOLD:
@@ -419,8 +420,8 @@ func (a *SeatAction) Print(h *HandState, g *Game) string {
 
 	seatNo := a.SeatNo
 	//playerState := h.getPlayerFromSeat(seatNo)
-	playerID := g.state.GetPlayersInSeats()[seatNo-1]
-	player, _ := g.players[playerID]
+	playerID := gameState.GetPlayersInSeats()[seatNo-1]
+	player, _ := players[playerID]
 
 	if a.Action == ACTION_FOLD {
 		return fmt.Sprintf("%s   %s", player, action)

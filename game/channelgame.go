@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/rs/zerolog/log"
 )
