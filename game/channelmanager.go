@@ -41,7 +41,7 @@ func (gm *GameManager) gameEnded(game *ChannelGame) {
 	delete(gm.activeGames, game.gameID)
 }
 
-func (gm *GameManager) JoinGame(gameNum uint32, player *ChannelPlayer) error {
+func (gm *GameManager) JoinGame(gameNum uint32, player *ChannelPlayer, seatNo uint32) error {
 	clubID := uint32(1)
 	gameID := fmt.Sprintf("%d:%d", clubID, gameNum)
 	if _, ok := gm.activeGames[gameID]; !ok {
@@ -54,18 +54,16 @@ func (gm *GameManager) JoinGame(gameNum uint32, player *ChannelPlayer) error {
 		return fmt.Errorf("Game has enough players on the table")
 	}
 
-	// add the user waiting list
-	defer game.lock.Unlock()
-	game.lock.Lock()
-	joinMessage := GameJoinMessage{
-		PlayerID: player.playerID,
-		ClubID:   clubID,
+	// send a SIT message
+	joinMessage := GameSitMessage{
+		PlayerId: player.playerID,
+		ClubId:   clubID,
 		GameNum:  gameNum,
+		SeatNo: seatNo,
 	}
-	game.waitingPlayers = append(game.waitingPlayers, player)
+	//game.waitingPlayers = append(game.waitingPlayers, player)
 	messageData, _ := proto.Marshal(&joinMessage)
-	game.chManagement <- GameMessage{messageType: MessageJoin, playerID: player.playerID, messageProto: messageData}
-
-	go player.playGame(game.chGame, game.chManagement)
+	game.chManagement <- GameMessage{messageType: MessageSit, playerID: player.playerID, player: player, messageProto: messageData}
+	go player.playGame()
 	return nil
 }

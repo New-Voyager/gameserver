@@ -1,1 +1,3 @@
 game/gamestate.pb.go
+game/gamemessage.pb.go
+server

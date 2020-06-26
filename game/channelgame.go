@@ -21,6 +21,7 @@ type GameMessage struct {
 	gameNum      uint32
 	messageType  string
 	playerID     uint32 // 0 to all players
+	player 			 *ChannelPlayer
 	messageProto []byte
 }
 
@@ -29,6 +30,7 @@ const (
 	MessageGameStarted string = "GAME_STARTED"
 
 	MessageDeal string = "DEAL"
+	MessageSit string = "SIT"
 
 	MESSAGE_ACTION      string = "ACTION"
 	MESSAGE_NEXT_ACTION string = "NEXT_ACTION"
@@ -83,23 +85,26 @@ func (game *ChannelGame) handleGameMessage(message GameMessage) {
 }
 
 func (game *ChannelGame) handleManagementMessage(message GameMessage) {
-	channelGameLogger.Debug().
+	channelGameLogger.Info().
 		Uint32("club", game.clubID).
 		Uint32("game", game.gameNum).
-		Msg(fmt.Sprintf("Game message: %s", message.messageType))
+		Msg(fmt.Sprintf("Game message: %s. %v", message.messageType, message))
 	defer game.lock.Unlock()
 	game.lock.Lock()
-	if !game.running {
-		var player *ChannelPlayer
-		for len(game.waitingPlayers) > 0 {
-			player, game.waitingPlayers = game.waitingPlayers[0], game.waitingPlayers[1:]
-			game.activePlayers[player.playerID] = player
-			game.players[player.playerID] = player.playerName
-			if len(game.activePlayers) == 9 {
-				break
-			}
+	switch message.messageType {
+	case MessageSit:
+		game.activePlayers[message.playerID] = message.player
+		game.players[message.playerID] = message.player.playerName
+		if len(game.activePlayers) == 9 {
+			break
 		}
 	}
+
+	channelGameLogger.Info().
+		Uint32("club", game.clubID).
+		Uint32("game", game.gameNum).
+		Msg(fmt.Sprintf("Game message: %s. RETURN", message.messageType))
+
 }
 
 func runGame(game *ChannelGame) {
@@ -169,7 +174,7 @@ func (game *ChannelGame) startGame() {
 	game.gameManager.gameStatePersist.Save(game.clubID, game.gameNum, &gameState)
 	message := GameStartedMessage{ClubId: game.clubID, GameNum: game.gameNum}
 	messageData, _ := proto.Marshal(&message)
-	game.chManagement <- GameMessage{messageType: MessageJoin, playerID: 0, messageProto: messageData}
+	game.broadcastGameMessage(GameMessage{messageType: MessageGameStarted, playerID: 0, messageProto: messageData})
 }
 
 func (game *ChannelGame) dealNewHand() {
@@ -217,11 +222,16 @@ func (game *ChannelGame) dealNewHand() {
 		Uint32("game", game.gameNum).
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(&handState, gameState, game.players)))
-
 }
 
 func (game *ChannelGame) broadcastMessage(message GameMessage) {
 	for _, player := range game.activePlayers {
 		player.ch <- message
+	}
+}
+
+func (game *ChannelGame) broadcastGameMessage(message GameMessage) {
+	for _, player := range game.activePlayers {
+		player.chGameManagement <- message
 	}
 }

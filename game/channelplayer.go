@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/rs/zerolog/log"
@@ -20,6 +21,7 @@ type ChannelPlayer struct {
 	playerName string
 	playerID   uint32
 	ch         chan GameMessage
+	chGameManagement chan GameMessage
 }
 
 func NewPlayer(name string, playerID uint32) *ChannelPlayer {
@@ -27,6 +29,7 @@ func NewPlayer(name string, playerID uint32) *ChannelPlayer {
 		playerID:   playerID,
 		playerName: name,
 		ch:         make(chan GameMessage),
+		chGameManagement: make(chan GameMessage),
 	}
 
 	return &channelPlayer
@@ -57,20 +60,22 @@ func (c *ChannelPlayer) onCardsDealt(message GameMessage) {
 }
 
 func (c *ChannelPlayer) handleGameManagementMessage(message GameMessage) {
-	channePlayerLogger.Debug().
+	channePlayerLogger.Info().
 		Uint32("club", message.clubID).
 		Uint32("game", message.gameNum).
 		Msg(fmt.Sprintf("Message type: %s", message.messageType))
 }
 
-func (c *ChannelPlayer) playGame(gameChannel chan GameMessage, gameManagementChannel chan GameMessage) {
+func (c *ChannelPlayer) playGame() {
 	stopped := false
 	for !stopped {
 		select {
 		case message := <-c.ch:
 			c.handleGameMessage(message)
-		case message := <-gameManagementChannel:
+		case message := <-c.chGameManagement:
 			c.handleGameManagementMessage(message)
+		default:
+			time.Sleep(50*time.Millisecond)
 		}
 	}
 }
