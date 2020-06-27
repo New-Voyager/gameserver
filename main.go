@@ -4,8 +4,6 @@ import (
 	//"bufio"
 	"fmt"
 
-	proto "github.com/golang/protobuf/proto"
-
 	//"os"
 	"github.com/rs/zerolog"
 	//"voyager.com/server/internal"
@@ -133,35 +131,6 @@ func TestOmaha1() {
 	//result := hand.EvaulateHoldem()
 	//fmt.Printf("%s\n", hand.PrettyPrintResult())
 	//fmt.Printf("Result: \n%s", result.PrettyPrintResult())
-}
-
-var gamePersist = game.NewMemoryGameStateTracker()
-var handPersist = game.NewMemoryHandStateTracker()
-var gameObject, gameId = game.NewGame(1, gamePersist, handPersist)
-
-func TestNewGame() {
-	handState, _ := gameObject.DealNextHand()
-	nextSeatAction := handState.GetNextSeatAction()
-	//fmt.Printf("Handstate protobuf Size: %d HandState: %s\n", len(handStateProto), handState.PrettyPrint())
-	fmt.Printf("Hands: %s\n", handState.PrintTable(gameObject.GetPlayers()))
-	fmt.Printf("Current action log: %s", handState.PrintCurrentActionLog(gameObject.State(), gameObject.GetPlayers()))
-	fmt.Printf("%s\n", nextSeatAction.PrettyPrint(handState, gameObject.State(), gameObject.GetPlayers()))
-
-	action := game.SeatAction{
-		SeatNo: nextSeatAction.SeatNo,
-		Action: game.ACTION_CALL,
-		Amount: nextSeatAction.CallAmount,
-	}
-	// get next seat action
-	nextSeatAction, _ = gameObject.HandleAction(handState.HandNum, &action)
-	handState, _ = gameObject.LoadHand(handState.HandNum)
-	fmt.Printf("Current action log: %s", handState.PrintCurrentActionLog(gameObject.State(), gameObject.GetPlayers()))
-	fmt.Printf("%s\n", nextSeatAction.PrettyPrint(handState, gameObject.State(), gameObject.GetPlayers()))
-
-	handStateProto, _ := proto.Marshal(handState)
-	fmt.Printf("Handstate protobuf Size: %d \n", len(handStateProto))
-	//gameStateProto, err := proto.Marshal(handState)
-
 }
 
 func TestChannelGame() {
