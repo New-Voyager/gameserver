@@ -3,9 +3,9 @@ module voyager.com/server
 go 1.14
 
 require (
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/rs/zerolog v1.19.0
-	google.golang.org/protobuf v1.25.0
+	google.golang.org/protobuf v1.25.0 // indirect
 	voyager.com/server/game v0.0.0
 	voyager.com/server/internal v0.0.0
 	voyager.com/server/poker v0.0.0

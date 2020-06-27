@@ -126,28 +126,42 @@ func (c Card) GetByte() uint8 {
 	return b
 }
 
-func CardsToString(cards []byte) string {
+func CardToString(card interface{}) string {
+	switch card.(type) {
+	case Card:
+		c := card.(Card)
+		suit := int(c & 0xF)
+		rank := int((c >> 4) & 0xF)
+		return fmt.Sprintf("%s%s", string(strRanks[rank]), string(prettySuits[suit]))
+	case uint32:
+		c := card.(uint32)
+		suit := int(c & 0xF)
+		rank := int((c >> 4) & 0xF)
+		return fmt.Sprintf("%s%s", string(strRanks[rank]), string(prettySuits[suit]))
+	default:
+		return ""
+	}
+}
+
+func CardsToString(cards interface{}) string {
 	var b strings.Builder
 	b.Grow(32)
 	fmt.Fprintf(&b, "[")
-	for _, c := range cards {
-		suit := int(c & 0xF)
-		rank := int((c >> 4) & 0xF)
-		fmt.Fprintf(&b, " %s%s ", string(strRanks[rank]), string(prettySuits[suit]))
+	switch cards.(type) {
+	case []Card:
+		for _, c := range cards.([]Card) {
+			fmt.Fprintf(&b, " %s ", CardToString(c))
+		}
+	case []uint32:
+		for _, c := range cards.([]uint32) {
+			fmt.Fprintf(&b, " %s ", CardToString(c))
+		}
 	}
+
 	fmt.Fprintf(&b, "]")
 	return b.String()
 }
 
 func PrintCards(cards []Card) string {
-	var b strings.Builder
-	b.Grow(32)
-	fmt.Fprintf(&b, "[")
-	for _, c := range cards {
-		suit := int(c.Suit())
-		rank := c.Rank()
-		fmt.Fprintf(&b, " %s%s ", string(strRanks[rank]), string(prettySuits[suit]))
-	}
-	fmt.Fprintf(&b, "]")
-	return b.String()
+	return CardsToString(cards)
 }

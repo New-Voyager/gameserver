@@ -5,8 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/protobuf/proto"
+	"voyager.com/server/poker"
 )
 
 /**
@@ -232,9 +233,15 @@ func (game *Game) dealNewHand() {
 	// send the cards to each player
 	for _, player := range game.activePlayers {
 		playerCards := handState.PlayersCards[player.playerID]
-		message := HandDealCards{ClubId: game.clubID, GameNum: game.gameNum, HandNum: handState.HandNum, Cards: playerCards}
+		message := HandDealCards{ClubId: game.clubID, GameNum: game.gameNum, HandNum: handState.HandNum}
+		message.Cards = make([]uint32, len(playerCards))
+		for i, card := range playerCards {
+			message.Cards[i] = uint32(card)
+		}
+		message.CardsStr = poker.CardsToString(message.Cards)
+
 		messageData, _ := proto.Marshal(&message)
-		player.ch <- GameMessage{messageType: HandDeal, playerID: player.playerID, messageProto: messageData}
+		player.chHand <- HandMessage{messageType: HandDeal, playerID: player.playerID, messageProto: messageData}
 	}
 	time.Sleep(100 * time.Millisecond)
 	// print next action
@@ -245,14 +252,14 @@ func (game *Game) dealNewHand() {
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(&handState, gameState, game.players)))
 }
 
-func (game *Game) broadcastMessage(message GameMessage) {
+func (game *Game) broadcastMessage(message HandMessage) {
 	for _, player := range game.activePlayers {
-		player.ch <- message
+		player.chHand <- message
 	}
 }
 
 func (game *Game) broadcastGameMessage(message GameMessage) {
 	for _, player := range game.activePlayers {
-		player.chGameManagement <- message
+		player.chGame <- message
 	}
 }

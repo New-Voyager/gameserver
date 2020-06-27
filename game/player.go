@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/rs/zerolog/log"
-	"voyager.com/server/poker"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 /**
@@ -16,25 +16,26 @@ NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 var playerLogger = log.With().Str("logger_name", "game::player").Logger()
 
 type Player struct {
-	clubID           uint32
-	gameNum          uint32
-	playerName       string
-	playerID         uint32
-	ch               chan GameMessage
-	chGameManagement chan GameMessage
+	clubID     uint32
+	gameNum    uint32
+	playerName string
+	playerID   uint32
+	chGame     chan GameMessage
+	chHand     chan HandMessage
 }
 
 func NewPlayer(name string, playerID uint32) *Player {
 	channelPlayer := Player{
 		playerID:   playerID,
 		playerName: name,
-		ch:         make(chan GameMessage),
+		chGame:     make(chan GameMessage),
+		chHand:     make(chan HandMessage),
 	}
 
 	return &channelPlayer
 }
 
-func (c *Player) handleGameMessage(message GameMessage) {
+func (c *Player) handleHandMessage(message HandMessage) {
 	if message.messageType == HandDeal {
 		c.onCardsDealt(message)
 	} else {
@@ -45,20 +46,33 @@ func (c *Player) handleGameMessage(message GameMessage) {
 	}
 }
 
-func (c *Player) onCardsDealt(message GameMessage) {
+func (c *Player) onCardsDealt(message HandMessage) error {
 	// cards dealt, display the cards
 	cards := &HandDealCards{}
 	proto.Unmarshal(message.messageProto, cards)
-	cardsDisplay := poker.CardsToString(cards.Cards)
 	playerLogger.Info().
 		Uint32("club", cards.ClubId).
 		Uint32("game", cards.GameNum).
 		Uint32("hand", cards.HandNum).
 		Str("player", c.playerName).
-		Msg(fmt.Sprintf("Cards: %s", cardsDisplay))
+		Msg(fmt.Sprintf("Cards: %s", cards.CardsStr))
+
+	jsonb, err := protojson.Marshal(cards)
+	if err != nil {
+		return err
+	}
+
+	playerLogger.Info().
+		Uint32("club", cards.ClubId).
+		Uint32("game", cards.GameNum).
+		Uint32("hand", cards.HandNum).
+		Str("player", c.playerName).
+		Msg(fmt.Sprintf("Json: %s", string(jsonb)))
+
+	return nil
 }
 
-func (c *Player) handleGameManagementMessage(message GameMessage) {
+func (c *Player) handleGameMessage(message GameMessage) {
 	playerLogger.Info().
 		Uint32("club", message.clubID).
 		Uint32("game", message.gameNum).
@@ -69,11 +83,12 @@ func (c *Player) playGame() {
 	stopped := false
 	for !stopped {
 		select {
-		case message := <-c.ch:
+		case message := <-c.chHand:
+			c.handleHandMessage(message)
+		case message := <-c.chGame:
 			c.handleGameMessage(message)
-		case message := <-c.chGameManagement:
-			c.handleGameManagementMessage(message)
 		default:
+			// yield
 			time.Sleep(50 * time.Millisecond)
 		}
 	}

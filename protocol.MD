@@ -2,7 +2,7 @@ The game server holds multiple games. Each game is represented by a Game object.
 is represented by a player object. The game uses duplex communication to run the game. All
 the game rules/hand evalualtion, moving the actions are done by the Game object.
 
-Management APIs
+Management messages
 Buy in request
 1. Buy-in request (BUYIN), P->G
 2. Buy-in request coming in (BUYIN_REQUESTED) P<-G (owner)
@@ -51,7 +51,7 @@ The player will not leave the table yet. A button will show to cancel leave requ
 3. Cancel leave request (CANCEL_LEAVE_REQUEST)
 4. Acknowledge leave requst is cancelled.
 
-Game APIs
+Hand messages
 GS -> Players
 1. New Hand
 2. ActionTaken (Player, Action, Amount)
@@ -80,5 +80,3 @@ Chat texts:
 Fold its personal
 You think I am scared
 You are bluffing
-
-There are two types
