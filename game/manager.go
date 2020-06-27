@@ -6,26 +6,26 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-type GameManager struct {
+type Manager struct {
 	gameCount        uint32
 	gameStatePersist PersistGameState
 	handStatePersist PersistHandState
-	activeGames      map[string]*ChannelGame
+	activeGames      map[string]*Game
 }
 
-func NewGameManager() *GameManager {
+func NewGameManager() *Manager {
 	var gamePersist = NewMemoryGameStateTracker()
 	var handPersist = NewMemoryHandStateTracker()
 
-	return &GameManager{
+	return &Manager{
 		gameStatePersist: gamePersist,
 		handStatePersist: handPersist,
-		activeGames:      make(map[string]*ChannelGame),
+		activeGames:      make(map[string]*Game),
 		gameCount:        0,
 	}
 }
 
-func (gm *GameManager) StartGame(gameType GameType, title string, minPlayers int) uint32 {
+func (gm *Manager) StartGame(gameType GameType, title string, minPlayers int) uint32 {
 	// club id is hard code for now
 	clubID := uint32(1)
 	gm.gameCount++
@@ -37,11 +37,11 @@ func (gm *GameManager) StartGame(gameType GameType, title string, minPlayers int
 	return gm.gameCount
 }
 
-func (gm *GameManager) gameEnded(game *ChannelGame) {
+func (gm *Manager) gameEnded(game *Game) {
 	delete(gm.activeGames, game.gameID)
 }
 
-func (gm *GameManager) JoinGame(gameNum uint32, player *ChannelPlayer, seatNo uint32) error {
+func (gm *Manager) JoinGame(gameNum uint32, player *Player, seatNo uint32) error {
 	clubID := uint32(1)
 	gameID := fmt.Sprintf("%d:%d", clubID, gameNum)
 	if _, ok := gm.activeGames[gameID]; !ok {
@@ -59,11 +59,11 @@ func (gm *GameManager) JoinGame(gameNum uint32, player *ChannelPlayer, seatNo ui
 		PlayerId: player.playerID,
 		ClubId:   clubID,
 		GameNum:  gameNum,
-		SeatNo: seatNo,
+		SeatNo:   seatNo,
 	}
 	//game.waitingPlayers = append(game.waitingPlayers, player)
 	messageData, _ := proto.Marshal(&joinMessage)
-	game.chManagement <- GameMessage{messageType: MessageSit, playerID: player.playerID, player: player, messageProto: messageData}
+	game.chGame <- GameMessage{messageType: PlayerTookSeat, playerID: player.playerID, player: player, messageProto: messageData}
 	go player.playGame()
 	return nil
 }
