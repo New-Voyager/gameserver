@@ -263,3 +263,11 @@ func (game *Game) broadcastGameMessage(message GameMessage) {
 		player.chGame <- message
 	}
 }
+
+func (game *Game) sendGameMessage(message GameMessage) {
+	game.chGame <- message
+}
+
+func (game *Game) sendHandMessage(message HandMessage) {
+	game.chHand <- message
+}

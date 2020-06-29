@@ -21,10 +21,3 @@ message GameStartedMessage {
   // add players in the seat
 }
 
-message HandDealCards {
-  uint32 club_id = 1;
-  uint32 game_num = 2;
-  uint32 hand_num = 3;
-  repeated uint32 cards = 4;  // I used int instead of byte is to display cards in json
-  string cardsStr = 5; // string representation of the cards for logging
-}
