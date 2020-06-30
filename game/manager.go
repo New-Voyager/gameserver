@@ -55,7 +55,7 @@ func (gm *Manager) JoinGame(gameNum uint32, player *Player, seatNo uint32) error
 	}
 
 	// send a SIT message
-	joinMessage := GameSitMessage{
+	takeSeatMessage := GameSitMessage{
 		PlayerId: player.playerID,
 		ClubId:   clubID,
 		GameNum:  gameNum,
@@ -67,7 +67,7 @@ func (gm *Manager) JoinGame(gameNum uint32, player *Player, seatNo uint32) error
 	player.game = game
 
 	//game.waitingPlayers = append(game.waitingPlayers, player)
-	messageData, _ := proto.Marshal(&joinMessage)
+	messageData, _ := proto.Marshal(&takeSeatMessage)
 	game.chGame <- GameMessage{messageType: PlayerTookSeat, playerID: player.playerID, player: player, messageProto: messageData}
 	go player.playGame()
 	return nil

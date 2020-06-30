@@ -133,6 +133,40 @@ func TestOmaha1() {
 	//fmt.Printf("Result: \n%s", result.PrettyPrintResult())
 }
 
+var testGame *game.TestGame
+
 func TestChannelGame() {
-	game.RunTestGame()
+	//game.RunTestGame()
+	players := make([]game.TestPlayerInfo, 5)
+	players[0] = game.TestPlayerInfo{
+		Name:   "steve",
+		ID:     1,
+		SeatNo: 2,
+	}
+	players[1] = game.TestPlayerInfo{
+		Name:   "rob",
+		ID:     2,
+		SeatNo: 3,
+	}
+	players[2] = game.TestPlayerInfo{
+		Name:   "senthil",
+		ID:     3,
+		SeatNo: 5,
+	}
+
+	players[3] = game.TestPlayerInfo{
+		Name:   "thillai",
+		ID:     4,
+		SeatNo: 7,
+	}
+
+	players[4] = game.TestPlayerInfo{
+		Name:   "avuds",
+		ID:     5,
+		SeatNo: 9,
+	}
+
+	testGame = game.NewGame(game.GameType_HOLDEM, "Testing", players)
+	testGame.Start()
+	select {}
 }
