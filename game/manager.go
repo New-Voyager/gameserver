@@ -55,14 +55,19 @@ func (gm *Manager) JoinGame(gameNum uint32, player *Player, seatNo uint32) error
 	}
 
 	// send a SIT message
-	joinMessage := GameSitMessage{
+	takeSeatMessage := GameSitMessage{
 		PlayerId: player.playerID,
 		ClubId:   clubID,
 		GameNum:  gameNum,
 		SeatNo:   seatNo,
 	}
+
+	// it looks like circular references are not a problem in golang
+	// https://www.reddit.com/r/golang/comments/8jaqyw/circular_references/
+	player.game = game
+
 	//game.waitingPlayers = append(game.waitingPlayers, player)
-	messageData, _ := proto.Marshal(&joinMessage)
+	messageData, _ := proto.Marshal(&takeSeatMessage)
 	game.chGame <- GameMessage{messageType: PlayerTookSeat, playerID: player.playerID, player: player, messageProto: messageData}
 	go player.playGame()
 	return nil

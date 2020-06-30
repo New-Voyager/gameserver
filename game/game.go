@@ -5,8 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/protobuf/proto"
+	"voyager.com/server/poker"
 )
 
 /**
@@ -93,6 +94,7 @@ func NewPokerGame(gameManager *Manager, gameID string, gameType GameType,
 	game.waitingPlayers = make([]*Player, 0)
 	game.minPlayers = minPlayers
 	game.players = make(map[uint32]string)
+	game.initialize()
 	return &game
 }
 
@@ -101,31 +103,6 @@ func (game *Game) handleHandMessage(message HandMessage) {
 		Uint32("club", game.clubID).
 		Uint32("game", game.gameNum).
 		Msg(fmt.Sprintf("Hand message: %s", message.messageType))
-}
-
-func (game *Game) handleGameMessage(message GameMessage) {
-	channelGameLogger.Info().
-		Uint32("club", game.clubID).
-		Uint32("game", game.gameNum).
-		Msg(fmt.Sprintf("Game message: %s. %v", message.messageType, message))
-
-	defer game.lock.Unlock()
-	game.lock.Lock()
-
-	switch message.messageType {
-	case PlayerTookSeat:
-		game.activePlayers[message.playerID] = message.player
-		game.players[message.playerID] = message.player.playerName
-		if len(game.activePlayers) == 9 {
-			break
-		}
-	}
-
-	channelGameLogger.Info().
-		Uint32("club", game.clubID).
-		Uint32("game", game.gameNum).
-		Msg(fmt.Sprintf("Game message: %s. RETURN", message.messageType))
-
 }
 
 func runGame(game *Game) {
@@ -160,21 +137,9 @@ func runGame(game *Game) {
 	game.manager.gameEnded(game)
 }
 
-func (game *Game) startGame() {
-	channelGameLogger.Info().
-		Uint32("club", game.clubID).
-		Uint32("game", game.gameNum).
-		Msg(fmt.Sprintf("Game started. Good luck every one. Players in the table: %d. Waiting list players: %d",
-			len(game.activePlayers), len(game.waitingPlayers)))
-
+func (game *Game) initialize() error {
 	playersState := make(map[uint32]*PlayerState)
 	playersInSeats := make([]uint32, 9)
-	i := 0
-	for _, player := range game.activePlayers {
-		playersInSeats[i] = player.playerID
-		playersState[player.playerID] = &PlayerState{BuyIn: 100, CurrentBalance: 100, Status: PlayerState_PLAYING}
-		i++
-	}
 
 	// initialize game state
 	gameState := GameState{
@@ -184,27 +149,57 @@ func (game *Game) startGame() {
 		PlayersState:          playersState,
 		UtgStraddleAllowed:    false,
 		ButtonStraddleAllowed: false,
-		Status:                GameState_RUNNING,
-		GameType:              GameType_HOLDEM,
+		Status:                GameState_INITIALIZED,
+		GameType:              game.gameType,
 		HandNum:               0,
-		ButtonPos:             1,
+		ButtonPos:             0,
 		SmallBlind:            1.0,
 		BigBlind:              2.0,
 		MaxSeats:              9,
 	}
-	game.manager.gameStatePersist.Save(game.clubID, game.gameNum, &gameState)
+	err := game.saveState(&gameState)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (game *Game) startGame() error {
+	gameState, err := game.loadState()
+	if err != nil {
+		return err
+	}
+
+	channelGameLogger.Info().
+		Uint32("club", game.clubID).
+		Uint32("game", game.gameNum).
+		Msg(fmt.Sprintf("Game started. Good luck every one. Players in the table: %d. Waiting list players: %d",
+			len(game.activePlayers), len(game.waitingPlayers)))
+
+	// assign the button pos to the first guy in the list
+	playersInSeat := gameState.PlayersInSeats
+	for seatNoIdx, playerID := range playersInSeat {
+		if playerID != 0 {
+			gameState.ButtonPos = uint32(seatNoIdx + 1)
+			break
+		}
+	}
+	gameState.Status = GameState_RUNNING
+	err = game.saveState(gameState)
+	if err != nil {
+		return err
+	}
+
 	message := GameStartedMessage{ClubId: game.clubID, GameNum: game.gameNum}
 	messageData, _ := proto.Marshal(&message)
 	game.broadcastGameMessage(GameMessage{messageType: GameStarted, playerID: 0, messageProto: messageData})
+	return nil
 }
 
-func (game *Game) dealNewHand() {
-	gameState, err := game.manager.gameStatePersist.Load(game.clubID, game.gameNum)
+func (game *Game) dealNewHand() error {
+	gameState, err := game.loadState()
 	if err != nil {
-		channelGameLogger.Error().
-			Uint32("club", game.clubID).
-			Uint32("game", game.gameNum).
-			Msg(fmt.Sprintf("Game %d is not found", game.gameNum))
+		return err
 	}
 
 	gameState.HandNum++
@@ -232,9 +227,15 @@ func (game *Game) dealNewHand() {
 	// send the cards to each player
 	for _, player := range game.activePlayers {
 		playerCards := handState.PlayersCards[player.playerID]
-		message := HandDealCards{ClubId: game.clubID, GameNum: game.gameNum, HandNum: handState.HandNum, Cards: playerCards}
+		message := HandDealCards{ClubId: game.clubID, GameNum: game.gameNum, HandNum: handState.HandNum}
+		message.Cards = make([]uint32, len(playerCards))
+		for i, card := range playerCards {
+			message.Cards[i] = uint32(card)
+		}
+		message.CardsStr = poker.CardsToString(message.Cards)
+
 		messageData, _ := proto.Marshal(&message)
-		player.ch <- GameMessage{messageType: HandDeal, playerID: player.playerID, messageProto: messageData}
+		player.chHand <- HandMessage{messageType: HandDeal, playerID: player.playerID, messageProto: messageData}
 	}
 	time.Sleep(100 * time.Millisecond)
 	// print next action
@@ -243,16 +244,44 @@ func (game *Game) dealNewHand() {
 		Uint32("game", game.gameNum).
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(&handState, gameState, game.players)))
+
+	return nil
 }
 
-func (game *Game) broadcastMessage(message GameMessage) {
+func (game *Game) loadState() (*GameState, error) {
+	gameState, err := game.manager.gameStatePersist.Load(game.clubID, game.gameNum)
+	if err != nil {
+		channelGameLogger.Error().
+			Uint32("club", game.clubID).
+			Uint32("game", game.gameNum).
+			Msg(fmt.Sprintf("Error loading game state.  Error: %v", err))
+		return nil, err
+	}
+
+	return gameState, err
+}
+
+func (game *Game) saveState(gameState *GameState) error {
+	err := game.manager.gameStatePersist.Save(game.clubID, game.gameNum, gameState)
+	return err
+}
+
+func (game *Game) broadcastMessage(message HandMessage) {
 	for _, player := range game.activePlayers {
-		player.ch <- message
+		player.chHand <- message
 	}
 }
 
 func (game *Game) broadcastGameMessage(message GameMessage) {
 	for _, player := range game.activePlayers {
-		player.chGameManagement <- message
+		player.chGame <- message
 	}
+}
+
+func (game *Game) sendGameMessage(message GameMessage) {
+	game.chGame <- message
+}
+
+func (game *Game) sendHandMessage(message HandMessage) {
+	game.chHand <- message
 }

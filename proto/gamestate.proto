@@ -41,10 +41,11 @@ message HandPlayerState {
 message GameState {
 
   enum Status {
-    RUNNING = 0;
-    PAUSED = 1;
-    WAITING_FOR_PLAYERS = 2;
-    ENDED = 3;
+    INITIALIZED = 0;
+    RUNNING = 1;
+    PAUSED = 2;
+    WAITING_FOR_PLAYERS = 3;
+    ENDED = 4;
   }
 
 

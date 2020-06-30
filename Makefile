@@ -6,6 +6,7 @@ compile-proto: install-protoc
 	go get -u github.com/golang/protobuf/protoc-gen-go
 	protoc -I=./proto --go_out=./game ./proto/gamestate.proto
 	protoc -I=./proto --go_out=./game ./proto/gamemessage.proto
+	protoc -I=./proto --go_out=./game ./proto/handmessage.proto
 
 .PHONY: build
 build: compile-proto
