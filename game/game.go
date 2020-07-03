@@ -47,17 +47,16 @@ const (
 )
 
 type Game struct {
-	gameID   string
-	clubID   uint32
-	gameNum  uint32
-	manager  *Manager
-	gameType GameType
-	title    string
-	end      chan bool
-	running  bool
-	chHand   chan []byte
-	chGame   chan []byte
-	//playersAtTable map[uint32]uint32
+	gameID         string
+	clubID         uint32
+	gameNum        uint32
+	manager        *Manager
+	gameType       GameType
+	title          string
+	end            chan bool
+	running        bool
+	chHand         chan []byte
+	chGame         chan []byte
 	allPlayers     map[uint32]*Player // players at the table and the players that are viewing
 	players        map[uint32]string
 	waitingPlayers []uint32

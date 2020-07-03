@@ -1,0 +1,131 @@
+---
+# This file is a game script to setup a poker game and simulate
+# player actions and verify the outcomes are expected
+# The test driver is able to setup the deck, player cards, betting sequences
+# The actionlog/result at the end of hand conclusion is verified with the result
+# specified in the game script.
+
+# Game script contains the following sections.
+# 1. Setup the game table (config section)
+#     type, min/max players, min/max buyins, sb/bb
+#    Players who are either playing, observing or in the game queue.
+#
+#   Game message CurrentGameStatus will be used to collect the current state
+#   and verified against the configuration
+#
+# 2. Sit players
+#     Players taking a seat in the table with their buy-ins    
+#     The app UI should do validation whether the player has enough buy-ins
+#     The game server should not let the player to sit in the table.
+#     This step will assign a button position
+#
+# 3. Now we are ready to deal hands
+#    Each hand should be verified with 
+#
+# Testdriver takes this game script file as input, and setups the game.
+# Testdriver will also join the game as a viewer and receive the game and hand messages
+# Testdriver verifies the results as the game simulation progresses.
+---
+config:
+  # TestGame player initialization
+  game:
+    type: HOLDEM
+    max-players: 9
+    min-players: 3
+    min-buyin: 160.0
+    max-buyin: 440.0
+    auto-start: true
+    auto-approve: true
+    title: 3 players playing
+    sb: 1.0
+    bb: 2.0
+
+  # players in the game
+  players:
+    - name: player1
+      id: 1
+    - name: player2
+      id: 2
+    - name: player3
+      id: 3
+
+# after the table is initialized
+# the players will sit in the table
+# test driver will validate the sitting on table worked correctly
+# once players are sat, the seat numbers are used game 
+
+take-seat:
+  button-pos: 1
+  seats:
+    -
+      seat: 1 
+      player: 1
+      buy-in: 100
+    -
+      seat: 5 
+      player: 2
+      buy-in: 100
+    -
+      seat: 8 
+      player: 2
+      buy-in: 100
+  wait: 1
+
+# hands use only the seat numbers for validation/actions
+hands:
+  -
+    num: 1
+    setup:
+      button-pos: 1
+      flop: ["Ac", "Ad", "2c"]
+      turn: Td
+      river: 3s
+      player-cards:
+        # note we are using the seat number, not player ids
+        1: ["Kh", "Qd"]
+        5: ["3s", "7s"]
+        8: ["9h", "2s"]
+      verify:
+        # the hand setup verification is sb, bb, next-action seat, hand current state
+        # player in the table' stack 
+        sb: 5
+        bb: 8
+        next-action: 1
+        state: PREFLOP
+    
+    # simulate pre-flop action
+    # while running actions, the test driver will verify
+    # the next action can be performed by the seat 
+    preflop-action:
+      actions:
+        -
+          seat: 1
+          action: FOLD
+        - 
+          seat: 5
+          action: FOLD
+
+      # after all the actions are sent to the game
+      # we need to verify the conclusion of the actions
+      # conclusion can be a game result or moving to flop
+      verify:
+        state: RESULT
+
+    result:
+      winners:
+        -
+          seat: 8
+          receive: 3.0
+      action-ended: PREFLOP
+      
+      # balance indicates the player balance after the hand
+      balance:
+        -
+          seat: 1
+          balance: 150
+        -
+          player: 5
+          balance: 99
+        -
+          player: 8
+          balance: 101

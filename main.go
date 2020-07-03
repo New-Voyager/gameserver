@@ -9,6 +9,7 @@ import (
 	//"voyager.com/server/internal"
 	"voyager.com/server/game"
 	"voyager.com/server/poker"
+	"voyager.com/server/test"
 )
 
 func main() {
@@ -133,7 +134,7 @@ func TestOmaha1() {
 	//fmt.Printf("Result: \n%s", result.PrettyPrintResult())
 }
 
-var testGame *game.TestGame
+var testGame *test.TestGame
 
 func TestChannelGame() {
 
@@ -145,36 +146,42 @@ func TestChannelGame() {
 		}
 	*/
 
-	players := make([]game.TestPlayerInfo, 5)
-	players[0] = game.TestPlayerInfo{
+	players := make([]test.TestPlayerInfo, 5)
+	players[0] = test.TestPlayerInfo{
 		Name:   "steve",
 		ID:     1,
 		SeatNo: 2,
+		BuyIn:  100.0,
 	}
-	players[1] = game.TestPlayerInfo{
+	players[1] = test.TestPlayerInfo{
 		Name:   "rob",
 		ID:     2,
 		SeatNo: 3,
+		BuyIn:  100.0,
 	}
-	players[2] = game.TestPlayerInfo{
+	players[2] = test.TestPlayerInfo{
 		Name:   "senthil",
 		ID:     3,
 		SeatNo: 5,
+		BuyIn:  100.0,
 	}
 
-	players[3] = game.TestPlayerInfo{
+	players[3] = test.TestPlayerInfo{
 		Name:   "thillai",
 		ID:     4,
 		SeatNo: 7,
+		BuyIn:  100.0,
 	}
 
-	players[4] = game.TestPlayerInfo{
+	players[4] = test.TestPlayerInfo{
 		Name:   "avuds",
 		ID:     5,
 		SeatNo: 9,
+		BuyIn:  100.0,
 	}
 
-	testGame = game.NewGame(game.GameType_HOLDEM, "Testing", players)
+	clubID := uint32(1)
+	testGame = test.NewGame(clubID, game.GameType_HOLDEM, "Testing", players)
 	testGame.Start()
 	select {}
 }
