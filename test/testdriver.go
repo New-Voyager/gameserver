@@ -1,14 +1,15 @@
-package game
+package test
 
 import (
 	"fmt"
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"voyager.com/server/game"
 )
 
 //import "time"
-var testGameLogger = log.With().Str("logger_name", "game::testgame").Logger()
+var testGameLogger = log.With().Str("logger_name", "test::testgame").Logger()
 
 type TestPlayerInfo struct {
 	Name   string
@@ -17,22 +18,23 @@ type TestPlayerInfo struct {
 	BuyIn  float32
 }
 
-var gameManager = NewGameManager()
+var gameManager = game.NewGameManager()
 
 // TestGame is a game simulation object to drive the game from client perspective
 // this is used for testing the game, hands, winners, split pots
 type TestGame struct {
+	clubID					 uint32
 	gameNum          uint32
 	players          []*TestPlayer
 	nextActionPlayer *TestPlayer
 }
 
-func NewGame(gameType GameType, name string, players []TestPlayerInfo) *TestGame {
+func NewGame(clubID uint32, gameType game.GameType, name string, players []TestPlayerInfo) *TestGame {
 	gamePlayers := make([]*TestPlayer, len(players))
-	gameNum := gameManager.StartGame(gameType, name, len(players))
+	gameNum := gameManager.StartGame(clubID, gameType, name, len(players))
 	for i, playerInfo := range players {
 		testPlayer := NewTestPlayer(playerInfo)
-		player := NewPlayer(playerInfo.Name, playerInfo.ID, testPlayer)
+		player := game.NewPlayer(clubID, gameNum, playerInfo.Name, playerInfo.ID, testPlayer)
 		testPlayer.setPlayer(player)
 		gamePlayers[i] = testPlayer
 	}
@@ -40,6 +42,7 @@ func NewGame(gameType GameType, name string, players []TestPlayerInfo) *TestGame
 	// wait for the cards to be dealt
 	time.Sleep(500 * time.Millisecond)
 	return &TestGame{
+		clubID: clubID,
 		gameNum: gameNum,
 		players: gamePlayers,
 	}
@@ -47,7 +50,11 @@ func NewGame(gameType GameType, name string, players []TestPlayerInfo) *TestGame
 
 func (t *TestGame) Start() {
 	for _, testPlayer := range t.players {
-		gameManager.SitAtTable(t.gameNum, testPlayer.player, testPlayer.playerInfo.SeatNo, testPlayer.playerInfo.BuyIn)
+		gameManager.SitAtTable(t.clubID, 
+								t.gameNum, 
+								testPlayer.player, 
+								testPlayer.playerInfo.SeatNo, 
+								testPlayer.playerInfo.BuyIn)
 	}
 
 	time.Sleep(500 * time.Millisecond)
@@ -57,48 +64,35 @@ func (t *TestGame) Start() {
 // it also sends messages to game and hand via player object
 type TestPlayer struct {
 	playerInfo TestPlayerInfo
-
-	player *Player
-	// channel to send messages to game
-	chSendGame chan []byte
-	// channel to send messages to hand
-	chSendHand chan []byte
+	player *game.Player
 }
 
 func NewTestPlayer(playerInfo TestPlayerInfo) *TestPlayer {
 	return &TestPlayer{
 		playerInfo: playerInfo,
-		chSendGame: make(chan []byte),
-		chSendHand: make(chan []byte),
 	}
 }
 
-func (t *TestPlayer) setPlayer(player *Player) {
+func (t *TestPlayer) setPlayer(player *game.Player) {
 	t.player = player
 }
 
-func (t *TestPlayer) onHandMessage(jsonb []byte) {
+func (t *TestPlayer) HandMessageFromGame(jsonb []byte) {
 	testGameLogger.Info().
-		Uint32("club", t.player.clubID).
-		Uint32("game", t.player.gameNum).
-		Uint32("playerid", t.player.playerID).
-		Str("player", t.player.playerName).
+		Uint32("club", t.player.ClubID).
+		Uint32("game", t.player.GameNum).
+		Uint32("playerid", t.player.PlayerID).
+		Uint32("seatNo", t.player.SeatNo).
+		Str("player", t.player.PlayerName).
 		Msg(fmt.Sprintf("Json: %s", string(jsonb)))
 }
 
-func (t *TestPlayer) onGameMessage(jsonb []byte) {
+func (t *TestPlayer) GameMessageFromGame(jsonb []byte) {
 	testGameLogger.Info().
-		Uint32("club", t.player.clubID).
-		Uint32("game", t.player.gameNum).
-		Uint32("playerid", t.player.playerID).
-		Str("player", t.player.playerName).
+		Uint32("club", t.player.ClubID).
+		Uint32("game", t.player.GameNum).
+		Uint32("playerid", t.player.PlayerID).
+		Uint32("seatNo", t.player.SeatNo).
+		Str("player", t.player.PlayerName).
 		Msg(fmt.Sprintf("Json: %s", string(jsonb)))
-}
-
-func (t *TestPlayer) getHandChannel() chan []byte {
-	return t.chSendHand
-}
-
-func (t *TestPlayer) getGameChannel() chan []byte {
-	return t.chSendGame
 }

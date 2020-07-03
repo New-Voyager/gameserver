@@ -10,9 +10,6 @@ func (game *Game) handleGameMessage(message *GameMessage) {
 		Uint32("game", game.gameNum).
 		Msg(fmt.Sprintf("Game message: %s. %v", message.MessageType, message))
 
-	//defer game.lock.Unlock()
-	//game.lock.Lock()
-
 	switch message.MessageType {
 	case PlayerTakeSeat:
 		game.onPlayerTakeSeat(message)
@@ -81,8 +78,8 @@ func (game *Game) onPlayerTakeSeat(message *GameMessage) error {
 
 	// send player sat message to all
 	playerSatMessage := GamePlayerSatMessage{SeatNo: gameSit.SeatNo, BuyIn: gameSit.BuyIn, PlayerId: gameSit.PlayerId}
-	gameMessage := GameMessage{ClubId: message.ClubId, GameNum: message.GameNum}
+	gameMessage := GameMessage{MessageType: PlayerSat, ClubId: message.ClubId, GameNum: message.GameNum}
 	gameMessage.GameMessage = &GameMessage_PlayerSat{PlayerSat: &playerSatMessage}
-	//	game.broadcastGameMessage(&gameMessage)
+	game.broadcastGameMessage(&gameMessage)
 	return nil
 }

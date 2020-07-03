@@ -25,9 +25,7 @@ func NewGameManager() *Manager {
 	}
 }
 
-func (gm *Manager) StartGame(gameType GameType, title string, minPlayers int) uint32 {
-	// club id is hard code for now
-	clubID := uint32(1)
+func (gm *Manager) StartGame(clubID uint32, gameType GameType, title string, minPlayers int) uint32 {
 	gm.gameCount++
 	gameID := fmt.Sprintf("%d:%d", clubID, gm.gameCount)
 	game := NewPokerGame(gm, gameID, GameType_HOLDEM, clubID, gm.gameCount, minPlayers, gm.gameStatePersist, gm.handStatePersist)
@@ -41,8 +39,8 @@ func (gm *Manager) gameEnded(game *Game) {
 	delete(gm.activeGames, game.gameID)
 }
 
-func (gm *Manager) SitAtTable(gameNum uint32, player *Player, seatNo uint32, buyIn float32) error {
-	clubID := uint32(1)
+func (gm *Manager) SitAtTable(clubID uint32, gameNum uint32, player *Player, seatNo uint32, buyIn float32) error {
+	//clubID := uint32(1)
 	gameID := fmt.Sprintf("%d:%d", clubID, gameNum)
 	if _, ok := gm.activeGames[gameID]; !ok {
 		// game not found
@@ -58,13 +56,13 @@ func (gm *Manager) SitAtTable(gameNum uint32, player *Player, seatNo uint32, buy
 
 	// send a SIT message
 	takeSeatMessage := GameSitMessage{
-		PlayerId: player.playerID,
+		PlayerId: player.PlayerID,
 		SeatNo:   seatNo,
 		BuyIn:    buyIn,
 	}
 
-	game.allPlayers[player.playerID] = player
-	game.players[player.playerID] = player.playerName
+	game.allPlayers[player.PlayerID] = player
+	game.players[player.PlayerID] = player.PlayerName
 
 	// it looks like circular references are not a problem in golang
 	// https://www.reddit.com/r/golang/comments/8jaqyw/circular_references/
@@ -72,7 +70,7 @@ func (gm *Manager) SitAtTable(gameNum uint32, player *Player, seatNo uint32, buy
 	var gameMessage GameMessage
 	gameMessage.ClubId = clubID
 	gameMessage.GameNum = gameNum
-	gameMessage.PlayerId = player.playerID
+	gameMessage.PlayerId = player.PlayerID
 	gameMessage.MessageType = PlayerTakeSeat
 	gameMessage.GameMessage = &GameMessage_TakeSeat{TakeSeat: &takeSeatMessage}
 	messageData, _ := proto.Marshal(&gameMessage)
