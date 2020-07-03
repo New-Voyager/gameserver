@@ -33,7 +33,7 @@ func (gm *Manager) StartGame(gameType GameType, title string, minPlayers int) ui
 	game := NewPokerGame(gm, gameID, GameType_HOLDEM, clubID, gm.gameCount, minPlayers, gm.gameStatePersist, gm.handStatePersist)
 	gm.activeGames[gameID] = game
 
-	go runGame(game)
+	go game.runGame()
 	return gm.gameCount
 }
 
@@ -41,7 +41,7 @@ func (gm *Manager) gameEnded(game *Game) {
 	delete(gm.activeGames, game.gameID)
 }
 
-func (gm *Manager) JoinGame(gameNum uint32, player *Player, seatNo uint32) error {
+func (gm *Manager) SitAtTable(gameNum uint32, player *Player, seatNo uint32, buyIn float32) error {
 	clubID := uint32(1)
 	gameID := fmt.Sprintf("%d:%d", clubID, gameNum)
 	if _, ok := gm.activeGames[gameID]; !ok {
@@ -50,25 +50,35 @@ func (gm *Manager) JoinGame(gameNum uint32, player *Player, seatNo uint32) error
 	}
 
 	game, _ := gm.activeGames[gameID]
-	if len(game.activePlayers) >= 9 {
+	if game.playersInSeatsCount() >= 9 {
 		return fmt.Errorf("Game has enough players on the table")
 	}
+	game.lock.Lock()
+	defer game.lock.Unlock()
 
 	// send a SIT message
 	takeSeatMessage := GameSitMessage{
 		PlayerId: player.playerID,
-		ClubId:   clubID,
-		GameNum:  gameNum,
 		SeatNo:   seatNo,
+		BuyIn:    buyIn,
 	}
+
+	game.allPlayers[player.playerID] = player
+	game.players[player.playerID] = player.playerName
 
 	// it looks like circular references are not a problem in golang
 	// https://www.reddit.com/r/golang/comments/8jaqyw/circular_references/
 	player.game = game
+	var gameMessage GameMessage
+	gameMessage.ClubId = clubID
+	gameMessage.GameNum = gameNum
+	gameMessage.PlayerId = player.playerID
+	gameMessage.MessageType = PlayerTakeSeat
+	gameMessage.GameMessage = &GameMessage_TakeSeat{TakeSeat: &takeSeatMessage}
+	messageData, _ := proto.Marshal(&gameMessage)
 
-	//game.waitingPlayers = append(game.waitingPlayers, player)
-	messageData, _ := proto.Marshal(&takeSeatMessage)
-	game.chGame <- GameMessage{messageType: PlayerTookSeat, playerID: player.playerID, player: player, messageProto: messageData}
 	go player.playGame()
+
+	game.chGame <- messageData
 	return nil
 }

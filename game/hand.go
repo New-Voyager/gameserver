@@ -74,16 +74,16 @@ func (h *HandState) setupPreflob(gameState *GameState) {
 	// set next action information
 	h.CurrentRaise = gameState.BigBlind
 	h.ActionCompleteAtSeat = h.BigBlindPos
-	h.PreflopActions = &SeatActionLog{Actions: make([]*SeatAction, 0)}
-	h.FlopActions = &SeatActionLog{Actions: make([]*SeatAction, 0)}
-	h.TurnActions = &SeatActionLog{Actions: make([]*SeatAction, 0)}
-	h.RiverActions = &SeatActionLog{Actions: make([]*SeatAction, 0)}
-	h.actionReceived(gameState, &SeatAction{
+	h.PreflopActions = &HandActionLog{Actions: make([]*HandAction, 0)}
+	h.FlopActions = &HandActionLog{Actions: make([]*HandAction, 0)}
+	h.TurnActions = &HandActionLog{Actions: make([]*HandAction, 0)}
+	h.RiverActions = &HandActionLog{Actions: make([]*HandAction, 0)}
+	h.actionReceived(gameState, &HandAction{
 		SeatNo: h.SmallBlindPos,
 		Action: ACTION_SB,
 		Amount: gameState.SmallBlind,
 	})
-	h.actionReceived(gameState, &SeatAction{
+	h.actionReceived(gameState, &HandAction{
 		SeatNo: h.BigBlindPos,
 		Action: ACTION_BB,
 		Amount: gameState.BigBlind,
@@ -203,7 +203,7 @@ func (h *HandState) getNextActivePlayer(gameState *GameState, seatNo uint32) uin
 	return nextSeat
 }
 
-func (h *HandState) actionReceived(gameState *GameState, action *SeatAction) error {
+func (h *HandState) actionReceived(gameState *GameState, action *HandAction) error {
 	if h.NextSeatAction != nil {
 		if action.SeatNo != h.NextSeatAction.SeatNo {
 			handLogger.Error().
@@ -226,7 +226,7 @@ func (h *HandState) actionReceived(gameState *GameState, action *SeatAction) err
 
 	playerState := h.GetPlayersState()[playerID]
 
-	var log *SeatActionLog
+	var log *HandActionLog
 	switch h.CurrentState {
 	case HandState_PREFLOP:
 		log = h.PreflopActions
@@ -290,7 +290,7 @@ func (h *HandState) getPlayerFromSeat(seatNo uint32) *HandPlayerState {
 	return playerState
 }
 
-func (h *HandState) prepareNextAction(gameState *GameState, currentAction *SeatAction) *NextSeatAction {
+func (h *HandState) prepareNextAction(gameState *GameState, currentAction *HandAction) *NextSeatAction {
 	// compute next action
 	actionSeat := h.getNextActivePlayer(gameState, currentAction.SeatNo)
 	playerState := h.getPlayerFromSeat(actionSeat)
@@ -374,7 +374,7 @@ func (n *NextSeatAction) PrettyPrint(h *HandState, gameState *GameState, players
 }
 
 func (h *HandState) PrintCurrentActionLog(gameState *GameState, players map[uint32]string) string {
-	var log *SeatActionLog
+	var log *HandActionLog
 	var b strings.Builder
 	b.Grow(32)
 
@@ -399,7 +399,7 @@ func (h *HandState) PrintCurrentActionLog(gameState *GameState, players map[uint
 	return b.String()
 }
 
-func (a *SeatAction) Print(h *HandState, gameState *GameState, players map[uint32]string) string {
+func (a *HandAction) Print(h *HandState, gameState *GameState, players map[uint32]string) string {
 	action := ""
 	switch a.Action {
 	case ACTION_FOLD:

@@ -136,7 +136,15 @@ func TestOmaha1() {
 var testGame *game.TestGame
 
 func TestChannelGame() {
-	//game.RunTestGame()
+
+	/*	deck := poker.NewDeckNoShuffle()
+		cards := deck.Draw(52)
+		for _, card := range cards {
+			cardStr := poker.CardToString(uint32(card.GetByte()))
+			fmt.Printf("%3d, %2X: %s\n", card.GetByte(), card.GetByte(), cardStr)
+		}
+	*/
+
 	players := make([]game.TestPlayerInfo, 5)
 	players[0] = game.TestPlayerInfo{
 		Name:   "steve",

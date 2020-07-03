@@ -1,6 +1,7 @@
 syntax = "proto3";
 package game;
 option go_package = "game";
+import "gamestate.proto";
 
 message HandDealCards {
   uint32 club_id = 1;
@@ -8,4 +9,17 @@ message HandDealCards {
   uint32 hand_num = 3;
   repeated uint32 cards = 4;  // I used int instead of byte is to display cards in json
   string cardsStr = 5; // string representation of the cards for logging
+}
+
+
+message HandMessage {
+  string version = 1;
+  uint32 club_id = 2;
+  uint32 game_num = 3;
+  uint32 hand_num = 4;
+  string message_type = 5;
+  oneof hand_message {
+    NextSeatAction  seat_action = 6;
+    HandDealCards deal_cards = 7;
+  }
 }

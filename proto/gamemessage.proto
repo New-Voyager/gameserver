@@ -1,23 +1,34 @@
 syntax = "proto3";
 package game;
 option go_package = "game";
-
-message GameJoinMessage {
-  uint32 clubID = 1;
-  uint32 gameNum = 2;
-  uint32 playerID = 3;
-}
+import "gamestate.proto";
 
 message GameSitMessage {
-  uint32 club_id = 1;
-  uint32 game_num = 2;
-  uint32 player_id = 3;
-  uint32 seat_no = 4;
+  uint32 player_id = 1;
+  uint32 seat_no = 2;
+  float  buy_in = 3;
 }
 
-message GameStartedMessage {
-  uint32 club_id = 1;
-  uint32 game_num = 2;
-  // add players in the seat
+message GameStatusMessage {
+  GameStatus status = 1;
 }
 
+message GamePlayerSatMessage {
+  uint32 player_id = 1;
+  uint32 seat_no = 2;
+  float  buy_in = 3;
+}
+
+
+message GameMessage {
+  string version = 1;
+  uint32 club_id = 2;
+  uint32 game_num = 3;
+  uint32 player_id = 4;
+  string message_type = 5;
+  oneof game_message {
+    GameSitMessage  take_seat = 6;
+    GameStatusMessage status = 7;
+    GamePlayerSatMessage  player_sat = 8;
+  }
+}
