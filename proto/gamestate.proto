@@ -38,20 +38,23 @@ message HandPlayerState {
   float balance = 2;
 }
 
+enum GameStatus {
+  INITIALIZED = 0;
+  RUNNING = 1;
+  PAUSED = 2;
+  WAITING_FOR_PLAYERS = 3;
+  ENDED = 4;
+}
+
 message GameState {
-
-  enum Status {
-    INITIALIZED = 0;
-    RUNNING = 1;
-    PAUSED = 2;
-    WAITING_FOR_PLAYERS = 3;
-    ENDED = 4;
-  }
-
 
   uint32 club_id = 1;
   uint32 game_num = 2;
   // max 15 seats reserved
+
+  // index 0-8 for 9 seats
+  // the array item is player id
+  // if array item is 0, that means the seat is empty 
   repeated uint32 players_in_seats = 3 [packed=true];
 
   // players in the table and the queue
@@ -65,7 +68,7 @@ message GameState {
   bool button_straddle_allowed = 7;
 
   // game status
-  Status status = 8;
+  GameStatus status = 8;
 
   // game type
   GameType game_type = 9;
@@ -80,6 +83,7 @@ message GameState {
   float big_blind = 13;
 
   uint32 max_seats = 14;
+  uint32 min_players = 15;
 }
 
 enum ACTION {
@@ -94,15 +98,15 @@ enum ACTION {
   ALL_IN = 8;
 }
 
-message SeatAction {
+message HandAction {
   uint32    seat_no = 1;
   ACTION    action = 2;
   float     amount = 3;
 }
 
-message SeatActionLog {
+message HandActionLog {
   float pot = 1;
-  repeated SeatAction actions = 2; 
+  repeated HandAction actions = 2; 
 }
 
 message PlayersInPots {
@@ -113,14 +117,14 @@ message PlayersInPots {
 message NextSeatAction {
   uint32 seat_no = 1;
   repeated ACTION available_actions = 2;
-  float straddleAmount = 3;    // straddle amount
-  float callAmount = 4;       // what is the amount to call
-  float raiseAmount = 5;      // if the caller wants to raise from previous raise
-  float minBetAmount = 6;     // min bet is the big blind
-  float maxBetAmount = 7;     // calculated for PLO
-  float minRaiseAmount = 8;     // min bet is the big blind
-  float maxRaiseAmount = 9;     // calculated for PLO
-  float allInAmount = 10;      // all in amount
+  float straddleAmount = 3;       // straddle amount
+  float callAmount = 4;           // what is the amount to call
+  float raiseAmount = 5;          // if the caller wants to raise from previous raise
+  float minBetAmount = 6;         // min bet is the big blind
+  float maxBetAmount = 7;        // calculated for PLO
+  float minRaiseAmount = 8;      // min bet is the big blind
+  float maxRaiseAmount = 9;      // calculated for PLO
+  float allInAmount = 10;         // all in amount
 }
 
 message HandState {
@@ -160,10 +164,10 @@ message HandState {
   uint32 action_complete_at_seat = 12;
   bool straddle_bet = 13;
 
-  SeatActionLog preflop_actions = 14;
-  SeatActionLog flop_actions = 15;
-  SeatActionLog turn_actions = 16;
-  SeatActionLog river_actions = 17;
+  HandActionLog preflop_actions = 14;
+  HandActionLog flop_actions = 15;
+  HandActionLog turn_actions = 16;
+  HandActionLog river_actions = 17;
 
   repeated PlayersInPots pots = 18;
   map <uint32, bytes> players_cards = 19;

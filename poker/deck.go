@@ -22,6 +22,13 @@ func NewDeck() *Deck {
 	return deck
 }
 
+func NewDeckNoShuffle() *Deck {
+	deck := &Deck{}
+	deck.cards = make([]Card, len(fullDeck.cards))
+	copy(deck.cards, fullDeck.cards)
+	return deck
+}
+
 func (deck *Deck) Shuffle() *Deck {
 	deck.cards = make([]Card, len(fullDeck.cards))
 	copy(deck.cards, fullDeck.cards)

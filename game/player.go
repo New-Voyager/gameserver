@@ -25,8 +25,8 @@ type Player struct {
 	delegate PlayerMessageDelegate
 
 	// channel used by game object to game related messages
-	chGame chan GameMessage
-	chHand chan HandMessage
+	chGame chan []byte
+	chHand chan []byte // protobuf HandMessage
 
 	// game object
 	game *Game
@@ -49,34 +49,35 @@ func NewPlayer(name string, playerID uint32, delegate PlayerMessageDelegate) *Pl
 		playerID:   playerID,
 		playerName: name,
 		delegate:   delegate,
-		chGame:     make(chan GameMessage),
-		chHand:     make(chan HandMessage),
+		chGame:     make(chan []byte),
+		chHand:     make(chan []byte),
 	}
 
 	return &channelPlayer
 }
 
 func (p *Player) handleHandMessage(message HandMessage) {
-	if message.messageType == HandDeal {
+	if message.MessageType == HandDeal {
 		p.onCardsDealt(message)
+	} else if message.MessageType == HandNextAction {
+		p.onNextAction(message)
 	} else {
 		playerLogger.Warn().
-			Uint32("club", message.clubID).
-			Uint32("game", message.gameNum).
-			Msg(fmt.Sprintf("Unhandled Hand message type: %s %v", message.messageType, message))
+			Uint32("club", message.ClubId).
+			Uint32("game", message.GameNum).
+			Msg(fmt.Sprintf("Unhandled Hand message type: %s %v", message.MessageType, message))
 	}
 }
 
 func (p *Player) onCardsDealt(message HandMessage) error {
 	// cards dealt, display the cards
-	cards := &HandDealCards{}
-	proto.Unmarshal(message.messageProto, cards)
-	playerLogger.Info().
-		Uint32("club", cards.ClubId).
-		Uint32("game", cards.GameNum).
-		Uint32("hand", cards.HandNum).
-		Str("player", p.playerName).
-		Msg(fmt.Sprintf("Cards: %s", cards.CardsStr))
+	cards := message.GetDealCards()
+	// playerLogger.Info().
+	// 	Uint32("club", cards.ClubId).
+	// 	Uint32("game", cards.GameNum).
+	// 	Uint32("hand", cards.HandNum).
+	// 	Str("player", p.playerName).
+	// 	Msg(fmt.Sprintf("Cards: %s", cards.CardsStr))
 
 	jsonb, err := protojson.Marshal(cards)
 	if err != nil {
@@ -89,16 +90,36 @@ func (p *Player) onCardsDealt(message HandMessage) error {
 	return nil
 }
 
+func (p *Player) onNextAction(message HandMessage) error {
+	// cards dealt, display the cards
+	seatAction := message.GetSeatAction()
+	// playerLogger.Info().
+	// 	Uint32("club", message.ClubId).
+	// 	Uint32("game", message.GameNum).
+	// 	Uint32("hand", message.HandNum).
+	// 	Str("player", p.playerName).
+	// 	Msg(fmt.Sprintf("Action: %v", seatAction))
+
+	jsonb, err := protojson.Marshal(seatAction)
+	if err != nil {
+		return err
+	}
+
+	if p.delegate != nil {
+		p.delegate.onHandMessage(jsonb)
+	}
+	return nil
+}
+
 func (p *Player) handleGameMessage(message GameMessage) {
-	playerLogger.Info().
-		Uint32("club", message.clubID).
-		Uint32("game", message.gameNum).
-		Msg(fmt.Sprintf("Message type: %s", message.messageType))
+	// playerLogger.Info().
+	// 	Uint32("club", message.clubID).
+	// 	Uint32("game", message.gameNum).
+	// 	Msg(fmt.Sprintf("Message type: %s", message.messageType))
 
 	if p.delegate != nil {
 		//p.delegate.onGameMessage(jsonb)
 	}
-
 }
 
 func (p *Player) playGame() {
@@ -106,9 +127,18 @@ func (p *Player) playGame() {
 	for !stopped {
 		select {
 		case message := <-p.chHand:
-			p.handleHandMessage(message)
+			var handMessage HandMessage
+
+			err := proto.Unmarshal(message, &handMessage)
+			if err == nil {
+				p.handleHandMessage(handMessage)
+			}
 		case message := <-p.chGame:
-			p.handleGameMessage(message)
+			var gameMessage GameMessage
+			err := proto.Unmarshal(message, &gameMessage)
+			if err == nil {
+				p.handleGameMessage(gameMessage)
+			}
 		case message := <-p.delegate.getGameChannel():
 			p.sendGameMessage(message)
 		case message := <-p.delegate.getHandChannel():

@@ -25,30 +25,12 @@ const (
 	GameToAll                       = "G_2_A"
 )
 
-type GameMessage struct {
-	version      string
-	clubID       uint32
-	gameNum      uint32
-	messageType  string
-	playerID     uint32 // 0: send the message to all players
-	messageProto []byte
-	player       *Player
-}
-
-type HandMessage struct {
-	version      string
-	clubID       uint32
-	gameNum      uint32
-	messageType  string
-	playerID     uint32 // 0: send the message to all players
-	messageProto []byte
-}
-
 // Game messages
 const (
-	GameJoin       string = "JOIN"
-	GameStarted    string = "GAME_STARTED"
-	PlayerTookSeat string = "PLAYER_SAT"
+	GameJoin          string = "JOIN"
+	GameCurrentStatus string = "GAME_STATUS"
+	PlayerTakeSeat    string = "TAKE_SEAT"
+	PlayerSat         string = "PLAYER_SAT"
 )
 
 // Hand messages
@@ -65,20 +47,21 @@ const (
 )
 
 type Game struct {
-	gameID         string
-	clubID         uint32
-	gameNum        uint32
-	manager        *Manager
-	gameType       GameType
-	title          string
-	end            chan bool
-	running        bool
-	chHand         chan HandMessage
-	chGame         chan GameMessage
-	activePlayers  map[uint32]*Player
+	gameID   string
+	clubID   uint32
+	gameNum  uint32
+	manager  *Manager
+	gameType GameType
+	title    string
+	end      chan bool
+	running  bool
+	chHand   chan []byte
+	chGame   chan []byte
+	//playersAtTable map[uint32]uint32
+	allPlayers     map[uint32]*Player // players at the table and the players that are viewing
 	players        map[uint32]string
+	waitingPlayers []uint32
 	minPlayers     int
-	waitingPlayers []*Player
 	lock           sync.Mutex
 }
 
@@ -87,11 +70,11 @@ func NewPokerGame(gameManager *Manager, gameID string, gameType GameType,
 	handStatePersist PersistHandState) *Game {
 	title := fmt.Sprintf("%d:%d %s", clubID, gameNum, GameType_name[int32(gameType)])
 	game := Game{manager: gameManager, gameID: gameID, gameType: gameType, title: title, clubID: clubID, gameNum: gameNum}
-	game.activePlayers = make(map[uint32]*Player)
-	game.chGame = make(chan GameMessage)
-	game.chHand = make(chan HandMessage)
+	game.allPlayers = make(map[uint32]*Player)
+	game.chGame = make(chan []byte)
+	game.chHand = make(chan []byte)
 	game.end = make(chan bool)
-	game.waitingPlayers = make([]*Player, 0)
+	game.waitingPlayers = make([]uint32, 0)
 	game.minPlayers = minPlayers
 	game.players = make(map[uint32]string)
 	game.initialize()
@@ -102,34 +85,67 @@ func (game *Game) handleHandMessage(message HandMessage) {
 	channelGameLogger.Debug().
 		Uint32("club", game.clubID).
 		Uint32("game", game.gameNum).
-		Msg(fmt.Sprintf("Hand message: %s", message.messageType))
+		Msg(fmt.Sprintf("Hand message: %s", message.MessageType))
 }
 
-func runGame(game *Game) {
+func (game *Game) playersInSeatsCount() int {
+	state, err := game.loadState()
+	if err != nil {
+		// panic
+		// TODO: FIX THIS CODE
+		panic("Shouldn't be here")
+	}
+	playersInSeats := state.GetPlayersInSeats()
+	countPlayersInSeats := 0
+	for _, playerID := range playersInSeats {
+		if playerID != 0 {
+			countPlayersInSeats++
+		}
+	}
+	return countPlayersInSeats
+}
+
+func (game *Game) runGame() {
 	ended := false
 	for !ended {
-		if !game.running && len(game.activePlayers) >= game.minPlayers {
-			game.lock.Lock()
-			// start the game
-			game.startGame()
-			game.running = true
-			game.dealNewHand()
-			game.lock.Unlock()
+		if !game.running {
+
+			started, err := game.startGame()
+			if err != nil {
+				channelGameLogger.Error().
+					Uint32("club", game.clubID).
+					Uint32("game", game.gameNum).
+					Msg(fmt.Sprintf("Failed to start game: %v", err))
+			} else {
+				if started {
+					game.running = true
+					game.dealNewHand()
+				}
+			}
 		}
 		select {
 		case <-game.end:
 			ended = true
 		case message := <-game.chHand:
-			game.handleHandMessage(message)
+			var handMessage HandMessage
+			err := proto.Unmarshal(message, &handMessage)
+			if err == nil {
+				game.handleHandMessage(handMessage)
+			}
 		case message := <-game.chGame:
-			game.handleGameMessage(message)
+			var gameMessage GameMessage
+			err := proto.Unmarshal(message, &gameMessage)
+			if err == nil {
+				game.handleGameMessage(&gameMessage)
+			}
 		default:
 			if !game.running {
+				playersInSeats := game.playersInSeatsCount()
 				channelGameLogger.Info().
 					Uint32("club", game.clubID).
 					Uint32("game", game.gameNum).
 					Msg(fmt.Sprintf("Waiting for players to join. %d players in the table, and waiting for %d more players",
-						len(game.activePlayers), game.minPlayers-len(game.activePlayers)))
+						playersInSeats, game.minPlayers-playersInSeats))
 				time.Sleep(100 * time.Millisecond)
 			}
 		}
@@ -149,8 +165,9 @@ func (game *Game) initialize() error {
 		PlayersState:          playersState,
 		UtgStraddleAllowed:    false,
 		ButtonStraddleAllowed: false,
-		Status:                GameState_INITIALIZED,
+		Status:                GameStatus_INITIALIZED,
 		GameType:              game.gameType,
+		MinPlayers:            uint32(game.minPlayers),
 		HandNum:               0,
 		ButtonPos:             0,
 		SmallBlind:            1.0,
@@ -164,17 +181,27 @@ func (game *Game) initialize() error {
 	return nil
 }
 
-func (game *Game) startGame() error {
+func (game *Game) startGame() (bool, error) {
 	gameState, err := game.loadState()
 	if err != nil {
-		return err
+		return false, err
+	}
+	playersInSeats := gameState.GetPlayersInSeats()
+	countPlayersInSeats := 0
+	for _, playerID := range playersInSeats {
+		if playerID != 0 {
+			countPlayersInSeats++
+		}
+	}
+	if uint32(countPlayersInSeats) < gameState.GetMinPlayers() {
+		return false, nil
 	}
 
 	channelGameLogger.Info().
 		Uint32("club", game.clubID).
 		Uint32("game", game.gameNum).
 		Msg(fmt.Sprintf("Game started. Good luck every one. Players in the table: %d. Waiting list players: %d",
-			len(game.activePlayers), len(game.waitingPlayers)))
+			playersInSeats, len(game.waitingPlayers)))
 
 	// assign the button pos to the first guy in the list
 	playersInSeat := gameState.PlayersInSeats
@@ -184,16 +211,16 @@ func (game *Game) startGame() error {
 			break
 		}
 	}
-	gameState.Status = GameState_RUNNING
+	gameState.Status = GameStatus_RUNNING
 	err = game.saveState(gameState)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	message := GameStartedMessage{ClubId: game.clubID, GameNum: game.gameNum}
-	messageData, _ := proto.Marshal(&message)
-	game.broadcastGameMessage(GameMessage{messageType: GameStarted, playerID: 0, messageProto: messageData})
-	return nil
+	gameMessage := GameMessage{MessageType: GameCurrentStatus, PlayerId: 0}
+	gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: gameState.Status}}
+	game.broadcastGameMessage(&gameMessage)
+	return true, nil
 }
 
 func (game *Game) dealNewHand() error {
@@ -225,8 +252,13 @@ func (game *Game) dealNewHand() error {
 		Msg(fmt.Sprintf("Table: %s", handState.PrintTable(game.players)))
 
 	// send the cards to each player
-	for _, player := range game.activePlayers {
-		playerCards := handState.PlayersCards[player.playerID]
+	for _, playerID := range gameState.GetPlayersInSeats() {
+		if playerID == 0 {
+			// empty seat
+			continue
+		}
+
+		playerCards := handState.PlayersCards[playerID]
 		message := HandDealCards{ClubId: game.clubID, GameNum: game.gameNum, HandNum: handState.HandNum}
 		message.Cards = make([]uint32, len(playerCards))
 		for i, card := range playerCards {
@@ -234,10 +266,15 @@ func (game *Game) dealNewHand() error {
 		}
 		message.CardsStr = poker.CardsToString(message.Cards)
 
-		messageData, _ := proto.Marshal(&message)
-		player.chHand <- HandMessage{messageType: HandDeal, playerID: player.playerID, messageProto: messageData}
+		//messageData, _ := proto.Marshal(&message)
+		player := game.allPlayers[playerID]
+		handMessage := HandMessage{MessageType: HandDeal, GameNum: game.gameNum, ClubId: game.clubID}
+		handMessage.HandMessage = &HandMessage_DealCards{DealCards: &message}
+		b, _ := proto.Marshal(&handMessage)
+		player.chHand <- b
 	}
 	time.Sleep(100 * time.Millisecond)
+
 	// print next action
 	channelGameLogger.Info().
 		Uint32("club", game.clubID).
@@ -245,6 +282,10 @@ func (game *Game) dealNewHand() error {
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(&handState, gameState, game.players)))
 
+	// send this action to all the players
+	handMessage := HandMessage{MessageType: HandNextAction, GameNum: game.gameNum, ClubId: game.clubID}
+	handMessage.HandMessage = &HandMessage_SeatAction{SeatAction: handState.NextSeatAction}
+	game.broadcastMessage(handMessage)
 	return nil
 }
 
@@ -267,21 +308,25 @@ func (game *Game) saveState(gameState *GameState) error {
 }
 
 func (game *Game) broadcastMessage(message HandMessage) {
-	for _, player := range game.activePlayers {
-		player.chHand <- message
+	b, _ := proto.Marshal(&message)
+	for _, player := range game.allPlayers {
+		player.chHand <- b
 	}
 }
 
-func (game *Game) broadcastGameMessage(message GameMessage) {
-	for _, player := range game.activePlayers {
-		player.chGame <- message
+func (game *Game) broadcastGameMessage(message *GameMessage) {
+	b, _ := proto.Marshal(message)
+	for _, player := range game.allPlayers {
+		player.chGame <- b
 	}
 }
 
 func (game *Game) sendGameMessage(message GameMessage) {
-	game.chGame <- message
+	b, _ := proto.Marshal(&message)
+	game.chGame <- b
 }
 
 func (game *Game) sendHandMessage(message HandMessage) {
-	game.chHand <- message
+	b, _ := proto.Marshal(&message)
+	game.chHand <- b
 }
