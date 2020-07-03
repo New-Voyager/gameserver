@@ -71,7 +71,7 @@ func (p *Player) handleHandMessage(message HandMessage) {
 
 func (p *Player) onCardsDealt(message HandMessage) error {
 	// cards dealt, display the cards
-	cards := message.GetDealCards()
+	//cards := message.GetDealCards()
 	// playerLogger.Info().
 	// 	Uint32("club", cards.ClubId).
 	// 	Uint32("game", cards.GameNum).
@@ -79,7 +79,7 @@ func (p *Player) onCardsDealt(message HandMessage) error {
 	// 	Str("player", p.playerName).
 	// 	Msg(fmt.Sprintf("Cards: %s", cards.CardsStr))
 
-	jsonb, err := protojson.Marshal(cards)
+	jsonb, err := protojson.Marshal(&message)
 	if err != nil {
 		return err
 	}
@@ -92,7 +92,7 @@ func (p *Player) onCardsDealt(message HandMessage) error {
 
 func (p *Player) onNextAction(message HandMessage) error {
 	// cards dealt, display the cards
-	seatAction := message.GetSeatAction()
+	// seatAction := message.GetSeatAction()
 	// playerLogger.Info().
 	// 	Uint32("club", message.ClubId).
 	// 	Uint32("game", message.GameNum).
@@ -100,7 +100,7 @@ func (p *Player) onNextAction(message HandMessage) error {
 	// 	Str("player", p.playerName).
 	// 	Msg(fmt.Sprintf("Action: %v", seatAction))
 
-	jsonb, err := protojson.Marshal(seatAction)
+	jsonb, err := protojson.Marshal(&message)
 	if err != nil {
 		return err
 	}
