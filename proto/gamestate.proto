@@ -44,6 +44,9 @@ enum GameStatus {
   PAUSED = 2;
   WAITING_FOR_PLAYERS = 3;
   ENDED = 4;
+  START_GAME_RECEIVED = 5;
+  PAUSE_GAME_RECEIVED = 6;
+  END_GAME_RECEIVED = 7;
 }
 
 message GameState {

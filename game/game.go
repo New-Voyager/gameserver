@@ -31,6 +31,7 @@ const (
 	GameCurrentStatus string = "GAME_STATUS"
 	PlayerTakeSeat    string = "TAKE_SEAT"
 	PlayerSat         string = "PLAYER_SAT"
+	GameStatusChanged string = "STATUS_CHANGED"
 )
 
 // Hand messages
@@ -61,14 +62,26 @@ type Game struct {
 	players        map[uint32]string
 	waitingPlayers []uint32
 	minPlayers     int
+	autoStart      bool
+	autoDeal       bool
 	lock           sync.Mutex
 }
 
 func NewPokerGame(gameManager *Manager, gameID string, gameType GameType,
-	clubID uint32, gameNum uint32, minPlayers int, gameStatePersist PersistGameState,
+	clubID uint32, gameNum uint32, minPlayers int, autoStart bool, autoDeal bool,
+	gameStatePersist PersistGameState,
 	handStatePersist PersistHandState) *Game {
 	title := fmt.Sprintf("%d:%d %s", clubID, gameNum, GameType_name[int32(gameType)])
-	game := Game{manager: gameManager, gameID: gameID, gameType: gameType, title: title, clubID: clubID, gameNum: gameNum}
+	game := Game{
+		manager:   gameManager,
+		gameID:    gameID,
+		gameType:  gameType,
+		title:     title,
+		clubID:    clubID,
+		gameNum:   gameNum,
+		autoStart: autoStart,
+		autoDeal:  autoDeal,
+	}
 	game.allPlayers = make(map[uint32]*Player)
 	game.chGame = make(chan []byte)
 	game.chHand = make(chan []byte)
@@ -118,7 +131,9 @@ func (game *Game) runGame() {
 			} else {
 				if started {
 					game.running = true
-					game.dealNewHand()
+					if game.autoDeal {
+						game.dealNewHand()
+					}
 				}
 			}
 		}
@@ -185,6 +200,11 @@ func (game *Game) startGame() (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	if !game.autoStart && gameState.Status != GameStatus_START_GAME_RECEIVED {
+		return false, nil
+	}
+
 	playersInSeats := gameState.GetPlayersInSeats()
 	countPlayersInSeats := 0
 	for _, playerID := range playersInSeats {
@@ -193,6 +213,7 @@ func (game *Game) startGame() (bool, error) {
 		}
 	}
 	if uint32(countPlayersInSeats) < gameState.GetMinPlayers() {
+		// not enough players
 		return false, nil
 	}
 
@@ -215,10 +236,12 @@ func (game *Game) startGame() (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	game.running = true
 
 	gameMessage := GameMessage{MessageType: GameCurrentStatus, PlayerId: 0}
 	gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: gameState.Status}}
 	game.broadcastGameMessage(&gameMessage)
+
 	return true, nil
 }
 

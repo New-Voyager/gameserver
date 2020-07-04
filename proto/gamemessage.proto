@@ -19,6 +19,9 @@ message GamePlayerSatMessage {
   float  buy_in = 3;
 }
 
+message GameStatusChangeMessage {
+  GameStatus newStatus = 1;
+}
 
 message GameMessage {
   string version = 1;
@@ -30,5 +33,6 @@ message GameMessage {
     GameSitMessage  take_seat = 6;
     GameStatusMessage status = 7;
     GamePlayerSatMessage  player_sat = 8;
+    GameStatusChangeMessage status_change = 9;
   }
 }
