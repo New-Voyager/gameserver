@@ -7,7 +7,7 @@ import (
 	//"os"
 	"github.com/rs/zerolog"
 	//"voyager.com/server/internal"
-	"voyager.com/server/game"
+	//	"voyager.com/server/game"
 	"voyager.com/server/poker"
 	"voyager.com/server/test"
 )
@@ -137,14 +137,12 @@ func TestOmaha1() {
 var testGame *test.TestGame
 
 func TestChannelGame() {
+	testDriver := test.NewTestDriver()
+	testDriver.RunGameScript("test/test-data/sit-in-table.yaml")
+}
 
-	/*	deck := poker.NewDeckNoShuffle()
-		cards := deck.Draw(52)
-		for _, card := range cards {
-			cardStr := poker.CardToString(uint32(card.GetByte()))
-			fmt.Printf("%3d, %2X: %s\n", card.GetByte(), card.GetByte(), cardStr)
-		}
-	*/
+/*
+func TestChannelGame1() {
 
 	players := make([]test.TestPlayerInfo, 5)
 	players[0] = test.TestPlayerInfo{
@@ -185,3 +183,4 @@ func TestChannelGame() {
 	testGame.Start()
 	select {}
 }
+*/

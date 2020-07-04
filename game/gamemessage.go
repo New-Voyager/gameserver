@@ -16,6 +16,8 @@ func (game *Game) handleGameMessage(message *GameMessage) {
 		if game.playersInSeatsCount() == 9 {
 			break
 		}
+	case GameStatusChanged:
+		game.onStatusChanged(message)
 	}
 
 	channelGameLogger.Info().
@@ -81,5 +83,24 @@ func (game *Game) onPlayerTakeSeat(message *GameMessage) error {
 	gameMessage := GameMessage{MessageType: PlayerSat, ClubId: message.ClubId, GameNum: message.GameNum}
 	gameMessage.GameMessage = &GameMessage_PlayerSat{PlayerSat: &playerSatMessage}
 	game.broadcastGameMessage(&gameMessage)
+	return nil
+}
+
+func (g *Game) onStatusChanged(message *GameMessage) error {
+	gameStatusChanged := message.GetStatusChange()
+	gameState, err := g.loadState()
+	if err != nil {
+		return err
+	}
+	gameState.Status = gameStatusChanged.NewStatus
+	err = g.saveState(gameState)
+	if err != nil {
+		return err
+	}
+
+	if gameState.Status == GameStatus_START_GAME_RECEIVED {
+		g.startGame()
+	}
+
 	return nil
 }

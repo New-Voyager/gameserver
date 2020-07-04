@@ -25,10 +25,18 @@ func NewGameManager() *Manager {
 	}
 }
 
-func (gm *Manager) StartGame(clubID uint32, gameType GameType, title string, minPlayers int) uint32 {
+func (gm *Manager) InitializeGame(clubID uint32, gameType GameType,
+	title string, minPlayers int, autoStart bool, autoDeal bool) uint32 {
 	gm.gameCount++
 	gameID := fmt.Sprintf("%d:%d", clubID, gm.gameCount)
-	game := NewPokerGame(gm, gameID, GameType_HOLDEM, clubID, gm.gameCount, minPlayers, gm.gameStatePersist, gm.handStatePersist)
+	game := NewPokerGame(gm, gameID,
+		GameType_HOLDEM,
+		clubID, gm.gameCount,
+		minPlayers,
+		autoStart,
+		autoDeal,
+		gm.gameStatePersist,
+		gm.handStatePersist)
 	gm.activeGames[gameID] = game
 
 	go game.runGame()
@@ -76,6 +84,30 @@ func (gm *Manager) SitAtTable(clubID uint32, gameNum uint32, player *Player, sea
 	messageData, _ := proto.Marshal(&gameMessage)
 
 	go player.playGame()
+
+	game.chGame <- messageData
+	return nil
+}
+
+func (gm *Manager) StartGame(clubID uint32, gameNum uint32) error {
+	gameID := fmt.Sprintf("%d:%d", clubID, gm.gameCount)
+	if _, ok := gm.activeGames[gameID]; !ok {
+		// game not found
+		return fmt.Errorf("Game %d is not found", gameNum)
+	}
+	game, _ := gm.activeGames[gameID]
+
+	var gameMessage GameMessage
+
+	statusChangeMessage := &GameStatusChangeMessage{
+		NewStatus: GameStatus_START_GAME_RECEIVED,
+	}
+
+	gameMessage.ClubId = clubID
+	gameMessage.GameNum = gameNum
+	gameMessage.MessageType = GameStatusChanged
+	gameMessage.GameMessage = &GameMessage_StatusChange{StatusChange: statusChangeMessage}
+	messageData, _ := proto.Marshal(&gameMessage)
 
 	game.chGame <- messageData
 	return nil

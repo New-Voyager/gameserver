@@ -1,53 +1,23 @@
----
-# This file is a game script to setup a poker game and simulate
-# player actions and verify the outcomes are expected
-# The test driver is able to setup the deck, player cards, betting sequences
-# The actionlog/result at the end of hand conclusion is verified with the result
-# specified in the game script.
+game-config:
+  type: HOLDEM
+  max-players: 9
+  min-players: 3
+  min-buyin: 60.0
+  max-buyin: 300.0
+  auto-start: false
+  auto-approve: true
+  title: 3 players playing
+  sb: 1.0
+  bb: 2.0
 
-# Game script contains the following sections.
-# 1. Setup the game table (config section)
-#     type, min/max players, min/max buyins, sb/bb
-#    Players who are either playing, observing or in the game queue.
-#
-#   Game message CurrentGameStatus will be used to collect the current state
-#   and verified against the configuration
-#
-# 2. Sit players
-#     Players taking a seat in the table with their buy-ins    
-#     The app UI should do validation whether the player has enough buy-ins
-#     The game server should not let the player to sit in the table.
-#     This step will assign a button position
-#
-# 3. Now we are ready to deal hands
-#    Each hand should be verified with 
-#
-# Testdriver takes this game script file as input, and setups the game.
-# Testdriver will also join the game as a viewer and receive the game and hand messages
-# Testdriver verifies the results as the game simulation progresses.
----
-config:
-  # TestGame player initialization
-  game:
-    type: HOLDEM
-    max-players: 9
-    min-players: 3
-    min-buyin: 160.0
-    max-buyin: 440.0
-    auto-start: true
-    auto-approve: true
-    title: 3 players playing
-    sb: 1.0
-    bb: 2.0
-
-  # players in the game
-  players:
-    - name: player1
-      id: 1
-    - name: player2
-      id: 2
-    - name: player3
-      id: 3
+# players in the game
+players:
+  - name: player1
+    id: 1
+  - name: player2
+    id: 2
+  - name: player3
+    id: 3
 
 # after the table is initialized
 # the players will sit in the table
@@ -67,7 +37,7 @@ take-seat:
       buy-in: 100
     -
       seat: 8 
-      player: 2
+      player: 3
       buy-in: 100
   wait: 1
 
