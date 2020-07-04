@@ -40,6 +40,21 @@ take-seat:
       player: 3
       buy-in: 100
   wait: 1
+  verify:
+    table:
+      players:
+        -
+          seat: 1 
+          player: 1
+          stack: 100
+        -
+          seat: 5 
+          player: 2
+          stack: 100
+        -
+          seat: 8 
+          player: 3
+          stack: 100
 
 # hands use only the seat numbers for validation/actions
 hands:

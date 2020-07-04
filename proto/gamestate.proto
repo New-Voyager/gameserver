@@ -3,22 +3,22 @@ package game;
 option go_package = "game";
 
 
+enum PlayerStatus {
+  PLAYING = 0;
+  IN_QUEUE = 1;
+  BREAK = 2;
+  STANDING_UP = 3;
+  LEFT = 4;
+  KICKED_OUT = 5;
+  BLOCKED = 6;
+  WAIT_FOR_SITTING_APPROVAL = 7;
+  LOST_CONNECTION = 8;
+}
+
 message PlayerState {
   float buy_in = 1;
   float current_balance = 2;
-
-  enum Status {
-    PLAYING = 0;
-    IN_QUEUE = 1;
-    BREAK = 2;
-    STANDING_UP = 3;
-    LEFT = 4;
-    KICKED_OUT = 5;
-    BLOCKED = 6;
-    WAIT_FOR_SITTING_APPROVAL = 7;
-    LOST_CONNECTION = 8;
-  }
-  Status status = 3;
+  PlayerStatus status = 3;
 }
 
 enum GameType {
@@ -63,7 +63,7 @@ message GameState {
   // players in the table and the queue
   repeated uint32 players_in_game = 4 [packed=true];
 
-  // players 
+  // players who participated in the game
   map<uint32, PlayerState> players_state = 5;
 
   bool utg_straddle_allowed = 6;
@@ -87,104 +87,4 @@ message GameState {
 
   uint32 max_seats = 14;
   uint32 min_players = 15;
-}
-
-enum ACTION {
-  SB = 0;
-  BB = 1;
-  STRADDLE = 2;
-  CHECK = 3;
-  CALL = 4;
-  FOLD = 5;
-  BET = 6;
-  RAISE = 7;
-  ALL_IN = 8;
-}
-
-message HandAction {
-  uint32    seat_no = 1;
-  ACTION    action = 2;
-  float     amount = 3;
-}
-
-message HandActionLog {
-  float pot = 1;
-  repeated HandAction actions = 2; 
-}
-
-message PlayersInPots {
-  repeated uint32 players  = 1;
-  float amount = 2;
-}
-
-message NextSeatAction {
-  uint32 seat_no = 1;
-  repeated ACTION available_actions = 2;
-  float straddleAmount = 3;       // straddle amount
-  float callAmount = 4;           // what is the amount to call
-  float raiseAmount = 5;          // if the caller wants to raise from previous raise
-  float minBetAmount = 6;         // min bet is the big blind
-  float maxBetAmount = 7;        // calculated for PLO
-  float minRaiseAmount = 8;      // min bet is the big blind
-  float maxRaiseAmount = 9;      // calculated for PLO
-  float allInAmount = 10;         // all in amount
-}
-
-message HandState {
-  uint32 club_id = 1;
-
-  uint32 game_num = 2;
-
-  uint32 hand_num = 3;
-
-  bytes deck = 4;
-  // maximum 10 seats
-  // tracks the players sitting on each seat
-  // the seats are arranged as in typical poker table
-  // seat 1 is left side of the dealer, seat 0 is right side of the dealer
-  // if a seat is empty, then the player id is 0
-  repeated uint32 players_in_seats = 5 [packed=true];
-
-  enum State {
-    DEAL = 0;
-    PREFLOP = 1;
-    FLOP = 2;
-    TURN = 3;
-    RIVER = 4;
-    SHOW_DOWN = 5;
-    EVALUATE_HAND = 6;
-    HAND_CLOSED = 7;
-  }
-
-  // player current stack
-  uint32 button_pos = 7;
-  State current_state = 8;
-
-  // updated as players fold
-  map <uint32, float> active_seats = 9;
-  
-  float current_raise = 11;
-  uint32 action_complete_at_seat = 12;
-  bool straddle_bet = 13;
-
-  HandActionLog preflop_actions = 14;
-  HandActionLog flop_actions = 15;
-  HandActionLog turn_actions = 16;
-  HandActionLog river_actions = 17;
-
-  repeated PlayersInPots pots = 18;
-  map <uint32, bytes> players_cards = 19;
-  bytes board_cards = 20;
-  bytes board_cards_2 = 21;  // run it twice
-
-  uint32 small_blind_pos = 22;
-  uint32 big_blind_pos = 23;
-
-  map <uint32, HandPlayerState> players_state = 24;
-  float next_min_raise = 25;
-
-  // game type
-  GameType game_type = 26;
-
-  NextSeatAction next_seat_action = 27;
 }

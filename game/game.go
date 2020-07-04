@@ -16,36 +16,6 @@ NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 
 var channelGameLogger = log.With().Str("logger_name", "game::game").Logger()
 
-type MessageDirection string
-
-const (
-	PlayerToPlayer MessageDirection = "P_2_P"
-	PlayerToGame                    = "P_2_G"
-	GameToPlayer                    = "G_2_P"
-	GameToAll                       = "G_2_A"
-)
-
-// Game messages
-const (
-	GameJoin          string = "JOIN"
-	GameCurrentStatus string = "GAME_STATUS"
-	PlayerTakeSeat    string = "TAKE_SEAT"
-	PlayerSat         string = "PLAYER_SAT"
-	GameStatusChanged string = "STATUS_CHANGED"
-)
-
-// Hand messages
-const (
-	HandDeal       string = "DEAL"
-	HandActed      string = "ACTED"
-	HandNextAction string = "NEXT_ACTION"
-	HandFlop       string = "FLOP"
-	HandTurn       string = "TURN"
-	HandRiver      string = "RIVER"
-	HandShowDown   string = "SHOWDOWN"
-	HandWinner     string = "WINNER"
-	HandEnded      string = "END"
-)
 
 type Game struct {
 	gameID         string
@@ -131,9 +101,6 @@ func (game *Game) runGame() {
 			} else {
 				if started {
 					game.running = true
-					if game.autoDeal {
-						game.dealNewHand()
-					}
 				}
 			}
 		}
@@ -242,6 +209,10 @@ func (game *Game) startGame() (bool, error) {
 	gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: gameState.Status}}
 	game.broadcastGameMessage(&gameMessage)
 
+	if game.autoDeal {
+		game.dealNewHand()
+	}
+
 	return true, nil
 }
 
@@ -252,20 +223,20 @@ func (game *Game) dealNewHand() error {
 	}
 
 	gameState.HandNum++
-	handState := HandState{
+	handState := &HandState{
 		ClubId:   gameState.GetClubId(),
 		GameNum:  gameState.GetGameNum(),
 		HandNum:  gameState.GetHandNum(),
 		GameType: gameState.GetGameType(),
+		CurrentState: HandStatus_DEAL,
 	}
 
 	handState.initialize(gameState)
-
-	game.manager.handStatePersist.Save(gameState.GetClubId(), gameState.GetGameNum(), handState.HandNum, &handState)
-
 	gameState.ButtonPos = handState.GetButtonPos()
-	// save the game
-	game.manager.gameStatePersist.Save(gameState.GetClubId(), gameState.GetGameNum(), gameState)
+
+	// save the game and hand
+	game.saveState(gameState)
+	game.saveHandState(gameState, handState)
 
 	channelGameLogger.Info().
 		Uint32("club", game.clubID).
@@ -274,14 +245,14 @@ func (game *Game) dealNewHand() error {
 		Msg(fmt.Sprintf("Table: %s", handState.PrintTable(game.players)))
 
 	// send the cards to each player
-	for _, playerID := range gameState.GetPlayersInSeats() {
+	for seatNo, playerID := range gameState.GetPlayersInSeats() {
 		if playerID == 0 {
 			// empty seat
 			continue
 		}
 
 		playerCards := handState.PlayersCards[playerID]
-		message := HandDealCards{ClubId: game.clubID, GameNum: game.gameNum, HandNum: handState.HandNum}
+		message := HandDealCards{SeatNo: uint32(seatNo+1)}
 		message.Cards = make([]uint32, len(playerCards))
 		for i, card := range playerCards {
 			message.Cards[i] = uint32(card)
@@ -302,12 +273,37 @@ func (game *Game) dealNewHand() error {
 		Uint32("club", game.clubID).
 		Uint32("game", game.gameNum).
 		Uint32("hand", handState.HandNum).
-		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(&handState, gameState, game.players)))
+		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, gameState, game.players)))
 
-	// send this action to all the players
-	handMessage := HandMessage{MessageType: HandNextAction, GameNum: game.gameNum, ClubId: game.clubID}
+
+	// broadcast to all the players who is next to act
+	nextActionMessage := HandMessage{ 
+		MessageType: HandNextAction, 
+		GameNum: game.gameNum, 
+		ClubId: game.clubID,
+	}
+
+	actionChange := ActionChange{SeatNo: handState.NextSeatAction.SeatNo}
+	nextActionMessage.HandMessage = &HandMessage_ActionChange{ActionChange: &actionChange}
+	game.broadcastHandMessage(&nextActionMessage)
+
+	// send this action to next player who needs to act
+	handMessage := HandMessage{ 
+						MessageType: HandNextAction, 
+						GameNum: game.gameNum, 
+						ClubId: game.clubID, 
+						SeatNo: handState.NextSeatAction.SeatNo,
+						HandStatus: handState.GetCurrentState(),
+					}
 	handMessage.HandMessage = &HandMessage_SeatAction{SeatAction: handState.NextSeatAction}
-	game.broadcastMessage(handMessage)
+	playerID := gameState.GetPlayersInSeats()[handState.NextSeatAction.SeatNo-1]
+	player := game.allPlayers[playerID]
+	game.sendHandMessageToPlayer(&handMessage, player)
+
+	// we dealt hands and setup for preflop, save handstate
+	// if we crash between state: deal and preflop, we will deal the cards again 
+	game.saveHandState(gameState, handState)
+
 	return nil
 }
 
@@ -329,8 +325,24 @@ func (game *Game) saveState(gameState *GameState) error {
 	return err
 }
 
-func (game *Game) broadcastMessage(message HandMessage) {
-	b, _ := proto.Marshal(&message)
+func (game *Game) saveHandState(gameState *GameState, handState *HandState) error {
+	err := game.manager.handStatePersist.Save(gameState.GetClubId(), 
+																						gameState.GetGameNum(), 
+																						handState.HandNum, 
+																						handState)
+	return err
+}
+
+
+func (game *Game) loadHandState(gameState *GameState) (*HandState, error) {
+	handState, err := game.manager.handStatePersist.Load(gameState.GetClubId(), 
+																						gameState.GetGameNum(), 
+																						gameState.GetHandNum())
+	return handState, err
+}
+
+func (game *Game) broadcastHandMessage(message *HandMessage) {
+	b, _ := proto.Marshal(message)
 	for _, player := range game.allPlayers {
 		player.chHand <- b
 	}
@@ -348,7 +360,15 @@ func (game *Game) sendGameMessage(message GameMessage) {
 	game.chGame <- b
 }
 
-func (game *Game) sendHandMessage(message HandMessage) {
-	b, _ := proto.Marshal(&message)
-	game.chHand <- b
+func (game *Game) sendHandMessageToPlayer(message *HandMessage, player* Player) {
+	b, _ := proto.Marshal(message)
+	player.chHand <- b
+}
+
+
+func (game *Game) addPlayer(player *Player) error {
+	game.lock.Lock()
+	defer game.lock.Unlock()
+	game.allPlayers[player.PlayerID] = player
+	return nil
 }

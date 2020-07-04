@@ -69,7 +69,7 @@ func (h *HandState) initialize(gameState *GameState) {
 }
 
 func (h *HandState) setupPreflob(gameState *GameState) {
-	h.CurrentState = HandState_PREFLOP
+	h.CurrentState = HandStatus_PREFLOP
 
 	// set next action information
 	h.CurrentRaise = gameState.BigBlind
@@ -98,7 +98,7 @@ func (h *HandState) getPlayersState(gameState *GameState) map[uint32]*HandPlayer
 			continue
 		}
 		playerState, _ := gameState.GetPlayersState()[playerID]
-		if playerState.GetStatus() != PlayerState_PLAYING {
+		if playerState.GetStatus() != PlayerStatus_PLAYING {
 			continue
 		}
 		handPlayerState[playerID] = &HandPlayerState{
@@ -228,13 +228,13 @@ func (h *HandState) actionReceived(gameState *GameState, action *HandAction) err
 
 	var log *HandActionLog
 	switch h.CurrentState {
-	case HandState_PREFLOP:
+	case HandStatus_PREFLOP:
 		log = h.PreflopActions
-	case HandState_FLOP:
+	case HandStatus_FLOP:
 		log = h.FlopActions
-	case HandState_TURN:
+	case HandStatus_TURN:
 		log = h.TurnActions
-	case HandState_RIVER:
+	case HandStatus_RIVER:
 		log = h.RiverActions
 	}
 
@@ -301,7 +301,7 @@ func (h *HandState) prepareNextAction(gameState *GameState, currentAction *HandA
 	nextAction := &NextSeatAction{SeatNo: actionSeat}
 	availableActions := make([]ACTION, 0)
 	availableActions = append(availableActions, ACTION_FOLD)
-	if h.CurrentState == HandState_PREFLOP {
+	if h.CurrentState == HandStatus_PREFLOP {
 		if currentAction.Action == ACTION_BB {
 			// the player can straddle, if he has enough money
 			straddleAmount := 2.0 * gameState.BigBlind
@@ -379,16 +379,16 @@ func (h *HandState) PrintCurrentActionLog(gameState *GameState, players map[uint
 	b.Grow(32)
 
 	switch h.CurrentState {
-	case HandState_PREFLOP:
+	case HandStatus_PREFLOP:
 		log = h.PreflopActions
 		fmt.Fprintf(&b, "PreFlop: \n")
-	case HandState_FLOP:
+	case HandStatus_FLOP:
 		log = h.FlopActions
 		fmt.Fprintf(&b, "Flop: \n")
-	case HandState_TURN:
+	case HandStatus_TURN:
 		log = h.TurnActions
 		fmt.Fprintf(&b, "Turn: \n")
-	case HandState_RIVER:
+	case HandStatus_RIVER:
 		log = h.RiverActions
 		fmt.Fprintf(&b, "River: \n")
 	}

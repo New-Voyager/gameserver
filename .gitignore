@@ -2,3 +2,4 @@ game/gamestate.pb.go
 game/gamemessage.pb.go
 server
 game/handmessage.pb.go
+*.pb.*

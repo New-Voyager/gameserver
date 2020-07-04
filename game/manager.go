@@ -112,3 +112,41 @@ func (gm *Manager) StartGame(clubID uint32, gameNum uint32) error {
 	game.chGame <- messageData
 	return nil
 }
+
+
+func (gm *Manager) JoinGame(clubID uint32, gameNum uint32, player *Player) error  {
+	gameID := fmt.Sprintf("%d:%d", clubID, gm.gameCount)
+	if _, ok := gm.activeGames[gameID]; !ok {
+		// game not found
+		return fmt.Errorf("Game %d is not found", gameNum)
+	}
+	game, _ := gm.activeGames[gameID]
+
+	game.addPlayer(player)
+	
+	return nil
+}
+
+func (gm *Manager) DealHand(clubID uint32, gameNum uint32) error  {
+	gameID := fmt.Sprintf("%d:%d", clubID, gm.gameCount)
+	if _, ok := gm.activeGames[gameID]; !ok {
+		// game not found
+		return fmt.Errorf("Game %d is not found", gameNum)
+	}
+	game, _ := gm.activeGames[gameID]
+
+	var gameMessage GameMessage
+
+	dealHandMessage := &GameDealHandMessage{
+	}
+
+	gameMessage.ClubId = clubID
+	gameMessage.GameNum = gameNum
+	gameMessage.MessageType = GameDealHand
+	gameMessage.GameMessage = &GameMessage_DealHand{DealHand: dealHandMessage}
+	messageData, _ := proto.Marshal(&gameMessage)
+
+	game.chGame <- messageData
+	return nil
+}
+
