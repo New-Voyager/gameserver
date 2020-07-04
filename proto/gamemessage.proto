@@ -9,6 +9,11 @@ message GameSitMessage {
   float  buy_in = 3;
 }
 
+message GameJoinMessage {
+  uint32 player_id = 1;
+}
+
+
 message GameStatusMessage {
   GameStatus status = 1;
 }
@@ -23,6 +28,22 @@ message GameStatusChangeMessage {
   GameStatus newStatus = 1;
 }
 
+message PlayerAtTableState {
+  uint32 player_id = 1;
+  uint32 seat_no = 2;
+  float buy_in = 3;
+  float current_balance = 4;
+  PlayerStatus status = 5;
+}
+
+message GameDealHandMessage {
+
+}
+
+message GameTableStateMessage {
+  repeated PlayerAtTableState players_state = 1;
+}
+
 message GameMessage {
   string version = 1;
   uint32 club_id = 2;
@@ -34,5 +55,8 @@ message GameMessage {
     GameStatusMessage status = 7;
     GamePlayerSatMessage  player_sat = 8;
     GameStatusChangeMessage status_change = 9;
+    GameJoinMessage join_game = 10;
+    GameDealHandMessage deal_hand = 11;
+    GameTableStateMessage table_state = 12;
   }
 }

@@ -66,10 +66,15 @@ type PlayerSeat struct {
 	BuyIn float32 `yaml:"buy-in"`
 }
 
+type SeatVerification struct {
+  Table PokerTable `yaml:"table"`
+}
+
 type AssignSeat struct {
 	ButtonPos uint32 `yaml:"button-pos"`
 	Seats []PlayerSeat `yaml:"seats"`
-	Wait uint32 `yaml:"wait"`
+  Wait uint32 `yaml:"wait"`
+  Verify SeatVerification `yaml:"verify"`
 }
 
 /*
@@ -183,4 +188,14 @@ type GameScript struct {
 	GameConfig	GameConfig `yaml:"game-config"`
 
 	testGame *TestGame
+}
+
+type PlayerAtTable struct {
+  SeatNo uint32 `yaml:"seat"`
+  PlayerID uint32 `yaml:"player"`
+  Stack uint32 `yaml:"stack"`
+}
+
+type PokerTable struct {
+  Players []PlayerAtTable `yaml:"players"`
 }

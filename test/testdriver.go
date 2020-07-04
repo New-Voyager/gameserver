@@ -3,9 +3,6 @@ package test
 import (
 	"fmt"
 	"io/ioutil"
-	//"time"
-
-	//jsoniter "github.com/json-iterator/go"
 	"voyager.com/server/game"
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
@@ -13,11 +10,12 @@ import (
 
 var testDriverLogger = log.With().Str("logger_name", "test::testdriver").Logger()
 
+var gameManager = game.NewGameManager()
 
 // runs game scripts and captures the results
 // and output the results at the end
 type TestDriver struct {
-
+	Observer *TestPlayer
 }
 
 func NewTestDriver() *TestDriver {
@@ -41,18 +39,25 @@ func (t *TestDriver) RunGameScript(filename string) error {
 		return err
 	}
 	fmt.Printf("Script: %v\n", gameScript)
-
-	gameScript.configure()
+	gameScript.configure(t)
 
 	return nil
 }
 
 
 // configures the table with the configuration
-func (g *GameScript) configure() {
+func (g *GameScript) configure(t *TestDriver) error {
 	gameType := game.GameType(game.GameType_value[g.GameConfig.GameType])
-	g.testGame = NewTestGame(1, gameType, g.GameConfig.Title, g.GameConfig.AutoStart, g.Players)
+	g.testGame = NewTestGame(t, 1, gameType, g.GameConfig.Title, g.GameConfig.AutoStart, g.Players)
 	g.testGame.Start(g.AssignSeat.Seats)
-	//time.Sleep(5000)
-	select {}
+
+	// get current game status
+
+	// let us see whether we need to verify
+	//if g.AssignSeat.Verify.Table != nil {
+		// verify player stack
+		// get current player information from the table
+	//}
+
+	return nil
 }

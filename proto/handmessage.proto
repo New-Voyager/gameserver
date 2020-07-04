@@ -2,24 +2,32 @@ syntax = "proto3";
 package game;
 option go_package = "game";
 import "gamestate.proto";
+import "handstate.proto";
 
+//HandDealCards message is sent to each player when cards dealt to the player
 message HandDealCards {
-  uint32 club_id = 1;
-  uint32 game_num = 2;
-  uint32 hand_num = 3;
-  repeated uint32 cards = 4;  // I used int instead of byte is to display cards in json
-  string cardsStr = 5; // string representation of the cards for logging
+  uint32 seat_no = 1;
+  repeated uint32 cards = 2;  // I used int instead of byte is to display cards in json
+  string cardsStr = 3; // string representation of the cards for logging
 }
 
+//ActionChange message is sent to all the players to indicate which seat is next to act 
+message ActionChange {
+  uint32 seat_no = 1;
+}
 
+//HandMessage packages the actual message with Hand information (clubid, game_num, hand_num) 
 message HandMessage {
   string version = 1;
   uint32 club_id = 2;
   uint32 game_num = 3;
   uint32 hand_num = 4;
-  string message_type = 5;
+  uint32 seat_no = 5;       // if this message is targetted to a specific player
+  string message_type = 6;
+  HandStatus hand_status = 7;
   oneof hand_message {
-    NextSeatAction  seat_action = 6;
-    HandDealCards deal_cards = 7;
+    NextSeatAction  seat_action = 8;
+    HandDealCards deal_cards = 9;
+    ActionChange action_change = 10;
   }
 }

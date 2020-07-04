@@ -65,12 +65,12 @@ func (game *Game) onPlayerTakeSeat(message *GameMessage) error {
 	// This is a bigger work item. A multiple players will be auto-seated
 	// If the buy-in needs to approved by the club manager, we need to wait for the approval
 	// we need a state tracking for seat as well
-	// seat: open, waiting for buyin approval, occupied, break, hold for certain time limit
+	// seat state: open, waiting for buyin approval, sitting, occupied, break, hold for certain time limit
 
 	if gameState.PlayersState == nil {
 		gameState.PlayersState = make(map[uint32]*PlayerState)
 	}
-	gameState.PlayersState[gameSit.PlayerId] = &PlayerState{BuyIn: gameSit.BuyIn, CurrentBalance: gameSit.BuyIn, Status: PlayerState_PLAYING}
+	gameState.PlayersState[gameSit.PlayerId] = &PlayerState{BuyIn: gameSit.BuyIn, CurrentBalance: gameSit.BuyIn, Status: PlayerStatus_PLAYING}
 
 	// save game state
 	err = game.saveState(gameState)
