@@ -3,9 +3,11 @@ package test
 import (
 	"fmt"
 	"io/ioutil"
-	"voyager.com/server/game"
+	"time"
+
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
+	"voyager.com/server/game"
 )
 
 var testDriverLogger = log.With().Str("logger_name", "test::testdriver").Logger()
@@ -19,7 +21,7 @@ type TestDriver struct {
 }
 
 func NewTestDriver() *TestDriver {
-	return &TestDriver {}
+	return &TestDriver{}
 }
 
 func (t *TestDriver) RunGameScript(filename string) error {
@@ -44,7 +46,6 @@ func (t *TestDriver) RunGameScript(filename string) error {
 	return nil
 }
 
-
 // configures the table with the configuration
 func (g *GameScript) configure(t *TestDriver) error {
 	gameType := game.GameType(game.GameType_value[g.GameConfig.GameType])
@@ -52,12 +53,9 @@ func (g *GameScript) configure(t *TestDriver) error {
 	g.testGame.Start(g.AssignSeat.Seats)
 
 	// get current game status
+	gameManager.GetTableState(g.testGame.clubID, g.testGame.gameNum, t.Observer.player.PlayerID)
+	time.Sleep(100 * time.Millisecond)
 
-	// let us see whether we need to verify
-	//if g.AssignSeat.Verify.Table != nil {
-		// verify player stack
-		// get current player information from the table
-	//}
-
+	// validate the player stack here to ensure sit-in command worked
 	return nil
 }

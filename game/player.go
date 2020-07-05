@@ -50,8 +50,8 @@ type Player struct {
 // TestPlayer implements the callbacks for unit testing
 // WebSocketPlayer implements callbacks to communicate with the app
 type PlayerMessageDelegate interface {
-	HandMessageFromGame(json []byte)
-	GameMessageFromGame(json []byte)
+	HandMessageFromGame(handMessage *HandMessage, json []byte)
+	GameMessageFromGame(gameMessage *GameMessage, json []byte)
 }
 
 func NewPlayer(clubID uint32, gameNum uint32, name string, playerID uint32, delegate PlayerMessageDelegate) *Player {
@@ -99,7 +99,7 @@ func (p *Player) onCardsDealt(message HandMessage) error {
 	}
 
 	if p.delegate != nil {
-		p.delegate.HandMessageFromGame(jsonb)
+		p.delegate.HandMessageFromGame(&message, jsonb)
 	}
 	return nil
 }
@@ -120,7 +120,7 @@ func (p *Player) onNextAction(message HandMessage) error {
 	}
 
 	if p.delegate != nil {
-		p.delegate.HandMessageFromGame(jsonb)
+		p.delegate.HandMessageFromGame(&message, jsonb)
 	}
 	return nil
 }
@@ -143,7 +143,7 @@ func (p *Player) handleGameMessage(message GameMessage) error {
 				p.SeatNo = message.GetPlayerSat().SeatNo
 			}
 		}
-		p.delegate.GameMessageFromGame(jsonb)
+		p.delegate.GameMessageFromGame(&message, jsonb)
 	}
 	return nil
 }

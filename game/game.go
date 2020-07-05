@@ -16,7 +16,6 @@ NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 
 var channelGameLogger = log.With().Str("logger_name", "game::game").Logger()
 
-
 type Game struct {
 	gameID         string
 	clubID         uint32
@@ -224,10 +223,10 @@ func (game *Game) dealNewHand() error {
 
 	gameState.HandNum++
 	handState := &HandState{
-		ClubId:   gameState.GetClubId(),
-		GameNum:  gameState.GetGameNum(),
-		HandNum:  gameState.GetHandNum(),
-		GameType: gameState.GetGameType(),
+		ClubId:       gameState.GetClubId(),
+		GameNum:      gameState.GetGameNum(),
+		HandNum:      gameState.GetHandNum(),
+		GameType:     gameState.GetGameType(),
 		CurrentState: HandStatus_DEAL,
 	}
 
@@ -252,7 +251,7 @@ func (game *Game) dealNewHand() error {
 		}
 
 		playerCards := handState.PlayersCards[playerID]
-		message := HandDealCards{SeatNo: uint32(seatNo+1)}
+		message := HandDealCards{SeatNo: uint32(seatNo + 1)}
 		message.Cards = make([]uint32, len(playerCards))
 		for i, card := range playerCards {
 			message.Cards[i] = uint32(card)
@@ -275,12 +274,11 @@ func (game *Game) dealNewHand() error {
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, gameState, game.players)))
 
-
 	// broadcast to all the players who is next to act
-	nextActionMessage := HandMessage{ 
-		MessageType: HandNextAction, 
-		GameNum: game.gameNum, 
-		ClubId: game.clubID,
+	nextActionMessage := HandMessage{
+		MessageType: HandNextAction,
+		GameNum:     game.gameNum,
+		ClubId:      game.clubID,
 	}
 
 	actionChange := ActionChange{SeatNo: handState.NextSeatAction.SeatNo}
@@ -288,20 +286,20 @@ func (game *Game) dealNewHand() error {
 	game.broadcastHandMessage(&nextActionMessage)
 
 	// send this action to next player who needs to act
-	handMessage := HandMessage{ 
-						MessageType: HandNextAction, 
-						GameNum: game.gameNum, 
-						ClubId: game.clubID, 
-						SeatNo: handState.NextSeatAction.SeatNo,
-						HandStatus: handState.GetCurrentState(),
-					}
+	handMessage := HandMessage{
+		MessageType: HandNextAction,
+		GameNum:     game.gameNum,
+		ClubId:      game.clubID,
+		SeatNo:      handState.NextSeatAction.SeatNo,
+		HandStatus:  handState.GetCurrentState(),
+	}
 	handMessage.HandMessage = &HandMessage_SeatAction{SeatAction: handState.NextSeatAction}
 	playerID := gameState.GetPlayersInSeats()[handState.NextSeatAction.SeatNo-1]
 	player := game.allPlayers[playerID]
 	game.sendHandMessageToPlayer(&handMessage, player)
 
 	// we dealt hands and setup for preflop, save handstate
-	// if we crash between state: deal and preflop, we will deal the cards again 
+	// if we crash between state: deal and preflop, we will deal the cards again
 	game.saveHandState(gameState, handState)
 
 	return nil
@@ -326,18 +324,17 @@ func (game *Game) saveState(gameState *GameState) error {
 }
 
 func (game *Game) saveHandState(gameState *GameState, handState *HandState) error {
-	err := game.manager.handStatePersist.Save(gameState.GetClubId(), 
-																						gameState.GetGameNum(), 
-																						handState.HandNum, 
-																						handState)
+	err := game.manager.handStatePersist.Save(gameState.GetClubId(),
+		gameState.GetGameNum(),
+		handState.HandNum,
+		handState)
 	return err
 }
 
-
 func (game *Game) loadHandState(gameState *GameState) (*HandState, error) {
-	handState, err := game.manager.handStatePersist.Load(gameState.GetClubId(), 
-																						gameState.GetGameNum(), 
-																						gameState.GetHandNum())
+	handState, err := game.manager.handStatePersist.Load(gameState.GetClubId(),
+		gameState.GetGameNum(),
+		gameState.GetHandNum())
 	return handState, err
 }
 
@@ -360,15 +357,48 @@ func (game *Game) sendGameMessage(message GameMessage) {
 	game.chGame <- b
 }
 
-func (game *Game) sendHandMessageToPlayer(message *HandMessage, player* Player) {
+func (game *Game) sendHandMessageToPlayer(message *HandMessage, player *Player) {
 	b, _ := proto.Marshal(message)
 	player.chHand <- b
 }
-
 
 func (game *Game) addPlayer(player *Player) error {
 	game.lock.Lock()
 	defer game.lock.Unlock()
 	game.allPlayers[player.PlayerID] = player
 	return nil
+}
+
+func (game *Game) getPlayersAtTable() ([]*PlayerAtTableState, error) {
+	gameState, err := game.loadState()
+	if err != nil {
+		return nil, err
+	}
+
+	/*
+		message PlayerAtTableState {
+			uint32 player_id = 1;
+			uint32 seat_no = 2;
+			float buy_in = 3;
+			float current_balance = 4;
+			PlayerStatus status = 5;
+		}
+	*/
+	ret := make([]*PlayerAtTableState, 0)
+	playersInSeats := gameState.GetPlayersInSeats()
+	for seatNo, playerID := range playersInSeats {
+		if playerID != 0 {
+			playerState := gameState.PlayersState[playerID]
+			playerAtTable := &PlayerAtTableState{
+				PlayerId:       playerID,
+				SeatNo:         uint32(seatNo),
+				BuyIn:          playerState.BuyIn,
+				CurrentBalance: playerState.CurrentBalance,
+				Status:         playerState.Status,
+			}
+			ret = append(ret, playerAtTable)
+		}
+	}
+
+	return ret, nil
 }
