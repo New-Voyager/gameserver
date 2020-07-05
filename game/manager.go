@@ -48,7 +48,6 @@ func (gm *Manager) gameEnded(game *Game) {
 }
 
 func (gm *Manager) SitAtTable(clubID uint32, gameNum uint32, player *Player, seatNo uint32, buyIn float32) error {
-	//clubID := uint32(1)
 	gameID := fmt.Sprintf("%d:%d", clubID, gameNum)
 	if _, ok := gm.activeGames[gameID]; !ok {
 		// game not found
@@ -83,8 +82,6 @@ func (gm *Manager) SitAtTable(clubID uint32, gameNum uint32, player *Player, sea
 	gameMessage.GameMessage = &GameMessage_TakeSeat{TakeSeat: &takeSeatMessage}
 	messageData, _ := proto.Marshal(&gameMessage)
 
-	go player.playGame()
-
 	game.chGame <- messageData
 	return nil
 }
@@ -113,8 +110,7 @@ func (gm *Manager) StartGame(clubID uint32, gameNum uint32) error {
 	return nil
 }
 
-
-func (gm *Manager) JoinGame(clubID uint32, gameNum uint32, player *Player) error  {
+func (gm *Manager) JoinGame(clubID uint32, gameNum uint32, player *Player) error {
 	gameID := fmt.Sprintf("%d:%d", clubID, gm.gameCount)
 	if _, ok := gm.activeGames[gameID]; !ok {
 		// game not found
@@ -123,11 +119,14 @@ func (gm *Manager) JoinGame(clubID uint32, gameNum uint32, player *Player) error
 	game, _ := gm.activeGames[gameID]
 
 	game.addPlayer(player)
-	
+
+	// start listenting for game/hand events
+	go player.playGame()
+
 	return nil
 }
 
-func (gm *Manager) DealHand(clubID uint32, gameNum uint32) error  {
+func (gm *Manager) DealHand(clubID uint32, gameNum uint32) error {
 	gameID := fmt.Sprintf("%d:%d", clubID, gm.gameCount)
 	if _, ok := gm.activeGames[gameID]; !ok {
 		// game not found
@@ -137,8 +136,7 @@ func (gm *Manager) DealHand(clubID uint32, gameNum uint32) error  {
 
 	var gameMessage GameMessage
 
-	dealHandMessage := &GameDealHandMessage{
-	}
+	dealHandMessage := &GameDealHandMessage{}
 
 	gameMessage.ClubId = clubID
 	gameMessage.GameNum = gameNum
@@ -150,3 +148,27 @@ func (gm *Manager) DealHand(clubID uint32, gameNum uint32) error  {
 	return nil
 }
 
+// GetTableState returns the table returned to a specific player requested the state
+func (gm *Manager) GetTableState(clubID uint32, gameNum uint32, playerID uint32) error {
+	gameID := fmt.Sprintf("%d:%d", clubID, gameNum)
+	if _, ok := gm.activeGames[gameID]; !ok {
+		// game not found
+		return fmt.Errorf("Game %d is not found", gameNum)
+	}
+	game, _ := gm.activeGames[gameID]
+	// get active players on the table
+	playersAtTable, err := game.getPlayersAtTable()
+	if err != nil {
+		return err
+	}
+	gameTableState := &GameTableStateMessage{PlayersState: playersAtTable}
+	var gameMessage GameMessage
+	gameMessage.ClubId = clubID
+	gameMessage.GameNum = gameNum
+	gameMessage.MessageType = GameTableState
+	gameMessage.GameMessage = &GameMessage_TableState{TableState: gameTableState}
+	messageData, _ := proto.Marshal(&gameMessage)
+
+	game.allPlayers[playerID].chGame <- messageData
+	return nil
+}
