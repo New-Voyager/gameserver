@@ -3,7 +3,7 @@ package test
 import (
 	"fmt"
 	"io/ioutil"
-	"time"
+	"os"
 
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
@@ -14,17 +14,35 @@ var testDriverLogger = log.With().Str("logger_name", "test::testdriver").Logger(
 
 var gameManager = game.NewGameManager()
 
+type ScriptTestResult struct {
+	Filename string
+	Passed   bool
+	Failures []error
+	Disabled bool
+}
+
+func (s *ScriptTestResult) addError(e error) {
+	s.Failures = append(s.Failures, e)
+}
+
 // runs game scripts and captures the results
 // and output the results at the end
 type TestDriver struct {
-	Observer *TestPlayer
+	Observer     *TestPlayer
+	ScriptResult map[string]*ScriptTestResult
+	ScriptFiles  []string
 }
 
 func NewTestDriver() *TestDriver {
-	return &TestDriver{}
+	return &TestDriver{ScriptResult: make(map[string]*ScriptTestResult), ScriptFiles: make([]string, 0)}
 }
 
 func (t *TestDriver) RunGameScript(filename string) error {
+
+	result := &ScriptTestResult{Filename: filename, Failures: make([]error, 0)}
+	t.ScriptResult[filename] = result
+	t.ScriptFiles = append(t.ScriptFiles, filename)
+
 	// load game script
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -38,24 +56,71 @@ func (t *TestDriver) RunGameScript(filename string) error {
 	if err != nil {
 		// failed to load game script file
 		fmt.Printf("Loading json failed: %s, err: %v\n", filename, err)
+		result.addError(err)
 		return err
 	}
-	fmt.Printf("Script: %v\n", gameScript)
-	gameScript.configure(t)
+	if gameScript.Disabled {
+		result.Disabled = true
+		return nil
+	}
+
+	gameScript.filename = filename
+	gameScript.result = result
+	e := gameScript.configure(t)
+	if e != nil {
+		return e
+	}
 
 	return nil
 }
 
-// configures the table with the configuration
-func (g *GameScript) configure(t *TestDriver) error {
-	gameType := game.GameType(game.GameType_value[g.GameConfig.GameType])
-	g.testGame = NewTestGame(t, 1, gameType, g.GameConfig.Title, g.GameConfig.AutoStart, g.Players)
-	g.testGame.Start(g.AssignSeat.Seats)
+func (t *TestDriver) ReportResult() bool {
+	passed := true
+	for _, scriptFile := range t.ScriptFiles {
+		result := t.ScriptResult[scriptFile]
+		if result.Disabled {
+			fmt.Printf("Script %s is disabled\n", result.Filename)
+			continue
+		}
 
-	// get current game status
-	gameManager.GetTableState(g.testGame.clubID, g.testGame.gameNum, t.Observer.player.PlayerID)
-	time.Sleep(100 * time.Millisecond)
+		if len(result.Failures) != 0 {
+			passed = false
+			// failed and report errors
+			fmt.Printf("Script %s failed\n", scriptFile)
+			fmt.Printf("===========================\n")
+			for _, e := range result.Failures {
+				fmt.Printf("%s\n", e.Error())
+			}
+			fmt.Printf("===========================\n")
+		}
+	}
+	return passed
+}
 
-	// validate the player stack here to ensure sit-in command worked
-	return nil
+func RunGameScriptTests(dir string) {
+	// runs game scripts and reports results
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		fmt.Printf("Failed to get files from dir: %s\n", dir)
+		os.Exit(1)
+	}
+
+	testDriver := NewTestDriver()
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		testDriver.RunGameScript(fmt.Sprintf("%s/%s", dir, file.Name()))
+	}
+
+	passed := testDriver.ReportResult()
+	if passed {
+		fmt.Printf("All scripts passed\n")
+		os.Exit(0)
+	} else {
+		fmt.Printf("One or more scripts failed\n")
+	}
+
+	// if one or more tests failed, the process will exit with an error code
+	os.Exit(1)
 }

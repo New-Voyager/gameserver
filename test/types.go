@@ -178,18 +178,21 @@ type Hand struct {
 }
 
 type GameScript struct {
+	Disabled   bool         `yaml:"disabled"`
 	Hands      []Hand       `yaml:"hands"`
 	Players    []GamePlayer `yaml:"players"`
 	AssignSeat AssignSeat   `yaml:"take-seat"`
 	GameConfig GameConfig   `yaml:"game-config"`
 
 	testGame *TestGame
+	filename string
+	result   *ScriptTestResult
 }
 
 type PlayerAtTable struct {
-	SeatNo   uint32 `yaml:"seat"`
-	PlayerID uint32 `yaml:"player"`
-	Stack    uint32 `yaml:"stack"`
+	SeatNo   uint32  `yaml:"seat"`
+	PlayerID uint32  `yaml:"player"`
+	Stack    float32 `yaml:"stack"`
 }
 
 type PokerTable struct {

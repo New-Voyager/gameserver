@@ -12,3 +12,6 @@ jobs:
       - run:
           name: Run tests
           command: make test
+      - run:
+          name: Run game scripts test
+          command: make script-test

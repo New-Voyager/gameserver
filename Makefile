@@ -1,4 +1,3 @@
-	PROTOC_ZIP = protoc-3.7.1-linux-x86_64.zip
 PROTOC_ZIP = protoc-3.7.1-linux-x86_64.zip
 
 .PHONY: compile-proto
@@ -23,6 +22,9 @@ fmt:
 .PHONY: test
 test: build
 	go test voyager.com/server/poker
+
+script-test:
+	go run main.go --game-script test/game-scripts
 
 .PHONY: install-protoc
 install-protoc:

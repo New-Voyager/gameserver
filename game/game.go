@@ -391,7 +391,7 @@ func (game *Game) getPlayersAtTable() ([]*PlayerAtTableState, error) {
 			playerState := gameState.PlayersState[playerID]
 			playerAtTable := &PlayerAtTableState{
 				PlayerId:       playerID,
-				SeatNo:         uint32(seatNo),
+				SeatNo:         uint32(seatNo + 1),
 				BuyIn:          playerState.BuyIn,
 				CurrentBalance: playerState.CurrentBalance,
 				Status:         playerState.Status,
