@@ -49,18 +49,26 @@ func (h *HandState) PrintTable(players map[uint32]string) string {
 	return b.String()
 }
 
-func (h *HandState) initialize(gameState *GameState) {
+func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos int32) {
 	// settle players in the seats
 	h.PlayersInSeats = gameState.GetPlayersInSeats()
 
 	// determine button and blinds
-	h.ButtonPos = h.moveButton(gameState)
+	if buttonPos == -1 {
+		h.ButtonPos = h.moveButton(gameState)
+	} else {
+		h.ButtonPos = uint32(buttonPos)
+	}
+
 	h.SmallBlindPos, h.BigBlindPos = h.getBlindPos(gameState)
 
 	// copy player's stack (we need to copy only the players that are in the hand)
 	h.PlayersState = h.getPlayersState(gameState)
 
-	deck := poker.NewDeck().Shuffle()
+	if deck == nil {
+		deck = poker.NewDeck().Shuffle()
+	}
+
 	h.Deck = deck.GetBytes()
 	h.PlayersCards = h.getPlayersCards(gameState, deck)
 

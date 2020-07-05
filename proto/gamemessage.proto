@@ -44,6 +44,11 @@ message GameTableStateMessage {
   repeated PlayerAtTableState players_state = 1;
 }
 
+message GameSetupNextHandMessage {
+  bytes deck = 1;
+  uint32 button_pos = 2;
+}
+
 message GameMessage {
   string version = 1;
   uint32 club_id = 2;
@@ -58,5 +63,6 @@ message GameMessage {
     GameJoinMessage join_game = 10;
     GameDealHandMessage deal_hand = 11;
     GameTableStateMessage table_state = 12;
+    GameSetupNextHandMessage next_hand = 13;
   }
 }

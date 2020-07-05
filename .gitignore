@@ -3,3 +3,4 @@ game/gamemessage.pb.go
 server
 game/handmessage.pb.go
 *.pb.*
+protoc-3.7.1-linux-x86_64.zip

@@ -66,11 +66,11 @@ func (t *TestDriver) RunGameScript(filename string) error {
 
 	gameScript.filename = filename
 	gameScript.result = result
-	e := gameScript.configure(t)
+
+	e := gameScript.run(t)
 	if e != nil {
 		return e
 	}
-
 	return nil
 }
 

@@ -31,9 +31,14 @@ type Game struct {
 	players        map[uint32]string
 	waitingPlayers []uint32
 	minPlayers     int
-	autoStart      bool
-	autoDeal       bool
-	lock           sync.Mutex
+
+	// test driver specific variables
+	autoStart     bool
+	autoDeal      bool
+	testDeckToUse *poker.Deck
+	testButtonPos int32
+
+	lock sync.Mutex
 }
 
 func NewPokerGame(gameManager *Manager, gameID string, gameType GameType,
@@ -42,14 +47,15 @@ func NewPokerGame(gameManager *Manager, gameID string, gameType GameType,
 	handStatePersist PersistHandState) *Game {
 	title := fmt.Sprintf("%d:%d %s", clubID, gameNum, GameType_name[int32(gameType)])
 	game := Game{
-		manager:   gameManager,
-		gameID:    gameID,
-		gameType:  gameType,
-		title:     title,
-		clubID:    clubID,
-		gameNum:   gameNum,
-		autoStart: autoStart,
-		autoDeal:  autoDeal,
+		manager:       gameManager,
+		gameID:        gameID,
+		gameType:      gameType,
+		title:         title,
+		clubID:        clubID,
+		gameNum:       gameNum,
+		autoStart:     autoStart,
+		autoDeal:      autoDeal,
+		testButtonPos: -1,
 	}
 	game.allPlayers = make(map[uint32]*Player)
 	game.chGame = make(chan []byte)
@@ -230,7 +236,7 @@ func (game *Game) dealNewHand() error {
 		CurrentState: HandStatus_DEAL,
 	}
 
-	handState.initialize(gameState)
+	handState.initialize(gameState, game.testDeckToUse, game.testButtonPos)
 	gameState.ButtonPos = handState.GetButtonPos()
 
 	// save the game and hand

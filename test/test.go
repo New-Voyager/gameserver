@@ -68,3 +68,12 @@ func (t *TestGame) Start(playerAtSeats []PlayerSeat) {
 	gameManager.StartGame(t.clubID, t.gameNum)
 	time.Sleep(500 * time.Millisecond)
 }
+
+func (t *TestGame) SetupNextHand(deck []byte, buttonPos uint32) error {
+	err := gameManager.SetupNextHand(t.clubID, t.gameNum, deck, buttonPos)
+	if err != nil {
+		return err
+	}
+	time.Sleep(100 * time.Millisecond)
+	return nil
+}

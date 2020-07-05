@@ -101,12 +101,16 @@ type HandSetupVerfication struct {
 	State         string `yaml:"state"`
 }
 
+type SeatCards struct {
+	Cards []string `yaml:"cards"`
+}
+
 type HandSetup struct {
 	ButtonPos uint32               `yaml:"button-pos"`
 	Flop      []string             `yaml:"flop"`
 	Turn      string               `yaml:"turn"`
 	River     string               `yaml:"river"`
-	SeatCards map[uint32][]string  `yaml:"seat-cards"`
+	SeatCards []SeatCards          `yaml:"seat-cards"`
 	Verify    HandSetupVerfication `yaml:"verify"`
 }
 
@@ -175,6 +179,8 @@ type Hand struct {
 	Setup         HandSetup    `yaml:"setup"`
 	PreflopAction BettingRound `yaml:"preflop-action"`
 	Result        HandResult   `yaml:"result"`
+
+	gameScript *GameScript
 }
 
 type GameScript struct {

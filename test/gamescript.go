@@ -7,6 +7,20 @@ import (
 	"voyager.com/server/game"
 )
 
+func (g *GameScript) run(t *TestDriver) error {
+	err := g.configure(t)
+	if err != nil {
+		return err
+	}
+
+	err = g.dealHands(t)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // configures the table with the configuration
 func (g *GameScript) configure(t *TestDriver) error {
 	gameType := game.GameType(game.GameType_value[g.GameConfig.GameType])
@@ -64,5 +78,34 @@ func (g *GameScript) verifyTableResult(t *TestDriver, expectedPlayers []PlayerAt
 		}
 	}
 
+	return nil
+}
+
+func (g *GameScript) dealHands(t *TestDriver) error {
+	for _, hand := range g.Hands {
+		hand.gameScript = g
+		err := hand.run(t)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (h *Hand) run(t *TestDriver) error {
+	// setup hand
+	err := h.setup(t)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *Hand) setup(t *TestDriver) error {
+	//handNum := h.Num
+
+	// setup hand
 	return nil
 }
