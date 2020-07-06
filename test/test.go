@@ -1,8 +1,6 @@
 package test
 
 import (
-	"time"
-
 	"github.com/rs/zerolog/log"
 	"voyager.com/server/game"
 )
@@ -42,7 +40,6 @@ func NewTestGame(testDriver *TestDriver, clubID uint32,
 	gamePlayers[testDriverObserver.ID] = testDriver.Observer
 
 	// wait for the cards to be dealt
-	time.Sleep(500 * time.Millisecond)
 	return &TestGame{
 		clubID:  clubID,
 		gameNum: gameNum,
@@ -66,5 +63,20 @@ func (t *TestGame) Start(playerAtSeats []PlayerSeat) {
 	}
 
 	gameManager.StartGame(t.clubID, t.gameNum)
-	time.Sleep(500 * time.Millisecond)
+}
+
+func (t *TestGame) SetupNextHand(deck []byte, buttonPos uint32) error {
+	err := gameManager.SetupNextHand(t.clubID, t.gameNum, deck, buttonPos)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *TestGame) DealNextHand() error {
+	err := gameManager.DealHand(t.clubID, t.gameNum)
+	if err != nil {
+		return err
+	}
+	return nil
 }

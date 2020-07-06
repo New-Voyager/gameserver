@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
@@ -66,11 +67,11 @@ func (t *TestDriver) RunGameScript(filename string) error {
 
 	gameScript.filename = filename
 	gameScript.result = result
-	e := gameScript.configure(t)
+
+	e := gameScript.run(t)
 	if e != nil {
 		return e
 	}
-
 	return nil
 }
 
@@ -120,7 +121,7 @@ func RunGameScriptTests(dir string) {
 	} else {
 		fmt.Printf("One or more scripts failed\n")
 	}
-
+	time.Sleep(1 * time.Second)
 	// if one or more tests failed, the process will exit with an error code
 	os.Exit(1)
 }

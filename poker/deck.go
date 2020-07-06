@@ -1,6 +1,7 @@
 package poker
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 )
@@ -26,6 +27,15 @@ func NewDeckNoShuffle() *Deck {
 	deck := &Deck{}
 	deck.cards = make([]Card, len(fullDeck.cards))
 	copy(deck.cards, fullDeck.cards)
+	return deck
+}
+
+func NewDeckFromBytes(cards []byte) *Deck {
+	deck := &Deck{}
+	deck.cards = make([]Card, len(fullDeck.cards))
+	for i, card := range cards {
+		deck.cards[i] = NewCardFromByte(card)
+	}
 	return deck
 }
 
@@ -99,4 +109,70 @@ func DeckFromBytes(cardsInByte []byte) *Deck {
 		cards: cards,
 	}
 	return deck
+}
+
+func (deck *Deck) PrettyPrint() string {
+	return CardsToString(deck.cards)
+}
+
+type CardsInAscii []string
+
+func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, river Card) *Deck {
+	// first we are going to create a deck
+	deck := NewDeck()
+	noOfPlayers := len(playerCards)
+	for i, playerCards := range playerCards {
+		for j, cardStr := range playerCards {
+			deckIndex := i + j*noOfPlayers
+			card := NewCard(cardStr)
+			cardLoc := deck.getCardLoc(card)
+			currentCard := deck.cards[deckIndex]
+			fmt.Printf("deckIndex: %d card: %s currentCard: %s\n", deckIndex, card.String(), currentCard.String())
+			deck.cards[deckIndex] = card
+			deck.cards[cardLoc] = currentCard
+		}
+	}
+	//fmt.Printf("%s\n", deck.PrettyPrint())
+	// now setup flop cards
+	deckIndex := len(playerCards) * len(playerCards[0])
+	for _, cardStr := range flop {
+		card := NewCard(cardStr)
+		cardLoc := deck.getCardLoc(card)
+		currentCard := deck.cards[deckIndex]
+		deck.cards[deckIndex] = card
+		deck.cards[cardLoc] = currentCard
+		deckIndex++
+	}
+	//fmt.Printf("%s\n", deck.PrettyPrint())
+
+	// skip the next card
+	deckIndex++
+
+	// turn
+	cardLoc := deck.getCardLoc(turn)
+	currentCard := deck.cards[deckIndex]
+	deck.cards[deckIndex] = turn
+	deck.cards[cardLoc] = currentCard
+	//fmt.Printf("%s\n", deck.PrettyPrint())
+
+	// skip the next card
+	deckIndex++
+
+	// river
+	cardLoc = deck.getCardLoc(river)
+	currentCard = deck.cards[deckIndex]
+	deck.cards[deckIndex] = river
+	deck.cards[cardLoc] = currentCard
+	//fmt.Printf("%s\n", deck.PrettyPrint())
+
+	return deck
+}
+
+func (deck *Deck) getCardLoc(cardToLocate Card) int {
+	for i, card := range deck.cards {
+		if card == cardToLocate {
+			return i
+		}
+	}
+	return -1
 }

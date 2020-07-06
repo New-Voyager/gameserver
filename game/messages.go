@@ -1,4 +1,3 @@
-
 package game
 
 type MessageDirection string
@@ -21,19 +20,21 @@ const (
 	GameTableState    string = "TABLE_STATE"
 
 	// These messages are used by the test driver
-	GameDealHand				string = "DEAL_NEW_HAND"
+	GameSetupNextHand string = "SETUP_NEXT_HAND"
+	GameDealHand      string = "DEAL_NEW_HAND"
 )
 
 // Hand messages
 const (
-	HandDeal       string = "DEAL"
-	HandActionChange string = "ACTION_CHANGE"
-	HandActed      string = "ACTED"
-	HandNextAction string = "NEXT_ACTION"
-	HandFlop       string = "FLOP"
-	HandTurn       string = "TURN"
-	HandRiver      string = "RIVER"
-	HandShowDown   string = "SHOWDOWN"
-	HandWinner     string = "WINNER"
-	HandEnded      string = "END"
+	HandDeal         string = "DEAL"
+	HandNewHand      string = "NEW_HAND"
+	HandActed        string = "ACTED"
+	HandNextAction   string = "NEXT_ACTION"
+	HandPlayerAction string = "YOUR_ACTION"
+	HandFlop         string = "FLOP"
+	HandTurn         string = "TURN"
+	HandRiver        string = "RIVER"
+	HandShowDown     string = "SHOWDOWN"
+	HandWinner       string = "WINNER"
+	HandEnded        string = "END"
 )

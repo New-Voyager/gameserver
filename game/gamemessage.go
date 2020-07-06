@@ -2,6 +2,8 @@ package game
 
 import (
 	"fmt"
+
+	"voyager.com/server/poker"
 )
 
 func (game *Game) handleGameMessage(message *GameMessage) {
@@ -16,8 +18,15 @@ func (game *Game) handleGameMessage(message *GameMessage) {
 		if game.playersInSeatsCount() == 9 {
 			break
 		}
+
 	case GameStatusChanged:
 		game.onStatusChanged(message)
+
+	case GameSetupNextHand:
+		game.onNextHandSetup(message)
+
+	case GameDealHand:
+		game.onDealHand(message)
 	}
 
 	channelGameLogger.Info().
@@ -103,4 +112,16 @@ func (g *Game) onStatusChanged(message *GameMessage) error {
 	}
 
 	return nil
+}
+
+func (game *Game) onNextHandSetup(message *GameMessage) error {
+	setupNextHand := message.GetNextHand()
+	game.testButtonPos = int32(setupNextHand.ButtonPos)
+	game.testDeckToUse = poker.DeckFromBytes(setupNextHand.Deck)
+	return nil
+}
+
+func (game *Game) onDealHand(message *GameMessage) error {
+	err := game.dealNewHand()
+	return err
 }

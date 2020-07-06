@@ -172,3 +172,31 @@ func (gm *Manager) GetTableState(clubID uint32, gameNum uint32, playerID uint32)
 	game.allPlayers[playerID].chGame <- messageData
 	return nil
 }
+
+// SetupNextHand method can be called only from the test driver
+// and this is available only in test mode.
+// We will never allow hands to be set any scripts. It is morally wrong.
+func (gm *Manager) SetupNextHand(clubID uint32, gameNum uint32, deck []byte, buttonPos uint32) error {
+	gameID := fmt.Sprintf("%d:%d", clubID, gm.gameCount)
+	if _, ok := gm.activeGames[gameID]; !ok {
+		// game not found
+		return fmt.Errorf("Game %d is not found", gameNum)
+	}
+	game, _ := gm.activeGames[gameID]
+
+	var gameMessage GameMessage
+
+	nextHand := &GameSetupNextHandMessage{
+		Deck:      deck,
+		ButtonPos: buttonPos,
+	}
+
+	gameMessage.ClubId = clubID
+	gameMessage.GameNum = gameNum
+	gameMessage.MessageType = GameSetupNextHand
+	gameMessage.GameMessage = &GameMessage_NextHand{NextHand: nextHand}
+	messageData, _ := proto.Marshal(&gameMessage)
+
+	game.chGame <- messageData
+	return nil
+}

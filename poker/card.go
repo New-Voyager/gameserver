@@ -130,8 +130,9 @@ func CardToString(card interface{}) string {
 	switch card.(type) {
 	case Card:
 		c := card.(Card)
-		suit := int(c & 0xF)
-		rank := int((c >> 4) & 0xF)
+		val := c.GetByte()
+		suit := int(val & 0xF)
+		rank := int((val >> 4) & 0xF)
 		return fmt.Sprintf("%s%s", string(strRanks[rank]), string(prettySuits[suit]))
 	case uint32:
 		c := card.(uint32)
@@ -164,4 +165,12 @@ func CardsToString(cards interface{}) string {
 
 func PrintCards(cards []Card) string {
 	return CardsToString(cards)
+}
+
+func ByteCardsToStringArray(cards []uint32) []string {
+	cardsStrings := make([]string, 0)
+	for _, card := range cards {
+		cardsStrings = append(cardsStrings, NewCardFromByte(uint8(card)).String())
+	}
+	return cardsStrings
 }

@@ -4,6 +4,15 @@ option go_package = "game";
 import "gamestate.proto";
 import "handstate.proto";
 
+
+//NewHand message is sent to all the players to indicate which seat is next to act 
+message NewHand {
+  uint32 button_pos = 1;
+  uint32 sb_pos = 2;
+  uint32 bb_pos = 3;
+  uint32 next_action_seat = 4;
+}
+
 //HandDealCards message is sent to each player when cards dealt to the player
 message HandDealCards {
   uint32 seat_no = 1;
@@ -11,10 +20,6 @@ message HandDealCards {
   string cardsStr = 3; // string representation of the cards for logging
 }
 
-//ActionChange message is sent to all the players to indicate which seat is next to act 
-message ActionChange {
-  uint32 seat_no = 1;
-}
 
 //HandMessage packages the actual message with Hand information (clubid, game_num, hand_num) 
 message HandMessage {
@@ -28,6 +33,6 @@ message HandMessage {
   oneof hand_message {
     NextSeatAction  seat_action = 8;
     HandDealCards deal_cards = 9;
-    ActionChange action_change = 10;
+    NewHand new_hand = 10;
   }
 }

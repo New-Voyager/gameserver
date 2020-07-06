@@ -64,20 +64,34 @@ hands:
       button-pos: 1
       flop: ["Ac", "Ad", "2c"]
       turn: Td
-      river: 3s
-      player-cards:
+      river: 4s
+      seat-cards:
         # note we are using the seat number, not player ids
-        1: ["Kh", "Qd"]
-        5: ["3s", "7s"]
-        8: ["9h", "2s"]
+        - 
+          cards: ["Kh", "Qd"]
+        -
+          cards: ["3s", "7s"]
+        -
+          cards: ["9h", "2s"]
       verify:
         # the hand setup verification is sb, bb, next-action seat, hand current state
-        # player in the table' stack 
+        # player in the table' stack
+        button: 1
         sb: 5
         bb: 8
-        next-action: 1
+        next-action-pos: 1
         state: PREFLOP
-    
+        dealt-cards:
+          -
+            seat-no: 5
+            cards: ["Kh", "Qd"]
+          -
+            seat-no: 8
+            cards: ["3s", "7s"]
+          -
+            seat-no: 1
+            cards: ["9h", "2s"]
+   
     # simulate pre-flop action
     # while running actions, the test driver will verify
     # the next action can be performed by the seat 
