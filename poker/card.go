@@ -166,3 +166,11 @@ func CardsToString(cards interface{}) string {
 func PrintCards(cards []Card) string {
 	return CardsToString(cards)
 }
+
+func ByteCardsToStringArray(cards []uint32) []string {
+	cardsStrings := make([]string, 0)
+	for _, card := range cards {
+		cardsStrings = append(cardsStrings, NewCardFromByte(uint8(card)).String())
+	}
+	return cardsStrings
+}

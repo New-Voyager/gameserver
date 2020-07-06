@@ -15,6 +15,7 @@ var testPlayerLogger = log.With().Str("logger_name", "test::testplayer").Logger(
 type TestPlayer struct {
 	playerInfo GamePlayer
 	player     *game.Player
+	seatNo     uint32
 
 	// we preserve the last message
 	lastHandMessage *game.HandMessage
@@ -22,6 +23,9 @@ type TestPlayer struct {
 
 	// current hand message
 	currentHand *game.HandMessage
+
+	// platers cards
+	cards []uint32
 
 	// preserve last received message
 
@@ -50,6 +54,8 @@ func (t *TestPlayer) HandMessageFromGame(handMessage *game.HandMessage, jsonb []
 
 	if handMessage.MessageType == "NEW_HAND" {
 		t.currentHand = handMessage
+	} else if handMessage.MessageType == "DEAL" {
+		t.cards = handMessage.GetDealCards().Cards
 	}
 	t.lastHandMessage = handMessage
 }
@@ -77,6 +83,10 @@ func (t *TestPlayer) GameMessageFromGame(gameMessage *game.GameMessage, jsonb []
 
 		if messageTypeStr == "TABLE_STATE" {
 			t.lastTableState = gameMessage.GetTableState()
+		} else if messageTypeStr == "PLAYER_SAT" {
+			if gameMessage.GetPlayerSat().PlayerId == t.player.PlayerID {
+				t.seatNo = gameMessage.GetPlayerSat().SeatNo
+			}
 		} else {
 			t.lastGameMessage = gameMessage
 		}

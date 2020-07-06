@@ -100,7 +100,7 @@ type HandSetupVerfication struct {
 	BB            uint32      `yaml:"bb"`
 	NextActionPos uint32      `yaml:"next-action-pos"`
 	State         string      `yaml:"state"`
-	SeatCards     []SeatCards `yaml:"seat-cards"`
+	DealtCards    []SeatCards `yaml:"dealt-cards"`
 }
 
 type SeatCards struct {

@@ -1,6 +1,7 @@
 package poker
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 )
@@ -126,11 +127,12 @@ func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, ri
 			card := NewCard(cardStr)
 			cardLoc := deck.getCardLoc(card)
 			currentCard := deck.cards[deckIndex]
+			fmt.Printf("deckIndex: %d card: %s currentCard: %s\n", deckIndex, card.String(), currentCard.String())
 			deck.cards[deckIndex] = card
 			deck.cards[cardLoc] = currentCard
 		}
 	}
-
+	//fmt.Printf("%s\n", deck.PrettyPrint())
 	// now setup flop cards
 	deckIndex := len(playerCards) * len(playerCards[0])
 	for _, cardStr := range flop {
@@ -141,6 +143,7 @@ func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, ri
 		deck.cards[cardLoc] = currentCard
 		deckIndex++
 	}
+	//fmt.Printf("%s\n", deck.PrettyPrint())
 
 	// skip the next card
 	deckIndex++
@@ -150,6 +153,7 @@ func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, ri
 	currentCard := deck.cards[deckIndex]
 	deck.cards[deckIndex] = turn
 	deck.cards[cardLoc] = currentCard
+	//fmt.Printf("%s\n", deck.PrettyPrint())
 
 	// skip the next card
 	deckIndex++
@@ -159,6 +163,7 @@ func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, ri
 	currentCard = deck.cards[deckIndex]
 	deck.cards[deckIndex] = river
 	deck.cards[cardLoc] = currentCard
+	//fmt.Printf("%s\n", deck.PrettyPrint())
 
 	return deck
 }

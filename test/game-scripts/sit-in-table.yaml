@@ -64,7 +64,7 @@ hands:
       button-pos: 1
       flop: ["Ac", "Ad", "2c"]
       turn: Td
-      river: 3s
+      river: 4s
       seat-cards:
         # note we are using the seat number, not player ids
         - 
@@ -81,7 +81,7 @@ hands:
         bb: 8
         next-action-pos: 1
         state: PREFLOP
-        seat-cards:
+        dealt-cards:
           -
             seat-no: 5
             cards: ["Kh", "Qd"]
