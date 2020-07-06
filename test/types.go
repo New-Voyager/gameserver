@@ -95,14 +95,17 @@ type AssignSeat struct {
 */
 
 type HandSetupVerfication struct {
-	SB            uint32 `yaml:"sb"`
-	BB            uint32 `yaml:"bb"`
-	NextActionPos uint32 `yaml:"next-action-pos"`
-	State         string `yaml:"state"`
+	Button        uint32      `yaml:"button"`
+	SB            uint32      `yaml:"sb"`
+	BB            uint32      `yaml:"bb"`
+	NextActionPos uint32      `yaml:"next-action-pos"`
+	State         string      `yaml:"state"`
+	SeatCards     []SeatCards `yaml:"seat-cards"`
 }
 
 type SeatCards struct {
-	Cards []string `yaml:"cards"`
+	Cards  []string `yaml:"cards"`
+	SeatNo uint32   `yaml:"seat-no"`
 }
 
 type HandSetup struct {

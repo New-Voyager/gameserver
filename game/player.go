@@ -75,6 +75,10 @@ func (p *Player) handleHandMessage(message HandMessage) {
 		p.onCardsDealt(message)
 	} else if message.MessageType == HandNextAction {
 		p.onNextAction(message)
+	} else if message.MessageType == HandPlayerAction {
+		p.onPlayerAction(message)
+	} else if message.MessageType == HandNewHand {
+		p.onPlayerNewHand(message)
 	} else {
 		playerLogger.Warn().
 			Uint32("club", message.ClubId).
@@ -84,6 +88,27 @@ func (p *Player) handleHandMessage(message HandMessage) {
 }
 
 func (p *Player) onCardsDealt(message HandMessage) error {
+	// cards dealt, display the cards
+	//cards := message.GetDealCards()
+	// playerLogger.Info().
+	// 	Uint32("club", cards.ClubId).
+	// 	Uint32("game", cards.GameNum).
+	// 	Uint32("hand", cards.HandNum).
+	// 	Str("player", p.playerName).
+	// 	Msg(fmt.Sprintf("Cards: %s", cards.CardsStr))
+
+	jsonb, err := protojson.Marshal(&message)
+	if err != nil {
+		return err
+	}
+
+	if p.delegate != nil {
+		p.delegate.HandMessageFromGame(&message, jsonb)
+	}
+	return nil
+}
+
+func (p *Player) onPlayerNewHand(message HandMessage) error {
 	// cards dealt, display the cards
 	//cards := message.GetDealCards()
 	// playerLogger.Info().
@@ -125,6 +150,28 @@ func (p *Player) onNextAction(message HandMessage) error {
 	return nil
 }
 
+func (p *Player) onPlayerAction(message HandMessage) error {
+	// cards dealt, display the cards
+	// seatAction := message.GetSeatAction()
+	// playerLogger.Info().
+	// 	Uint32("club", message.ClubId).
+	// 	Uint32("game", message.GameNum).
+	// 	Uint32("hand", message.HandNum).
+	// 	Str("player", p.playerName).
+	// 	Msg(fmt.Sprintf("Action: %v", seatAction))
+
+	// this player is next to act
+	jsonb, err := protojson.Marshal(&message)
+	if err != nil {
+		return err
+	}
+
+	if p.delegate != nil {
+		p.delegate.HandMessageFromGame(&message, jsonb)
+	}
+	return nil
+}
+
 func (p *Player) handleGameMessage(message GameMessage) error {
 	// playerLogger.Info().
 	// 	Uint32("club", message.clubID).
@@ -145,6 +192,7 @@ func (p *Player) handleGameMessage(message GameMessage) error {
 		}
 		p.delegate.GameMessageFromGame(&message, jsonb)
 	}
+
 	return nil
 }
 

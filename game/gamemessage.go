@@ -24,6 +24,9 @@ func (game *Game) handleGameMessage(message *GameMessage) {
 
 	case GameSetupNextHand:
 		game.onNextHandSetup(message)
+
+	case GameDealHand:
+		game.onDealHand(message)
 	}
 
 	channelGameLogger.Info().
@@ -116,4 +119,9 @@ func (game *Game) onNextHandSetup(message *GameMessage) error {
 	game.testButtonPos = int32(setupNextHand.ButtonPos)
 	game.testDeckToUse = poker.DeckFromBytes(setupNextHand.Deck)
 	return nil
+}
+
+func (game *Game) onDealHand(message *GameMessage) error {
+	err := game.dealNewHand()
+	return err
 }

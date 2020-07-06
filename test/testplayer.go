@@ -17,7 +17,11 @@ type TestPlayer struct {
 	player     *game.Player
 
 	// we preserve the last message
-	lastMessage *game.HandMessage
+	lastHandMessage *game.HandMessage
+	lastGameMessage *game.GameMessage
+
+	// current hand message
+	currentHand *game.HandMessage
 
 	// preserve last received message
 
@@ -43,6 +47,11 @@ func (t *TestPlayer) HandMessageFromGame(handMessage *game.HandMessage, jsonb []
 		Uint32("seatNo", t.player.SeatNo).
 		Str("player", t.player.PlayerName).
 		Msg(fmt.Sprintf("HAND MESSAGE Json: %s", string(jsonb)))
+
+	if handMessage.MessageType == "NEW_HAND" {
+		t.currentHand = handMessage
+	}
+	t.lastHandMessage = handMessage
 }
 
 func (t *TestPlayer) GameMessageFromGame(gameMessage *game.GameMessage, jsonb []byte) {
@@ -65,24 +74,11 @@ func (t *TestPlayer) GameMessageFromGame(gameMessage *game.GameMessage, jsonb []
 		var messageTypeStr string
 		jsoniter.Unmarshal(messageType, &messageTypeStr)
 		// determine message type
+
 		if messageTypeStr == "TABLE_STATE" {
-			/*
-				var tableState game.GameTableStateMessage
-				tableStateJSON, _ := message["tableState"]
-				fmt.Printf("messageType: %s\n", string(tableStateJSON))
-				err = jsoniter.Unmarshal(tableStateJSON, &tableState)
-				if err != nil {
-					// panic here
-					testPlayerLogger.Error().
-						Uint32("club", t.player.ClubID).
-						Uint32("game", t.player.GameNum).
-						Uint32("playerid", t.player.PlayerID).
-						Uint32("seatNo", t.player.SeatNo).
-						Str("player", t.player.PlayerName).
-						Msg(fmt.Sprintf("ERROR cannot find table state: %s", string(jsonb)))
-				}
-			*/
 			t.lastTableState = gameMessage.GetTableState()
+		} else {
+			t.lastGameMessage = gameMessage
 		}
 	}
 }

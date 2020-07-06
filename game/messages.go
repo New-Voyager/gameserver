@@ -27,9 +27,10 @@ const (
 // Hand messages
 const (
 	HandDeal         string = "DEAL"
-	HandActionChange string = "ACTION_CHANGE"
+	HandNewHand      string = "NEW_HAND"
 	HandActed        string = "ACTED"
 	HandNextAction   string = "NEXT_ACTION"
+	HandPlayerAction string = "YOUR_ACTION"
 	HandFlop         string = "FLOP"
 	HandTurn         string = "TURN"
 	HandRiver        string = "RIVER"

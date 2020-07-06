@@ -281,19 +281,26 @@ func (game *Game) dealNewHand() error {
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, gameState, game.players)))
 
 	// broadcast to all the players who is next to act
-	nextActionMessage := HandMessage{
-		MessageType: HandNextAction,
+	newHandMessage := HandMessage{
+		MessageType: HandNewHand,
 		GameNum:     game.gameNum,
 		ClubId:      game.clubID,
+		HandStatus:  handState.GetCurrentState(),
 	}
 
-	actionChange := ActionChange{SeatNo: handState.NextSeatAction.SeatNo}
-	nextActionMessage.HandMessage = &HandMessage_ActionChange{ActionChange: &actionChange}
-	game.broadcastHandMessage(&nextActionMessage)
+	newHand := NewHand{
+		NextActionSeat: handState.NextSeatAction.SeatNo,
+		ButtonPos:      handState.ButtonPos,
+		SbPos:          handState.SmallBlindPos,
+		BbPos:          handState.BigBlindPos,
+	}
+
+	newHandMessage.HandMessage = &HandMessage_NewHand{NewHand: &newHand}
+	game.broadcastHandMessage(&newHandMessage)
 
 	// send this action to next player who needs to act
 	handMessage := HandMessage{
-		MessageType: HandNextAction,
+		MessageType: HandPlayerAction,
 		GameNum:     game.gameNum,
 		ClubId:      game.clubID,
 		SeatNo:      handState.NextSeatAction.SeatNo,
@@ -345,7 +352,9 @@ func (game *Game) loadHandState(gameState *GameState) (*HandState, error) {
 }
 
 func (game *Game) broadcastHandMessage(message *HandMessage) {
+	fmt.Printf("1 In broadcast\n")
 	b, _ := proto.Marshal(message)
+	fmt.Printf("2 In broadcast\n")
 	for _, player := range game.allPlayers {
 		player.chHand <- b
 	}
@@ -380,16 +389,6 @@ func (game *Game) getPlayersAtTable() ([]*PlayerAtTableState, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	/*
-		message PlayerAtTableState {
-			uint32 player_id = 1;
-			uint32 seat_no = 2;
-			float buy_in = 3;
-			float current_balance = 4;
-			PlayerStatus status = 5;
-		}
-	*/
 	ret := make([]*PlayerAtTableState, 0)
 	playersInSeats := gameState.GetPlayersInSeats()
 	for seatNo, playerID := range playersInSeats {
