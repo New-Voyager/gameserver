@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"time"
 
+	"voyager.com/server/game"
+
 	"voyager.com/server/poker"
 )
 
@@ -20,6 +22,33 @@ func (h *Hand) run(t *TestDriver) error {
 		return err
 	}
 
+	// pre-flop actions
+	err = h.preflopActions(t)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *Hand) preflopActions(t *TestDriver) error {
+	for _, action := range h.PreflopAction.Actions {
+		player := h.gameScript.playerFromSeat(action.SeatNo)
+
+		// send handmessage
+		message := game.HandMessage{
+			ClubId:      h.gameScript.testGame.clubID,
+			GameNum:     h.gameScript.testGame.gameNum,
+			HandNum:     h.Num,
+			MessageType: game.HandPlayerActed,
+		}
+		actionType := game.ACTION(game.ACTION_value[action.Action])
+		handAction := game.HandAction{SeatNo: action.SeatNo, Action: actionType, Amount: action.Amount}
+		message.HandMessage = &game.HandMessage_PlayerActed{PlayerActed: &handAction}
+		player.player.HandProtoMessageFromAdapter(&message)
+		time.Sleep(500 * time.Millisecond)
+	}
+	select {}
 	return nil
 }
 

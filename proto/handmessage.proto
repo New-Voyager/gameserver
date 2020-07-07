@@ -20,6 +20,9 @@ message HandDealCards {
   string cardsStr = 3; // string representation of the cards for logging
 }
 
+message ActionChange {
+  uint32 seat_no = 1;
+}
 
 //HandMessage packages the actual message with Hand information (clubid, game_num, hand_num) 
 message HandMessage {
@@ -27,12 +30,14 @@ message HandMessage {
   uint32 club_id = 2;
   uint32 game_num = 3;
   uint32 hand_num = 4;
-  uint32 seat_no = 5;       // if this message is targetted to a specific player
+  uint32 seat_no = 5;       // if this message is targeted to a specific player
   string message_type = 6;
   HandStatus hand_status = 7;
   oneof hand_message {
     NextSeatAction  seat_action = 8;
     HandDealCards deal_cards = 9;
     NewHand new_hand = 10;
+    HandAction player_acted = 11;
+    ActionChange action_change = 12;
   }
 }

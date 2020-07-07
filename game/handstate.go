@@ -52,6 +52,14 @@ func (h *HandState) PrintTable(players map[uint32]string) string {
 func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos int32) {
 	// settle players in the seats
 	h.PlayersInSeats = gameState.GetPlayersInSeats()
+	h.NoActiveSeats = 0
+	for _, playerID := range h.PlayersInSeats {
+		if playerID != 0 {
+			h.NoActiveSeats++
+		}
+	}
+
+	h.ActiveSeats = gameState.GetPlayersInSeats()
 
 	// determine button and blinds
 	if buttonPos == -1 {
@@ -96,6 +104,10 @@ func (h *HandState) setupPreflob(gameState *GameState) {
 		Action: ACTION_BB,
 		Amount: gameState.BigBlind,
 	})
+
+	// setup all the active seats
+	// look for the player who are taking a break
+
 }
 
 func (h *HandState) getPlayersState(gameState *GameState) map[uint32]*HandPlayerState {
@@ -248,10 +260,14 @@ func (h *HandState) actionReceived(gameState *GameState, action *HandAction) err
 
 	// valid actions
 	if action.Action == ACTION_FOLD {
+		h.ActiveSeats[action.SeatNo-1] = 0
+		h.NoActiveSeats--
 		playerState.Status = HandPlayerState_FOLDED
 		log.Actions = append(log.Actions, action)
+		h.NextSeatAction = h.prepareNextAction(gameState, action)
 	} else if action.Action == ACTION_CHECK {
 		log.Actions = append(log.Actions, action)
+		h.NextSeatAction = h.prepareNextAction(gameState, action)
 	} else {
 		// action call
 		if action.Action == ACTION_CALL {

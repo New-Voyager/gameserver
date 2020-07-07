@@ -28,7 +28,6 @@ const (
 const (
 	HandDeal         string = "DEAL"
 	HandNewHand      string = "NEW_HAND"
-	HandActed        string = "ACTED"
 	HandNextAction   string = "NEXT_ACTION"
 	HandPlayerAction string = "YOUR_ACTION"
 	HandFlop         string = "FLOP"
@@ -37,4 +36,5 @@ const (
 	HandShowDown     string = "SHOWDOWN"
 	HandWinner       string = "WINNER"
 	HandEnded        string = "END"
+	HandPlayerActed  string = "PLAYER_ACTED"
 )

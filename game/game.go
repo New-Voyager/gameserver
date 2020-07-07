@@ -68,13 +68,6 @@ func NewPokerGame(gameManager *Manager, gameID string, gameType GameType,
 	return &game
 }
 
-func (game *Game) handleHandMessage(message HandMessage) {
-	channelGameLogger.Debug().
-		Uint32("club", game.clubID).
-		Uint32("game", game.gameNum).
-		Msg(fmt.Sprintf("Hand message: %s", message.MessageType))
-}
-
 func (game *Game) playersInSeatsCount() int {
 	state, err := game.loadState()
 	if err != nil {
@@ -116,7 +109,7 @@ func (game *Game) runGame() {
 			var handMessage HandMessage
 			err := proto.Unmarshal(message, &handMessage)
 			if err == nil {
-				game.handleHandMessage(handMessage)
+				game.handleHandMessage(&handMessage)
 			}
 		case message := <-game.chGame:
 			var gameMessage GameMessage

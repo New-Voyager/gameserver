@@ -215,9 +215,9 @@ func (p *Player) playGame() {
 				p.handleGameMessage(gameMessage)
 			}
 		case message := <-p.chAdapterGame:
-			p.sendGameMessage(message)
+			p.HandMessageFromAdapter(message)
 		case message := <-p.chAdapterHand:
-			p.sendHandMessage(message)
+			p.GameMessageFromAdapter(message)
 		default:
 			// yield
 			time.Sleep(50 * time.Millisecond)
@@ -225,18 +225,38 @@ func (p *Player) playGame() {
 	}
 }
 
-func (p *Player) sendGameMessage(json []byte) {
-	// convert json into protobuf
+func (p *Player) HandMessageFromAdapter(json []byte) error {
+	var message HandMessage
+	err := protojson.Unmarshal(json, &message)
+	if err != nil {
+		return err
+	}
+	return p.HandProtoMessageFromAdapter(&message)
 }
 
-func (p *Player) sendHandMessage(json []byte) {
-	// convert json into protobuf
+func (p *Player) GameMessageFromAdapter(json []byte) error {
+	var message GameMessage
+	err := protojson.Unmarshal(json, &message)
+	if err != nil {
+		return err
+	}
+	return p.GameProtoMessageFromAdapter(&message)
 }
 
-func (p *Player) HandMessageFromAdapter(json []byte) {
-	p.chAdapterHand <- json
+func (p *Player) HandProtoMessageFromAdapter(message *HandMessage) error {
+	data, err := proto.Marshal(message)
+	if err != nil {
+		return err
+	}
+	p.game.chHand <- data
+	return nil
 }
 
-func (p *Player) GameMessageFromAdapter(json []byte) {
-	p.chAdapterGame <- json
+func (p *Player) GameProtoMessageFromAdapter(message *GameMessage) error {
+	data, err := proto.Marshal(message)
+	if err != nil {
+		return err
+	}
+	p.game.chGame <- data
+	return nil
 }
