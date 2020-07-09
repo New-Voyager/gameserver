@@ -58,6 +58,8 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 			h.NoActiveSeats++
 		}
 	}
+	// if the players don't have money less than the blinds
+	// don't let them play
 
 	h.ActiveSeats = gameState.GetPlayersInSeats()
 
@@ -68,17 +70,24 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 		h.ButtonPos = uint32(buttonPos)
 	}
 
+	// TODO: make sure small blind is still there
+	// if small blind left the game, we can have dead small
+	// to make it simple, we will make new players to always to post or wait for the big blind
 	h.SmallBlindPos, h.BigBlindPos = h.getBlindPos(gameState)
 
 	// copy player's stack (we need to copy only the players that are in the hand)
 	h.PlayersState = h.getPlayersState(gameState)
 
 	if deck == nil {
-		deck = poker.NewDeck().Shuffle()
+		deck = poker.NewDeck(nil).Shuffle()
 	}
 
 	h.Deck = deck.GetBytes()
 	h.PlayersCards = h.getPlayersCards(gameState, deck)
+
+	// setup main pot
+	h.Pots = make([]*PlayersInPots, 0)
+	h.Pots = append(h.Pots, &PlayersInPots{})
 
 	// setup hand for preflop
 	h.setupPreflob(gameState)
@@ -88,12 +97,12 @@ func (h *HandState) setupPreflob(gameState *GameState) {
 	h.CurrentState = HandStatus_PREFLOP
 
 	// set next action information
-	h.CurrentRaise = gameState.BigBlind
-	h.ActionCompleteAtSeat = h.BigBlindPos
 	h.PreflopActions = &HandActionLog{Actions: make([]*HandAction, 0)}
 	h.FlopActions = &HandActionLog{Actions: make([]*HandAction, 0)}
 	h.TurnActions = &HandActionLog{Actions: make([]*HandAction, 0)}
 	h.RiverActions = &HandActionLog{Actions: make([]*HandAction, 0)}
+	h.CurrentRaise = gameState.BigBlind
+
 	h.actionReceived(gameState, &HandAction{
 		SeatNo: h.SmallBlindPos,
 		Action: ACTION_SB,
@@ -104,10 +113,17 @@ func (h *HandState) setupPreflob(gameState *GameState) {
 		Action: ACTION_BB,
 		Amount: gameState.BigBlind,
 	})
+	h.ActionCompleteAtSeat = h.BigBlindPos
+	h.Pots[0].Amount = 0
+	if h.SmallBlindPos != 0 {
+		h.Pots[0].Players = append(h.Pots[0].Players, h.SmallBlindPos)
+		h.Pots[0].Amount += gameState.SmallBlind
 
-	// setup all the active seats
-	// look for the player who are taking a break
-
+		h.PlayersState[h.PlayersInSeats[h.SmallBlindPos-1]].Balance -= gameState.SmallBlind
+	}
+	h.Pots[0].Amount += gameState.BigBlind
+	h.PlayersState[h.PlayersInSeats[h.BigBlindPos-1]].Balance -= gameState.BigBlind
+	h.Pots[0].Players = append(h.Pots[0].Players, h.BigBlindPos)
 }
 
 func (h *HandState) getPlayersState(gameState *GameState) map[uint32]*HandPlayerState {
@@ -258,6 +274,8 @@ func (h *HandState) actionReceived(gameState *GameState, action *HandAction) err
 		log = h.RiverActions
 	}
 
+	currentPot := len(h.Pots) - 1
+
 	// valid actions
 	if action.Action == ACTION_FOLD {
 		h.ActiveSeats[action.SeatNo-1] = 0
@@ -271,8 +289,14 @@ func (h *HandState) actionReceived(gameState *GameState, action *HandAction) err
 	} else {
 		// action call
 		if action.Action == ACTION_CALL {
+
+			if index(h.Pots[currentPot].Players, action.SeatNo) == -1 {
+				h.Pots[currentPot].Players = append(h.Pots[currentPot].Players, action.SeatNo)
+			}
+
 			if action.Amount < h.GetCurrentRaise() {
 				// all in?
+				// TODO: we need to figure out the pots
 				if playerState.GetBalance() < h.GetCurrentRaise() {
 					action.Action = ACTION_ALL_IN
 				}
@@ -292,9 +316,15 @@ func (h *HandState) actionReceived(gameState *GameState, action *HandAction) err
 		}
 		// raisedAmount := action.Amount - h.CurrentRaise
 		if action.Amount > h.CurrentRaise {
+			h.CurrentRaise = action.Amount
 			h.ActionCompleteAtSeat = action.SeatNo
+
+			// we need to fix pot setup
+			h.Pots[currentPot].Amount += action.Amount
+			if index(h.Pots[currentPot].Players, action.SeatNo) == -1 {
+				h.Pots[currentPot].Players = append(h.Pots[currentPot].Players, action.SeatNo)
+			}
 		}
-		h.CurrentRaise = action.Amount
 
 		// add the action to the log
 		log.Actions = append(log.Actions, action)
@@ -303,6 +333,15 @@ func (h *HandState) actionReceived(gameState *GameState, action *HandAction) err
 		h.NextSeatAction = h.prepareNextAction(gameState, action)
 	}
 	return nil
+}
+
+func index(vs []uint32, t uint32) int {
+	for i, v := range vs {
+		if v == t {
+			return i
+		}
+	}
+	return -1
 }
 
 func (h *HandState) getPlayerFromSeat(seatNo uint32) *HandPlayerState {
@@ -451,4 +490,56 @@ func (a *HandAction) Print(h *HandState, gameState *GameState, players map[uint3
 		return fmt.Sprintf("%s   %s", player, action)
 	}
 	return fmt.Sprintf("%s   %s   %f", player, action, a.Amount)
+}
+
+func (h *HandState) determineWinners() {
+	seatNo := -1
+	for i, playerID := range h.ActiveSeats {
+		if playerID != 0 {
+			seatNo = i + 1
+			break
+		}
+	}
+
+	// take rake from here
+
+	potWinners := make(map[uint32]*PotWinners)
+	for i, pot := range h.Pots {
+		playerID := h.GetPlayersInSeats()[seatNo-1]
+		h.PlayersState[playerID].Balance += pot.Amount
+		// only one pot
+		handWinner := &HandWinner{
+			SeatNo: uint32(seatNo),
+			Amount: pot.Amount,
+		}
+		handWinners := make([]*HandWinner, 0)
+		handWinners = append(handWinners, handWinner)
+		potWinners[uint32(i)] = &PotWinners{HandWinner: handWinners}
+	}
+	h.PotWinners = potWinners
+	h.WonAt = h.CurrentState
+	h.CurrentState = HandStatus_RESULT
+
+	h.BalanceAfterHand = make([]*PlayerBalance, 0)
+	// also populate current balance of the players in the table
+	for seatNo, player := range h.GetPlayersInSeats() {
+		if player == 0 {
+			continue
+		}
+		state := h.GetPlayersState()[player]
+		h.BalanceAfterHand = append(h.BalanceAfterHand,
+			&PlayerBalance{SeatNo: uint32(seatNo + 1), PlayerId: player, Balance: state.Balance})
+	}
+}
+
+func (h *HandState) getResult() *HandResult {
+	handResult := &HandResult{}
+	handResult.PotWinners = h.PotWinners
+	handResult.WonAt = h.WonAt
+	handResult.PreflopActions = h.PreflopActions
+	handResult.FlopActions = h.FlopActions
+	handResult.TurnActions = h.TurnActions
+	handResult.RiverActions = h.RiverActions
+	handResult.BalanceAfterHand = h.BalanceAfterHand
+	return handResult
 }

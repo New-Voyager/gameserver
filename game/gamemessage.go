@@ -7,7 +7,7 @@ import (
 )
 
 func (game *Game) handleGameMessage(message *GameMessage) {
-	channelGameLogger.Info().
+	channelGameLogger.Trace().
 		Uint32("club", game.clubID).
 		Uint32("game", game.gameNum).
 		Msg(fmt.Sprintf("Game message: %s. %v", message.MessageType, message))
@@ -28,11 +28,6 @@ func (game *Game) handleGameMessage(message *GameMessage) {
 	case GameDealHand:
 		game.onDealHand(message)
 	}
-
-	channelGameLogger.Info().
-		Uint32("club", game.clubID).
-		Uint32("game", game.gameNum).
-		Msg(fmt.Sprintf("Game message: %s. RETURN", message.MessageType))
 }
 
 func (game *Game) onPlayerTakeSeat(message *GameMessage) error {

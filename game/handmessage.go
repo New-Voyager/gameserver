@@ -37,43 +37,72 @@ func (game *Game) onPlayerActed(message *HandMessage) error {
 
 	// if only one player is remaining in the hand, we have a winner
 	if handState.NoActiveSeats == 1 {
-		winner := uint32(0)
-		seatNo := -1
-		// we have a winner, find out who the winner is
-		for i, playerID := range handState.ActiveSeats {
-			if playerID != 0 {
-				winner = playerID
-				seatNo = i + 1
-				break
-			}
+		game.sendWinnerBeforeShowdown(gameState, handState)
+		// result of the hand is sent
+
+		// wait for the animation to complete before we send the next hand
+		// if it is not auto deal, we return from here
+		if !game.autoDeal {
+			return nil
 		}
-		fmt.Printf("Winner is %d at seat %d\n", winner, seatNo)
 	} else {
 		// if the current player is where the action ends, move to the next round
-
-		// action moves to the next player
-		actionChange := &ActionChange{SeatNo: handState.NextSeatAction.SeatNo}
-		message := &HandMessage{
-			ClubId:      game.clubID,
-			GameNum:     game.gameNum,
-			HandNum:     handState.HandNum,
-			MessageType: HandNextAction,
-		}
-		message.HandMessage = &HandMessage_ActionChange{ActionChange: actionChange}
-		game.broadcastHandMessage(message)
-
-		// tell the next player to act
-		nextSeatMessage := &HandMessage{
-			ClubId:      game.clubID,
-			GameNum:     game.gameNum,
-			HandNum:     handState.HandNum,
-			MessageType: HandPlayerAction,
-		}
-		nextSeatMessage.HandMessage = &HandMessage_SeatAction{SeatAction: handState.NextSeatAction}
-		playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo-1]
-		player := game.allPlayers[playerID]
-		game.sendHandMessageToPlayer(nextSeatMessage, player)
+		game.moveToNextAct(gameState, handState)
 	}
 
 	return nil
+}
+
+func (game *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandState) error {
+	// every one folded except one player, send the pot to the player
+
+	// we need to deal with all in players as well
+
+	// determine winners
+	handState.determineWinners()
+	err := game.saveHandState(gameState, handState)
+	if err != nil {
+		return err
+	}
+	// send the hand to the database to store first
+	handResult := handState.getResult()
+
+	// now send the data to users
+	handMessage := &HandMessage{
+		ClubId:      game.clubID,
+		GameNum:     game.gameNum,
+		HandNum:     handState.HandNum,
+		MessageType: HandResultMessage,
+		HandStatus:  handState.CurrentState,
+	}
+
+	handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
+	game.broadcastHandMessage(handMessage)
+
+	return nil
+}
+
+func (game *Game) moveToNextAct(gameState *GameState, handState *HandState) {
+	// tell the next player to act
+	nextSeatMessage := &HandMessage{
+		ClubId:      game.clubID,
+		GameNum:     game.gameNum,
+		HandNum:     handState.HandNum,
+		MessageType: HandPlayerAction,
+	}
+	nextSeatMessage.HandMessage = &HandMessage_SeatAction{SeatAction: handState.NextSeatAction}
+	playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo-1]
+	player := game.allPlayers[playerID]
+	game.sendHandMessageToPlayer(nextSeatMessage, player)
+
+	// action moves to the next player
+	actionChange := &ActionChange{SeatNo: handState.NextSeatAction.SeatNo}
+	message := &HandMessage{
+		ClubId:      game.clubID,
+		GameNum:     game.gameNum,
+		HandNum:     handState.HandNum,
+		MessageType: HandNextAction,
+	}
+	message.HandMessage = &HandMessage_ActionChange{ActionChange: actionChange}
+	game.broadcastHandMessage(message)
 }

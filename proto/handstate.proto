@@ -27,6 +27,7 @@ message HandActionLog {
   repeated HandAction actions = 2; 
 }
 
+// message tracks number of players in this pot and the amount in the pot
 message PlayersInPots {
   repeated uint32 players  = 1;
   float amount = 2;
@@ -45,6 +46,22 @@ message NextSeatAction {
   float allInAmount = 10;         // all in amount
 }
 
+message HandPlayerState {
+  enum Status {
+    ACTIVE = 0;
+    FOLDED = 1;
+    SAT_OUT = 2;
+  }
+  Status status = 1;
+  float balance = 2;
+}
+
+message PlayerBalance {
+  uint32 seat_no = 1;
+  uint32 player_id = 2;
+  float balance = 3;
+}
+
 enum HandStatus {
   DEAL = 0;
   PREFLOP = 1;
@@ -53,7 +70,8 @@ enum HandStatus {
   RIVER = 4;
   SHOW_DOWN = 5;
   EVALUATE_HAND = 6;
-  HAND_CLOSED = 7;
+  RESULT = 7;
+  HAND_CLOSED = 8;
 }
 
 message HandState {
@@ -79,7 +97,7 @@ message HandState {
   //map <uint32, float> active_seats = 9;
   repeated uint32 active_seats = 9;
   uint32 no_active_seats = 10;
-  
+
   float current_raise = 11;
   uint32 action_complete_at_seat = 12;
   bool straddle_bet = 13;
@@ -89,7 +107,10 @@ message HandState {
   HandActionLog turn_actions = 16;
   HandActionLog river_actions = 17;
 
+  // for each pot we are going to track the players in the pot
+  // the 0th pot is in the main pot
   repeated PlayersInPots pots = 18;
+
   map <uint32, bytes> players_cards = 19;
   bytes board_cards = 20;
   bytes board_cards_2 = 21;  // run it twice
@@ -104,4 +125,30 @@ message HandState {
   GameType game_type = 26;
 
   NextSeatAction next_seat_action = 27;
+
+  // results
+  map <uint32, PotWinners> pot_winners = 28; // 0 is main pot winners
+  HandStatus won_at = 29;  
+  repeated PlayerBalance balance_after_hand = 30;
 }
+
+message HandWinner {
+  uint32 seat_no = 1;
+  bool lo_card = 2;
+  float amount = 3;
+}
+
+message PotWinners {
+  repeated HandWinner hand_winner = 1;
+}
+
+message HandResult {
+  HandActionLog preflop_actions = 1;
+  HandActionLog flop_actions = 2;
+  HandActionLog turn_actions = 3;
+  HandActionLog river_actions = 4;
+  map <uint32, PotWinners> pot_winners = 5; // 0 is main pot winners
+  HandStatus won_at = 6;
+  repeated PlayerBalance balance_after_hand = 7;
+}
+

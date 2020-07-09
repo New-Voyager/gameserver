@@ -28,15 +28,6 @@ enum GameType {
   PLO_HILO = 3;
 }
 
-message HandPlayerState {
-  enum Status {
-    ACTIVE = 0;
-    FOLDED = 1;
-    SAT_OUT = 2;
-  }
-  Status status = 1;
-  float balance = 2;
-}
 
 enum GameStatus {
   INITIALIZED = 0;

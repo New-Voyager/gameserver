@@ -196,6 +196,7 @@ type GameScript struct {
 	testGame *TestGame
 	filename string
 	result   *ScriptTestResult
+	observer *TestPlayer
 }
 
 type PlayerAtTable struct {

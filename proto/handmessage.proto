@@ -39,5 +39,6 @@ message HandMessage {
     NewHand new_hand = 10;
     HandAction player_acted = 11;
     ActionChange action_change = 12;
+    HandResult hand_result = 13;
   }
 }

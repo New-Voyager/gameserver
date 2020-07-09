@@ -79,6 +79,8 @@ func (p *Player) handleHandMessage(message HandMessage) {
 		p.onPlayerAction(message)
 	} else if message.MessageType == HandNewHand {
 		p.onPlayerNewHand(message)
+	} else if message.MessageType == HandResultMessage {
+		p.onHandResult(message)
 	} else {
 		playerLogger.Warn().
 			Uint32("club", message.ClubId).
@@ -151,6 +153,28 @@ func (p *Player) onNextAction(message HandMessage) error {
 }
 
 func (p *Player) onPlayerAction(message HandMessage) error {
+	// cards dealt, display the cards
+	// seatAction := message.GetSeatAction()
+	// playerLogger.Info().
+	// 	Uint32("club", message.ClubId).
+	// 	Uint32("game", message.GameNum).
+	// 	Uint32("hand", message.HandNum).
+	// 	Str("player", p.playerName).
+	// 	Msg(fmt.Sprintf("Action: %v", seatAction))
+
+	// this player is next to act
+	jsonb, err := protojson.Marshal(&message)
+	if err != nil {
+		return err
+	}
+
+	if p.delegate != nil {
+		p.delegate.HandMessageFromGame(&message, jsonb)
+	}
+	return nil
+}
+
+func (p *Player) onHandResult(message HandMessage) error {
 	// cards dealt, display the cards
 	// seatAction := message.GetSeatAction()
 	// playerLogger.Info().

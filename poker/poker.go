@@ -2,6 +2,7 @@ package poker
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 )
 
@@ -83,6 +84,18 @@ func (h HandResult) PrettyPrintResult() string {
 		}
 	}
 	return b.String()
+}
+
+func (h HandResult) HiRankStr() string {
+	for _, result := range h.PlayersResult {
+		for _, winner := range h.Winners {
+			if winner == result.PlayerId {
+				return RankString(result.Rank)
+			}
+		}
+	}
+
+	return "N/A"
 }
 
 func (h PokerHand) GetGameType() GameType {
@@ -182,37 +195,48 @@ type Table interface {
 }
 
 type PokerTable struct {
-	deck1        *Deck
-	deck2        *Deck
+	decks        []*Deck
 	lastDeckUsed int32
 	players      []Player
 	gameType     GameType
 }
 
-func NewHoldemTable(players []Player) *PokerTable {
+func NewHoldemTable(players []Player, noOfDecks int) *PokerTable {
+	decks := make([]*Deck, noOfDecks)
+	for i := 0; i < noOfDecks; i++ {
+		decks[i] = NewDeck(nil)
+	}
+
 	return &PokerTable{
-		deck1:        NewDeck(),
-		deck2:        NewDeck(),
+		decks:        decks,
 		lastDeckUsed: 1,
 		players:      players,
 		gameType:     Holdem,
 	}
 }
 
-func NewOmahaTable(players []Player) *PokerTable {
+func NewOmahaTable(players []Player, noOfDecks int) *PokerTable {
+	decks := make([]*Deck, noOfDecks)
+	for i := 0; i < noOfDecks; i++ {
+		decks[i] = NewDeck(nil)
+	}
+
 	return &PokerTable{
-		deck1:        NewDeck(),
-		deck2:        NewDeck(),
+		decks:        decks,
 		lastDeckUsed: 1,
 		players:      players,
 		gameType:     Omaha,
 	}
 }
 
-func NewOmahaHiLoTable(players []Player) *PokerTable {
+func NewOmahaHiLoTable(players []Player, noOfDecks int) *PokerTable {
+	decks := make([]*Deck, noOfDecks)
+	for i := 0; i < noOfDecks; i++ {
+		decks[i] = NewDeck(nil)
+	}
+
 	return &PokerTable{
-		deck1:        NewDeck(),
-		deck2:        NewDeck(),
+		decks:        decks,
 		lastDeckUsed: 1,
 		players:      players,
 		gameType:     HiLo,
@@ -227,15 +251,13 @@ func (p *PokerTable) Deal(handNum int64) PokerHand {
 	}
 }
 
+func (p *PokerTable) selectDeck() int {
+	index := rand.Uint32() % uint32(len(p.decks))
+	return int(index)
+}
+
 func (p *PokerTable) DealHoldem(handNum int64) PokerHand {
-	deckToUse := p.deck1
-	if p.lastDeckUsed == 1 {
-		deckToUse = p.deck2
-		p.lastDeckUsed = 2
-	} else {
-		deckToUse = p.deck1
-		p.lastDeckUsed = 1
-	}
+	deckToUse := p.decks[p.selectDeck()]
 
 	// shuffle deck
 	deckToUse.Shuffle()
@@ -257,7 +279,7 @@ func (p *PokerTable) DealHoldem(handNum int64) PokerHand {
 			hand.playerHands[i].Cards[cardNum] = deckToUse.Draw(1)[0]
 		}
 	}
-
+	deckToUse.Draw(1)
 	boardCards := deckToUse.Draw(3)
 	deckToUse.Draw(1)
 	boardCards = append(boardCards, deckToUse.Draw(1)...)
@@ -268,15 +290,7 @@ func (p *PokerTable) DealHoldem(handNum int64) PokerHand {
 }
 
 func (p *PokerTable) DealOmaha(handNum int64) PokerHand {
-	deckToUse := p.deck1
-	if p.lastDeckUsed == 1 {
-		deckToUse = p.deck2
-		p.lastDeckUsed = 2
-	} else {
-		deckToUse = p.deck1
-		p.lastDeckUsed = 1
-	}
-
+	deckToUse := p.decks[p.selectDeck()]
 	// shuffle deck
 	deckToUse.Shuffle()
 
@@ -299,6 +313,7 @@ func (p *PokerTable) DealOmaha(handNum int64) PokerHand {
 		}
 	}
 
+	deckToUse.Draw(1)
 	boardCards := deckToUse.Draw(3)
 	deckToUse.Draw(1)
 	boardCards = append(boardCards, deckToUse.Draw(1)...)

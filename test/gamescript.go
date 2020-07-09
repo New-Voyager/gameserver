@@ -21,17 +21,21 @@ func (g *GameScript) run(t *TestDriver) error {
 	return nil
 }
 
+func (g *GameScript) waitForObserver() {
+	<-g.testGame.observerCh
+}
+
 // configures the table with the configuration
 func (g *GameScript) configure(t *TestDriver) error {
 	gameType := game.GameType(game.GameType_value[g.GameConfig.GameType])
-	g.testGame = NewTestGame(t, 1, gameType, g.GameConfig.Title, g.GameConfig.AutoStart, g.Players)
+	g.testGame, g.observer = NewTestGame(g, 1, gameType, g.GameConfig.Title, g.GameConfig.AutoStart, g.Players)
 	g.testGame.Start(g.AssignSeat.Seats)
 	waitTime := 100 * time.Millisecond
 	if g.AssignSeat.Wait != 0 {
 		waitTime = time.Duration(g.AssignSeat.Wait) * time.Second
 	}
 	// get current game status
-	gameManager.GetTableState(g.testGame.clubID, g.testGame.gameNum, t.Observer.player.PlayerID)
+	gameManager.GetTableState(g.testGame.clubID, g.testGame.gameNum, g.observer.player.PlayerID)
 	time.Sleep(waitTime)
 
 	e := g.verifyTableResult(t, g.AssignSeat.Verify.Table.Players, "take-seat")
@@ -50,7 +54,7 @@ func (g *GameScript) verifyTableResult(t *TestDriver, expectedPlayers []PlayerAt
 		explectedPlayers := expectedPlayers
 		// validate the player stack here to ensure sit-in command worked
 		expectedPlayersInTable := len(explectedPlayers)
-		actualPlayersInTable := len(t.Observer.lastTableState.PlayersState)
+		actualPlayersInTable := len(g.observer.lastTableState.PlayersState)
 		if expectedPlayersInTable != actualPlayersInTable {
 			e := fmt.Errorf("[%s section] Expected number of players (%d) did not match the actual players (%d)",
 				where, expectedPlayersInTable, actualPlayersInTable)
@@ -58,7 +62,7 @@ func (g *GameScript) verifyTableResult(t *TestDriver, expectedPlayers []PlayerAt
 			return e
 		}
 	}
-	actualPlayers := t.Observer.lastTableState.PlayersState
+	actualPlayers := g.observer.lastTableState.PlayersState
 
 	// verify player in each seat and their stack
 	for i, expected := range expectedPlayers {

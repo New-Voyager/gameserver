@@ -29,7 +29,6 @@ func (s *ScriptTestResult) addError(e error) {
 // runs game scripts and captures the results
 // and output the results at the end
 type TestDriver struct {
-	Observer     *TestPlayer
 	ScriptResult map[string]*ScriptTestResult
 	ScriptFiles  []string
 }
