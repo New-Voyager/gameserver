@@ -14,7 +14,7 @@ type TestGame struct {
 	gameNum          uint32
 	players          map[uint32]*TestPlayer
 	nextActionPlayer *TestPlayer
-	observerCh       chan int
+	observerCh       chan []byte
 }
 
 func NewTestGame(gameScript *GameScript, clubID uint32,
@@ -33,7 +33,7 @@ func NewTestGame(gameScript *GameScript, clubID uint32,
 		gamePlayers[playerInfo.ID] = testPlayer
 	}
 
-	observerCh := make(chan int)
+	observerCh := make(chan []byte)
 	// add test driver as an observer/player
 	gameScriptPlayer := GamePlayer{ID: 0xFFFFFFFF, Name: "GameScript"}
 	observer := NewTestPlayerAsObserver(gameScriptPlayer, observerCh)

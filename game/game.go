@@ -281,7 +281,6 @@ func (game *Game) dealNewHand() error {
 		b, _ := proto.Marshal(&handMessage)
 		player.chHand <- b
 	}
-	//time.Sleep(100 * time.Millisecond)
 
 	// print next action
 	channelGameLogger.Trace().

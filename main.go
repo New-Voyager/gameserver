@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"time"
+	"math/rand"
 
 	"github.com/rs/zerolog"
 	"voyager.com/server/poker"
@@ -14,8 +14,9 @@ func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	var runGameScript = flag.String("game-script", "test/game-scripts", "runs tests with game script files")
+	var testName = flag.String("test-name", "", "runs a specific test")
 	if *runGameScript != "" {
-		test.RunGameScriptTests(*runGameScript)
+		test.RunGameScriptTests(*runGameScript, *testName)
 	}
 
 	//TestOmaha()
@@ -92,25 +93,29 @@ func TestOmaha() {
 			//"N/A":             0,
 		}
 		straightFlushes := make([]string, 0)
-		fmt.Printf("Number of decks used: %d, Number of players in the table: %d, Game hands: %d\n",
+		fmt.Printf("Number of decks: %d, Number of players in the table: %d, Game hands: %d\n",
 			deckCount, len(players), noOfHands)
+		noShowDowns := 0
 		for i := 0; i < noOfHands; i++ {
-			time.Sleep(1 * time.Second)
+			//time.Sleep(500 * time.Second)
+			showDown := rand.Uint32() % 3
 			hand := pokerTable.Deal(1)
 			result := hand.EvaulateOmaha()
-			winnerRank[result.HiRankStr()]++
-
-			for _, playerResult := range result.PlayersResult {
-				rankStr := poker.RankString(playerResult.Rank)
-				if rankStr == "Straight Flush" {
-					straightFlushes = append(straightFlushes, poker.PrintCards(playerResult.BestCards))
-					if playerResult.Rank == 1 {
-						playerRank["Royal Flush"]++
+			if showDown == 0 {
+				winnerRank[result.HiRankStr()]++
+				noShowDowns++
+				for _, playerResult := range result.PlayersResult {
+					rankStr := poker.RankString(playerResult.Rank)
+					if rankStr == "Straight Flush" {
+						straightFlushes = append(straightFlushes, poker.PrintCards(playerResult.BestCards))
+						if playerResult.Rank == 1 {
+							playerRank["Royal Flush"]++
+						} else {
+							playerRank[rankStr]++
+						}
 					} else {
 						playerRank[rankStr]++
 					}
-				} else {
-					playerRank[rankStr]++
 				}
 			}
 		}
@@ -146,7 +151,8 @@ func TestOmaha() {
 		for key := range winnerRank {
 			winnerOdds[key] = float64(winnerRank[key]) / float64(noOfHands)
 		}
-		fmt.Printf("Number of player hands: %d\n", noOfHands*len(players))
+		fmt.Printf("Number of player hands: %d , number of showdowns: %d hands in the showdowns: %d\n",
+			noOfHands*len(players), noShowDowns, noShowDowns*len(players))
 		for _, key := range rank {
 			fmt.Printf("|%-15s|%6d|%6.6f\n", key, playerRank[key], odds[key])
 		}

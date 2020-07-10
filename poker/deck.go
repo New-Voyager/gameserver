@@ -49,11 +49,15 @@ func NewDeckNoShuffle() *Deck {
 	return deck
 }
 
-func NewDeckFromBytes(cards []byte) *Deck {
+func NewDeckFromBytes(cards []byte, deckIndex int) *Deck {
 	deck := &Deck{}
-	deck.cards = make([]Card, len(fullDeck.cards))
-	for i, card := range cards {
-		deck.cards[i] = NewCardFromByte(card)
+	remainingDeckLen := len(fullDeck.cards) - deckIndex
+	deck.cards = make([]Card, remainingDeckLen)
+	j := 0
+	for i := deckIndex; i < len(fullDeck.cards); i++ {
+		card := cards[i]
+		deck.cards[j] = NewCardFromByte(card)
+		j++
 	}
 	return deck
 }

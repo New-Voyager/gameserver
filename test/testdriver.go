@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -38,7 +39,7 @@ func NewTestDriver() *TestDriver {
 }
 
 func (t *TestDriver) RunGameScript(filename string) error {
-
+	fmt.Printf("Running game script: %s\n", filename)
 	result := &ScriptTestResult{Filename: filename, Failures: make([]error, 0)}
 	t.ScriptResult[filename] = result
 	t.ScriptFiles = append(t.ScriptFiles, filename)
@@ -97,7 +98,7 @@ func (t *TestDriver) ReportResult() bool {
 	return passed
 }
 
-func RunGameScriptTests(dir string) {
+func RunGameScriptTests(dir string, testName string) {
 	// runs game scripts and reports results
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
@@ -110,7 +111,14 @@ func RunGameScriptTests(dir string) {
 		if file.IsDir() {
 			continue
 		}
+		if testName != "" {
+			if !strings.Contains(file.Name(), testName) {
+				continue
+			}
+		}
+		fmt.Printf("----------------------------------------------\n")
 		testDriver.RunGameScript(fmt.Sprintf("%s/%s", dir, file.Name()))
+		fmt.Printf("----------------------------------------------\n")
 	}
 
 	passed := testDriver.ReportResult()

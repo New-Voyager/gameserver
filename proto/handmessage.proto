@@ -24,6 +24,11 @@ message ActionChange {
   uint32 seat_no = 1;
 }
 
+message Flop {
+  repeated uint32 cards = 1;
+  string cardsStr = 2; // string representation of the cards for logging
+}
+
 //HandMessage packages the actual message with Hand information (clubid, game_num, hand_num) 
 message HandMessage {
   string version = 1;
@@ -40,5 +45,6 @@ message HandMessage {
     HandAction player_acted = 11;
     ActionChange action_change = 12;
     HandResult hand_result = 13;
+    Flop flop = 14;
   }
 }

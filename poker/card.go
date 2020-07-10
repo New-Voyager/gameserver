@@ -157,6 +157,15 @@ func CardsToString(cards interface{}) string {
 		for _, c := range cards.([]uint32) {
 			fmt.Fprintf(&b, " %s ", CardToString(c))
 		}
+	case []byte:
+		for _, c := range cards.([]byte) {
+			fmt.Fprintf(&b, " %s ", CardToString(uint32(c)))
+		}
+	case []string:
+		for _, c := range cards.([]string) {
+			card := NewCard(c)
+			fmt.Fprintf(&b, " %s ", CardToString(card))
+		}
 	}
 
 	fmt.Fprintf(&b, "]")

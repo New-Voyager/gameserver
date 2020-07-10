@@ -34,16 +34,27 @@ func (h *Hand) run(t *TestDriver) error {
 
 	if !result {
 		// go to flop
+		err = h.flopActions(t)
+		if err != nil {
+			return err
+		}
+		lastHandMessage := h.gameScript.observer.lastHandMessage
+		result = false
+		if lastHandMessage.MessageType == "RESULT" {
+			result = true
+		}
 	}
 
 	// verify results
-	lastHandMessage = h.gameScript.observer.lastHandMessage
-	handResult := lastHandMessage.GetHandResult()
-	_ = handResult
+	if result {
+		lastHandMessage = h.gameScript.observer.lastHandMessage
+		handResult := lastHandMessage.GetHandResult()
+		_ = handResult
 
-	err = h.verifyHandResult(t, handResult)
-	if err != nil {
-		return err
+		err = h.verifyHandResult(t, handResult)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -68,11 +79,70 @@ func (h *Hand) preflopActions(t *TestDriver) error {
 		h.gameScript.waitForObserver()
 
 	}
-	// verify result here
-	//	h.gameScript.waitForObserver()
+	lastHandMessage := h.getObserverLastHandMessage()
+	if lastHandMessage.MessageType != "RESULT" {
+		// wait for flop message
+		h.gameScript.waitForObserver()
+	}
 
 	// verify next action is correct
-	lastHandMessage := h.gameScript.observer.lastHandMessage
+	verify := h.PreflopAction.Verify
+	if verify.State != "" {
+		if verify.State == "FLOP" {
+			// make sure the hand state is set correctly
+			if lastHandMessage.HandStatus != game.HandStatus_FLOP {
+				h.addError(fmt.Errorf("Expected hand status as FLOP Actual: %s", game.HandStatus_name[int32(lastHandMessage.HandStatus)]))
+				return fmt.Errorf("Expected hand state as FLOP")
+			}
+
+			// verify the board has the correct cards
+			if verify.Board != nil {
+				flopMessage := h.gameScript.observer.flop
+				boardCardsFromGame := poker.ByteCardsToStringArray(flopMessage.Cards)
+				expectedCards := verify.Board
+				if !reflect.DeepEqual(boardCardsFromGame, expectedCards) {
+					e := fmt.Errorf("Flopped cards did not match with expected cards. Expected: %s actual: %s",
+						poker.CardsToString(expectedCards), poker.CardsToString(flopMessage.Cards))
+					h.addError(e)
+					return e
+				}
+			}
+		} else if verify.State == "RESULT" {
+			if lastHandMessage.MessageType != "RESULT" {
+				h.addError(fmt.Errorf("Expected result after preflop actions. Actual message: %s", lastHandMessage.MessageType))
+				return fmt.Errorf("Failed at preflop verification step")
+			}
+		}
+	}
+	return nil
+}
+
+func (h *Hand) flopActions(t *TestDriver) error {
+	for _, action := range h.FlopAction.Actions {
+		player := h.gameScript.playerFromSeat(action.SeatNo)
+
+		// send handmessage
+		message := game.HandMessage{
+			ClubId:      h.gameScript.testGame.clubID,
+			GameNum:     h.gameScript.testGame.gameNum,
+			HandNum:     h.Num,
+			MessageType: game.HandPlayerActed,
+		}
+		actionType := game.ACTION(game.ACTION_value[action.Action])
+		handAction := game.HandAction{SeatNo: action.SeatNo, Action: actionType, Amount: action.Amount}
+		message.HandMessage = &game.HandMessage_PlayerActed{PlayerActed: &handAction}
+		player.player.HandProtoMessageFromAdapter(&message)
+
+		h.gameScript.waitForObserver()
+
+	}
+	lastHandMessage := h.getObserverLastHandMessage()
+	if lastHandMessage.MessageType != "RESULT" {
+		// wait for turn message
+		h.gameScript.waitForObserver()
+	}
+
+	// verify next action is correct
 	if h.PreflopAction.Verify.State != "" {
 		if h.PreflopAction.Verify.State == "RESULT" {
 			if lastHandMessage.MessageType != "RESULT" {
@@ -212,4 +282,8 @@ func (h *Hand) verifyHandResult(t *TestDriver, handResult *game.HandResult) erro
 
 func (h *Hand) addError(e error) {
 	h.gameScript.result.addError(e)
+}
+
+func (h *Hand) getObserverLastHandMessage() *game.HandMessage {
+	return h.gameScript.observerLastHandMesage
 }

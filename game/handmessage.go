@@ -1,12 +1,18 @@
 package game
 
-import "fmt"
+import (
+	"fmt"
+
+	"voyager.com/server/poker"
+)
 
 func (game *Game) handleHandMessage(message *HandMessage) {
 	channelGameLogger.Debug().
 		Uint32("club", game.clubID).
 		Uint32("game", game.gameNum).
-		Msg(fmt.Sprintf("Hand message: %s", message.MessageType))
+		Uint32("player", message.SeatNo).
+		Str("message", message.MessageType).
+		Msg(fmt.Sprintf("%v", message))
 
 	if message.MessageType == HandPlayerActed {
 		game.onPlayerActed(message)
@@ -14,6 +20,14 @@ func (game *Game) handleHandMessage(message *HandMessage) {
 }
 
 func (game *Game) onPlayerActed(message *HandMessage) error {
+
+	channelGameLogger.Info().
+		Uint32("club", game.clubID).
+		Uint32("game", game.gameNum).
+		Uint32("player", message.SeatNo).
+		Str("message", message.MessageType).
+		Msg(fmt.Sprintf("%v", message))
+
 	gameState, err := game.loadState()
 	if err != nil {
 		return err
@@ -25,6 +39,9 @@ func (game *Game) onPlayerActed(message *HandMessage) error {
 		return err
 	}
 
+	// store current round of the hand
+	handPrevRound := handState.CurrentState
+
 	err = handState.actionReceived(gameState, message.GetPlayerActed())
 	if err != nil {
 		return err
@@ -33,6 +50,40 @@ func (game *Game) onPlayerActed(message *HandMessage) error {
 	err = game.saveHandState(gameState, handState)
 	if err != nil {
 		return err
+	}
+	changedRound := handState.CurrentState
+
+	if handPrevRound == HandStatus_PREFLOP && changedRound == HandStatus_FLOP {
+		channelGameLogger.Info().
+			Uint32("club", game.clubID).
+			Uint32("game", game.gameNum).
+			Uint32("player", message.SeatNo).
+			Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(changedRound)]))
+		// we need to send flop cards to the board
+		deck := poker.NewDeckFromBytes(handState.Deck, int(handState.DeckIndex))
+		deck.Draw(1)
+		handState.DeckIndex++
+		cards := deck.Draw(3)
+		handState.DeckIndex += 3
+		boardCards := make([]uint32, 3)
+		for i, card := range cards {
+			boardCards[i] = uint32(card.GetByte())
+		}
+
+		// update handState
+		handState.CurrentState = HandStatus_FLOP
+		handState.CurrentRaise = 0
+		game.saveHandState(gameState, handState)
+
+		cardsStr := poker.CardsToString(boardCards)
+		flopMessage := &Flop{Cards: boardCards, CardsStr: cardsStr}
+		handMessage := &HandMessage{ClubId: game.clubID,
+			GameNum:     game.gameNum,
+			HandNum:     handState.HandNum,
+			MessageType: HandFlop,
+			HandStatus:  handState.CurrentState}
+		handMessage.HandMessage = &HandMessage_Flop{Flop: flopMessage}
+		game.broadcastHandMessage(handMessage)
 	}
 
 	// if only one player is remaining in the hand, we have a winner
@@ -101,6 +152,7 @@ func (game *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 		ClubId:      game.clubID,
 		GameNum:     game.gameNum,
 		HandNum:     handState.HandNum,
+		HandStatus:  handState.CurrentState,
 		MessageType: HandNextAction,
 	}
 	message.HandMessage = &HandMessage_ActionChange{ActionChange: actionChange}

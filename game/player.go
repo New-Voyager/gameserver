@@ -50,8 +50,8 @@ type Player struct {
 // TestPlayer implements the callbacks for unit testing
 // WebSocketPlayer implements callbacks to communicate with the app
 type PlayerMessageDelegate interface {
-	HandMessageFromGame(handMessage *HandMessage, json []byte)
-	GameMessageFromGame(gameMessage *GameMessage, json []byte)
+	HandMessageFromGame(handMessageBytes []byte, handMessage *HandMessage, json []byte)
+	GameMessageFromGame(gameMessageBytes []byte, gameMessage *GameMessage, json []byte)
 }
 
 func NewPlayer(clubID uint32, gameNum uint32, name string, playerID uint32, delegate PlayerMessageDelegate) *Player {
@@ -70,17 +70,19 @@ func NewPlayer(clubID uint32, gameNum uint32, name string, playerID uint32, dele
 	return &channelPlayer
 }
 
-func (p *Player) handleHandMessage(message HandMessage) {
+func (p *Player) handleHandMessage(messageBytes []byte, message HandMessage) {
 	if message.MessageType == HandDeal {
-		p.onCardsDealt(message)
+		p.onCardsDealt(messageBytes, message)
 	} else if message.MessageType == HandNextAction {
-		p.onNextAction(message)
+		p.onNextAction(messageBytes, message)
 	} else if message.MessageType == HandPlayerAction {
-		p.onPlayerAction(message)
+		p.onPlayerAction(messageBytes, message)
 	} else if message.MessageType == HandNewHand {
-		p.onPlayerNewHand(message)
+		p.onPlayerNewHand(messageBytes, message)
 	} else if message.MessageType == HandResultMessage {
-		p.onHandResult(message)
+		p.onHandResult(messageBytes, message)
+	} else if message.MessageType == HandFlop {
+		p.onFlop(messageBytes, message)
 	} else {
 		playerLogger.Warn().
 			Uint32("club", message.ClubId).
@@ -89,7 +91,28 @@ func (p *Player) handleHandMessage(message HandMessage) {
 	}
 }
 
-func (p *Player) onCardsDealt(message HandMessage) error {
+func (p *Player) onCardsDealt(messageBytes []byte, message HandMessage) error {
+	// cards dealt, display the cards
+	//cards := message.GetDealCards()
+	// playerLogger.Info().
+	// 	Uint32("club", cards.ClubId).
+	// 	Uint32("game", cards.GameNum).
+	// 	Uint32("hand", cards.HandNum).
+	// 	Str("player", p.playerName).
+	// 	Msg(fmt.Sprintf("Cards: %s", cards.CardsStr))
+	jsonb, err := protojson.Marshal(&message)
+	if err != nil {
+		return err
+	}
+	playerLogger.Info().Msg(string(jsonb))
+
+	if p.delegate != nil {
+		p.delegate.HandMessageFromGame(messageBytes, &message, jsonb)
+	}
+	return nil
+}
+
+func (p *Player) onPlayerNewHand(messageBytes []byte, message HandMessage) error {
 	// cards dealt, display the cards
 	//cards := message.GetDealCards()
 	// playerLogger.Info().
@@ -105,33 +128,12 @@ func (p *Player) onCardsDealt(message HandMessage) error {
 	}
 
 	if p.delegate != nil {
-		p.delegate.HandMessageFromGame(&message, jsonb)
+		p.delegate.HandMessageFromGame(messageBytes, &message, jsonb)
 	}
 	return nil
 }
 
-func (p *Player) onPlayerNewHand(message HandMessage) error {
-	// cards dealt, display the cards
-	//cards := message.GetDealCards()
-	// playerLogger.Info().
-	// 	Uint32("club", cards.ClubId).
-	// 	Uint32("game", cards.GameNum).
-	// 	Uint32("hand", cards.HandNum).
-	// 	Str("player", p.playerName).
-	// 	Msg(fmt.Sprintf("Cards: %s", cards.CardsStr))
-
-	jsonb, err := protojson.Marshal(&message)
-	if err != nil {
-		return err
-	}
-
-	if p.delegate != nil {
-		p.delegate.HandMessageFromGame(&message, jsonb)
-	}
-	return nil
-}
-
-func (p *Player) onNextAction(message HandMessage) error {
+func (p *Player) onNextAction(messageBytes []byte, message HandMessage) error {
 	// cards dealt, display the cards
 	// seatAction := message.GetSeatAction()
 	// playerLogger.Info().
@@ -147,12 +149,12 @@ func (p *Player) onNextAction(message HandMessage) error {
 	}
 
 	if p.delegate != nil {
-		p.delegate.HandMessageFromGame(&message, jsonb)
+		p.delegate.HandMessageFromGame(messageBytes, &message, jsonb)
 	}
 	return nil
 }
 
-func (p *Player) onPlayerAction(message HandMessage) error {
+func (p *Player) onPlayerAction(messageBytes []byte, message HandMessage) error {
 	// cards dealt, display the cards
 	// seatAction := message.GetSeatAction()
 	// playerLogger.Info().
@@ -169,12 +171,12 @@ func (p *Player) onPlayerAction(message HandMessage) error {
 	}
 
 	if p.delegate != nil {
-		p.delegate.HandMessageFromGame(&message, jsonb)
+		p.delegate.HandMessageFromGame(messageBytes, &message, jsonb)
 	}
 	return nil
 }
 
-func (p *Player) onHandResult(message HandMessage) error {
+func (p *Player) onHandResult(messageBytes []byte, message HandMessage) error {
 	// cards dealt, display the cards
 	// seatAction := message.GetSeatAction()
 	// playerLogger.Info().
@@ -191,12 +193,33 @@ func (p *Player) onHandResult(message HandMessage) error {
 	}
 
 	if p.delegate != nil {
-		p.delegate.HandMessageFromGame(&message, jsonb)
+		p.delegate.HandMessageFromGame(messageBytes, &message, jsonb)
 	}
 	return nil
 }
 
-func (p *Player) handleGameMessage(message GameMessage) error {
+func (p *Player) onFlop(messageBytes []byte, message HandMessage) error {
+	// cards dealt, display the cards
+	// seatAction := message.GetSeatAction()
+	// playerLogger.Info().
+	// 	Uint32("club", message.ClubId).
+	// 	Uint32("game", message.GameNum).
+	// 	Uint32("hand", message.HandNum).
+	// 	Str("player", p.playerName).
+	// 	Msg(fmt.Sprintf("Action: %v", seatAction))
+
+	jsonb, err := protojson.Marshal(&message)
+	if err != nil {
+		return err
+	}
+
+	if p.delegate != nil {
+		p.delegate.HandMessageFromGame(messageBytes, &message, jsonb)
+	}
+	return nil
+}
+
+func (p *Player) handleGameMessage(messageBytes []byte, message GameMessage) error {
 	// playerLogger.Info().
 	// 	Uint32("club", message.clubID).
 	// 	Uint32("game", message.gameNum).
@@ -214,7 +237,7 @@ func (p *Player) handleGameMessage(message GameMessage) error {
 				p.SeatNo = message.GetPlayerSat().SeatNo
 			}
 		}
-		p.delegate.GameMessageFromGame(&message, jsonb)
+		p.delegate.GameMessageFromGame(messageBytes, &message, jsonb)
 	}
 
 	return nil
@@ -230,13 +253,13 @@ func (p *Player) playGame() {
 
 			err := proto.Unmarshal(message, &handMessage)
 			if err == nil {
-				p.handleHandMessage(handMessage)
+				p.handleHandMessage(message, handMessage)
 			}
 		case message := <-p.chGame:
 			var gameMessage GameMessage
 			err := proto.Unmarshal(message, &gameMessage)
 			if err == nil {
-				p.handleGameMessage(gameMessage)
+				p.handleGameMessage(message, gameMessage)
 			}
 		case message := <-p.chAdapterGame:
 			p.HandMessageFromAdapter(message)

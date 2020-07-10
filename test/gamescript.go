@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"google.golang.org/protobuf/proto"
 	"voyager.com/server/game"
 )
 
@@ -21,8 +22,12 @@ func (g *GameScript) run(t *TestDriver) error {
 	return nil
 }
 
-func (g *GameScript) waitForObserver() {
-	<-g.testGame.observerCh
+func (g *GameScript) waitForObserver() *game.HandMessage {
+	messageBytes := <-g.testGame.observerCh
+	var handMessage game.HandMessage
+	proto.Unmarshal(messageBytes, &handMessage)
+	g.observerLastHandMesage = &handMessage
+	return &handMessage
 }
 
 // configures the table with the configuration
