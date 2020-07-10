@@ -68,7 +68,7 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 
 	// setup main pot
 	h.Pots = make([]*SeatsInPots, 0)
-	mainPot := initializePot(h, gameState)
+	mainPot := initializePot(int(gameState.MaxSeats))
 	h.Pots = append(h.Pots, mainPot)
 
 	// setup data structure to handle betting rounds
@@ -419,10 +419,19 @@ func (h *HandState) getPlayerFromSeat(seatNo uint32) *HandPlayerState {
 func (h *HandState) gotoNextStage(gameState *GameState) *NextSeatAction {
 	// before we go to next stage, settle pots
 	currentBettingRound := h.RoundBetting[uint32(h.CurrentState)]
-	currentPot := len(h.Pots) - 1
-	for _, bet := range currentBettingRound.SeatBet {
-		h.Pots[currentPot].Pot += bet
+
+	/*
+		currentPot := len(h.Pots) - 1
+		for _, bet := range currentBettingRound.SeatBet {
+			h.Pots[currentPot].Pot += bet
+		}*/
+
+	actionEnded := false
+	if h.NoActiveSeats == 1 {
+		actionEnded = true
 	}
+
+	h.addChipsToPot(currentBettingRound.SeatBet, actionEnded)
 
 	// if only one player is active, then announce the result and go to next hand
 	if h.NoActiveSeats == 1 {

@@ -83,7 +83,7 @@ enum PlayerActRound {
 
 // message tracks number of players in this pot and the amount in the pot
 message SeatsInPots {
-  repeated float seat_pot_equity  = 1;
+  repeated uint32 seats  = 1;
   float pot = 2;
 }
 
