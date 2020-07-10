@@ -140,9 +140,10 @@ type Pot struct {
 }
 
 type VerifyBettingRound struct {
-	State string   `yaml:"state"`
-	Board []string `yaml:"board"`
-	Pots  []Pot    `yaml:"pots"`
+	State        string   `yaml:"state"`
+	Board        []string `yaml:"board"`
+	Pots         []Pot    `yaml:"pots"`
+	NoMoreAction bool     `yaml:"no-more-action"`
 }
 
 type BettingRound struct {
@@ -191,9 +192,12 @@ type Hand struct {
 	Setup         HandSetup    `yaml:"setup"`
 	PreflopAction BettingRound `yaml:"preflop-action"`
 	FlopAction    BettingRound `yaml:"flop-action"`
+	TurnAction    BettingRound `yaml:"turn-action"`
+	RiverAction   BettingRound `yaml:"river-action"`
 	Result        HandResult   `yaml:"result"`
 
-	gameScript *GameScript
+	gameScript    *GameScript
+	noMoreActions bool // set when HandNoMoreAction message is received
 }
 
 type GameScript struct {

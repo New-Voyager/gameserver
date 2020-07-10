@@ -183,3 +183,19 @@ func ByteCardsToStringArray(cards []uint32) []string {
 	}
 	return cardsStrings
 }
+
+func FromByteCards(byteCards []byte) []Card {
+	cards := make([]Card, len(byteCards))
+	for i, card := range byteCards {
+		cards[i] = NewCardFromByte(card)
+	}
+	return cards
+}
+
+func CardsToByteCards(cards []Card) []byte {
+	byteCards := make([]byte, len(cards))
+	for i, card := range cards {
+		byteCards[i] = card.GetByte()
+	}
+	return byteCards
+}

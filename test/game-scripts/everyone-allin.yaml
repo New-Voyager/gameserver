@@ -30,11 +30,11 @@ take-seat:
     -
       seat: 5 
       player: 2
-      buy-in: 75
+      buy-in: 50
     -
       seat: 8 
       player: 3
-      buy-in: 100
+      buy-in: 50
 
   wait: 1
 
@@ -49,11 +49,11 @@ take-seat:
         -
           seat: 5 
           player: 2
-          stack: 75
+          stack: 50
         -
           seat: 8 
           player: 3
-          stack: 100
+          stack: 50
 
 # deal the following hands in the table
 hands:
@@ -107,11 +107,9 @@ hands:
       # verify preflop-action result
       # since both players folded, the round ended with a hand result
       verify:
+        no-more-actions: true
         state: FLOP
         pots:
           -
             pot: 150.0
             seats: [1, 5, 8]
-          -
-            pot: 50.0
-            seats: [5, 8]

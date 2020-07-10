@@ -24,13 +24,50 @@ message HandDealCards {
 // the UI can refresh and highlight the seat that is to act next
 message ActionChange {
   uint32 seat_no = 1;
-  repeated SeatsInPots pots = 18;
+  repeated SeatsInPots pots = 2;
 }
 
 message Flop {
-  repeated uint32 cards = 1;
+  repeated uint32 board = 1;
   string cardsStr = 2; // string representation of the cards for logging
 }
+
+message Turn {
+  repeated uint32 board = 1;
+  uint32 turn_card = 2;
+  string cardsStr = 3; // string representation of the cards for logging
+}
+
+message River {
+  repeated uint32 board = 1;
+  uint32 river_card = 2;
+  string cardsStr = 3; // string representation of the cards for logging
+}
+
+message SeatCards {
+  repeated uint32 cards = 2;  // I used int instead of byte is to display cards in json
+  string cardsStr = 3; // string representation of the cards for logging
+}
+
+message Showdown {
+  repeated SeatCards seat_cards = 1;  // cards of all the active players
+}
+
+message NoMoreActions {
+  repeated SeatsInPots pots = 1;
+}
+
+message HandResult {
+  HandActionLog preflop_actions = 1;
+  HandActionLog flop_actions = 2;
+  HandActionLog turn_actions = 3;
+  HandActionLog river_actions = 4;
+  map <uint32, PotWinners> pot_winners = 5; // 0 is main pot winners
+  HandStatus won_at = 6;
+  repeated PlayerBalance balance_after_hand = 7;
+  Showdown show_down = 8;   // cards shown at show down
+}
+
 
 //HandMessage packages the actual message with Hand information (clubid, game_num, hand_num) 
 message HandMessage {
@@ -49,5 +86,9 @@ message HandMessage {
     ActionChange action_change = 12;
     HandResult hand_result = 13;
     Flop flop = 14;
+    Turn turn = 15;
+    River river = 16;
+    Showdown showdown = 17;
+    NoMoreActions no_more_actions = 18;
   }
 }

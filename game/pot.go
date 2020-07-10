@@ -1,8 +1,12 @@
 package game
 
+import (
+	"voyager.com/server/poker"
+)
+
 func initializePot(maxSeats int) *SeatsInPots {
-	// this will create an array to represent each set in the table
-	seats := make([]uint32, maxSeats)
+	// this will contain only the seats that are in the pot
+	seats := make([]uint32, 0)
 	return &SeatsInPots{
 		Seats: seats,
 		Pot:   0.0,
@@ -10,7 +14,17 @@ func initializePot(maxSeats int) *SeatsInPots {
 }
 
 func (s *SeatsInPots) add(seatNo uint32, amount float32) {
-	s.Seats[seatNo-1] = 1
+	found := false
+	for i := range s.Seats {
+		if seatNo == s.Seats[i] {
+			// already in the pot
+			found = true
+			break
+		}
+	}
+	if !found {
+		s.Seats = append(s.Seats, seatNo)
+	}
 	s.Pot += amount
 }
 
@@ -64,6 +78,96 @@ func (h *HandState) addChipsToPot(seatBets []float32, handEnded bool) {
 			newPot := initializePot(len(seatBets))
 			h.Pots = append(h.Pots, newPot)
 			h.addChipsToPot(seatBets, handEnded)
+		}
+	}
+}
+
+type evaluatedCards struct {
+	rank  int32
+	cards []byte
+}
+
+type HoldemWinnerEvaluate struct {
+	handState           *HandState
+	gameState           *GameState
+	activeSeatBestCombo map[uint32]*evaluatedCards
+	winners             map[uint32]*PotWinners
+}
+
+func NewHoldemWinnerEvaluate(gameState *GameState, handState *HandState) *HoldemWinnerEvaluate {
+	return &HoldemWinnerEvaluate{
+		handState:           handState,
+		gameState:           gameState,
+		activeSeatBestCombo: make(map[uint32]*evaluatedCards, gameState.MaxSeats),
+		winners:             make(map[uint32]*PotWinners),
+	}
+}
+
+func (h *HoldemWinnerEvaluate) evaluate() {
+	h.evaluatePlayerBestCards()
+	for i := len(h.handState.Pots) - 1; i >= 0; i-- {
+		pot := h.handState.Pots[i]
+		potWinners := &PotWinners{}
+		potWinners.HandWinner = h.determineHandWinners(pot)
+		h.winners[uint32(i)] = potWinners
+	}
+}
+
+func (h *HoldemWinnerEvaluate) determineHandWinners(pot *SeatsInPots) []*HandWinner {
+	// determine the lowest ranking card first
+	lowestRank := int32(0x7FFFFFFF)
+	for _, seatNo := range pot.Seats {
+		if _, ok := h.activeSeatBestCombo[seatNo]; !ok {
+			continue
+		}
+		evaluation := h.activeSeatBestCombo[seatNo]
+		if evaluation.rank != 0 && evaluation.rank < lowestRank {
+			lowestRank = evaluation.rank
+		}
+	}
+
+	noOfWinners := 0
+	for _, seatNo := range pot.Seats {
+		if _, ok := h.activeSeatBestCombo[seatNo]; !ok {
+			continue
+		}
+
+		if h.activeSeatBestCombo[seatNo].rank == lowestRank {
+			noOfWinners++
+		}
+	}
+	splitChips := pot.Pot / float32(noOfWinners)
+	handWinners := make([]*HandWinner, noOfWinners)
+	i := 0
+	for _, seatNo := range pot.Seats {
+		if _, ok := h.activeSeatBestCombo[seatNo]; !ok {
+			continue
+		}
+
+		if h.activeSeatBestCombo[seatNo].rank == lowestRank {
+			handWinners[i] = &HandWinner{SeatNo: seatNo, Amount: splitChips}
+			i++
+		}
+	}
+
+	return handWinners
+}
+
+func (h *HoldemWinnerEvaluate) evaluatePlayerBestCards() {
+	// determine rank for each active player
+	for seatNoIdx, active := range h.handState.ActiveSeats {
+		if active == 0 {
+			continue
+		}
+		seatCards := h.handState.PlayersCards[uint32(seatNoIdx+1)]
+		allCards := make([]byte, len(h.handState.BoardCards))
+		copy(allCards, h.handState.BoardCards)
+		allCards = append(allCards, seatCards...)
+		cards := poker.FromByteCards(allCards)
+		rank, playerBestCards := poker.Evaluate(cards)
+		h.activeSeatBestCombo[uint32(seatNoIdx+1)] = &evaluatedCards{
+			rank:  rank,
+			cards: poker.CardsToByteCards(playerBestCards),
 		}
 	}
 }

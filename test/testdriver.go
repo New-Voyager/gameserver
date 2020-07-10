@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
@@ -128,7 +127,6 @@ func RunGameScriptTests(dir string, testName string) {
 	} else {
 		fmt.Printf("One or more scripts failed\n")
 	}
-	time.Sleep(1 * time.Second)
 	// if one or more tests failed, the process will exit with an error code
 	os.Exit(1)
 }

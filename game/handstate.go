@@ -208,9 +208,9 @@ func (h *HandState) getPlayersCards(gameState *GameState, deck *poker.Deck) map[
 	}
 
 	playerCards := make(map[uint32][]byte)
-	for _, playerID := range gameState.GetPlayersInSeats() {
+	for seatNoIdx, playerID := range gameState.GetPlayersInSeats() {
 		if playerID != 0 {
-			playerCards[playerID] = make([]byte, 0, 4)
+			playerCards[uint32(seatNoIdx+1)] = make([]byte, 0, 4)
 		}
 	}
 
@@ -218,10 +218,9 @@ func (h *HandState) getPlayersCards(gameState *GameState, deck *poker.Deck) map[
 		seatNo := gameState.ButtonPos
 		for {
 			seatNo = h.getNextActivePlayer(gameState, seatNo)
-			playerID := gameState.GetPlayersInSeats()[seatNo-1]
 			card := deck.Draw(1)
 			h.DeckIndex++
-			playerCards[playerID] = append(playerCards[playerID], card[0].GetByte())
+			playerCards[seatNo] = append(playerCards[seatNo], card[0].GetByte())
 			if seatNo == gameState.ButtonPos {
 				// next round of cards
 				break
@@ -505,6 +504,16 @@ func (h *HandState) setupFlop(gameState *GameState, board []uint32) {
 	}
 }
 
+func (h *HandState) setupTurn(gameState *GameState, turnCard uint32) {
+	h.setupNextRound(HandStatus_TURN, gameState)
+	h.BoardCards = append(h.BoardCards, uint8(turnCard))
+}
+
+func (h *HandState) setupRiver(gameState *GameState, riverCard uint32) {
+	h.setupNextRound(HandStatus_RIVER, gameState)
+	h.BoardCards = append(h.BoardCards, uint8(riverCard))
+}
+
 func (h *HandState) prepareNextAction(gameState *GameState, currentAction *HandAction) *NextSeatAction {
 	// compute next action
 	actionSeat := h.getNextActivePlayer(gameState, currentAction.SeatNo)
@@ -584,9 +593,12 @@ func (h *HandState) determineWinners() {
 		handWinners = append(handWinners, handWinner)
 		potWinners[uint32(i)] = &PotWinners{HandWinner: handWinners}
 	}
+	h.setWinners(potWinners)
+}
+
+func (h *HandState) setWinners(potWinners map[uint32]*PotWinners) {
 	h.PotWinners = potWinners
 	h.CurrentState = HandStatus_RESULT
-
 	h.BalanceAfterHand = make([]*PlayerBalance, 0)
 	// also populate current balance of the players in the table
 	for seatNo, player := range h.GetPlayersInSeats() {

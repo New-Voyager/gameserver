@@ -19,7 +19,6 @@ func main() {
 	if *runGameScript != "" {
 		test.RunGameScriptTests(*runGameScript, *testName)
 	}
-
 	//TestOmaha()
 }
 
