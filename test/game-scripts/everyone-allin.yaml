@@ -113,3 +113,23 @@ hands:
           -
             pot: 150.0
             seats: [1, 5, 8]
+
+    result:
+      winners:
+        -
+          seat: 1
+          receive: 150.0
+      action-ended: SHOW_DOWN
+      
+      # balance indicates the player balance after the hand
+      # bb player won a chip
+      stacks:
+        -
+          seat: 1
+          stack: 150
+        -
+          seat: 5
+          stack: 0
+        -
+          seat: 8
+          stack: 0

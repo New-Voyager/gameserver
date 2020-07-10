@@ -97,7 +97,6 @@ func TestOmaha() {
 			deckCount, len(players), noOfHands)
 		noShowDowns := 0
 		for i := 0; i < noOfHands; i++ {
-			//time.Sleep(500 * time.Second)
 			showDown := rand.Uint32() % 3
 			hand := pokerTable.Deal(1)
 			result := hand.EvaulateOmaha()

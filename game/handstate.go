@@ -451,7 +451,44 @@ func (h *HandState) settleRound() {
 	handEnded := false
 	if h.NoActiveSeats == 1 {
 		handEnded = true
+	} else {
+		// we need to find the second largest bet
+		// subtract that money from the largest bet player
+		// and return the balance back to the player
+		// for example, if two players go all in a hand
+		// player 1 has 50 chips and player 2 has 100 chips
+		// then the action is over, we need to return 50 chips
+		// back to player 1
+		maxBetPos := -1
+		// we should have atleast two seats to play
+		maxBet := float32(0)
+		secondMaxBet := float32(0)
+		seatBets := currentBettingRound.SeatBet
+		if seatBets[0] < seatBets[1] {
+			maxBet = seatBets[1]
+			secondMaxBet = seatBets[0]
+			maxBetPos = 1
+		} else {
+			maxBet = seatBets[0]
+			secondMaxBet = seatBets[1]
+			maxBetPos = 0
+		}
+		for seatIdx := 2; seatIdx < len(seatBets); seatIdx++ {
+			bet := seatBets[seatIdx]
+			if bet > maxBet {
+				secondMaxBet = maxBet
+				maxBet = bet
+				maxBetPos = seatIdx
+			}
+		}
+		if maxBetPos > 0 {
+			playerID := h.PlayersInSeats[maxBetPos]
+			h.PlayersState[playerID].Balance = maxBet - secondMaxBet
+		}
+
+		fmt.Printf("Max bet seat: %d, secondMaxBet: %f", maxBetPos, secondMaxBet)
 	}
+
 	h.addChipsToPot(currentBettingRound.SeatBet, handEnded)
 
 	if handEnded {
@@ -569,7 +606,7 @@ func (h *HandState) prepareNextAction(gameState *GameState, currentAction *HandA
 	return nextAction
 }
 
-func (h *HandState) determineWinners() {
+func (h *HandState) everyOneFoldedWinners() {
 	seatNo := -1
 	for i, playerID := range h.ActiveSeats {
 		if playerID != 0 {
@@ -582,8 +619,8 @@ func (h *HandState) determineWinners() {
 
 	potWinners := make(map[uint32]*PotWinners)
 	for i, pot := range h.Pots {
-		playerID := h.GetPlayersInSeats()[seatNo-1]
-		h.PlayersState[playerID].Balance += pot.Pot
+		//playerID := h.GetPlayersInSeats()[seatNo-1]
+		//h.PlayersState[playerID].Balance += pot.Pot
 		// only one pot
 		handWinner := &HandWinner{
 			SeatNo: uint32(seatNo),
@@ -599,6 +636,16 @@ func (h *HandState) determineWinners() {
 func (h *HandState) setWinners(potWinners map[uint32]*PotWinners) {
 	h.PotWinners = potWinners
 	h.CurrentState = HandStatus_RESULT
+
+	// update player balance
+	for _, pot := range potWinners {
+		for _, handWinner := range pot.HandWinner {
+			seatNo := handWinner.SeatNo
+			playerID := h.GetPlayersInSeats()[seatNo-1]
+			h.PlayersState[playerID].Balance += handWinner.Amount
+		}
+	}
+
 	h.BalanceAfterHand = make([]*PlayerBalance, 0)
 	// also populate current balance of the players in the table
 	for seatNo, player := range h.GetPlayersInSeats() {

@@ -4,3 +4,7 @@ server
 game/handmessage.pb.go
 *.pb.*
 protoc-3.7.1-linux-x86_64.zip
+.VSCodeCounter/details.md
+.VSCodeCounter/results.csv
+.VSCodeCounter/results.md
+.VSCodeCounter/results.txt

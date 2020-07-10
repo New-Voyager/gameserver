@@ -159,11 +159,7 @@ func (game *Game) gotoRiver(gameState *GameState, handState *HandState) {
 
 func (game *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandState) error {
 	// every one folded except one player, send the pot to the player
-
-	// we need to deal with all in players as well
-
-	// determine winners
-	handState.determineWinners()
+	handState.everyOneFoldedWinners()
 	err := game.saveHandState(gameState, handState)
 	if err != nil {
 		return err
