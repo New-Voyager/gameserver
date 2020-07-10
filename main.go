@@ -14,7 +14,8 @@ func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	var runGameScript = flag.String("game-script", "test/game-scripts", "runs tests with game script files")
-	var testName = flag.String("test-name", "", "runs a specific test")
+	var testName = flag.String("testname", "", "runs a specific test")
+	flag.Parse()
 	if *runGameScript != "" {
 		test.RunGameScriptTests(*runGameScript, *testName)
 	}

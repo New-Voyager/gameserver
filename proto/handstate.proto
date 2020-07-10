@@ -13,7 +13,7 @@ enum ACTION {
   FOLD = 5;
   BET = 6;
   RAISE = 7;
-  ALL_IN = 8;
+  ALLIN = 8;
 }
 
 message HandAction {
@@ -66,6 +66,19 @@ enum HandStatus {
   EVALUATE_HAND = 6;
   RESULT = 7;
   HAND_CLOSED = 8;
+}
+
+// This enum is used to determine whether all the players in a round
+// has a chance to act or not.
+// As soon as a player raises the bet, all the previously acted players
+// will have to act again.
+// All in will be treated as acted
+enum PlayerActRound {
+  EMPTY_SEAT = 0;
+  NOT_ACTED = 1;
+  FOLDED = 2;
+  ACTED = 3;      // bet/raise/call/bb/straddle
+  ALL_IN = 4;     // all in
 }
 
 // message tracks number of players in this pot and the amount in the pot
@@ -137,8 +150,10 @@ message HandState {
 
   // results
   map <uint32, PotWinners> pot_winners = 30; // 0 is main pot winners
-  HandStatus won_at = 31;  
+  HandStatus hand_completed_at = 31;  
   repeated PlayerBalance balance_after_hand = 32;
+
+  repeated PlayerActRound players_acted = 33;
 }
 
 message HandWinner {

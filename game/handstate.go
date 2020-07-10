@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/rs/zerolog/log"
 	"voyager.com/server/poker"
@@ -19,36 +18,6 @@ func LoadHandState(handStatePersist PersistHandState, clubID uint32, gameNum uin
 	return handState, nil
 }
 
-func (h *HandState) PrintTable(players map[uint32]string) string {
-	var b strings.Builder
-	b.Grow(32)
-	fmt.Fprintf(&b, "Game Num: %d Hand Num: %d, Seats: [", h.GameNum, h.HandNum)
-	for seatNo, playerID := range h.GetPlayersInSeats() {
-		seatNo++
-		if playerID == 0 {
-			// empty seat
-			fmt.Fprintf(&b, " {%d: Empty}, ", seatNo)
-		} else {
-			player, _ := players[playerID]
-			playerState, _ := h.PlayersState[playerID]
-			playerCards, _ := h.PlayersCards[playerID]
-			cardString := poker.CardsToString(playerCards)
-			if uint32(seatNo) == h.ButtonPos {
-				fmt.Fprintf(&b, " {%d: %s, %f, %s, BUTTON} ", seatNo, player, playerState.Balance, cardString)
-			} else if uint32(seatNo) == h.SmallBlindPos {
-				fmt.Fprintf(&b, " {%d: %s, %f, %s, SB} ", seatNo, player, playerState.Balance, cardString)
-			} else if uint32(seatNo) == h.BigBlindPos {
-				fmt.Fprintf(&b, " {%d: %s, %f, %s, BB} ", seatNo, player, playerState.Balance, cardString)
-			} else {
-				fmt.Fprintf(&b, " {%d: %s, %f, %s} ", seatNo, player, playerState.Balance, cardString)
-			}
-		}
-	}
-	fmt.Fprintf(&b, "]")
-
-	return b.String()
-}
-
 func (h *HandState) initializeBettingRound(gameState *GameState) {
 	maxSeats := gameState.MaxSeats
 	h.RoundBetting = make(map[uint32]*SeatBetting)
@@ -56,6 +25,10 @@ func (h *HandState) initializeBettingRound(gameState *GameState) {
 	h.RoundBetting[uint32(HandStatus_FLOP)] = &SeatBetting{SeatBet: make([]float32, maxSeats)}
 	h.RoundBetting[uint32(HandStatus_TURN)] = &SeatBetting{SeatBet: make([]float32, maxSeats)}
 	h.RoundBetting[uint32(HandStatus_RIVER)] = &SeatBetting{SeatBet: make([]float32, maxSeats)}
+
+	// setup player acted tracking
+	h.PlayersActed = make([]PlayerActRound, gameState.MaxSeats)
+	h.resetPlayerActions()
 }
 
 func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos int32) {
@@ -125,24 +98,68 @@ func (h *HandState) setupPreflob(gameState *GameState) {
 		Action: ACTION_BB,
 		Amount: gameState.BigBlind,
 	})
+
 	h.ActionCompleteAtSeat = h.BigBlindPos
-	mainPot := h.Pots[0]
+	//mainPot := h.Pots[0]
 	bettingRound := h.RoundBetting[uint32(HandStatus_PREFLOP)]
 	if h.SmallBlindPos != 0 {
 		// small blind equity
 		smallBlind := gameState.SmallBlind
-		mainPot.SeatPotEquity[h.SmallBlindPos-1] = smallBlind
-		mainPot.Pot += smallBlind
+		//mainPot.SeatPotEquity[h.SmallBlindPos-1] = smallBlind
+		//mainPot.Pot += smallBlind
 		h.PlayersState[h.PlayersInSeats[h.SmallBlindPos-1]].Balance -= smallBlind
 		bettingRound.SeatBet[h.SmallBlindPos-1] = smallBlind
 	}
 
 	// big blind equity
 	bigBlind := gameState.BigBlind
-	mainPot.SeatPotEquity[h.BigBlindPos-1] = bigBlind
-	mainPot.Pot += bigBlind
+	//mainPot.SeatPotEquity[h.BigBlindPos-1] = bigBlind
+	//mainPot.Pot += bigBlind
 	h.PlayersState[h.PlayersInSeats[h.BigBlindPos-1]].Balance -= bigBlind
 	bettingRound.SeatBet[h.BigBlindPos-1] = bigBlind
+
+	// big blind has acted, will have last action as well
+	//h.PlayersActed[h.BigBlindPos-1] = PlayerActRound_ACTED
+	h.actionChanged(h.BigBlindPos)
+}
+
+func (h *HandState) resetPlayerActions() {
+	for seatNo, playerID := range h.GetPlayersInSeats() {
+		if playerID == 0 {
+			h.PlayersActed[seatNo] = PlayerActRound_EMPTY_SEAT
+			continue
+		}
+		h.PlayersActed[seatNo] = PlayerActRound_NOT_ACTED
+	}
+}
+
+func (h *HandState) actionChanged(seatChangedAction uint32) {
+	for seatNo := range h.GetPlayersInSeats() {
+		if h.PlayersActed[seatNo] == PlayerActRound_EMPTY_SEAT ||
+			h.PlayersActed[seatNo] == PlayerActRound_FOLDED ||
+			h.PlayersActed[seatNo] == PlayerActRound_ALL_IN ||
+			seatNo == int(seatChangedAction-1) {
+			continue
+		}
+		// this player has act again
+		h.PlayersActed[seatNo] = PlayerActRound_NOT_ACTED
+	}
+	h.PlayersActed[seatChangedAction-1] = PlayerActRound_ACTED
+}
+
+func (h *HandState) hasEveryOneActed() bool {
+	allActed := true
+	for seatNo := range h.GetPlayersInSeats() {
+		if h.PlayersActed[seatNo] == PlayerActRound_EMPTY_SEAT ||
+			h.PlayersActed[seatNo] == PlayerActRound_FOLDED ||
+			h.PlayersActed[seatNo] == PlayerActRound_ALL_IN ||
+			h.PlayersActed[seatNo] == PlayerActRound_ACTED {
+			continue
+		}
+		allActed = false
+		break
+	}
+	return allActed
 }
 
 func (h *HandState) getPlayersState(gameState *GameState) map[uint32]*HandPlayerState {
@@ -294,84 +311,88 @@ func (h *HandState) actionReceived(gameState *GameState, action *HandAction) err
 		log = h.RiverActions
 	}
 
-	currentPotPos := len(h.Pots) - 1
-	currentPot := h.Pots[currentPotPos]
 	playerBalance := playerState.GetBalance()
 	bettingRound := h.RoundBetting[uint32(h.CurrentState)]
 	playerBetSoFar := bettingRound.SeatBet[action.SeatNo-1]
-	playerPotEquity := currentPot.SeatPotEquity[action.SeatNo-1]
 
 	// valid actions
 	if action.Action == ACTION_FOLD {
 		h.ActiveSeats[action.SeatNo-1] = 0
 		h.NoActiveSeats--
 		playerState.Status = HandPlayerState_FOLDED
-		log.Actions = append(log.Actions, action)
-		h.NextSeatAction = h.prepareNextAction(gameState, action)
+		h.PlayersActed[action.SeatNo-1] = PlayerActRound_FOLDED
 	} else if action.Action == ACTION_CHECK {
-		log.Actions = append(log.Actions, action)
-		h.NextSeatAction = h.prepareNextAction(gameState, action)
-	} else {
+		h.PlayersActed[action.SeatNo-1] = PlayerActRound_ACTED
+	} else if action.Action == ACTION_CALL {
 		// action call
-		if action.Action == ACTION_CALL {
-			// if this player has an equity in this pot, just call subtract the amount
-			diff := h.CurrentRaise - playerBetSoFar
+		// if this player has an equity in this pot, just call subtract the amount
+		diff := h.CurrentRaise - playerBetSoFar
+		h.PlayersActed[action.SeatNo-1] = PlayerActRound_ACTED
 
-			// does the player enough money ??
-			if playerBalance < diff {
-				// he is going all in, crazy
-				action.Action = ACTION_ALL_IN
-				diff = playerBalance
-			}
-			playerBetSoFar += diff
-			playerPotEquity += diff
-			currentPot.Pot += diff
-			playerState.Balance -= diff
-			currentPot.SeatPotEquity[action.SeatNo-1] = playerPotEquity
-			bettingRound.SeatBet[action.SeatNo-1] = playerBetSoFar
+		// does the player enough money ??
+		if playerBalance < diff {
+			// he is going all in, crazy
+			action.Action = ACTION_ALLIN
+			h.PlayersActed[action.SeatNo-1] = PlayerActRound_ALL_IN
+			diff = playerBalance
+		}
+		playerBetSoFar += diff
+		playerState.Balance -= diff
+		bettingRound.SeatBet[action.SeatNo-1] = playerBetSoFar
+	} else if action.Action == ACTION_ALLIN {
+		h.PlayersActed[action.SeatNo-1] = PlayerActRound_ALL_IN
+		bettingRound.SeatBet[action.SeatNo-1] = playerState.Balance
+		playerState.Balance = 0
+	} else if action.Action == ACTION_RAISE ||
+		action.Action == ACTION_BET {
+		// TODO: we need to handle raise and determine next min raise
+		if action.Amount < h.GetCurrentRaise() {
+			// invalid
+			handLogger.Error().
+				Uint32("game", gameState.GetGameNum()).
+				Uint32("hand", gameState.GetHandNum()).
+				Uint32("seat", action.SeatNo).
+				Msg(fmt.Sprintf("Invalid raise %f. Current bet: %f", action.Amount, h.GetCurrentRaise()))
 		}
 
-		// TODO: we need to handle raise and determine next min raise
-		if action.Action == ACTION_RAISE {
-			if action.Amount < h.GetCurrentRaise() {
-				// invalid
-				handLogger.Error().
-					Uint32("game", gameState.GetGameNum()).
-					Uint32("hand", gameState.GetHandNum()).
-					Uint32("seat", action.SeatNo).
-					Msg(fmt.Sprintf("Invalid raise %f. Current bet: %f", action.Amount, h.GetCurrentRaise()))
-			}
+		h.PlayersActed[action.SeatNo-1] = PlayerActRound_ACTED
+		if action.Action == ACTION_ALLIN {
+			h.PlayersActed[action.SeatNo-1] = PlayerActRound_ALL_IN
+			// player is all in
+			action.Amount = playerBetSoFar + playerState.Balance
 		}
 
 		if action.Amount > h.CurrentRaise {
 			h.CurrentRaise = action.Amount
+
+			// reset player action
+			h.actionChanged(action.SeatNo)
 			h.ActionCompleteAtSeat = action.SeatNo
-
-			// how much this user already had in the betting round
-			diff := action.Amount - playerBetSoFar
-
-			playerPotEquity := currentPot.SeatPotEquity[action.SeatNo-1]
-
-			if diff == playerState.Balance {
-				// player is all in
-				action.Action = ACTION_ALL_IN
-				playerPotEquity += playerState.Balance
-				currentPot.Pot += playerState.Balance
-				playerState.Balance = 0
-			} else {
-				playerState.Balance -= diff
-				playerPotEquity += diff
-				currentPot.Pot += diff
-			}
-
-			bettingRound.SeatBet[action.SeatNo-1] = action.Amount
-			currentPot.SeatPotEquity[action.SeatNo-1] = playerPotEquity
 		}
 
-		// add the action to the log
-		log.Actions = append(log.Actions, action)
-		log.Pot = log.Pot + action.Amount
+		// how much this user already had in the betting round
+		diff := action.Amount - playerBetSoFar
 
+		if diff == playerState.Balance {
+			// player is all in
+			action.Action = ACTION_ALLIN
+			h.PlayersActed[action.SeatNo-1] = PlayerActRound_ALL_IN
+			playerState.Balance = 0
+		} else {
+			playerState.Balance -= diff
+		}
+
+		bettingRound.SeatBet[action.SeatNo-1] = action.Amount
+	}
+	// add the action to the log
+	log.Actions = append(log.Actions, action)
+	log.Pot = log.Pot + action.Amount
+
+	// check whether everyone has acted in this ROUND
+	if h.hasEveryOneActed() {
+		// move to next round
+		h.NextSeatAction = h.gotoNextStage(gameState)
+	} else {
 		h.NextSeatAction = h.prepareNextAction(gameState, action)
 	}
 	return nil
@@ -395,34 +416,56 @@ func (h *HandState) getPlayerFromSeat(seatNo uint32) *HandPlayerState {
 	return playerState
 }
 
-func (h *HandState) prepareNextAction(gameState *GameState, currentAction *HandAction) *NextSeatAction {
-	// if this player is last to act, then move to the next round
-	if h.ActionCompleteAtSeat == currentAction.SeatNo {
-		if h.CurrentState == HandStatus_PREFLOP {
-			h.CurrentState = HandStatus_FLOP
-			actionSeat := h.getNextActivePlayer(gameState, h.ButtonPos)
-			playerState := h.getPlayerFromSeat(actionSeat)
-			if playerState == nil {
-				// something wrong
-				panic("Something went wrong. player id cannot be null")
-			}
-
-			availableActions := make([]ACTION, 0)
-			availableActions = append(availableActions, ACTION_FOLD)
-			availableActions = append(availableActions, ACTION_CHECK)
-			availableActions = append(availableActions, ACTION_BET)
-
-			nextAction := &NextSeatAction{SeatNo: actionSeat}
-			nextAction.MinRaiseAmount = gameState.BigBlind
-			nextAction.MaxRaiseAmount = gameState.BigBlind
-			nextAction.AvailableActions = availableActions
-			availableActions = append(availableActions, ACTION_ALL_IN)
-			nextAction.AllInAmount = playerState.Balance
-
-			return nextAction
-		}
+func (h *HandState) gotoNextStage(gameState *GameState) *NextSeatAction {
+	// before we go to next stage, settle pots
+	currentBettingRound := h.RoundBetting[uint32(h.CurrentState)]
+	currentPot := len(h.Pots) - 1
+	for _, bet := range currentBettingRound.SeatBet {
+		h.Pots[currentPot].Pot += bet
 	}
 
+	// if only one player is active, then announce the result and go to next hand
+	if h.NoActiveSeats == 1 {
+		h.HandCompletedAt = h.CurrentState
+		h.CurrentState = HandStatus_RESULT
+		return nil
+	}
+
+	// if this player is last to act, then move to the next round
+	if h.CurrentState == HandStatus_PREFLOP {
+		h.CurrentState = HandStatus_FLOP
+	} else if h.CurrentState == HandStatus_FLOP {
+		h.CurrentState = HandStatus_TURN
+	} else if h.CurrentState == HandStatus_TURN {
+		h.CurrentState = HandStatus_RIVER
+	} else if h.CurrentState == HandStatus_RIVER {
+		h.CurrentState = HandStatus_SHOW_DOWN
+	}
+
+	actionSeat := h.getNextActivePlayer(gameState, h.ButtonPos)
+	playerState := h.getPlayerFromSeat(actionSeat)
+	if playerState == nil {
+		// something wrong
+		panic("Something went wrong. player id cannot be null")
+	}
+	h.resetPlayerActions()
+
+	availableActions := make([]ACTION, 0)
+	availableActions = append(availableActions, ACTION_FOLD)
+	availableActions = append(availableActions, ACTION_CHECK)
+	availableActions = append(availableActions, ACTION_BET)
+
+	nextAction := &NextSeatAction{SeatNo: actionSeat}
+	nextAction.MinRaiseAmount = gameState.BigBlind
+	nextAction.MaxRaiseAmount = gameState.BigBlind
+	nextAction.AvailableActions = availableActions
+	availableActions = append(availableActions, ACTION_ALLIN)
+	nextAction.AllInAmount = playerState.Balance
+
+	return nextAction
+}
+
+func (h *HandState) prepareNextAction(gameState *GameState, currentAction *HandAction) *NextSeatAction {
 	// compute next action
 	actionSeat := h.getNextActivePlayer(gameState, currentAction.SeatNo)
 	playerState := h.getPlayerFromSeat(actionSeat)
@@ -467,7 +510,7 @@ func (h *HandState) prepareNextAction(gameState *GameState, currentAction *HandA
 		}
 
 		if allInAvailable {
-			availableActions = append(availableActions, ACTION_ALL_IN)
+			availableActions = append(availableActions, ACTION_ALLIN)
 			nextAction.AllInAmount = playerState.Balance
 		}
 
@@ -475,90 +518,6 @@ func (h *HandState) prepareNextAction(gameState *GameState, currentAction *HandA
 	}
 
 	return nextAction
-}
-
-func (n *NextSeatAction) PrettyPrint(h *HandState, gameState *GameState, players map[uint32]string) string {
-	seatNo := n.SeatNo
-	playerState := h.getPlayerFromSeat(seatNo)
-	playerID := gameState.GetPlayersInSeats()[seatNo-1]
-	player, _ := players[playerID]
-	var b strings.Builder
-	b.Grow(32)
-	fmt.Fprintf(&b, " Next Action: {Seat No: %d, Player: %s, balance: %f}, ", seatNo, player, playerState.Balance)
-	fmt.Fprintf(&b, " Available actions: [")
-	for _, action := range n.AvailableActions {
-		switch action {
-		case ACTION_FOLD:
-			fmt.Fprintf(&b, "{FOLD},")
-		case ACTION_CHECK:
-			fmt.Fprintf(&b, "{CHECK},")
-		case ACTION_CALL:
-			fmt.Fprintf(&b, "{CALL, callAmount: %f},", n.CallAmount)
-		case ACTION_RAISE:
-			fmt.Fprintf(&b, "{RAISE, raise min: %f, max: %f},", n.MinRaiseAmount, n.MaxRaiseAmount)
-		case ACTION_ALL_IN:
-			fmt.Fprintf(&b, "{ALL_IN, allInAmount: %f},", n.AllInAmount)
-		case ACTION_STRADDLE:
-			fmt.Fprintf(&b, "{STRADDLE, straddleAmount: %f},", n.StraddleAmount)
-		}
-	}
-	return b.String()
-}
-
-func (h *HandState) PrintCurrentActionLog(gameState *GameState, players map[uint32]string) string {
-	var log *HandActionLog
-	var b strings.Builder
-	b.Grow(32)
-
-	switch h.CurrentState {
-	case HandStatus_PREFLOP:
-		log = h.PreflopActions
-		fmt.Fprintf(&b, "PreFlop: \n")
-	case HandStatus_FLOP:
-		log = h.FlopActions
-		fmt.Fprintf(&b, "Flop: \n")
-	case HandStatus_TURN:
-		log = h.TurnActions
-		fmt.Fprintf(&b, "Turn: \n")
-	case HandStatus_RIVER:
-		log = h.RiverActions
-		fmt.Fprintf(&b, "River: \n")
-	}
-	for _, seatAction := range log.Actions {
-		fmt.Fprintf(&b, "%s\n", seatAction.Print(h, gameState, players))
-	}
-	fmt.Fprintf(&b, "Pot: %f\n", log.Pot)
-	return b.String()
-}
-
-func (a *HandAction) Print(h *HandState, gameState *GameState, players map[uint32]string) string {
-	action := ""
-	switch a.Action {
-	case ACTION_FOLD:
-		action = "FOLD"
-	case ACTION_BB:
-		action = "BB"
-	case ACTION_SB:
-		action = "SB"
-	case ACTION_STRADDLE:
-		action = "STRADDLE"
-	case ACTION_CALL:
-		action = "CALL"
-	case ACTION_RAISE:
-		action = "RAISE"
-	case ACTION_BET:
-		action = "BET"
-	}
-
-	seatNo := a.SeatNo
-	//playerState := h.getPlayerFromSeat(seatNo)
-	playerID := gameState.GetPlayersInSeats()[seatNo-1]
-	player, _ := players[playerID]
-
-	if a.Action == ACTION_FOLD {
-		return fmt.Sprintf("%s   %s", player, action)
-	}
-	return fmt.Sprintf("%s   %s   %f", player, action, a.Amount)
 }
 
 func (h *HandState) determineWinners() {
@@ -586,7 +545,6 @@ func (h *HandState) determineWinners() {
 		potWinners[uint32(i)] = &PotWinners{HandWinner: handWinners}
 	}
 	h.PotWinners = potWinners
-	h.WonAt = h.CurrentState
 	h.CurrentState = HandStatus_RESULT
 
 	h.BalanceAfterHand = make([]*PlayerBalance, 0)
@@ -604,7 +562,7 @@ func (h *HandState) determineWinners() {
 func (h *HandState) getResult() *HandResult {
 	handResult := &HandResult{}
 	handResult.PotWinners = h.PotWinners
-	handResult.WonAt = h.WonAt
+	handResult.WonAt = h.HandCompletedAt
 	handResult.PreflopActions = h.PreflopActions
 	handResult.FlopActions = h.FlopActions
 	handResult.TurnActions = h.TurnActions
