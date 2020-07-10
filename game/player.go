@@ -81,8 +81,14 @@ func (p *Player) handleHandMessage(messageBytes []byte, message HandMessage) {
 		p.onPlayerNewHand(messageBytes, message)
 	} else if message.MessageType == HandResultMessage {
 		p.onHandResult(messageBytes, message)
+	} else if message.MessageType == HandNoMoreActions {
+		p.onHandNoMoreActions(messageBytes, message)
 	} else if message.MessageType == HandFlop {
 		p.onFlop(messageBytes, message)
+	} else if message.MessageType == HandTurn {
+		p.onTurn(messageBytes, message)
+	} else if message.MessageType == HandRiver {
+		p.onRiver(messageBytes, message)
 	} else {
 		playerLogger.Warn().
 			Uint32("club", message.ClubId).
@@ -92,14 +98,6 @@ func (p *Player) handleHandMessage(messageBytes []byte, message HandMessage) {
 }
 
 func (p *Player) onCardsDealt(messageBytes []byte, message HandMessage) error {
-	// cards dealt, display the cards
-	//cards := message.GetDealCards()
-	// playerLogger.Info().
-	// 	Uint32("club", cards.ClubId).
-	// 	Uint32("game", cards.GameNum).
-	// 	Uint32("hand", cards.HandNum).
-	// 	Str("player", p.playerName).
-	// 	Msg(fmt.Sprintf("Cards: %s", cards.CardsStr))
 	jsonb, err := protojson.Marshal(&message)
 	if err != nil {
 		return err
@@ -113,15 +111,6 @@ func (p *Player) onCardsDealt(messageBytes []byte, message HandMessage) error {
 }
 
 func (p *Player) onPlayerNewHand(messageBytes []byte, message HandMessage) error {
-	// cards dealt, display the cards
-	//cards := message.GetDealCards()
-	// playerLogger.Info().
-	// 	Uint32("club", cards.ClubId).
-	// 	Uint32("game", cards.GameNum).
-	// 	Uint32("hand", cards.HandNum).
-	// 	Str("player", p.playerName).
-	// 	Msg(fmt.Sprintf("Cards: %s", cards.CardsStr))
-
 	jsonb, err := protojson.Marshal(&message)
 	if err != nil {
 		return err
@@ -134,15 +123,6 @@ func (p *Player) onPlayerNewHand(messageBytes []byte, message HandMessage) error
 }
 
 func (p *Player) onNextAction(messageBytes []byte, message HandMessage) error {
-	// cards dealt, display the cards
-	// seatAction := message.GetSeatAction()
-	// playerLogger.Info().
-	// 	Uint32("club", message.ClubId).
-	// 	Uint32("game", message.GameNum).
-	// 	Uint32("hand", message.HandNum).
-	// 	Str("player", p.playerName).
-	// 	Msg(fmt.Sprintf("Action: %v", seatAction))
-
 	jsonb, err := protojson.Marshal(&message)
 	if err != nil {
 		return err
@@ -155,15 +135,6 @@ func (p *Player) onNextAction(messageBytes []byte, message HandMessage) error {
 }
 
 func (p *Player) onPlayerAction(messageBytes []byte, message HandMessage) error {
-	// cards dealt, display the cards
-	// seatAction := message.GetSeatAction()
-	// playerLogger.Info().
-	// 	Uint32("club", message.ClubId).
-	// 	Uint32("game", message.GameNum).
-	// 	Uint32("hand", message.HandNum).
-	// 	Str("player", p.playerName).
-	// 	Msg(fmt.Sprintf("Action: %v", seatAction))
-
 	// this player is next to act
 	jsonb, err := protojson.Marshal(&message)
 	if err != nil {
@@ -177,15 +148,6 @@ func (p *Player) onPlayerAction(messageBytes []byte, message HandMessage) error 
 }
 
 func (p *Player) onHandResult(messageBytes []byte, message HandMessage) error {
-	// cards dealt, display the cards
-	// seatAction := message.GetSeatAction()
-	// playerLogger.Info().
-	// 	Uint32("club", message.ClubId).
-	// 	Uint32("game", message.GameNum).
-	// 	Uint32("hand", message.HandNum).
-	// 	Str("player", p.playerName).
-	// 	Msg(fmt.Sprintf("Action: %v", seatAction))
-
 	// this player is next to act
 	jsonb, err := protojson.Marshal(&message)
 	if err != nil {
@@ -199,15 +161,42 @@ func (p *Player) onHandResult(messageBytes []byte, message HandMessage) error {
 }
 
 func (p *Player) onFlop(messageBytes []byte, message HandMessage) error {
-	// cards dealt, display the cards
-	// seatAction := message.GetSeatAction()
-	// playerLogger.Info().
-	// 	Uint32("club", message.ClubId).
-	// 	Uint32("game", message.GameNum).
-	// 	Uint32("hand", message.HandNum).
-	// 	Str("player", p.playerName).
-	// 	Msg(fmt.Sprintf("Action: %v", seatAction))
+	jsonb, err := protojson.Marshal(&message)
+	if err != nil {
+		return err
+	}
 
+	if p.delegate != nil {
+		p.delegate.HandMessageFromGame(messageBytes, &message, jsonb)
+	}
+	return nil
+}
+
+func (p *Player) onHandNoMoreActions(messageBytes []byte, message HandMessage) error {
+	jsonb, err := protojson.Marshal(&message)
+	if err != nil {
+		return err
+	}
+
+	if p.delegate != nil {
+		p.delegate.HandMessageFromGame(messageBytes, &message, jsonb)
+	}
+	return nil
+}
+
+func (p *Player) onTurn(messageBytes []byte, message HandMessage) error {
+	jsonb, err := protojson.Marshal(&message)
+	if err != nil {
+		return err
+	}
+
+	if p.delegate != nil {
+		p.delegate.HandMessageFromGame(messageBytes, &message, jsonb)
+	}
+	return nil
+}
+
+func (p *Player) onRiver(messageBytes []byte, message HandMessage) error {
 	jsonb, err := protojson.Marshal(&message)
 	if err != nil {
 		return err
@@ -220,11 +209,6 @@ func (p *Player) onFlop(messageBytes []byte, message HandMessage) error {
 }
 
 func (p *Player) handleGameMessage(messageBytes []byte, message GameMessage) error {
-	// playerLogger.Info().
-	// 	Uint32("club", message.clubID).
-	// 	Uint32("game", message.gameNum).
-	// 	Msg(fmt.Sprintf("Message type: %s", message.messageType))
-
 	jsonb, err := protojson.Marshal(&message)
 	if err != nil {
 		return err

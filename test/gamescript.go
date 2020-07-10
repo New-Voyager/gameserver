@@ -18,7 +18,6 @@ func (g *GameScript) run(t *TestDriver) error {
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 

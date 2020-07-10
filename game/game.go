@@ -266,7 +266,9 @@ func (game *Game) dealNewHand() error {
 			continue
 		}
 
-		playerCards := handState.PlayersCards[playerID]
+		// playerCards is a map
+		// seatNo is the key, cards are value
+		playerCards := handState.PlayersCards[uint32(seatNo+1)]
 		message := HandDealCards{SeatNo: uint32(seatNo + 1)}
 		message.Cards = make([]uint32, len(playerCards))
 		for i, card := range playerCards {

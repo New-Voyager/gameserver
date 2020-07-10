@@ -19,7 +19,7 @@ func (h *HandState) PrintTable(players map[uint32]string) string {
 		} else {
 			player, _ := players[playerID]
 			playerState, _ := h.PlayersState[playerID]
-			playerCards, _ := h.PlayersCards[playerID]
+			playerCards, _ := h.PlayersCards[uint32(seatNo)]
 			cardString := poker.CardsToString(playerCards)
 			if uint32(seatNo) == h.ButtonPos {
 				fmt.Fprintf(&b, " {%d: %s, %f, %s, BUTTON} ", seatNo, player, playerState.Balance, cardString)

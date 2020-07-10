@@ -66,7 +66,7 @@ func (game *Game) onPlayerActed(message *HandMessage) error {
 	return nil
 }
 
-func (game *Game) gotoFlop(handState *HandState, gameState *GameState) {
+func (game *Game) gotoFlop(gameState *GameState, handState *HandState) {
 	channelGameLogger.Info().
 		Uint32("club", game.clubID).
 		Uint32("game", game.gameNum).
@@ -86,7 +86,7 @@ func (game *Game) gotoFlop(handState *HandState, gameState *GameState) {
 	game.saveHandState(gameState, handState)
 
 	cardsStr := poker.CardsToString(boardCards)
-	flopMessage := &Flop{Cards: boardCards, CardsStr: cardsStr}
+	flopMessage := &Flop{Board: boardCards, CardsStr: cardsStr}
 	handMessage := &HandMessage{ClubId: game.clubID,
 		GameNum:     game.gameNum,
 		HandNum:     handState.HandNum,
@@ -94,6 +94,67 @@ func (game *Game) gotoFlop(handState *HandState, gameState *GameState) {
 		HandStatus:  handState.CurrentState}
 	handMessage.HandMessage = &HandMessage_Flop{Flop: flopMessage}
 	game.broadcastHandMessage(handMessage)
+	game.saveHandState(gameState, handState)
+}
+
+func (game *Game) gotoTurn(gameState *GameState, handState *HandState) {
+	channelGameLogger.Info().
+		Uint32("club", game.clubID).
+		Uint32("game", game.gameNum).
+		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
+
+	// we need to send flop cards to the board
+	deck := poker.NewDeckFromBytes(handState.Deck, int(handState.DeckIndex))
+	deck.Draw(1)
+	handState.DeckIndex++
+	turn := uint32(deck.Draw(1)[0].GetByte())
+	handState.setupTurn(gameState, turn)
+	game.saveHandState(gameState, handState)
+
+	cardsStr := poker.CardsToString(handState.BoardCards)
+	boardCards := make([]uint32, len(handState.BoardCards))
+	for i, card := range handState.BoardCards {
+		boardCards[i] = uint32(card)
+	}
+	turnMessage := &Turn{Board: boardCards, TurnCard: uint32(turn), CardsStr: cardsStr}
+	handMessage := &HandMessage{ClubId: game.clubID,
+		GameNum:     game.gameNum,
+		HandNum:     handState.HandNum,
+		MessageType: HandTurn,
+		HandStatus:  handState.CurrentState}
+	handMessage.HandMessage = &HandMessage_Turn{Turn: turnMessage}
+	game.broadcastHandMessage(handMessage)
+	game.saveHandState(gameState, handState)
+}
+
+func (game *Game) gotoRiver(gameState *GameState, handState *HandState) {
+	channelGameLogger.Info().
+		Uint32("club", game.clubID).
+		Uint32("game", game.gameNum).
+		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
+
+	// we need to send flop cards to the board
+	deck := poker.NewDeckFromBytes(handState.Deck, int(handState.DeckIndex))
+	deck.Draw(1)
+	handState.DeckIndex++
+	river := uint32(deck.Draw(1)[0].GetByte())
+	handState.setupTurn(gameState, river)
+	game.saveHandState(gameState, handState)
+
+	cardsStr := poker.CardsToString(handState.BoardCards)
+	boardCards := make([]uint32, len(handState.BoardCards))
+	for i, card := range handState.BoardCards {
+		boardCards[i] = uint32(card)
+	}
+	riverMessage := &River{Board: boardCards, RiverCard: uint32(river), CardsStr: cardsStr}
+	handMessage := &HandMessage{ClubId: game.clubID,
+		GameNum:     game.gameNum,
+		HandNum:     handState.HandNum,
+		MessageType: HandRiver,
+		HandStatus:  handState.CurrentState}
+	handMessage.HandMessage = &HandMessage_River{River: riverMessage}
+	game.broadcastHandMessage(handMessage)
+	game.saveHandState(gameState, handState)
 }
 
 func (game *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandState) error {
@@ -126,15 +187,12 @@ func (game *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *Hand
 }
 
 func (game *Game) moveToNextRound(gameState *GameState, handState *HandState) {
-
 	if handState.LastState == HandStatus_DEAL {
 		return
 	}
-
 	// if only one player is active, let us end the hand
-
 	if handState.LastState == HandStatus_PREFLOP && handState.CurrentState == HandStatus_FLOP {
-		game.gotoFlop(handState, gameState)
+		game.gotoFlop(gameState, handState)
 	}
 }
 
@@ -180,7 +238,11 @@ func (game *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 }
 
 func (game *Game) handleNoMoreActions(gameState *GameState, handState *HandState) {
+
 	// broadcast the players no more actions
+	handMessage := &NoMoreActions{
+		Pots: handState.Pots,
+	}
 	message := &HandMessage{
 		ClubId:      game.clubID,
 		GameNum:     game.gameNum,
@@ -188,8 +250,46 @@ func (game *Game) handleNoMoreActions(gameState *GameState, handState *HandState
 		HandStatus:  handState.CurrentState,
 		MessageType: HandNoMoreActions,
 	}
+	message.HandMessage = &HandMessage_NoMoreActions{NoMoreActions: handMessage}
 	game.broadcastHandMessage(message)
+	for handState.CurrentState != HandStatus_SHOW_DOWN {
+		switch handState.CurrentState {
+		case HandStatus_FLOP:
+			game.gotoFlop(gameState, handState)
+			handState.CurrentState = HandStatus_TURN
+		case HandStatus_TURN:
+			game.gotoTurn(gameState, handState)
+			handState.CurrentState = HandStatus_RIVER
+		case HandStatus_RIVER:
+			game.gotoRiver(gameState, handState)
+			handState.CurrentState = HandStatus_SHOW_DOWN
+		}
+	}
+	game.gotoShowdown(gameState, handState)
+}
 
-	// let us go to the next step until showdown
+func (game *Game) gotoShowdown(gameState *GameState, handState *HandState) {
+	evaluate := NewHoldemWinnerEvaluate(gameState, handState)
+	if gameState.GameType == GameType_HOLDEM {
+		evaluate.evaluate()
+		handState.HandCompletedAt = HandStatus_SHOW_DOWN
+		handState.setWinners(evaluate.winners)
 
+		// send the hand to the database to store first
+		handResult := handState.getResult()
+
+		// now send the data to users
+		handMessage := &HandMessage{
+			ClubId:      game.clubID,
+			GameNum:     game.gameNum,
+			HandNum:     handState.HandNum,
+			MessageType: HandResultMessage,
+			HandStatus:  handState.CurrentState,
+		}
+
+		handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
+		game.broadcastHandMessage(handMessage)
+
+		_ = 0
+	}
 }

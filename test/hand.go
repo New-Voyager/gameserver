@@ -45,6 +45,37 @@ func (h *Hand) run(t *TestDriver) error {
 		}
 	}
 
+	if !result {
+		// go to turn
+		err = h.turnActions(t)
+		if err != nil {
+			return err
+		}
+		lastHandMessage := h.gameScript.observer.lastHandMessage
+		result = false
+		if lastHandMessage.MessageType == "RESULT" {
+			result = true
+		}
+	}
+
+	if !result {
+		// go to river
+		err = h.riverActions(t)
+		if err != nil {
+			return err
+		}
+		lastHandMessage := h.gameScript.observer.lastHandMessage
+		result = false
+		if lastHandMessage.MessageType == "RESULT" {
+			result = true
+		} else {
+			// we didn't get any results after the river
+			e := fmt.Errorf("No results found after the river")
+			h.gameScript.result.addError(e)
+			return e
+		}
+	}
+
 	// verify results
 	if result {
 		lastHandMessage = h.gameScript.observer.lastHandMessage
@@ -60,75 +91,65 @@ func (h *Hand) run(t *TestDriver) error {
 	return nil
 }
 
-func (h *Hand) preflopActions(t *TestDriver) error {
-	for _, action := range h.PreflopAction.Actions {
-		player := h.gameScript.playerFromSeat(action.SeatNo)
+func (h *Hand) performBettingRound(t *TestDriver, bettingRound *BettingRound) error {
+	if !h.noMoreActions {
+		for _, action := range bettingRound.Actions {
+			player := h.gameScript.playerFromSeat(action.SeatNo)
 
-		// send handmessage
-		message := game.HandMessage{
-			ClubId:      h.gameScript.testGame.clubID,
-			GameNum:     h.gameScript.testGame.gameNum,
-			HandNum:     h.Num,
-			MessageType: game.HandPlayerActed,
+			// send handmessage
+			message := game.HandMessage{
+				ClubId:      h.gameScript.testGame.clubID,
+				GameNum:     h.gameScript.testGame.gameNum,
+				HandNum:     h.Num,
+				MessageType: game.HandPlayerActed,
+			}
+			actionType := game.ACTION(game.ACTION_value[action.Action])
+			handAction := game.HandAction{SeatNo: action.SeatNo, Action: actionType, Amount: action.Amount}
+			message.HandMessage = &game.HandMessage_PlayerActed{PlayerActed: &handAction}
+			player.player.HandProtoMessageFromAdapter(&message)
+
+			h.gameScript.waitForObserver()
 		}
-		actionType := game.ACTION(game.ACTION_value[action.Action])
-		handAction := game.HandAction{SeatNo: action.SeatNo, Action: actionType, Amount: action.Amount}
-		message.HandMessage = &game.HandMessage_PlayerActed{PlayerActed: &handAction}
-		player.player.HandProtoMessageFromAdapter(&message)
-
-		h.gameScript.waitForObserver()
-
 	}
+
 	lastHandMessage := h.getObserverLastHandMessage()
-	if lastHandMessage.MessageType != "RESULT" {
-		// wait for flop message
+	// if last hand message was no more downs, there will be no more actions from the players
+	if lastHandMessage.MessageType == game.HandNoMoreActions {
+		h.noMoreActions = true
+		// wait for betting round message (flop, turn, river, showdown)
+		h.gameScript.waitForObserver()
+	} else if lastHandMessage.MessageType != "RESULT" {
+		// wait for betting round message (flop, turn, river, showdown)
 		h.gameScript.waitForObserver()
 	}
 
 	// verify next action is correct
-	verify := h.PreflopAction.Verify
+	verify := bettingRound.Verify
 	err := h.verifyBettingRound(t, &verify)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
+func (h *Hand) preflopActions(t *TestDriver) error {
+	e := h.performBettingRound(t, &h.PreflopAction)
+	return e
+}
+
 func (h *Hand) flopActions(t *TestDriver) error {
-	for _, action := range h.FlopAction.Actions {
-		player := h.gameScript.playerFromSeat(action.SeatNo)
+	e := h.performBettingRound(t, &h.FlopAction)
+	return e
+}
 
-		// send handmessage
-		message := game.HandMessage{
-			ClubId:      h.gameScript.testGame.clubID,
-			GameNum:     h.gameScript.testGame.gameNum,
-			HandNum:     h.Num,
-			MessageType: game.HandPlayerActed,
-		}
-		actionType := game.ACTION(game.ACTION_value[action.Action])
-		handAction := game.HandAction{SeatNo: action.SeatNo, Action: actionType, Amount: action.Amount}
-		message.HandMessage = &game.HandMessage_PlayerActed{PlayerActed: &handAction}
-		player.player.HandProtoMessageFromAdapter(&message)
+func (h *Hand) turnActions(t *TestDriver) error {
+	e := h.performBettingRound(t, &h.TurnAction)
+	return e
+}
 
-		h.gameScript.waitForObserver()
-	}
-	lastHandMessage := h.getObserverLastHandMessage()
-	if lastHandMessage.MessageType != "RESULT" {
-		// wait for turn message
-		h.gameScript.waitForObserver()
-	}
-
-	// verify next action is correct
-	if h.PreflopAction.Verify.State != "" {
-		if h.PreflopAction.Verify.State == "RESULT" {
-			if lastHandMessage.MessageType != "RESULT" {
-				h.addError(fmt.Errorf("Expected result after preflop actions. Actual message: %s", lastHandMessage.MessageType))
-				return fmt.Errorf("Failed at preflop verification step")
-			}
-		}
-	}
-	return nil
+func (h *Hand) riverActions(t *TestDriver) error {
+	e := h.performBettingRound(t, &h.RiverAction)
+	return e
 }
 
 func (h *Hand) dealHand(t *TestDriver) error {
@@ -278,11 +299,11 @@ func (h *Hand) verifyBettingRound(t *TestDriver, verify *VerifyBettingRound) err
 			// verify the board has the correct cards
 			if verify.Board != nil {
 				flopMessage := h.gameScript.observer.flop
-				boardCardsFromGame := poker.ByteCardsToStringArray(flopMessage.Cards)
+				boardCardsFromGame := poker.ByteCardsToStringArray(flopMessage.Board)
 				expectedCards := verify.Board
 				if !reflect.DeepEqual(boardCardsFromGame, expectedCards) {
 					e := fmt.Errorf("Flopped cards did not match with expected cards. Expected: %s actual: %s",
-						poker.CardsToString(expectedCards), poker.CardsToString(flopMessage.Cards))
+						poker.CardsToString(expectedCards), poker.CardsToString(flopMessage.Board))
 					h.addError(e)
 					return e
 				}
@@ -296,8 +317,12 @@ func (h *Hand) verifyBettingRound(t *TestDriver, verify *VerifyBettingRound) err
 	}
 
 	if verify.Pots != nil {
+
 		// get pot information from the observer
 		gamePots := h.gameScript.observer.actionChange.GetActionChange().Pots
+		if h.gameScript.observer.noMoreActions != nil {
+			gamePots = h.gameScript.observer.noMoreActions.GetNoMoreActions().Pots
+		}
 
 		if len(verify.Pots) != len(gamePots) {
 			e := fmt.Errorf("Pot count does not match. Expected: %d actual: %d", len(verify.Pots), len(gamePots))
@@ -317,14 +342,19 @@ func (h *Hand) verifyBettingRound(t *TestDriver, verify *VerifyBettingRound) err
 			if expectedPot.SeatsInPot != nil {
 				// verify the seats are in the pot
 				for _, seatNo := range expectedPot.SeatsInPot {
-					seatNoIdx := seatNo - 1
-					if actualPot.Seats[seatNoIdx] != 1 {
+					found := false
+					for _, actualSeat := range actualPot.Seats {
+						if actualSeat == seatNo {
+							found = true
+							break
+						}
+					}
+					if !found {
 						e := fmt.Errorf("Pot [%d] seat %d is not in the pot", i, seatNo)
 						h.gameScript.result.addError(e)
 					}
 				}
 			}
-
 		}
 	}
 

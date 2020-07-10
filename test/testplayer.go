@@ -23,15 +23,18 @@ type TestPlayer struct {
 	lastHandMessage *game.HandMessage
 	lastGameMessage *game.GameMessage
 	actionChange    *game.HandMessage
-
+	noMoreActions   *game.HandMessage
 	// current hand message
 	currentHand *game.HandMessage
 
 	// players cards
 	cards []uint32
 
-	// flop
-	flop *game.Flop
+	// preserve different stages of the messages
+	flop     *game.Flop
+	turn     *game.Turn
+	river    *game.River
+	showdown *game.Showdown
 
 	// preserve last received message
 
@@ -76,7 +79,10 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 			handMessage.MessageType == game.HandNextAction ||
 			handMessage.MessageType == game.HandNewHand ||
 			handMessage.MessageType == game.HandResultMessage ||
-			handMessage.MessageType == game.HandFlop {
+			handMessage.MessageType == game.HandFlop ||
+			handMessage.MessageType == game.HandTurn ||
+			handMessage.MessageType == game.HandRiver ||
+			handMessage.MessageType == game.HandNoMoreActions {
 
 			if handMessage.MessageType != game.HandNextAction {
 				testPlayerLogger.Info().
@@ -92,6 +98,10 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 			// used for pot validation
 			if handMessage.MessageType == game.HandNextAction {
 				t.actionChange = handMessage
+			}
+
+			if handMessage.MessageType == game.HandNoMoreActions {
+				t.noMoreActions = handMessage
 			}
 
 			logged = true
