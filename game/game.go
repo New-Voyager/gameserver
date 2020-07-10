@@ -68,13 +68,6 @@ func NewPokerGame(gameManager *Manager, gameID string, gameType GameType,
 	return &game
 }
 
-func (game *Game) handleHandMessage(message HandMessage) {
-	channelGameLogger.Debug().
-		Uint32("club", game.clubID).
-		Uint32("game", game.gameNum).
-		Msg(fmt.Sprintf("Hand message: %s", message.MessageType))
-}
-
 func (game *Game) playersInSeatsCount() int {
 	state, err := game.loadState()
 	if err != nil {
@@ -116,7 +109,7 @@ func (game *Game) runGame() {
 			var handMessage HandMessage
 			err := proto.Unmarshal(message, &handMessage)
 			if err == nil {
-				game.handleHandMessage(handMessage)
+				game.handleHandMessage(&handMessage)
 			}
 		case message := <-game.chGame:
 			var gameMessage GameMessage
@@ -127,12 +120,12 @@ func (game *Game) runGame() {
 		default:
 			if !game.running {
 				playersInSeats := game.playersInSeatsCount()
-				channelGameLogger.Info().
+				channelGameLogger.Trace().
 					Uint32("club", game.clubID).
 					Uint32("game", game.gameNum).
 					Msg(fmt.Sprintf("Waiting for players to join. %d players in the table, and waiting for %d more players",
 						playersInSeats, game.minPlayers-playersInSeats))
-				time.Sleep(100 * time.Millisecond)
+				time.Sleep(50 * time.Millisecond)
 			}
 		}
 	}
@@ -243,11 +236,28 @@ func (game *Game) dealNewHand() error {
 	game.saveState(gameState)
 	game.saveHandState(gameState, handState)
 
-	channelGameLogger.Info().
+	channelGameLogger.Trace().
 		Uint32("club", game.clubID).
 		Uint32("game", game.gameNum).
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Table: %s", handState.PrintTable(game.players)))
+
+	// send a new hand message to all players
+	newHand := NewHand{
+		ButtonPos:      handState.ButtonPos,
+		SbPos:          handState.SmallBlindPos,
+		BbPos:          handState.BigBlindPos,
+		NextActionSeat: handState.NextSeatAction.SeatNo,
+	}
+	handMessage := HandMessage{
+		MessageType: HandNewHand,
+		GameNum:     game.gameNum,
+		ClubId:      game.clubID,
+		HandNum:     handState.HandNum,
+		HandStatus:  handState.CurrentState,
+	}
+	handMessage.HandMessage = &HandMessage_NewHand{NewHand: &newHand}
+	game.broadcastHandMessage(&handMessage)
 
 	// send the cards to each player
 	for seatNo, playerID := range gameState.GetPlayersInSeats() {
@@ -271,50 +281,19 @@ func (game *Game) dealNewHand() error {
 		b, _ := proto.Marshal(&handMessage)
 		player.chHand <- b
 	}
-	time.Sleep(100 * time.Millisecond)
 
 	// print next action
-	channelGameLogger.Info().
+	channelGameLogger.Trace().
 		Uint32("club", game.clubID).
 		Uint32("game", game.gameNum).
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, gameState, game.players)))
 
-	// broadcast to all the players who is next to act
-	newHandMessage := HandMessage{
-		MessageType: HandNewHand,
-		GameNum:     game.gameNum,
-		ClubId:      game.clubID,
-		HandStatus:  handState.GetCurrentState(),
-	}
-
-	newHand := NewHand{
-		NextActionSeat: handState.NextSeatAction.SeatNo,
-		ButtonPos:      handState.ButtonPos,
-		SbPos:          handState.SmallBlindPos,
-		BbPos:          handState.BigBlindPos,
-	}
-
-	newHandMessage.HandMessage = &HandMessage_NewHand{NewHand: &newHand}
-	game.broadcastHandMessage(&newHandMessage)
-
-	// send this action to next player who needs to act
-	handMessage := HandMessage{
-		MessageType: HandPlayerAction,
-		GameNum:     game.gameNum,
-		ClubId:      game.clubID,
-		SeatNo:      handState.NextSeatAction.SeatNo,
-		HandStatus:  handState.GetCurrentState(),
-	}
-	handMessage.HandMessage = &HandMessage_SeatAction{SeatAction: handState.NextSeatAction}
-	playerID := gameState.GetPlayersInSeats()[handState.NextSeatAction.SeatNo-1]
-	player := game.allPlayers[playerID]
-	game.sendHandMessageToPlayer(&handMessage, player)
-
 	// we dealt hands and setup for preflop, save handstate
 	// if we crash between state: deal and preflop, we will deal the cards again
 	game.saveHandState(gameState, handState)
 
+	game.moveToNextAct(gameState, handState)
 	return nil
 }
 
@@ -352,9 +331,7 @@ func (game *Game) loadHandState(gameState *GameState) (*HandState, error) {
 }
 
 func (game *Game) broadcastHandMessage(message *HandMessage) {
-	fmt.Printf("1 In broadcast\n")
 	b, _ := proto.Marshal(message)
-	fmt.Printf("2 In broadcast\n")
 	for _, player := range game.allPlayers {
 		player.chHand <- b
 	}

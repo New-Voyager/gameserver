@@ -1,24 +1,43 @@
 package poker
 
 import (
-	"fmt"
+	crypto_rand "crypto/rand"
+	"encoding/binary"
 	"math/rand"
-	"time"
 )
 
 var fullDeck *Deck
 
 func init() {
-	fullDeck = &Deck{initializeFullCards()}
-	rand.Seed(time.Now().UnixNano())
+	fullDeck = &Deck{cards: initializeFullCards()}
 }
 
 type Deck struct {
-	cards []Card
+	cards   []Card
+	randGen *rand.Rand
 }
 
-func NewDeck() *Deck {
-	deck := &Deck{}
+func newSeed() rand.Source {
+	var b [8]byte
+	_, err := crypto_rand.Read(b[:])
+	if err != nil {
+		panic("cannot seed math/rand package with cryptographically secure random number generator")
+	}
+	source := rand.NewSource(int64(binary.LittleEndian.Uint64(b[:])))
+	return source
+}
+
+func NewDeck(source rand.Source) *Deck {
+	if source == nil {
+		var b [8]byte
+		_, err := crypto_rand.Read(b[:])
+		if err != nil {
+			panic("cannot seed math/rand package with cryptographically secure random number generator")
+		}
+		source = rand.NewSource(int64(binary.LittleEndian.Uint64(b[:])))
+	}
+	randGen := rand.New(source)
+	deck := &Deck{randGen: randGen}
 	deck.Shuffle()
 	return deck
 }
@@ -30,11 +49,15 @@ func NewDeckNoShuffle() *Deck {
 	return deck
 }
 
-func NewDeckFromBytes(cards []byte) *Deck {
+func NewDeckFromBytes(cards []byte, deckIndex int) *Deck {
 	deck := &Deck{}
-	deck.cards = make([]Card, len(fullDeck.cards))
-	for i, card := range cards {
-		deck.cards[i] = NewCardFromByte(card)
+	remainingDeckLen := len(fullDeck.cards) - deckIndex
+	deck.cards = make([]Card, remainingDeckLen)
+	j := 0
+	for i := deckIndex; i < len(fullDeck.cards); i++ {
+		card := cards[i]
+		deck.cards[j] = NewCardFromByte(card)
+		j++
 	}
 	return deck
 }
@@ -42,9 +65,12 @@ func NewDeckFromBytes(cards []byte) *Deck {
 func (deck *Deck) Shuffle() *Deck {
 	deck.cards = make([]Card, len(fullDeck.cards))
 	copy(deck.cards, fullDeck.cards)
-	rand.Shuffle(len(deck.cards), func(i, j int) {
-		deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i]
-	})
+
+	randGen := rand.New(newSeed())
+	for i := range deck.cards {
+		loc := int(randGen.Uint32() % 52)
+		deck.cards[i], deck.cards[loc] = deck.cards[loc], deck.cards[i]
+	}
 
 	return deck
 }
@@ -119,7 +145,7 @@ type CardsInAscii []string
 
 func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, river Card) *Deck {
 	// first we are going to create a deck
-	deck := NewDeck()
+	deck := NewDeck(nil)
 	noOfPlayers := len(playerCards)
 	for i, playerCards := range playerCards {
 		for j, cardStr := range playerCards {
@@ -127,14 +153,17 @@ func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, ri
 			card := NewCard(cardStr)
 			cardLoc := deck.getCardLoc(card)
 			currentCard := deck.cards[deckIndex]
-			fmt.Printf("deckIndex: %d card: %s currentCard: %s\n", deckIndex, card.String(), currentCard.String())
 			deck.cards[deckIndex] = card
 			deck.cards[cardLoc] = currentCard
 		}
 	}
-	//fmt.Printf("%s\n", deck.PrettyPrint())
+
 	// now setup flop cards
 	deckIndex := len(playerCards) * len(playerCards[0])
+
+	// burn card
+	deckIndex++
+
 	for _, cardStr := range flop {
 		card := NewCard(cardStr)
 		cardLoc := deck.getCardLoc(card)
@@ -143,9 +172,8 @@ func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, ri
 		deck.cards[cardLoc] = currentCard
 		deckIndex++
 	}
-	//fmt.Printf("%s\n", deck.PrettyPrint())
 
-	// skip the next card
+	// burn card
 	deckIndex++
 
 	// turn
@@ -153,9 +181,8 @@ func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, ri
 	currentCard := deck.cards[deckIndex]
 	deck.cards[deckIndex] = turn
 	deck.cards[cardLoc] = currentCard
-	//fmt.Printf("%s\n", deck.PrettyPrint())
 
-	// skip the next card
+	// burn card
 	deckIndex++
 
 	// river

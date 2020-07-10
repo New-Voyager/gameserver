@@ -21,9 +21,9 @@ players:
 
 # after the table is initialized
 # the players will sit in the table
-# test driver will validate the sitting on table worked correctly
-# once players are sat, the seat numbers are used game 
-
+# test driver will validate the sitting process worked correctly
+# after players sat on the table, the seat numbers will be used by the game
+# the player ids are only used for settling balances at the end in the database
 take-seat:
   button-pos: 1
   seats:
@@ -39,7 +39,11 @@ take-seat:
       seat: 8 
       player: 3
       buy-in: 100
+
+  # wait for one second delay for the game to settle
   wait: 1
+
+  # verify the table/player configuration is correct
   verify:
     table:
       players:
@@ -56,7 +60,7 @@ take-seat:
           player: 3
           stack: 100
 
-# hands use only the seat numbers for validation/actions
+# deal the following hands in the table
 hands:
   -
     num: 1
@@ -66,16 +70,21 @@ hands:
       turn: Td
       river: 4s
       seat-cards:
-        # note we are using the seat number, not player ids
+        # seat cards in the order players are sitting 
+        # seat 1 gets Kh Qd
+        # seat 5 gets 3s 7s
+        # seat 8 gets 9h 2s
         - 
           cards: ["Kh", "Qd"]
         -
           cards: ["3s", "7s"]
         -
           cards: ["9h", "2s"]
+      # here the game engine sends the cards to the players
       verify:
-        # the hand setup verification is sb, bb, next-action seat, hand current state
-        # player in the table' stack
+        # verify button, sb, bb positions
+        # verify next action seat position
+        # verify current hand state
         button: 1
         sb: 5
         bb: 8
@@ -93,8 +102,6 @@ hands:
             cards: ["9h", "2s"]
    
     # simulate pre-flop action
-    # while running actions, the test driver will verify
-    # the next action can be performed by the seat 
     preflop-action:
       actions:
         -
@@ -104,9 +111,8 @@ hands:
           seat: 5
           action: FOLD
 
-      # after all the actions are sent to the game
-      # we need to verify the conclusion of the actions
-      # conclusion can be a game result or moving to flop
+      # verify preflop-action result
+      # since both players folded, the round ended with a hand result
       verify:
         state: RESULT
 
@@ -118,13 +124,14 @@ hands:
       action-ended: PREFLOP
       
       # balance indicates the player balance after the hand
-      balance:
+      # bb player won a chip
+      stacks:
         -
           seat: 1
-          balance: 150
+          stack: 100
         -
-          player: 5
-          balance: 99
+          seat: 5
+          stack: 99
         -
-          player: 8
-          balance: 101
+          seat: 8
+          stack: 101

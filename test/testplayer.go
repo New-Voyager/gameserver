@@ -13,9 +13,11 @@ var testPlayerLogger = log.With().Str("logger_name", "test::testplayer").Logger(
 // TestPlayer is a receiver for game and hand messages
 // it also sends messages to game and hand via player object
 type TestPlayer struct {
-	playerInfo GamePlayer
-	player     *game.Player
-	seatNo     uint32
+	playerInfo   GamePlayer
+	player       *game.Player
+	seatNo       uint32
+	testObserver bool
+	observerCh   chan []byte
 
 	// we preserve the last message
 	lastHandMessage *game.HandMessage
@@ -24,8 +26,11 @@ type TestPlayer struct {
 	// current hand message
 	currentHand *game.HandMessage
 
-	// platers cards
+	// players cards
 	cards []uint32
+
+	// flop
+	flop *game.Flop
 
 	// preserve last received message
 
@@ -39,29 +44,67 @@ func NewTestPlayer(playerInfo GamePlayer) *TestPlayer {
 	}
 }
 
+func NewTestPlayerAsObserver(playerInfo GamePlayer, observerCh chan []byte) *TestPlayer {
+	return &TestPlayer{
+		playerInfo:   playerInfo,
+		testObserver: true,
+		observerCh:   observerCh,
+	}
+}
+
 func (t *TestPlayer) setPlayer(player *game.Player) {
 	t.player = player
 }
 
-func (t *TestPlayer) HandMessageFromGame(handMessage *game.HandMessage, jsonb []byte) {
-	testPlayerLogger.Info().
-		Uint32("club", t.player.ClubID).
-		Uint32("game", t.player.GameNum).
-		Uint32("playerid", t.player.PlayerID).
-		Uint32("seatNo", t.player.SeatNo).
-		Str("player", t.player.PlayerName).
-		Msg(fmt.Sprintf("HAND MESSAGE Json: %s", string(jsonb)))
+func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.HandMessage, jsonb []byte) {
 
-	if handMessage.MessageType == "NEW_HAND" {
+	if handMessage.MessageType == game.HandNewHand {
 		t.currentHand = handMessage
+		t.flop = nil
+		t.cards = nil
 	} else if handMessage.MessageType == "DEAL" {
 		t.cards = handMessage.GetDealCards().Cards
+	} else if handMessage.MessageType == "FLOP" {
+		t.flop = handMessage.GetFlop()
 	}
 	t.lastHandMessage = handMessage
+
+	logged := false
+	if t.testObserver {
+		if handMessage.MessageType == game.HandPlayerAction ||
+			handMessage.MessageType == game.HandNextAction ||
+			handMessage.MessageType == game.HandNewHand ||
+			handMessage.MessageType == game.HandResultMessage ||
+			handMessage.MessageType == game.HandFlop {
+
+			if handMessage.MessageType != game.HandNextAction {
+				testPlayerLogger.Info().
+					Uint32("club", t.player.ClubID).
+					Uint32("game", t.player.GameNum).
+					Uint32("playerid", t.player.PlayerID).
+					Uint32("seatNo", t.player.SeatNo).
+					Str("player", t.player.PlayerName).
+					Msg(fmt.Sprintf("%s", string(jsonb)))
+			}
+			logged = true
+			// signal the observer to consume this message
+			t.observerCh <- messageBytes
+		}
+	}
+
+	if !logged {
+		testPlayerLogger.Trace().
+			Uint32("club", t.player.ClubID).
+			Uint32("game", t.player.GameNum).
+			Uint32("playerid", t.player.PlayerID).
+			Uint32("seatNo", t.player.SeatNo).
+			Str("player", t.player.PlayerName).
+			Msg(fmt.Sprintf("HAND MESSAGE Json: %s", string(jsonb)))
+	}
 }
 
-func (t *TestPlayer) GameMessageFromGame(gameMessage *game.GameMessage, jsonb []byte) {
-	testPlayerLogger.Info().
+func (t *TestPlayer) GameMessageFromGame(messageBytes []byte, gameMessage *game.GameMessage, jsonb []byte) {
+	testPlayerLogger.Trace().
 		Uint32("club", t.player.ClubID).
 		Uint32("game", t.player.GameNum).
 		Uint32("playerid", t.player.PlayerID).
@@ -75,7 +118,6 @@ func (t *TestPlayer) GameMessageFromGame(gameMessage *game.GameMessage, jsonb []
 	if err != nil {
 		// preserve error
 	}
-	fmt.Printf("%s\n", string(jsonb))
 	if messageType, ok := message["messageType"]; ok {
 		var messageTypeStr string
 		jsoniter.Unmarshal(messageType, &messageTypeStr)

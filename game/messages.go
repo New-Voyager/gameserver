@@ -26,15 +26,15 @@ const (
 
 // Hand messages
 const (
-	HandDeal         string = "DEAL"
-	HandNewHand      string = "NEW_HAND"
-	HandActed        string = "ACTED"
-	HandNextAction   string = "NEXT_ACTION"
-	HandPlayerAction string = "YOUR_ACTION"
-	HandFlop         string = "FLOP"
-	HandTurn         string = "TURN"
-	HandRiver        string = "RIVER"
-	HandShowDown     string = "SHOWDOWN"
-	HandWinner       string = "WINNER"
-	HandEnded        string = "END"
+	HandDeal          string = "DEAL"
+	HandNewHand       string = "NEW_HAND"
+	HandNextAction    string = "NEXT_ACTION"
+	HandPlayerAction  string = "YOUR_ACTION"
+	HandFlop          string = "FLOP"
+	HandTurn          string = "TURN"
+	HandRiver         string = "RIVER"
+	HandShowDown      string = "SHOWDOWN"
+	HandResultMessage string = "RESULT"
+	HandEnded         string = "END"
+	HandPlayerActed   string = "PLAYER_ACTED"
 )

@@ -14,13 +14,14 @@ type TestGame struct {
 	gameNum          uint32
 	players          map[uint32]*TestPlayer
 	nextActionPlayer *TestPlayer
+	observerCh       chan []byte
 }
 
-func NewTestGame(testDriver *TestDriver, clubID uint32,
+func NewTestGame(gameScript *GameScript, clubID uint32,
 	gameType game.GameType,
 	name string,
 	autoStart bool,
-	players []GamePlayer) *TestGame {
+	players []GamePlayer) (*TestGame, *TestPlayer) {
 
 	gamePlayers := make(map[uint32]*TestPlayer)
 	gameNum := gameManager.InitializeGame(clubID, gameType, name, len(players), autoStart, false)
@@ -32,19 +33,21 @@ func NewTestGame(testDriver *TestDriver, clubID uint32,
 		gamePlayers[playerInfo.ID] = testPlayer
 	}
 
+	observerCh := make(chan []byte)
 	// add test driver as an observer/player
-	testDriverObserver := GamePlayer{ID: 0xFFFFFFFF, Name: "TestDriver"}
-	testDriver.Observer = NewTestPlayer(testDriverObserver)
-	player := game.NewPlayer(clubID, gameNum, testDriverObserver.Name, testDriverObserver.ID, testDriver.Observer)
-	testDriver.Observer.setPlayer(player)
-	gamePlayers[testDriverObserver.ID] = testDriver.Observer
+	gameScriptPlayer := GamePlayer{ID: 0xFFFFFFFF, Name: "GameScript"}
+	observer := NewTestPlayerAsObserver(gameScriptPlayer, observerCh)
+	player := game.NewPlayer(clubID, gameNum, gameScriptPlayer.Name, gameScriptPlayer.ID, observer)
+	observer.setPlayer(player)
+	gamePlayers[gameScriptPlayer.ID] = observer
 
 	// wait for the cards to be dealt
 	return &TestGame{
-		clubID:  clubID,
-		gameNum: gameNum,
-		players: gamePlayers,
-	}
+		clubID:     clubID,
+		gameNum:    gameNum,
+		players:    gamePlayers,
+		observerCh: observerCh,
+	}, observer
 }
 
 func (t *TestGame) Start(playerAtSeats []PlayerSeat) {

@@ -1,5 +1,7 @@
 package test
 
+import "voyager.com/server/game"
+
 /*
     type: HOLDEM
     max-players: 9
@@ -133,7 +135,8 @@ type HandAction struct {
 }
 
 type VerifyBettingRound struct {
-	State string `yaml:"state"`
+	State string   `yaml:"state"`
+	Board []string `yaml:"board"`
 }
 
 type BettingRound struct {
@@ -181,6 +184,7 @@ type Hand struct {
 	Num           uint32       `yaml:"num"`
 	Setup         HandSetup    `yaml:"setup"`
 	PreflopAction BettingRound `yaml:"preflop-action"`
+	FlopAction    BettingRound `yaml:"flop-action"`
 	Result        HandResult   `yaml:"result"`
 
 	gameScript *GameScript
@@ -193,9 +197,11 @@ type GameScript struct {
 	AssignSeat AssignSeat   `yaml:"take-seat"`
 	GameConfig GameConfig   `yaml:"game-config"`
 
-	testGame *TestGame
-	filename string
-	result   *ScriptTestResult
+	testGame               *TestGame
+	filename               string
+	result                 *ScriptTestResult
+	observer               *TestPlayer
+	observerLastHandMesage *game.HandMessage
 }
 
 type PlayerAtTable struct {

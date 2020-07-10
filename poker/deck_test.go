@@ -7,8 +7,8 @@ import (
 )
 
 func TestNewDeck(t *testing.T) {
-	deck1 := NewDeck()
-	deck2 := NewDeck()
+	deck1 := NewDeck(nil)
+	deck2 := NewDeck(nil)
 	assert.Len(t, deck1.cards, 52)
 	assert.Len(t, deck2.cards, 52)
 
@@ -20,7 +20,7 @@ func TestNewDeck(t *testing.T) {
 }
 
 func TestDraw(t *testing.T) {
-	deck := NewDeck()
+	deck := NewDeck(nil)
 
 	cards := deck.Draw(5)
 	assert.Len(t, cards, 5)
@@ -31,7 +31,7 @@ func TestDraw(t *testing.T) {
 }
 
 func TestEmpty(t *testing.T) {
-	deck := NewDeck()
+	deck := NewDeck(nil)
 	assert.False(t, deck.Empty())
 
 	deck.Draw(51)
