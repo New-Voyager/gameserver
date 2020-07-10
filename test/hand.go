@@ -87,33 +87,11 @@ func (h *Hand) preflopActions(t *TestDriver) error {
 
 	// verify next action is correct
 	verify := h.PreflopAction.Verify
-	if verify.State != "" {
-		if verify.State == "FLOP" {
-			// make sure the hand state is set correctly
-			if lastHandMessage.HandStatus != game.HandStatus_FLOP {
-				h.addError(fmt.Errorf("Expected hand status as FLOP Actual: %s", game.HandStatus_name[int32(lastHandMessage.HandStatus)]))
-				return fmt.Errorf("Expected hand state as FLOP")
-			}
-
-			// verify the board has the correct cards
-			if verify.Board != nil {
-				flopMessage := h.gameScript.observer.flop
-				boardCardsFromGame := poker.ByteCardsToStringArray(flopMessage.Cards)
-				expectedCards := verify.Board
-				if !reflect.DeepEqual(boardCardsFromGame, expectedCards) {
-					e := fmt.Errorf("Flopped cards did not match with expected cards. Expected: %s actual: %s",
-						poker.CardsToString(expectedCards), poker.CardsToString(flopMessage.Cards))
-					h.addError(e)
-					return e
-				}
-			}
-		} else if verify.State == "RESULT" {
-			if lastHandMessage.MessageType != "RESULT" {
-				h.addError(fmt.Errorf("Expected result after preflop actions. Actual message: %s", lastHandMessage.MessageType))
-				return fmt.Errorf("Failed at preflop verification step")
-			}
-		}
+	err := h.verifyBettingRound(t, &verify)
+	if err != nil {
+		return err
 	}
+
 	return nil
 }
 
@@ -134,7 +112,6 @@ func (h *Hand) flopActions(t *TestDriver) error {
 		player.player.HandProtoMessageFromAdapter(&message)
 
 		h.gameScript.waitForObserver()
-
 	}
 	lastHandMessage := h.getObserverLastHandMessage()
 	if lastHandMessage.MessageType != "RESULT" {
@@ -286,4 +263,70 @@ func (h *Hand) addError(e error) {
 
 func (h *Hand) getObserverLastHandMessage() *game.HandMessage {
 	return h.gameScript.observerLastHandMesage
+}
+
+func (h *Hand) verifyBettingRound(t *TestDriver, verify *VerifyBettingRound) error {
+	lastHandMessage := h.getObserverLastHandMessage()
+	if verify.State != "" {
+		if verify.State == "FLOP" {
+			// make sure the hand state is set correctly
+			if lastHandMessage.HandStatus != game.HandStatus_FLOP {
+				h.addError(fmt.Errorf("Expected hand status as FLOP Actual: %s", game.HandStatus_name[int32(lastHandMessage.HandStatus)]))
+				return fmt.Errorf("Expected hand state as FLOP")
+			}
+
+			// verify the board has the correct cards
+			if verify.Board != nil {
+				flopMessage := h.gameScript.observer.flop
+				boardCardsFromGame := poker.ByteCardsToStringArray(flopMessage.Cards)
+				expectedCards := verify.Board
+				if !reflect.DeepEqual(boardCardsFromGame, expectedCards) {
+					e := fmt.Errorf("Flopped cards did not match with expected cards. Expected: %s actual: %s",
+						poker.CardsToString(expectedCards), poker.CardsToString(flopMessage.Cards))
+					h.addError(e)
+					return e
+				}
+			}
+		} else if verify.State == "RESULT" {
+			if lastHandMessage.MessageType != "RESULT" {
+				h.addError(fmt.Errorf("Expected result after preflop actions. Actual message: %s", lastHandMessage.MessageType))
+				return fmt.Errorf("Failed at preflop verification step")
+			}
+		}
+	}
+
+	if verify.Pots != nil {
+		// get pot information from the observer
+		gamePots := h.gameScript.observer.actionChange.GetActionChange().Pots
+
+		if len(verify.Pots) != len(gamePots) {
+			e := fmt.Errorf("Pot count does not match. Expected: %d actual: %d", len(verify.Pots), len(gamePots))
+			h.gameScript.result.addError(e)
+			return e
+		}
+
+		for i, expectedPot := range verify.Pots {
+			actualPot := gamePots[i]
+			if expectedPot.Pot != actualPot.Pot {
+				e := fmt.Errorf("Pot [%d] amount does not match. Expected: %f actual: %f",
+					i, expectedPot.Pot, actualPot.Pot)
+				h.gameScript.result.addError(e)
+				return e
+			}
+
+			if expectedPot.SeatsInPot != nil {
+				// verify the seats are in the pot
+				for _, seatNo := range expectedPot.SeatsInPot {
+					seatNoIdx := seatNo - 1
+					if actualPot.Seats[seatNoIdx] != 1 {
+						e := fmt.Errorf("Pot [%d] seat %d is not in the pot", i, seatNo)
+						h.gameScript.result.addError(e)
+					}
+				}
+			}
+
+		}
+	}
+
+	return nil
 }

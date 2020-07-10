@@ -61,7 +61,8 @@ func (h *HandState) addChipsToPot(seatBets []float32, handEnded bool) {
 		}
 		if anyRemainingBets > 1 {
 			// add a new pot and calculate next pot
-			initializePot(len(seatBets))
+			newPot := initializePot(len(seatBets))
+			h.Pots = append(h.Pots, newPot)
 			h.addChipsToPot(seatBets, handEnded)
 		}
 	}

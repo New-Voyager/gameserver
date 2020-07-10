@@ -107,7 +107,17 @@ hands:
       # verify preflop-action result
       # since both players folded, the round ended with a hand result
       verify:
-        state: RESULT
+        state: FLOP
+        pots:
+          -
+            pot: 150.0
+            seats: [1, 5, 8]
+          -
+            pot: 50.0
+            seats: [5, 8]
+
+    flop-action:
+      actions:
 
     result:
       winners:

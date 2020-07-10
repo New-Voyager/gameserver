@@ -20,8 +20,11 @@ message HandDealCards {
   string cardsStr = 3; // string representation of the cards for logging
 }
 
+// Indicates to the players that has action has changed
+// the UI can refresh and highlight the seat that is to act next
 message ActionChange {
   uint32 seat_no = 1;
+  repeated SeatsInPots pots = 18;
 }
 
 message Flop {
