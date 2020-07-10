@@ -22,6 +22,7 @@ type TestPlayer struct {
 	// we preserve the last message
 	lastHandMessage *game.HandMessage
 	lastGameMessage *game.GameMessage
+	actionChange    *game.HandMessage
 
 	// current hand message
 	currentHand *game.HandMessage
@@ -86,6 +87,13 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 					Str("player", t.player.PlayerName).
 					Msg(fmt.Sprintf("%s", string(jsonb)))
 			}
+
+			// save next action information
+			// used for pot validation
+			if handMessage.MessageType == game.HandNextAction {
+				t.actionChange = handMessage
+			}
+
 			logged = true
 			// signal the observer to consume this message
 			t.observerCh <- messageBytes

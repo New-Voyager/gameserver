@@ -134,9 +134,15 @@ type HandAction struct {
 	Amount float32 `yaml:"amount"`
 }
 
+type Pot struct {
+	Pot        float32  `yaml:"pot"`
+	SeatsInPot []uint32 `yaml:"seats"`
+}
+
 type VerifyBettingRound struct {
 	State string   `yaml:"state"`
 	Board []string `yaml:"board"`
+	Pots  []Pot    `yaml:"pots"`
 }
 
 type BettingRound struct {

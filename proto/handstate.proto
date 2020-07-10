@@ -74,16 +74,18 @@ enum HandStatus {
 // will have to act again.
 // All in will be treated as acted
 enum PlayerActRound {
-  EMPTY_SEAT = 0;
-  NOT_ACTED = 1;
-  FOLDED = 2;
-  ACTED = 3;      // bet/raise/call/bb/straddle
-  ALL_IN = 4;     // all in
+  PLAYER_ACT_EMPTY_SEAT = 0;
+  PLAYER_ACT_NOT_ACTED = 1;
+  PLAYER_ACT_FOLDED = 2;
+  PLAYER_ACT_ACTED = 3;      // bet/raise/call/bb/straddle
+  PLAYER_ACT_ALL_IN = 4;     // all in
+  PLAYER_ACT_BB = 5;
+  PLAYER_ACT_STRADDLE = 6;
 }
 
 // message tracks number of players in this pot and the amount in the pot
 message SeatsInPots {
-  repeated float seat_pot_equity  = 1;
+  repeated uint32 seats  = 1;
   float pot = 2;
 }
 
@@ -154,6 +156,8 @@ message HandState {
   repeated PlayerBalance balance_after_hand = 32;
 
   repeated PlayerActRound players_acted = 33;
+  repeated uint32 all_in_players = 34;
+  HandStatus lastState = 35;
 }
 
 message HandWinner {

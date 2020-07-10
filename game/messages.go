@@ -37,4 +37,5 @@ const (
 	HandResultMessage string = "RESULT"
 	HandEnded         string = "END"
 	HandPlayerActed   string = "PLAYER_ACTED"
+	HandNoMoreActions string = "NO_MORE_ACTIONS"
 )
