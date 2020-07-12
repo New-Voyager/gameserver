@@ -18,6 +18,7 @@ const (
 	GameStatusChanged string = "STATUS_CHANGED"
 	GameCurrentState  string = "GAME_STATE"
 	GameTableState    string = "TABLE_STATE"
+	GameStart         string = "START_GAME"
 
 	// These messages are used by the test driver
 	GameSetupNextHand string = "SETUP_NEXT_HAND"

@@ -34,15 +34,15 @@ type Player struct {
 	delegate PlayerMessageDelegate
 
 	// channel used by game object to game related messages
-	chGame chan []byte
-	chHand chan []byte // protobuf HandMessage
+	chGame chan []byte // protobuf GameMessage in bytes
+	chHand chan []byte // protobuf HandMessage in bytes
 
 	// adapter channels
-	chAdapterGame chan []byte
-	chAdapterHand chan []byte
+	chAdapterGame chan []byte // adapter sending the messages to the game
+	chAdapterHand chan []byte // adapter sending hand messages to game hand
 
 	// game object
-	game *Game
+	game *Game //
 }
 
 // PlayerMesssageDelegate are set of callbacks used for communicating
@@ -300,10 +300,50 @@ func (p *Player) GameProtoMessageFromAdapter(message *GameMessage) error {
 	}
 	playerLogger.Warn().Str("dir", "P->G").Msg(string(jsonb))
 
-	data, err := proto.Marshal(message)
-	if err != nil {
-		return err
-	}
-	p.game.chGame <- data
+	// let us use game manager to handle incoming game messages
+	gameManager.handleGameMessage(message, p)
 	return nil
+}
+
+func (p *Player) startGame(clubID uint32, gameNum uint32) error {
+	var message GameMessage
+	message.ClubId = clubID
+	message.GameNum = gameNum
+	message.MessageType = GameStart
+
+	startGame := &GameStartMessage{RequestingPlayerId: p.PlayerID}
+	// only club owner/manager can start a game
+	message.GameMessage = &GameMessage_StartGame{StartGame: startGame}
+	e := p.GameProtoMessageFromAdapter(&message)
+	return e
+}
+
+func (p *Player) joinGame(clubID uint32, gameNum uint32) error {
+	var message GameMessage
+	message.ClubId = clubID
+	message.GameNum = gameNum
+	message.MessageType = GameJoin
+
+	joinGame := &GameJoinMessage{}
+	// only club owner/manager can start a game
+	message.GameMessage = &GameMessage_JoinGame{JoinGame: joinGame}
+	e := p.GameProtoMessageFromAdapter(&message)
+	if e != nil {
+		p.ClubID = clubID
+		p.GameNum = gameNum
+	}
+	return e
+}
+
+func (p *Player) sitAtTable(seatNo uint32, buyIn float32) error {
+	var message GameMessage
+	message.ClubId = p.ClubID
+	message.GameNum = p.GameNum
+	message.MessageType = PlayerTakeSeat
+
+	sitMessage := &GameSitMessage{PlayerId: p.PlayerID, SeatNo: seatNo, BuyIn: buyIn}
+	// only club owner/manager can start a game
+	message.GameMessage = &GameMessage_TakeSeat{TakeSeat: sitMessage}
+	e := p.GameProtoMessageFromAdapter(&message)
+	return e
 }

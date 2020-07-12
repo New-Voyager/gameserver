@@ -89,7 +89,6 @@ func (game *Game) runGame() {
 	ended := false
 	for !ended {
 		if !game.running {
-
 			started, err := game.startGame()
 			if err != nil {
 				channelGameLogger.Error().
