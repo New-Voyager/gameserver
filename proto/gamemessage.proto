@@ -49,6 +49,10 @@ message GameSetupNextHandMessage {
   uint32 button_pos = 2;
 }
 
+message GameStartMessage {
+  uint32 requesting_player_id = 1;
+}
+
 message GameMessage {
   string version = 1;
   uint32 club_id = 2;
@@ -64,5 +68,6 @@ message GameMessage {
     GameDealHandMessage deal_hand = 11;
     GameTableStateMessage table_state = 12;
     GameSetupNextHandMessage next_hand = 13;
+    GameStartMessage start_game = 14;
   }
 }

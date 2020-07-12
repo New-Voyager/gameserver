@@ -13,7 +13,8 @@ type TestGame struct {
 	gameNum          uint32
 	players          map[uint32]*TestPlayer
 	nextActionPlayer *TestPlayer
-	observerCh       chan []byte
+	observerCh       chan []byte // observer and game manager/club owner
+	observer         *TestPlayer
 }
 
 func NewTestGame(gameScript *GameScript, clubID uint32,
@@ -51,20 +52,19 @@ func NewTestGame(gameScript *GameScript, clubID uint32,
 
 func (t *TestGame) Start(playerAtSeats []PlayerSeat) {
 	for _, testPlayer := range t.players {
-		gameManager.JoinGame(t.clubID,
-			t.gameNum,
-			testPlayer.player)
+		testPlayer.player.joinGame(t.clubID, t.gameNum)
 	}
 
 	for _, testPlayer := range playerAtSeats {
-		gameManager.SitAtTable(t.clubID,
-			t.gameNum,
-			t.players[testPlayer.Player].player,
-			testPlayer.SeatNo,
-			testPlayer.BuyIn)
+		t.players[testPlayer.Player].player.sitAtTable(testPlayer.SeatNo, testPlayer.BuyIn)
 	}
-
 	gameManager.StartGame(t.clubID, t.gameNum)
+}
+
+func (t *TestGame) StartGame() {
+	// starts a game, but the game will start sending hands
+	// when it has enough players
+	t.observer.player.startGame(t.clubID, t.gameNum)
 }
 
 func (t *TestGame) SetupNextHand(deck []byte, buttonPos uint32) error {

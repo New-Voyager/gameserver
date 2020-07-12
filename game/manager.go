@@ -200,3 +200,20 @@ func (gm *Manager) SetupNextHand(clubID uint32, gameNum uint32, deck []byte, but
 	game.chGame <- messageData
 	return nil
 }
+
+func (gm *Manager) handleGameMessage(message *GameMessage, player *Player) error {
+	var e error
+	switch message.MessageType {
+	case GameStart:
+		e = gm.StartGame(message.ClubId, message.GameNum)
+	case GameJoin:
+		e = gm.JoinGame(message.ClubId, message.GameNum, player)
+	case PlayerTakeSeat:
+		sitMessage := message.GetTakeSeat()
+		e = gm.SitAtTable(message.ClubId, message.GameNum, player, sitMessage.GetSeatNo(), sitMessage.GetBuyIn())
+	default:
+		e = fmt.Errorf("Unsupported message type: %s", message.MessageType)
+	}
+
+	return e
+}
