@@ -1,8 +1,7 @@
-package test
+package game
 
 import (
 	"github.com/rs/zerolog/log"
-	"voyager.com/server/game"
 )
 
 var testGameLogger = log.With().Str("logger_name", "test::testgame").Logger()
@@ -18,7 +17,7 @@ type TestGame struct {
 }
 
 func NewTestGame(gameScript *GameScript, clubID uint32,
-	gameType game.GameType,
+	gameType GameType,
 	name string,
 	autoStart bool,
 	players []GamePlayer) (*TestGame, *TestPlayer) {
@@ -28,7 +27,7 @@ func NewTestGame(gameScript *GameScript, clubID uint32,
 
 	for _, playerInfo := range players {
 		testPlayer := NewTestPlayer(playerInfo)
-		player := game.NewPlayer(clubID, gameNum, playerInfo.Name, playerInfo.ID, testPlayer)
+		player := NewPlayer(clubID, gameNum, playerInfo.Name, playerInfo.ID, testPlayer)
 		testPlayer.setPlayer(player)
 		gamePlayers[playerInfo.ID] = testPlayer
 	}
@@ -37,7 +36,7 @@ func NewTestGame(gameScript *GameScript, clubID uint32,
 	// add test driver as an observer/player
 	gameScriptPlayer := GamePlayer{ID: 0xFFFFFFFF, Name: "GameScript"}
 	observer := NewTestPlayerAsObserver(gameScriptPlayer, observerCh)
-	player := game.NewPlayer(clubID, gameNum, gameScriptPlayer.Name, gameScriptPlayer.ID, observer)
+	player := NewPlayer(clubID, gameNum, gameScriptPlayer.Name, gameScriptPlayer.ID, observer)
 	observer.setPlayer(player)
 	gamePlayers[gameScriptPlayer.ID] = observer
 

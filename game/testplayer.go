@@ -1,11 +1,10 @@
-package test
+package game
 
 import (
 	"fmt"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
-	"voyager.com/server/game"
 )
 
 var testPlayerLogger = log.With().Str("logger_name", "test::testplayer").Logger()
@@ -14,32 +13,32 @@ var testPlayerLogger = log.With().Str("logger_name", "test::testplayer").Logger(
 // it also sends messages to game and hand via player object
 type TestPlayer struct {
 	playerInfo   GamePlayer
-	player       *game.Player
+	player       *Player
 	seatNo       uint32
 	testObserver bool
 	observerCh   chan []byte
 
 	// we preserve the last message
-	lastHandMessage *game.HandMessage
-	lastGameMessage *game.GameMessage
-	actionChange    *game.HandMessage
-	noMoreActions   *game.HandMessage
+	lastHandMessage *HandMessage
+	lastGameMessage *GameMessage
+	actionChange    *HandMessage
+	noMoreActions   *HandMessage
 	// current hand message
-	currentHand *game.HandMessage
+	currentHand *HandMessage
 
 	// players cards
 	cards []uint32
 
 	// preserve different stages of the messages
-	flop     *game.Flop
-	turn     *game.Turn
-	river    *game.River
-	showdown *game.Showdown
+	flop     *Flop
+	turn     *Turn
+	river    *River
+	showdown *Showdown
 
 	// preserve last received message
 
 	// preserve last received table state
-	lastTableState *game.GameTableStateMessage
+	lastTableState *GameTableStateMessage
 }
 
 func NewTestPlayer(playerInfo GamePlayer) *TestPlayer {
@@ -56,13 +55,13 @@ func NewTestPlayerAsObserver(playerInfo GamePlayer, observerCh chan []byte) *Tes
 	}
 }
 
-func (t *TestPlayer) setPlayer(player *game.Player) {
+func (t *TestPlayer) setPlayer(player *Player) {
 	t.player = player
 }
 
-func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.HandMessage, jsonb []byte) {
+func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *HandMessage, jsonb []byte) {
 
-	if handMessage.MessageType == game.HandNewHand {
+	if handMessage.MessageType == HandNewHand {
 		t.currentHand = handMessage
 		t.flop = nil
 		t.cards = nil
@@ -75,16 +74,16 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 
 	logged := false
 	if t.testObserver {
-		if handMessage.MessageType == game.HandPlayerAction ||
-			handMessage.MessageType == game.HandNextAction ||
-			handMessage.MessageType == game.HandNewHand ||
-			handMessage.MessageType == game.HandResultMessage ||
-			handMessage.MessageType == game.HandFlop ||
-			handMessage.MessageType == game.HandTurn ||
-			handMessage.MessageType == game.HandRiver ||
-			handMessage.MessageType == game.HandNoMoreActions {
+		if handMessage.MessageType == HandPlayerAction ||
+			handMessage.MessageType == HandNextAction ||
+			handMessage.MessageType == HandNewHand ||
+			handMessage.MessageType == HandResultMessage ||
+			handMessage.MessageType == HandFlop ||
+			handMessage.MessageType == HandTurn ||
+			handMessage.MessageType == HandRiver ||
+			handMessage.MessageType == HandNoMoreActions {
 
-			if handMessage.MessageType != game.HandNextAction {
+			if handMessage.MessageType != HandNextAction {
 				testPlayerLogger.Info().
 					Uint32("club", t.player.ClubID).
 					Uint32("game", t.player.GameNum).
@@ -96,11 +95,11 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 
 			// save next action information
 			// used for pot validation
-			if handMessage.MessageType == game.HandNextAction {
+			if handMessage.MessageType == HandNextAction {
 				t.actionChange = handMessage
 			}
 
-			if handMessage.MessageType == game.HandNoMoreActions {
+			if handMessage.MessageType == HandNoMoreActions {
 				t.noMoreActions = handMessage
 			}
 
@@ -121,7 +120,7 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 	}
 }
 
-func (t *TestPlayer) GameMessageFromGame(messageBytes []byte, gameMessage *game.GameMessage, jsonb []byte) {
+func (t *TestPlayer) GameMessageFromGame(messageBytes []byte, gameMessage *GameMessage, jsonb []byte) {
 	testPlayerLogger.Trace().
 		Uint32("club", t.player.ClubID).
 		Uint32("game", t.player.GameNum).

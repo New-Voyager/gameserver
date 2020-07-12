@@ -1,11 +1,10 @@
-package test
+package game
 
 import (
 	"fmt"
 	"time"
 
 	"google.golang.org/protobuf/proto"
-	"voyager.com/server/game"
 )
 
 func (g *GameScript) run(t *TestDriver) error {
@@ -21,9 +20,9 @@ func (g *GameScript) run(t *TestDriver) error {
 	return nil
 }
 
-func (g *GameScript) waitForObserver() *game.HandMessage {
-	messageBytes := <-g.testGame.observerCh
-	var handMessage game.HandMessage
+func (g *GameScript) waitForObserver() *HandMessage {
+	messageBytes := <-g.testobserverCh
+	var handMessage HandMessage
 	proto.Unmarshal(messageBytes, &handMessage)
 	g.observerLastHandMesage = &handMessage
 	return &handMessage
@@ -31,15 +30,15 @@ func (g *GameScript) waitForObserver() *game.HandMessage {
 
 // configures the table with the configuration
 func (g *GameScript) configure(t *TestDriver) error {
-	gameType := game.GameType(game.GameType_value[g.GameConfig.GameType])
+	gameType := GameType(GameType_value[g.GameConfig.GameType])
 	g.testGame, g.observer = NewTestGame(g, 1, gameType, g.GameConfig.Title, g.GameConfig.AutoStart, g.Players)
-	g.testGame.Start(g.AssignSeat.Seats)
+	g.testStart(g.AssignSeat.Seats)
 	waitTime := 100 * time.Millisecond
 	if g.AssignSeat.Wait != 0 {
 		waitTime = time.Duration(g.AssignSeat.Wait) * time.Second
 	}
 	// get current game status
-	gameManager.GetTableState(g.testGame.clubID, g.testGame.gameNum, g.observer.player.PlayerID)
+	gameManager.GetTableState(g.testclubID, g.testgameNum, g.observer.player.PlayerID)
 	time.Sleep(waitTime)
 
 	e := g.verifyTableResult(t, g.AssignSeat.Verify.Table.Players, "take-seat")
@@ -102,7 +101,7 @@ func (g *GameScript) dealHands(t *TestDriver) error {
 }
 
 func (g *GameScript) playerFromSeat(seatNo uint32) *TestPlayer {
-	for _, player := range g.testGame.players {
+	for _, player := range g.testplayers {
 		if player.seatNo == seatNo {
 			return player
 		}
