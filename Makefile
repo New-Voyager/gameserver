@@ -22,7 +22,8 @@ fmt:
 .PHONY: test
 test: build
 	go test voyager.com/server/poker
-
+	go test voyager.com/server/game
+	
 script-test:
 	go run main.go --game-script test/game-scripts
 

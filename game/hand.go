@@ -96,8 +96,8 @@ func (h *Hand) performBettingRound(t *TestDriver, bettingRound *BettingRound) er
 
 			// send handmessage
 			message := HandMessage{
-				ClubId:      h.gameScript.testclubID,
-				GameNum:     h.gameScript.testgameNum,
+				ClubId:      h.gameScript.testGame.clubID,
+				GameNum:     h.gameScript.testGame.gameNum,
 				HandNum:     h.Num,
 				MessageType: HandPlayerActed,
 			}
@@ -152,7 +152,7 @@ func (h *Hand) riverActions(t *TestDriver) error {
 
 func (h *Hand) dealHand(t *TestDriver) error {
 	// deal new hand
-	h.gameScript.testDealNextHand()
+	h.gameScript.testGame.DealNextHand()
 
 	// wait for confirmation from the observer
 	// new hand
@@ -220,7 +220,7 @@ func (h *Hand) setup(t *TestDriver) error {
 	deck := poker.DeckFromScript(playerCards, h.Setup.Flop, poker.NewCard(h.Setup.Turn), poker.NewCard(h.Setup.River))
 
 	// setup hand
-	h.gameScript.testSetupNextHand(deck.GetBytes(), h.Setup.ButtonPos)
+	h.gameScript.testGame.SetupNextHand(deck.GetBytes(), h.Setup.ButtonPos)
 	return nil
 }
 
