@@ -71,6 +71,9 @@ func NewPlayer(clubID uint32, gameNum uint32, name string, playerID uint32, dele
 }
 
 func (p *Player) handleHandMessage(messageBytes []byte, message HandMessage) {
+	jsonb, _ := protojson.Marshal(&message)
+	playerLogger.Warn().Str("dir", "GH->P").Msg(string(jsonb))
+
 	if message.MessageType == HandDeal {
 		p.onCardsDealt(messageBytes, message)
 	} else if message.MessageType == HandNextAction {
@@ -213,6 +216,7 @@ func (p *Player) handleGameMessage(messageBytes []byte, message GameMessage) err
 	if err != nil {
 		return err
 	}
+	playerLogger.Warn().Str("dir", "G->P").Msg(string(jsonb))
 
 	if p.delegate != nil {
 		if message.MessageType == PlayerSat {
@@ -275,6 +279,12 @@ func (p *Player) GameMessageFromAdapter(json []byte) error {
 }
 
 func (p *Player) HandProtoMessageFromAdapter(message *HandMessage) error {
+	jsonb, err := protojson.Marshal(message)
+	if err != nil {
+		return err
+	}
+	playerLogger.Warn().Str("dir", "P->H").Msg(string(jsonb))
+
 	data, err := proto.Marshal(message)
 	if err != nil {
 		return err
@@ -284,6 +294,12 @@ func (p *Player) HandProtoMessageFromAdapter(message *HandMessage) error {
 }
 
 func (p *Player) GameProtoMessageFromAdapter(message *GameMessage) error {
+	jsonb, err := protojson.Marshal(message)
+	if err != nil {
+		return err
+	}
+	playerLogger.Warn().Str("dir", "P->G").Msg(string(jsonb))
+
 	data, err := proto.Marshal(message)
 	if err != nil {
 		return err

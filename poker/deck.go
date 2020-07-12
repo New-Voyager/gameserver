@@ -190,7 +190,6 @@ func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, ri
 	currentCard = deck.cards[deckIndex]
 	deck.cards[deckIndex] = river
 	deck.cards[cardLoc] = currentCard
-	//fmt.Printf("%s\n", deck.PrettyPrint())
 
 	return deck
 }

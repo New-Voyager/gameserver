@@ -76,7 +76,6 @@ func six(cards ...Card) (int32, []Card) {
 		if score < minimum {
 			minimum = score
 			copy(bestCards, evaluatedCards)
-			//fmt.Printf("%d %s\n", minimum, PrintCards(bestCards))
 		}
 	}
 	return minimum, bestCards

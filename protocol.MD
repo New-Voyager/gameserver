@@ -80,3 +80,17 @@ Chat texts:
 Fold its personal
 You think I am scared
 You are bluffing
+
+
+Centrifugo server
+Centrifugo server supports real-time messaging with many different client libraries.
+It supports pub/sub architecture to publish and subscribe for messages. This will 
+simplifies the game communication, and let us concentrate on the game and game 
+features.
+
+For each game, we will generate the following channels:
+players to game: p2g<gameid>  players publish, game subscribes, 
+      buyin, sitting
+game to players: g2p<gameid> players subscribe, game publishes 
+      buyin approval, sitting approval
+game chat: chat<gameid> players subscribe

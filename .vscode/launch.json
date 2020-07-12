@@ -14,7 +14,7 @@
       "args": ["--game-script", 
               "test/game-scripts", 
               "--testname", 
-              "two-pots.yaml"]
+              "simple-hand"]
     }
   ]
 }

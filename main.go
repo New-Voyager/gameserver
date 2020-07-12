@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	zerolog.SetGlobalLevel(zerolog.WarnLevel)
 
 	var runGameScript = flag.String("game-script", "test/game-scripts", "runs tests with game script files")
 	var testName = flag.String("testname", "", "runs a specific test")
