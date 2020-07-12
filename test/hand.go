@@ -222,7 +222,6 @@ func (h *Hand) setup(t *TestDriver) error {
 	deck := poker.DeckFromScript(playerCards, h.Setup.Flop, poker.NewCard(h.Setup.Turn), poker.NewCard(h.Setup.River))
 
 	// setup hand
-	fmt.Printf(deck.PrettyPrint())
 	h.gameScript.testGame.SetupNextHand(deck.GetBytes(), h.Setup.ButtonPos)
 	return nil
 }

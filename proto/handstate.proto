@@ -115,7 +115,6 @@ message HandState {
   HandStatus current_state = 8;
 
   // updated as players fold
-  //map <uint32, float> active_seats = 9;
   repeated uint32 active_seats = 9;
   uint32 no_active_seats = 10;
 

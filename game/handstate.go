@@ -282,7 +282,8 @@ func (h *HandState) actionReceived(gameState *GameState, action *HandAction) err
 			handLogger.Error().
 				Uint32("game", gameState.GetGameNum()).
 				Uint32("hand", gameState.GetHandNum()).
-				Msg(fmt.Sprintf("Invalid seat %d made action. Ignored. The next valid action seat is: %d", action.SeatNo, h.NextSeatAction.SeatNo))
+				Msg(fmt.Sprintf("Invalid seat %d made action. Ignored. The next valid action seat is: %d",
+					action.SeatNo, h.NextSeatAction.SeatNo))
 		}
 	}
 
@@ -485,8 +486,6 @@ func (h *HandState) settleRound() {
 			playerID := h.PlayersInSeats[maxBetPos]
 			h.PlayersState[playerID].Balance = maxBet - secondMaxBet
 		}
-
-		fmt.Printf("Max bet seat: %d, secondMaxBet: %f", maxBetPos, secondMaxBet)
 	}
 
 	h.addChipsToPot(currentBettingRound.SeatBet, handEnded)
@@ -614,14 +613,8 @@ func (h *HandState) everyOneFoldedWinners() {
 			break
 		}
 	}
-
-	// take rake from here
-
 	potWinners := make(map[uint32]*PotWinners)
 	for i, pot := range h.Pots {
-		//playerID := h.GetPlayersInSeats()[seatNo-1]
-		//h.PlayersState[playerID].Balance += pot.Pot
-		// only one pot
 		handWinner := &HandWinner{
 			SeatNo: uint32(seatNo),
 			Amount: pot.Pot,
@@ -636,6 +629,8 @@ func (h *HandState) everyOneFoldedWinners() {
 func (h *HandState) setWinners(potWinners map[uint32]*PotWinners) {
 	h.PotWinners = potWinners
 	h.CurrentState = HandStatus_RESULT
+
+	// take rake from here
 
 	// update player balance
 	for _, pot := range potWinners {
