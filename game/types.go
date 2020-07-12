@@ -1,6 +1,4 @@
-package test
-
-import "voyager.com/server/game"
+package game
 
 /*
     type: HOLDEM
@@ -97,15 +95,15 @@ type AssignSeat struct {
 */
 
 type HandSetupVerfication struct {
-	Button        uint32      `yaml:"button"`
-	SB            uint32      `yaml:"sb"`
-	BB            uint32      `yaml:"bb"`
-	NextActionPos uint32      `yaml:"next-action-pos"`
-	State         string      `yaml:"state"`
-	DealtCards    []SeatCards `yaml:"dealt-cards"`
+	Button        uint32          `yaml:"button"`
+	SB            uint32          `yaml:"sb"`
+	BB            uint32          `yaml:"bb"`
+	NextActionPos uint32          `yaml:"next-action-pos"`
+	State         string          `yaml:"state"`
+	DealtCards    []TestSeatCards `yaml:"dealt-cards"`
 }
 
-type SeatCards struct {
+type TestSeatCards struct {
 	Cards  []string `yaml:"cards"`
 	SeatNo uint32   `yaml:"seat-no"`
 }
@@ -115,7 +113,7 @@ type HandSetup struct {
 	Flop      []string             `yaml:"flop"`
 	Turn      string               `yaml:"turn"`
 	River     string               `yaml:"river"`
-	SeatCards []SeatCards          `yaml:"seat-cards"`
+	SeatCards []TestSeatCards      `yaml:"seat-cards"`
 	Verify    HandSetupVerfication `yaml:"verify"`
 }
 
@@ -128,7 +126,7 @@ type HandSetup struct {
 		seat: 5
 		action: FOLD
 */
-type HandAction struct {
+type TestHandAction struct {
 	SeatNo uint32  `yaml:"seat"`
 	Action string  `yaml:"action"`
 	Amount float32 `yaml:"amount"`
@@ -147,7 +145,7 @@ type VerifyBettingRound struct {
 }
 
 type BettingRound struct {
-	Actions []HandAction       `yaml:"actions"`
+	Actions []TestHandAction   `yaml:"actions"`
 	Verify  VerifyBettingRound `yaml:"verify"`
 }
 
@@ -171,7 +169,7 @@ type BettingRound struct {
          player: 8
          stack: 101
 */
-type HandWinner struct {
+type TestHandWinner struct {
 	Seat    uint32  `yaml:"seat"`
 	Receive float32 `yaml:"receive"`
 }
@@ -181,20 +179,20 @@ type PlayerStack struct {
 	Stack float32 `yaml:"stack"`
 }
 
-type HandResult struct {
-	Winners       []HandWinner  `yaml:"winners"`
-	ActionEndedAt string        `yaml:"action-ended"`
-	Stacks        []PlayerStack `yaml:"stacks"`
+type TestHandResult struct {
+	Winners       []TestHandWinner `yaml:"winners"`
+	ActionEndedAt string           `yaml:"action-ended"`
+	Stacks        []PlayerStack    `yaml:"stacks"`
 }
 
 type Hand struct {
-	Num           uint32       `yaml:"num"`
-	Setup         HandSetup    `yaml:"setup"`
-	PreflopAction BettingRound `yaml:"preflop-action"`
-	FlopAction    BettingRound `yaml:"flop-action"`
-	TurnAction    BettingRound `yaml:"turn-action"`
-	RiverAction   BettingRound `yaml:"river-action"`
-	Result        HandResult   `yaml:"result"`
+	Num           uint32         `yaml:"num"`
+	Setup         HandSetup      `yaml:"setup"`
+	PreflopAction BettingRound   `yaml:"preflop-action"`
+	FlopAction    BettingRound   `yaml:"flop-action"`
+	TurnAction    BettingRound   `yaml:"turn-action"`
+	RiverAction   BettingRound   `yaml:"river-action"`
+	Result        TestHandResult `yaml:"result"`
 
 	gameScript    *GameScript
 	noMoreActions bool // set when HandNoMoreAction message is received
@@ -211,7 +209,7 @@ type GameScript struct {
 	filename               string
 	result                 *ScriptTestResult
 	observer               *TestPlayer
-	observerLastHandMesage *game.HandMessage
+	observerLastHandMesage *HandMessage
 }
 
 type PlayerAtTable struct {

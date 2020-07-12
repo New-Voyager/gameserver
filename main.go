@@ -6,8 +6,8 @@ import (
 	"math/rand"
 
 	"github.com/rs/zerolog"
+	"voyager.com/server/game"
 	"voyager.com/server/poker"
-	"voyager.com/server/test"
 )
 
 func main() {
@@ -17,7 +17,7 @@ func main() {
 	var testName = flag.String("testname", "", "runs a specific test")
 	flag.Parse()
 	if *runGameScript != "" {
-		test.RunGameScriptTests(*runGameScript, *testName)
+		game.RunGameScriptTests(*runGameScript, *testName)
 	}
 	//TestOmaha()
 }

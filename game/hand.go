@@ -1,10 +1,8 @@
-package test
+package game
 
 import (
 	"fmt"
 	"reflect"
-
-	"voyager.com/server/game"
 
 	"voyager.com/server/poker"
 )
@@ -97,15 +95,15 @@ func (h *Hand) performBettingRound(t *TestDriver, bettingRound *BettingRound) er
 			player := h.gameScript.playerFromSeat(action.SeatNo)
 
 			// send handmessage
-			message := game.HandMessage{
+			message := HandMessage{
 				ClubId:      h.gameScript.testGame.clubID,
 				GameNum:     h.gameScript.testGame.gameNum,
 				HandNum:     h.Num,
-				MessageType: game.HandPlayerActed,
+				MessageType: HandPlayerActed,
 			}
-			actionType := game.ACTION(game.ACTION_value[action.Action])
-			handAction := game.HandAction{SeatNo: action.SeatNo, Action: actionType, Amount: action.Amount}
-			message.HandMessage = &game.HandMessage_PlayerActed{PlayerActed: &handAction}
+			actionType := ACTION(ACTION_value[action.Action])
+			handAction := HandAction{SeatNo: action.SeatNo, Action: actionType, Amount: action.Amount}
+			message.HandMessage = &HandMessage_PlayerActed{PlayerActed: &handAction}
 			player.player.HandProtoMessageFromAdapter(&message)
 
 			h.gameScript.waitForObserver()
@@ -114,7 +112,7 @@ func (h *Hand) performBettingRound(t *TestDriver, bettingRound *BettingRound) er
 
 	lastHandMessage := h.getObserverLastHandMessage()
 	// if last hand message was no more downs, there will be no more actions from the players
-	if lastHandMessage.MessageType == game.HandNoMoreActions {
+	if lastHandMessage.MessageType == HandNoMoreActions {
 		h.noMoreActions = true
 		// wait for betting round message (flop, turn, river, showdown)
 		h.gameScript.waitForObserver()
@@ -226,7 +224,7 @@ func (h *Hand) setup(t *TestDriver) error {
 	return nil
 }
 
-func (h *Hand) verifyHandResult(t *TestDriver, handResult *game.HandResult) error {
+func (h *Hand) verifyHandResult(t *TestDriver, handResult *HandResult) error {
 	passed := true
 	for i, expectedWinner := range h.Result.Winners {
 		potWinner := handResult.PotWinners[uint32(i)]
@@ -249,7 +247,7 @@ func (h *Hand) verifyHandResult(t *TestDriver, handResult *game.HandResult) erro
 	}
 
 	if h.Result.ActionEndedAt != "" {
-		actualActionEndedAt := game.HandStatus_name[int32(handResult.WonAt)]
+		actualActionEndedAt := HandStatus_name[int32(handResult.WonAt)]
 		if h.Result.ActionEndedAt != actualActionEndedAt {
 			h.addError(fmt.Errorf("Action won at is not matching. Expected %s, actual: %s",
 				h.Result.ActionEndedAt, actualActionEndedAt))
@@ -281,7 +279,7 @@ func (h *Hand) addError(e error) {
 	h.gameScript.result.addError(e)
 }
 
-func (h *Hand) getObserverLastHandMessage() *game.HandMessage {
+func (h *Hand) getObserverLastHandMessage() *HandMessage {
 	return h.gameScript.observerLastHandMesage
 }
 
@@ -290,8 +288,8 @@ func (h *Hand) verifyBettingRound(t *TestDriver, verify *VerifyBettingRound) err
 	if verify.State != "" {
 		if verify.State == "FLOP" {
 			// make sure the hand state is set correctly
-			if lastHandMessage.HandStatus != game.HandStatus_FLOP {
-				h.addError(fmt.Errorf("Expected hand status as FLOP Actual: %s", game.HandStatus_name[int32(lastHandMessage.HandStatus)]))
+			if lastHandMessage.HandStatus != HandStatus_FLOP {
+				h.addError(fmt.Errorf("Expected hand status as FLOP Actual: %s", HandStatus_name[int32(lastHandMessage.HandStatus)]))
 				return fmt.Errorf("Expected hand state as FLOP")
 			}
 

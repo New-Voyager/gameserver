@@ -1,4 +1,4 @@
-package test
+package game
 
 import (
 	"fmt"
@@ -8,12 +8,11 @@ import (
 
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
-	"voyager.com/server/game"
 )
 
 var testDriverLogger = log.With().Str("logger_name", "test::testdriver").Logger()
 
-var gameManager = game.NewGameManager()
+var gameManager = NewGameManager()
 
 type ScriptTestResult struct {
 	Filename string

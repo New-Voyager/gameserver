@@ -1,11 +1,10 @@
-package test
+package game
 
 import (
 	"fmt"
 	"time"
 
 	"google.golang.org/protobuf/proto"
-	"voyager.com/server/game"
 )
 
 func (g *GameScript) run(t *TestDriver) error {
@@ -21,9 +20,9 @@ func (g *GameScript) run(t *TestDriver) error {
 	return nil
 }
 
-func (g *GameScript) waitForObserver() *game.HandMessage {
+func (g *GameScript) waitForObserver() *HandMessage {
 	messageBytes := <-g.testGame.observerCh
-	var handMessage game.HandMessage
+	var handMessage HandMessage
 	proto.Unmarshal(messageBytes, &handMessage)
 	g.observerLastHandMesage = &handMessage
 	return &handMessage
@@ -31,7 +30,7 @@ func (g *GameScript) waitForObserver() *game.HandMessage {
 
 // configures the table with the configuration
 func (g *GameScript) configure(t *TestDriver) error {
-	gameType := game.GameType(game.GameType_value[g.GameConfig.GameType])
+	gameType := GameType(GameType_value[g.GameConfig.GameType])
 	g.testGame, g.observer = NewTestGame(g, 1, gameType, g.GameConfig.Title, g.GameConfig.AutoStart, g.Players)
 	g.testGame.Start(g.AssignSeat.Seats)
 	waitTime := 100 * time.Millisecond
