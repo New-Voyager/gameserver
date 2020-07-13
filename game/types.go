@@ -173,6 +173,7 @@ type BettingRound struct {
 type TestHandWinner struct {
 	Seat    uint32  `yaml:"seat"`
 	Receive float32 `yaml:"receive"`
+	RankStr string  `yaml:"rank"`
 }
 
 type PlayerStack struct {

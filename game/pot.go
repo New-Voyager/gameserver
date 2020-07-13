@@ -98,6 +98,14 @@ type evaluatedCards struct {
 	cards []byte
 }
 
+func (e evaluatedCards) getCards() []uint32 {
+	cards := make([]uint32, len(e.cards))
+	for i := range e.cards {
+		cards[i] = uint32(e.cards[i])
+	}
+	return cards
+}
+
 type HoldemWinnerEvaluate struct {
 	handState           *HandState
 	gameState           *GameState
@@ -156,7 +164,10 @@ func (h *HoldemWinnerEvaluate) determineHandWinners(pot *SeatsInPots) []*HandWin
 		}
 
 		if h.activeSeatBestCombo[seatNo].rank == lowestRank {
-			handWinners[i] = &HandWinner{SeatNo: seatNo, Amount: splitChips}
+			evaluatedCards := h.activeSeatBestCombo[seatNo]
+			rankStr := poker.RankString(evaluatedCards.rank)
+			s := poker.CardsToString(evaluatedCards.cards)
+			handWinners[i] = &HandWinner{SeatNo: seatNo, Amount: splitChips, WinningCards: evaluatedCards.getCards(), WinningCardsStr: s, RankStr: rankStr}
 			i++
 		}
 	}
