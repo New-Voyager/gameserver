@@ -163,6 +163,9 @@ message HandWinner {
   uint32 seat_no = 1;
   bool lo_card = 2;
   float amount = 3;
+  repeated uint32 winning_cards = 4;
+  string winning_cards_str = 5;
+  string rank_str = 6;
 }
 
 message PotWinners {

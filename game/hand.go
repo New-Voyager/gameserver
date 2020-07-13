@@ -3,6 +3,8 @@ package game
 import (
 	"fmt"
 	"reflect"
+	"strconv"
+	"strings"
 
 	"voyager.com/server/poker"
 )
@@ -91,6 +93,34 @@ func (h *Hand) run(t *TestDriver) error {
 
 func (h *Hand) performBettingRound(t *TestDriver, bettingRound *BettingRound) error {
 	if !h.noMoreActions {
+		if bettingRound.SeatActions != nil {
+			bettingRound.Actions = make([]TestHandAction, len(bettingRound.SeatActions))
+			for i, actionStr := range bettingRound.SeatActions {
+				// split the string
+				s := strings.Split(strings.Trim(actionStr, " "), ",")
+				if len(s) == 3 {
+					seatNo, _ := strconv.Atoi(strings.Trim(s[0], " "))
+					action := strings.Trim(s[1], " ")
+					amount, _ := strconv.ParseFloat(strings.Trim(s[2], " "), 32)
+					bettingRound.Actions[i] = TestHandAction{
+						SeatNo: uint32(seatNo),
+						Action: action,
+						Amount: float32(amount),
+					}
+				} else if len(s) == 2 {
+					seatNo, _ := strconv.Atoi(strings.Trim(s[0], " "))
+					action := strings.Trim(s[1], " ")
+					bettingRound.Actions[i] = TestHandAction{
+						SeatNo: uint32(seatNo),
+						Action: action,
+					}
+				} else {
+					e := fmt.Errorf("Invalid action found: %s", bettingRound.SeatActions)
+					return e
+				}
+			}
+		}
+
 		for _, action := range bettingRound.Actions {
 			player := h.gameScript.playerFromSeat(action.SeatNo)
 
@@ -301,6 +331,25 @@ func (h *Hand) verifyBettingRound(t *TestDriver, verify *VerifyBettingRound) err
 				if !reflect.DeepEqual(boardCardsFromGame, expectedCards) {
 					e := fmt.Errorf("Flopped cards did not match with expected cards. Expected: %s actual: %s",
 						poker.CardsToString(expectedCards), poker.CardsToString(flopMessage.Board))
+					h.addError(e)
+					return e
+				}
+			}
+		} else if verify.State == "TURN" {
+			// make sure the hand state is set correctly
+			if lastHandMessage.HandStatus != HandStatus_TURN {
+				h.addError(fmt.Errorf("Expected hand status as TURN Actual: %s", HandStatus_name[int32(lastHandMessage.HandStatus)]))
+				return fmt.Errorf("Expected hand state as TURN")
+			}
+
+			// verify the board has the correct cards
+			if verify.Board != nil {
+				turnMessage := h.gameScript.observer.turn
+				boardCardsFromGame := poker.ByteCardsToStringArray(turnMessage.Board)
+				expectedCards := verify.Board
+				if !reflect.DeepEqual(boardCardsFromGame, expectedCards) {
+					e := fmt.Errorf("Flopped cards did not match with expected cards. Expected: %s actual: %s",
+						poker.CardsToString(expectedCards), poker.CardsToString(turnMessage.Board))
 					h.addError(e)
 					return e
 				}

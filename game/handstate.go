@@ -122,7 +122,7 @@ func (h *HandState) setupPreflob(gameState *GameState) {
 
 func (h *HandState) resetPlayerActions() {
 	for seatNo, playerID := range h.GetPlayersInSeats() {
-		if playerID == 0 {
+		if playerID == 0 || h.ActiveSeats[seatNo] == 0 {
 			h.PlayersActed[seatNo] = PlayerActRound_PLAYER_ACT_EMPTY_SEAT
 			continue
 		}

@@ -145,8 +145,9 @@ type VerifyBettingRound struct {
 }
 
 type BettingRound struct {
-	Actions []TestHandAction   `yaml:"actions"`
-	Verify  VerifyBettingRound `yaml:"verify"`
+	Actions     []TestHandAction   `yaml:"actions"`
+	SeatActions []string           `yaml:"seat-actions"`
+	Verify      VerifyBettingRound `yaml:"verify"`
 }
 
 /*
@@ -172,6 +173,7 @@ type BettingRound struct {
 type TestHandWinner struct {
 	Seat    uint32  `yaml:"seat"`
 	Receive float32 `yaml:"receive"`
+	RankStr string  `yaml:"rank"`
 }
 
 type PlayerStack struct {

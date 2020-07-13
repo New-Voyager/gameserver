@@ -69,6 +69,10 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *HandM
 		t.cards = handMessage.GetDealCards().Cards
 	} else if handMessage.MessageType == "FLOP" {
 		t.flop = handMessage.GetFlop()
+	} else if handMessage.MessageType == "TURN" {
+		t.turn = handMessage.GetTurn()
+	} else if handMessage.MessageType == "RIVER" {
+		t.river = handMessage.GetRiver()
 	}
 	t.lastHandMessage = handMessage
 

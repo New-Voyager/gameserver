@@ -35,6 +35,11 @@ func (h *HandState) lowestBet(seatBets []float32) float32 {
 			// empty seat
 			continue
 		}
+
+		// also eliminate the player who is not active any longer
+		if h.ActiveSeats[seatNo] == 0 {
+			continue
+		}
 		if lowestBet == 0 {
 			lowestBet = bet
 		} else if bet < lowestBet {
@@ -55,8 +60,14 @@ func (h *HandState) addChipsToPot(seatBets []float32, handEnded bool) {
 			continue
 		}
 		seatNo := seatNoIdx + 1
-		currentPot.add(uint32(seatNo), lowestBet)
-		seatBets[seatNoIdx] = bet - lowestBet
+		if bet < lowestBet {
+			// the player folded
+			currentPot.add(uint32(seatNo), bet)
+			seatBets[seatNoIdx] = 0
+		} else {
+			currentPot.add(uint32(seatNo), lowestBet)
+			seatBets[seatNoIdx] = bet - lowestBet
+		}
 	}
 
 	if handEnded {
@@ -85,6 +96,14 @@ func (h *HandState) addChipsToPot(seatBets []float32, handEnded bool) {
 type evaluatedCards struct {
 	rank  int32
 	cards []byte
+}
+
+func (e evaluatedCards) getCards() []uint32 {
+	cards := make([]uint32, len(e.cards))
+	for i := range e.cards {
+		cards[i] = uint32(e.cards[i])
+	}
+	return cards
 }
 
 type HoldemWinnerEvaluate struct {
@@ -145,7 +164,10 @@ func (h *HoldemWinnerEvaluate) determineHandWinners(pot *SeatsInPots) []*HandWin
 		}
 
 		if h.activeSeatBestCombo[seatNo].rank == lowestRank {
-			handWinners[i] = &HandWinner{SeatNo: seatNo, Amount: splitChips}
+			evaluatedCards := h.activeSeatBestCombo[seatNo]
+			rankStr := poker.RankString(evaluatedCards.rank)
+			s := poker.CardsToString(evaluatedCards.cards)
+			handWinners[i] = &HandWinner{SeatNo: seatNo, Amount: splitChips, WinningCards: evaluatedCards.getCards(), WinningCardsStr: s, RankStr: rankStr}
 			i++
 		}
 	}

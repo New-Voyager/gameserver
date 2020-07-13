@@ -12,9 +12,9 @@
       "program": "${workspaceFolder}/main.go",
       "env": {},
       "args": ["--game-script", 
-              "test/game-scripts", 
+              "game/game-scripts", 
               "--testname", 
-              "simple-hand"]
+              "showdown.yaml"]
     }
   ]
 }
