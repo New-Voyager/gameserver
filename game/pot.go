@@ -35,6 +35,11 @@ func (h *HandState) lowestBet(seatBets []float32) float32 {
 			// empty seat
 			continue
 		}
+
+		// also eliminate the player who is not active any longer
+		if h.ActiveSeats[seatNo] == 0 {
+			continue
+		}
 		if lowestBet == 0 {
 			lowestBet = bet
 		} else if bet < lowestBet {
@@ -55,8 +60,14 @@ func (h *HandState) addChipsToPot(seatBets []float32, handEnded bool) {
 			continue
 		}
 		seatNo := seatNoIdx + 1
-		currentPot.add(uint32(seatNo), lowestBet)
-		seatBets[seatNoIdx] = bet - lowestBet
+		if bet < lowestBet {
+			// the player folded
+			currentPot.add(uint32(seatNo), bet)
+			seatBets[seatNoIdx] = 0
+		} else {
+			currentPot.add(uint32(seatNo), lowestBet)
+			seatBets[seatNoIdx] = bet - lowestBet
+		}
 	}
 
 	if handEnded {

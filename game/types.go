@@ -145,8 +145,9 @@ type VerifyBettingRound struct {
 }
 
 type BettingRound struct {
-	Actions []TestHandAction   `yaml:"actions"`
-	Verify  VerifyBettingRound `yaml:"verify"`
+	Actions     []TestHandAction   `yaml:"actions"`
+	SeatActions []string           `yaml:"seat-actions"`
+	Verify      VerifyBettingRound `yaml:"verify"`
 }
 
 /*

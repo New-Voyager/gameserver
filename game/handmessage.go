@@ -103,7 +103,7 @@ func (game *Game) gotoTurn(gameState *GameState, handState *HandState) {
 		Uint32("game", game.gameNum).
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
-	// we need to send flop cards to the board
+	// send turn card to the board
 	deck := poker.NewDeckFromBytes(handState.Deck, int(handState.DeckIndex))
 	deck.Draw(1)
 	handState.DeckIndex++
@@ -133,12 +133,12 @@ func (game *Game) gotoRiver(gameState *GameState, handState *HandState) {
 		Uint32("game", game.gameNum).
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
-	// we need to send flop cards to the board
+	// send river card to the board
 	deck := poker.NewDeckFromBytes(handState.Deck, int(handState.DeckIndex))
 	deck.Draw(1)
 	handState.DeckIndex++
 	river := uint32(deck.Draw(1)[0].GetByte())
-	handState.setupTurn(gameState, river)
+	handState.setupRiver(gameState, river)
 	game.saveHandState(gameState, handState)
 
 	cardsStr := poker.CardsToString(handState.BoardCards)
@@ -186,9 +186,15 @@ func (game *Game) moveToNextRound(gameState *GameState, handState *HandState) {
 	if handState.LastState == HandStatus_DEAL {
 		return
 	}
-	// if only one player is active, let us end the hand
+
 	if handState.LastState == HandStatus_PREFLOP && handState.CurrentState == HandStatus_FLOP {
 		game.gotoFlop(gameState, handState)
+	} else if handState.LastState == HandStatus_FLOP && handState.CurrentState == HandStatus_TURN {
+		game.gotoTurn(gameState, handState)
+	} else if handState.LastState == HandStatus_TURN && handState.CurrentState == HandStatus_RIVER {
+		game.gotoRiver(gameState, handState)
+	} else if handState.LastState == HandStatus_RIVER && handState.CurrentState == HandStatus_SHOW_DOWN {
+		game.gotoShowdown(gameState, handState)
 	}
 }
 
