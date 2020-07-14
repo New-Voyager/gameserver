@@ -22,3 +22,14 @@ protoc-gen-go: program not found or is not executable
 --go_out: protoc-gen-go: Plugin failed with status code 1.
 
 export PATH=$PATH:$HOME/go/bin
+
+
+# Run nats server
+We will use NATS messaging server as a broker between game server
+and player clients. To run nats server in the dev environment, 
+use the following steps.
+
+cd docker/nats
+make build
+make run
+
