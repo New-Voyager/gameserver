@@ -12,6 +12,6 @@ COPY ./nats.conf /app/
 RUN update-ca-certificates
 
 EXPOSE 4222
-EXPOSE 6222
+EXPOSE 9222
 
 ENTRYPOINT ["/app/nats-server", "-DV", "-c", "/app/nats.conf"]
