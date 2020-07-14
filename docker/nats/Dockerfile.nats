@@ -1,0 +1,17 @@
+FROM alpine:latest
+RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/* \
+  mkdir /usr/local/share/ca-certificates/extra
+
+COPY ./certs/ca.crt  /usr/local/share/ca-certificates/extra
+WORKDIR /app
+RUN mkdir /app/certs
+COPY ./certs/ /app/certs
+COPY ./nats-server /app/
+COPY ./nats.conf /app/
+
+RUN update-ca-certificates
+
+EXPOSE 4222
+EXPOSE 6222
+
+ENTRYPOINT ["/app/nats-server", "-DV", "-c", "/app/nats.conf"]
