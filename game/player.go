@@ -300,8 +300,8 @@ func (p *Player) GameProtoMessageFromAdapter(message *GameMessage) error {
 	}
 	playerLogger.Warn().Str("dir", "P->G").Msg(string(jsonb))
 
-	// let us use game manager to handle incoming game messages
-	gameManager.handleGameMessage(message, p)
+	// send incoming message to the game
+	p.sendGameMessage(message)
 	return nil
 }
 
@@ -324,6 +324,18 @@ func (p *Player) joinGame(clubID uint32, gameNum uint32) error {
 	message.GameNum = gameNum
 	message.MessageType = GameJoin
 
+	gameID := fmt.Sprintf("%d:%d", clubID, gameNum)
+	if _, ok := gameManager.activeGames[gameID]; !ok {
+		// game not found
+		return fmt.Errorf("Game %d is not found", gameNum)
+	}
+	game, _ := gameManager.activeGames[gameID]
+	game.addPlayer(p)
+	p.game = game
+
+	// start listenting for game/hand events
+	go p.playGame()
+
 	joinGame := &GameJoinMessage{}
 	// only club owner/manager can start a game
 	message.GameMessage = &GameMessage_JoinGame{JoinGame: joinGame}
@@ -345,5 +357,65 @@ func (p *Player) sitAtTable(seatNo uint32, buyIn float32) error {
 	// only club owner/manager can start a game
 	message.GameMessage = &GameMessage_TakeSeat{TakeSeat: sitMessage}
 	e := p.GameProtoMessageFromAdapter(&message)
+	return e
+}
+
+// SetupNextHand method can be called only from the test driver
+// and this is available only in test mode.
+// We will never allow hands to be set by any scripts in real games
+func (p *Player) setupNextHand(deck []byte, buttonPos uint32) error {
+	var gameMessage GameMessage
+
+	nextHand := &GameSetupNextHandMessage{
+		Deck:      deck,
+		ButtonPos: buttonPos,
+	}
+
+	gameMessage.ClubId = p.ClubID
+	gameMessage.GameNum = p.GameNum
+	gameMessage.MessageType = GameSetupNextHand
+	gameMessage.GameMessage = &GameMessage_NextHand{NextHand: nextHand}
+	e := p.GameProtoMessageFromAdapter(&gameMessage)
+	return e
+}
+
+func (p *Player) getTableState() error {
+	queryTableState := &GameQueryTableStateMessage{PlayerId: p.PlayerID}
+	var gameMessage GameMessage
+	gameMessage.ClubId = p.ClubID
+	gameMessage.GameNum = p.GameNum
+	gameMessage.PlayerId = p.PlayerID
+	gameMessage.MessageType = GameQueryTableState
+	gameMessage.GameMessage = &GameMessage_QueryTableState{QueryTableState: queryTableState}
+	e := p.GameProtoMessageFromAdapter(&gameMessage)
+	return e
+}
+
+func (p *Player) sendGameMessage(message *GameMessage) error {
+	messageData, err := proto.Marshal(message)
+	if err != nil {
+		return err
+	}
+	gameID := fmt.Sprintf("%d:%d", p.ClubID, p.GameNum)
+	if _, ok := gameManager.activeGames[gameID]; !ok {
+		// game not found
+		return fmt.Errorf("Game %d is not found", p.GameNum)
+	}
+	game, _ := gameManager.activeGames[gameID]
+	game.chGame <- messageData
+	return nil
+}
+
+func (p *Player) dealHand() error {
+
+	var gameMessage GameMessage
+
+	dealHandMessage := &GameDealHandMessage{}
+
+	gameMessage.ClubId = p.ClubID
+	gameMessage.GameNum = p.GameNum
+	gameMessage.MessageType = GameDealHand
+	gameMessage.GameMessage = &GameMessage_DealHand{DealHand: dealHandMessage}
+	e := p.GameProtoMessageFromAdapter(&gameMessage)
 	return e
 }

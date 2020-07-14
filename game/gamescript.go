@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"time"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -33,13 +32,10 @@ func (g *GameScript) configure(t *TestDriver) error {
 	gameType := GameType(GameType_value[g.GameConfig.GameType])
 	g.testGame, g.observer = NewTestGame(g, 1, gameType, g.GameConfig.Title, g.GameConfig.AutoStart, g.Players)
 	g.testGame.Start(g.AssignSeat.Seats)
-	waitTime := 100 * time.Millisecond
-	if g.AssignSeat.Wait != 0 {
-		waitTime = time.Duration(g.AssignSeat.Wait) * time.Second
-	}
 	// get current game status
-	gameManager.GetTableState(g.testGame.clubID, g.testGame.gameNum, g.observer.player.PlayerID)
-	time.Sleep(waitTime)
+	//gameManager.GetTableState(g.testGame.clubID, g.testGame.gameNum, g.observer.player.PlayerID)
+	g.observer.getTableState()
+	g.waitForObserver()
 
 	e := g.verifyTableResult(t, g.AssignSeat.Verify.Table.Players, "take-seat")
 	if e != nil {

@@ -11,14 +11,15 @@ const (
 
 // Game messages
 const (
-	GameJoin          string = "JOIN"
-	GameCurrentStatus string = "GAME_STATUS"
-	PlayerTakeSeat    string = "TAKE_SEAT"
-	PlayerSat         string = "PLAYER_SAT"
-	GameStatusChanged string = "STATUS_CHANGED"
-	GameCurrentState  string = "GAME_STATE"
-	GameTableState    string = "TABLE_STATE"
-	GameStart         string = "START_GAME"
+	GameJoin            string = "JOIN"
+	GameCurrentStatus   string = "GAME_STATUS"
+	PlayerTakeSeat      string = "TAKE_SEAT"
+	PlayerSat           string = "PLAYER_SAT"
+	GameStatusChanged   string = "STATUS_CHANGED"
+	GameCurrentState    string = "GAME_STATE"
+	GameQueryTableState string = "QUERY_TABLE_STATE"
+	GameStart           string = "START_GAME"
+	GameTableState      string = "TABLE_STATE"
 
 	// These messages are used by the test driver
 	GameSetupNextHand string = "SETUP_NEXT_HAND"

@@ -144,8 +144,9 @@ func (t *TestPlayer) GameMessageFromGame(messageBytes []byte, gameMessage *GameM
 		jsoniter.Unmarshal(messageType, &messageTypeStr)
 		// determine message type
 
-		if messageTypeStr == "TABLE_STATE" {
+		if messageTypeStr == GameTableState {
 			t.lastTableState = gameMessage.GetTableState()
+			t.observerCh <- messageBytes
 		} else if messageTypeStr == "PLAYER_SAT" {
 			if gameMessage.GetPlayerSat().PlayerId == t.player.PlayerID {
 				t.seatNo = gameMessage.GetPlayerSat().SeatNo
