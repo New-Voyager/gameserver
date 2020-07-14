@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 
+	"google.golang.org/protobuf/proto"
 	"voyager.com/server/poker"
 )
 
@@ -27,6 +28,9 @@ func (game *Game) handleGameMessage(message *GameMessage) {
 
 	case GameDealHand:
 		game.onDealHand(message)
+
+	case GameQueryTableState:
+		game.onQueryTableState(message)
 	}
 }
 
@@ -111,6 +115,14 @@ func (g *Game) onStatusChanged(message *GameMessage) error {
 
 func (game *Game) onNextHandSetup(message *GameMessage) error {
 	setupNextHand := message.GetNextHand()
+
+	gameState, err := game.loadState()
+	if err != nil {
+		return err
+	}
+	gameState.ButtonPos = setupNextHand.ButtonPos
+	game.saveState(gameState)
+
 	game.testButtonPos = int32(setupNextHand.ButtonPos)
 	game.testDeckToUse = poker.DeckFromBytes(setupNextHand.Deck)
 	return nil
@@ -119,4 +131,24 @@ func (game *Game) onNextHandSetup(message *GameMessage) error {
 func (game *Game) onDealHand(message *GameMessage) error {
 	err := game.dealNewHand()
 	return err
+}
+
+// GetTableState returns the table returned to a specific player requested the state
+func (game *Game) onQueryTableState(message *GameMessage) error {
+	// get active players on the table
+	playersAtTable, err := game.getPlayersAtTable()
+	if err != nil {
+		return err
+	}
+
+	gameTableState := &GameTableStateMessage{PlayersState: playersAtTable}
+	var gameMessage GameMessage
+	gameMessage.ClubId = game.clubID
+	gameMessage.GameNum = game.gameNum
+	gameMessage.MessageType = GameTableState
+	gameMessage.GameMessage = &GameMessage_TableState{TableState: gameTableState}
+	messageData, _ := proto.Marshal(&gameMessage)
+
+	game.allPlayers[message.PlayerId].chGame <- messageData
+	return nil
 }

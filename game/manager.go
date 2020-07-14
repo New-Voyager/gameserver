@@ -2,8 +2,6 @@ package game
 
 import (
 	"fmt"
-
-	"github.com/golang/protobuf/proto"
 )
 
 type Manager struct {
@@ -47,6 +45,7 @@ func (gm *Manager) gameEnded(game *Game) {
 	delete(gm.activeGames, game.gameID)
 }
 
+/*
 func (gm *Manager) SitAtTable(clubID uint32, gameNum uint32, player *Player, seatNo uint32, buyIn float32) error {
 	gameID := fmt.Sprintf("%d:%d", clubID, gameNum)
 	if _, ok := gm.activeGames[gameID]; !ok {
@@ -85,6 +84,7 @@ func (gm *Manager) SitAtTable(clubID uint32, gameNum uint32, player *Player, sea
 	game.chGame <- messageData
 	return nil
 }
+
 
 func (gm *Manager) StartGame(clubID uint32, gameNum uint32) error {
 	gameID := fmt.Sprintf("%d:%d", clubID, gm.gameCount)
@@ -161,6 +161,8 @@ func (gm *Manager) GetTableState(clubID uint32, gameNum uint32, playerID uint32)
 	if err != nil {
 		return err
 	}
+
+
 	gameTableState := &GameTableStateMessage{PlayersState: playersAtTable}
 	var gameMessage GameMessage
 	gameMessage.ClubId = clubID
@@ -217,3 +219,4 @@ func (gm *Manager) handleGameMessage(message *GameMessage, player *Player) error
 
 	return e
 }
+*/

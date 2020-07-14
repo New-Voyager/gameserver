@@ -53,6 +53,10 @@ message GameStartMessage {
   uint32 requesting_player_id = 1;
 }
 
+message GameQueryTableStateMessage {
+  uint32 player_id = 1;     // the player asked for this
+}
+
 message GameMessage {
   string version = 1;
   uint32 club_id = 2;
@@ -69,5 +73,6 @@ message GameMessage {
     GameTableStateMessage table_state = 12;
     GameSetupNextHandMessage next_hand = 13;
     GameStartMessage start_game = 14;
+    GameQueryTableStateMessage query_table_state = 15;
   }
 }

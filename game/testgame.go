@@ -47,6 +47,7 @@ func NewTestGame(gameScript *GameScript, clubID uint32,
 		gameNum:    gameNum,
 		players:    gamePlayers,
 		observerCh: observerCh,
+		observer:   observer,
 	}, observer
 }
 
@@ -58,25 +59,27 @@ func (t *TestGame) Start(playerAtSeats []PlayerSeat) {
 	for _, testPlayer := range playerAtSeats {
 		t.players[testPlayer.Player].player.sitAtTable(testPlayer.SeatNo, testPlayer.BuyIn)
 	}
-	gameManager.StartGame(t.clubID, t.gameNum)
+	t.observer.startGame(t.clubID, t.gameNum)
 }
 
-func (t *TestGame) StartGame() {
-	// starts a game, but the game will start sending hands
-	// when it has enough players
-	t.observer.player.startGame(t.clubID, t.gameNum)
+func (t *TestGame) Observer() *TestPlayer {
+	return t.observer
 }
 
-func (t *TestGame) SetupNextHand(deck []byte, buttonPos uint32) error {
-	err := gameManager.SetupNextHand(t.clubID, t.gameNum, deck, buttonPos)
-	if err != nil {
-		return err
-	}
-	return nil
+func (o *TestPlayer) startGame(clubID uint32, gameNum uint32) error {
+	return o.player.startGame(clubID, gameNum)
 }
 
-func (t *TestGame) DealNextHand() error {
-	err := gameManager.DealHand(t.clubID, t.gameNum)
+func (o *TestPlayer) setupNextHand(deck []byte, buttonPos uint32) error {
+	return o.player.setupNextHand(deck, buttonPos)
+}
+
+func (o *TestPlayer) getTableState() error {
+	return o.player.getTableState()
+}
+
+func (o *TestPlayer) dealNextHand() error {
+	err := o.player.dealHand()
 	if err != nil {
 		return err
 	}
