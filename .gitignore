@@ -8,3 +8,4 @@ protoc-3.7.1-linux-x86_64.zip
 .VSCodeCounter/results.csv
 .VSCodeCounter/results.md
 .VSCodeCounter/results.txt
+nats-server
