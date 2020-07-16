@@ -8,9 +8,9 @@ import (
 	"voyager.com/server/bot"
 
 	"github.com/rs/zerolog"
-	"voyager.com/server/game"
 	"voyager.com/server/nats"
 	"voyager.com/server/poker"
+	"voyager.com/server/test"
 )
 
 func main() {
@@ -58,7 +58,7 @@ func testScripts() {
 	var testName = flag.String("testname", "", "runs a specific test")
 	flag.Parse()
 	if *runGameScript != "" {
-		game.RunGameScriptTests(*runGameScript, *testName)
+		test.RunGameScriptTests(*runGameScript, *testName)
 	}
 }
 

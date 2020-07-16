@@ -1,10 +1,11 @@
-package game
+package test
 
 import (
 	"fmt"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
+	"voyager.com/server/game"
 )
 
 var testPlayerLogger = log.With().Str("logger_name", "test::testplayer").Logger()
@@ -13,32 +14,32 @@ var testPlayerLogger = log.With().Str("logger_name", "test::testplayer").Logger(
 // it also sends messages to game and hand via player object
 type TestPlayer struct {
 	playerInfo   GamePlayer
-	player       *Player
+	player       *game.Player
 	seatNo       uint32
 	testObserver bool
 	observerCh   chan []byte
 
 	// we preserve the last message
-	lastHandMessage *HandMessage
-	lastGameMessage *GameMessage
-	actionChange    *HandMessage
-	noMoreActions   *HandMessage
+	lastHandMessage *game.HandMessage
+	lastGameMessage *game.GameMessage
+	actionChange    *game.HandMessage
+	noMoreActions   *game.HandMessage
 	// current hand message
-	currentHand *HandMessage
+	currentHand *game.HandMessage
 
 	// players cards
 	cards []uint32
 
 	// preserve different stages of the messages
-	flop     *Flop
-	turn     *Turn
-	river    *River
-	showdown *Showdown
+	flop     *game.Flop
+	turn     *game.Turn
+	river    *game.River
+	showdown *game.Showdown
 
 	// preserve last received message
 
 	// preserve last received table state
-	lastTableState *GameTableStateMessage
+	lastTableState *game.GameTableStateMessage
 }
 
 func NewTestPlayer(playerInfo GamePlayer) *TestPlayer {
@@ -55,13 +56,13 @@ func NewTestPlayerAsObserver(playerInfo GamePlayer, observerCh chan []byte) *Tes
 	}
 }
 
-func (t *TestPlayer) setPlayer(player *Player) {
+func (t *TestPlayer) setPlayer(player *game.Player) {
 	t.player = player
 }
 
-func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *HandMessage, jsonb []byte) {
+func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.HandMessage, jsonb []byte) {
 
-	if handMessage.MessageType == HandNewHand {
+	if handMessage.MessageType == game.HandNewHand {
 		t.currentHand = handMessage
 		t.flop = nil
 		t.cards = nil
@@ -78,16 +79,16 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *HandM
 
 	logged := false
 	if t.testObserver {
-		if handMessage.MessageType == HandPlayerAction ||
-			handMessage.MessageType == HandNextAction ||
-			handMessage.MessageType == HandNewHand ||
-			handMessage.MessageType == HandResultMessage ||
-			handMessage.MessageType == HandFlop ||
-			handMessage.MessageType == HandTurn ||
-			handMessage.MessageType == HandRiver ||
-			handMessage.MessageType == HandNoMoreActions {
+		if handMessage.MessageType == game.HandPlayerAction ||
+			handMessage.MessageType == game.HandNextAction ||
+			handMessage.MessageType == game.HandNewHand ||
+			handMessage.MessageType == game.HandResultMessage ||
+			handMessage.MessageType == game.HandFlop ||
+			handMessage.MessageType == game.HandTurn ||
+			handMessage.MessageType == game.HandRiver ||
+			handMessage.MessageType == game.HandNoMoreActions {
 
-			if handMessage.MessageType != HandNextAction {
+			if handMessage.MessageType != game.HandNextAction {
 				testPlayerLogger.Info().
 					Uint32("club", t.player.ClubID).
 					Uint32("game", t.player.GameNum).
@@ -99,11 +100,11 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *HandM
 
 			// save next action information
 			// used for pot validation
-			if handMessage.MessageType == HandNextAction {
+			if handMessage.MessageType == game.HandNextAction {
 				t.actionChange = handMessage
 			}
 
-			if handMessage.MessageType == HandNoMoreActions {
+			if handMessage.MessageType == game.HandNoMoreActions {
 				t.noMoreActions = handMessage
 			}
 
@@ -124,7 +125,7 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *HandM
 	}
 }
 
-func (t *TestPlayer) GameMessageFromGame(messageBytes []byte, gameMessage *GameMessage, jsonb []byte) {
+func (t *TestPlayer) GameMessageFromGame(messageBytes []byte, gameMessage *game.GameMessage, jsonb []byte) {
 	testPlayerLogger.Trace().
 		Uint32("club", t.player.ClubID).
 		Uint32("game", t.player.GameNum).
@@ -144,7 +145,7 @@ func (t *TestPlayer) GameMessageFromGame(messageBytes []byte, gameMessage *GameM
 		jsoniter.Unmarshal(messageType, &messageTypeStr)
 		// determine message type
 
-		if messageTypeStr == GameTableState {
+		if messageTypeStr == game.GameTableState {
 			t.lastTableState = gameMessage.GetTableState()
 			t.observerCh <- messageBytes
 		} else if messageTypeStr == "PLAYER_SAT" {

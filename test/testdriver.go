@@ -1,4 +1,4 @@
-package game
+package test
 
 import (
 	"fmt"
@@ -11,8 +11,6 @@ import (
 )
 
 var testDriverLogger = log.With().Str("logger_name", "test::testdriver").Logger()
-
-var gameManager = NewGameManager()
 
 type ScriptTestResult struct {
 	Filename string

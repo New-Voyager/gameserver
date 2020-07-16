@@ -18,3 +18,5 @@ require (
 replace voyager.com/server/internal => ../internal
 
 replace voyager.com/server/poker => ../poker
+
+replace voyager.com/server/test => ../test

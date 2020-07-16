@@ -9,7 +9,7 @@ import (
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
-	"voyager.com/server/game"
+	"voyager.com/server/test"
 )
 
 var driverBotLogger = log.With().Str("logger_name", "server::driverbot").Logger()
@@ -57,7 +57,7 @@ func (b *DriverBot) RunGameScript(filename string) error {
 		return err
 	}
 
-	var gameScript game.GameScript
+	var gameScript test.GameScript
 	err = yaml.Unmarshal(data, &gameScript)
 	if err != nil {
 		// failed to load game script file
@@ -73,7 +73,7 @@ func (b *DriverBot) RunGameScript(filename string) error {
 	return nil
 }
 
-func (b *DriverBot) run(gameScript *game.GameScript) error {
+func (b *DriverBot) run(gameScript *test.GameScript) error {
 	// initialize game by sending the message to game server
 	data, _ := jsoniter.Marshal(gameScript.GameConfig)
 

@@ -1,9 +1,10 @@
-package game
+package test
 
 import (
 	"fmt"
 
 	"google.golang.org/protobuf/proto"
+	"voyager.com/server/game"
 )
 
 type TestGameScript struct {
@@ -12,7 +13,7 @@ type TestGameScript struct {
 	filename               string
 	result                 *ScriptTestResult
 	observer               *TestPlayer
-	observerLastHandMesage *HandMessage
+	observerLastHandMesage *game.HandMessage
 }
 
 func (g *TestGameScript) run(t *TestDriver) error {
@@ -28,9 +29,9 @@ func (g *TestGameScript) run(t *TestDriver) error {
 	return nil
 }
 
-func (g *TestGameScript) waitForObserver() *HandMessage {
+func (g *TestGameScript) waitForObserver() *game.HandMessage {
 	messageBytes := <-g.testGame.observerCh
-	var handMessage HandMessage
+	var handMessage game.HandMessage
 	proto.Unmarshal(messageBytes, &handMessage)
 	g.observerLastHandMesage = &handMessage
 	return &handMessage
@@ -38,7 +39,7 @@ func (g *TestGameScript) waitForObserver() *HandMessage {
 
 // configures the table with the configuration
 func (g *TestGameScript) configure(t *TestDriver) error {
-	gameType := GameType(GameType_value[g.gameScript.GameConfig.GameType])
+	gameType := game.GameType(game.GameType_value[g.gameScript.GameConfig.GameType])
 	g.testGame, g.observer = NewTestGame(g, 1, gameType, g.gameScript.GameConfig.Title, g.gameScript.GameConfig.AutoStart, g.gameScript.Players)
 	g.testGame.Start(g.gameScript.AssignSeat.Seats)
 	// get current game status

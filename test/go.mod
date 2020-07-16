@@ -1,4 +1,4 @@
-module voyager.com/test
+module voyager.com/server/test
 
 go 1.14
 

@@ -1,6 +1,8 @@
-package game
+package test
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestTwoPots(t *testing.T) {
 	testDriver := NewTestDriver()
