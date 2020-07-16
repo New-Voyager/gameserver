@@ -21,6 +21,7 @@ require (
 	voyager.com/server/nats v0.0.0-00010101000000-000000000000
 	voyager.com/server/poker v0.0.0
 	voyager.com/server/test v0.0.0
+	voyager.com/server/bot v0.0.0
 )
 
 replace voyager.com/server/internal => ./internal
@@ -33,3 +34,4 @@ replace voyager.com/server/test => ./test
 
 replace voyager.com/server/nats => ./nats
 
+replace voyager.com/server/bot => ./bot
