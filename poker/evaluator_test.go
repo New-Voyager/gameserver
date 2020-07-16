@@ -4,9 +4,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/loganjspears/joker/hand"
-
-	_ "github.com/loganjspears/joker/hand"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -131,104 +128,5 @@ func TestSeven(t *testing.T) {
 		assert.NoError(t, err)
 		evalScore, _ := Evaluate(cards)
 		assert.Equal(t, score, evalScore)
-	}
-}
-
-func BenchmarkFivePoker(b *testing.B) {
-	var allCards [][]Card
-
-	for score := range data1 {
-		var cards []Card
-
-		json.Unmarshal([]byte(data1[score]), &cards)
-		allCards = append(allCards, cards)
-	}
-
-	for i := 0; i < b.N; i++ {
-		for _, cards := range allCards {
-			Evaluate(cards)
-		}
-	}
-}
-
-func BenchmarkFiveJoker(b *testing.B) {
-	var allCards [][]hand.Card
-
-	for _, s := range dataJoker1 {
-		var cards []hand.Card
-		json.Unmarshal([]byte(s), &cards)
-		allCards = append(allCards, cards)
-	}
-
-	for i := 0; i < b.N; i++ {
-		for _, cards := range allCards {
-			hand.New(cards)
-		}
-	}
-}
-
-func BenchmarkSixPoker(b *testing.B) {
-	var allCards [][]Card
-
-	for score := range data2 {
-		var cards []Card
-
-		json.Unmarshal([]byte(data2[score]), &cards)
-		allCards = append(allCards, cards)
-	}
-
-	for i := 0; i < b.N; i++ {
-		for _, cards := range allCards {
-			Evaluate(cards)
-		}
-	}
-}
-
-func BenchmarkSixJoker(b *testing.B) {
-	var allCards [][]hand.Card
-
-	for _, s := range dataJoker2 {
-		var cards []hand.Card
-		json.Unmarshal([]byte(s), &cards)
-		allCards = append(allCards, cards)
-	}
-
-	for i := 0; i < b.N; i++ {
-		for _, cards := range allCards {
-			hand.New(cards)
-		}
-	}
-}
-
-func BenchmarkSevenPoker(b *testing.B) {
-	var allCards [][]Card
-
-	for score := range data3 {
-		var cards []Card
-
-		json.Unmarshal([]byte(data3[score]), &cards)
-		allCards = append(allCards, cards)
-	}
-
-	for i := 0; i < b.N; i++ {
-		for _, cards := range allCards {
-			Evaluate(cards)
-		}
-	}
-}
-
-func BenchmarkSevenJoker(b *testing.B) {
-	var allCards [][]hand.Card
-
-	for _, s := range dataJoker3 {
-		var cards []hand.Card
-		json.Unmarshal([]byte(s), &cards)
-		allCards = append(allCards, cards)
-	}
-
-	for i := 0; i < b.N; i++ {
-		for _, cards := range allCards {
-			hand.New(cards)
-		}
 	}
 }
