@@ -1,0 +1,38 @@
+game server changes
+1. NATS game adapter to publish game hands to players
+2. NATS player/game adapater to listen for messages from players
+
+// player bot program
+bot program has a driver bot and player bots. The driver bot is responsible
+for starting the game, and listens in a channel for the messages received by
+the players. Each player has its own channel to listen driver bot commands.
+The bot driver tells the next player act based on the game script.
+
+The player bot forwards the request to NATS channel and waits for
+
+1. takes a gamescript as input file
+2. sets up the game by sending message to gamemanager.<serverid>
+
+
+NATS subjects
+
+game.config: Any changes happen to game to posted in this channel
+    API server will post information in this subject
+
+game.<id>.chat: All chat messages to a config goes here
+game.<id>.game: Messages send from players to game  
+      (pause game, end game, kick player, 
+      reload chips, taking a seat, 
+      add to waiting list, remove from waiting list,
+      take a break from the game,
+      came back from the break,
+      leave the game)
+game.<id>.player.<id>: Message send from game to players 
+      (game paused, game ended, player sat, player took a seat,
+      player took a break, player left the game, open seat)
+
+game.<id>.hand: messages from player to hand
+      (Next Action, Result, PlayerActed)
+
+game.<id>.player.<id>.hand: messages from hand to player
+      (Your action, DealCards)

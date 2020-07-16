@@ -195,9 +195,6 @@ type Hand struct {
 	TurnAction    BettingRound   `yaml:"turn-action"`
 	RiverAction   BettingRound   `yaml:"river-action"`
 	Result        TestHandResult `yaml:"result"`
-
-	gameScript    *GameScript
-	noMoreActions bool // set when HandNoMoreAction message is received
 }
 
 type GameScript struct {
@@ -206,12 +203,6 @@ type GameScript struct {
 	Players    []GamePlayer `yaml:"players"`
 	AssignSeat AssignSeat   `yaml:"take-seat"`
 	GameConfig GameConfig   `yaml:"game-config"`
-
-	testGame               *TestGame
-	filename               string
-	result                 *ScriptTestResult
-	observer               *TestPlayer
-	observerLastHandMesage *HandMessage
 }
 
 type PlayerAtTable struct {

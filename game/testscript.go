@@ -7,7 +7,16 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func (g *GameScript) run(t *TestDriver) error {
+type TestGameScript struct {
+	gameScript             *GameScript
+	testGame               *TestGame
+	filename               string
+	result                 *ScriptTestResult
+	observer               *TestPlayer
+	observerLastHandMesage *HandMessage
+}
+
+func (g *TestGameScript) run(t *TestDriver) error {
 	err := g.configure(t)
 	if err != nil {
 		return err
@@ -20,7 +29,7 @@ func (g *GameScript) run(t *TestDriver) error {
 	return nil
 }
 
-func (g *GameScript) waitForObserver() *HandMessage {
+func (g *TestGameScript) waitForObserver() *HandMessage {
 	messageBytes := <-g.testGame.observerCh
 	var handMessage HandMessage
 	proto.Unmarshal(messageBytes, &handMessage)
@@ -29,26 +38,26 @@ func (g *GameScript) waitForObserver() *HandMessage {
 }
 
 // configures the table with the configuration
-func (g *GameScript) configure(t *TestDriver) error {
-	gameType := GameType(GameType_value[g.GameConfig.GameType])
-	g.testGame, g.observer = NewTestGame(g, 1, gameType, g.GameConfig.Title, g.GameConfig.AutoStart, g.Players)
-	g.testGame.Start(g.AssignSeat.Seats)
+func (g *TestGameScript) configure(t *TestDriver) error {
+	gameType := GameType(GameType_value[g.gameScript.GameConfig.GameType])
+	g.testGame, g.observer = NewTestGame(g, 1, gameType, g.gameScript.GameConfig.Title, g.gameScript.GameConfig.AutoStart, g.gameScript.Players)
+	g.testGame.Start(g.gameScript.AssignSeat.Seats)
 	waitTime := 100 * time.Millisecond
-	if g.AssignSeat.Wait != 0 {
-		waitTime = time.Duration(g.AssignSeat.Wait) * time.Second
+	if g.gameScript.AssignSeat.Wait != 0 {
+		waitTime = time.Duration(g.gameScript.AssignSeat.Wait) * time.Second
 	}
 	// get current game status
 	gameManager.GetTableState(g.testGame.clubID, g.testGame.gameNum, g.observer.player.PlayerID)
 	time.Sleep(waitTime)
 
-	e := g.verifyTableResult(t, g.AssignSeat.Verify.Table.Players, "take-seat")
+	e := g.verifyTableResult(t, g.gameScript.AssignSeat.Verify.Table.Players, "take-seat")
 	if e != nil {
 		return e
 	}
 	return nil
 }
 
-func (g *GameScript) verifyTableResult(t *TestDriver, expectedPlayers []PlayerAtTable, where string) error {
+func (g *TestGameScript) verifyTableResult(t *TestDriver, expectedPlayers []PlayerAtTable, where string) error {
 	if expectedPlayers == nil {
 		return nil
 	}
@@ -88,10 +97,10 @@ func (g *GameScript) verifyTableResult(t *TestDriver, expectedPlayers []PlayerAt
 	return nil
 }
 
-func (g *GameScript) dealHands(t *TestDriver) error {
-	for _, hand := range g.Hands {
-		hand.gameScript = g
-		err := hand.run(t)
+func (g *TestGameScript) dealHands(t *TestDriver) error {
+	for _, hand := range g.gameScript.Hands {
+		testHand := NewTestHand(&hand, g)
+		err := testHand.run(t)
 		if err != nil {
 			return err
 		}
@@ -100,7 +109,7 @@ func (g *GameScript) dealHands(t *TestDriver) error {
 	return nil
 }
 
-func (g *GameScript) playerFromSeat(seatNo uint32) *TestPlayer {
+func (g *TestGameScript) playerFromSeat(seatNo uint32) *TestPlayer {
 	for _, player := range g.testGame.players {
 		if player.seatNo == seatNo {
 			return player
