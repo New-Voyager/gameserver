@@ -23,9 +23,10 @@ fmt:
 test: build
 	go test voyager.com/server/poker
 	go test voyager.com/server/game
-	
+
+.PHONY: script-test
 script-test:
-	go run main.go --game-script test/game-scripts
+	go run main.go --script-tests
 
 .PHONY: install-protoc
 install-protoc:
@@ -33,3 +34,14 @@ install-protoc:
 	sudo unzip -o ${PROTOC_ZIP} -d /usr/local bin/protoc
 	sudo unzip -o ${PROTOC_ZIP} -d /usr/local 'include/*'
 	rm -f ${PROTOC_ZIP}
+
+
+.PHONY: run-nats
+run-nats:
+	cd docker/nats && make build
+	cd docker/nats && make run
+
+.PHONY: run-nats
+run-nats-no-build:
+	cd docker/nats && make run
+	

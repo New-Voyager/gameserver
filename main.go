@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/rand"
 
+	"voyager.com/server/bot"
+
 	"github.com/rs/zerolog"
 	"voyager.com/server/game"
 	"voyager.com/server/nats"
@@ -13,19 +15,41 @@ import (
 
 func main() {
 	zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	var runServer = flag.Bool("server", true, "runs game server")
+	var runBotDriver = flag.Bool("bot", false, "runs bot")
+	var runGameScriptTests = flag.Bool("script-tests", false, "runs script tests")
+	flag.Parse()
 
-	//runWithNats()
-	testScripts()
-	// TestOmaha()
+	if *runGameScriptTests {
+		testScripts()
+		return
+	}
+
+	if *runBotDriver {
+		runBot()
+	} else if *runServer {
+		runWithNats()
+	}
 }
 
 func runWithNats() {
 	listener, err := nats.NewNatsTestDriverListener(nats.NatsURL)
 	if err != nil {
-		fmt.Sprintf("Error when subscribing to NATS")
+		fmt.Printf("Error when subscribing to NATS")
 		return
 	}
 	_ = listener
+	select {}
+}
+
+func runBot() {
+	botDriver, err := bot.NewDriverBot(nats.NatsURL)
+	if err != nil {
+		fmt.Printf("Error when subscribing to NATS")
+		return
+	}
+	botDriver.RunGameScript("test/game-scripts/simple-hand.yaml")
+	_ = botDriver
 	select {}
 }
 
