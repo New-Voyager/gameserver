@@ -15,8 +15,19 @@ import (
 var driverBotLogger = log.With().Str("logger_name", "server::driverbot").Logger()
 
 const NatsURL = "nats://localhost:4222"
-const testDriverToGame = "testdriver.2game"
-const gameToTestDriver = "game.2testdriver"
+const testDriverToGame = "driverbot.2game"
+const gameToTestDriver = "game.2driverpot"
+
+// bot driver messages to game
+const (
+	BotDriverInitializeGame = "BotInitializeGame"
+	BotDriverStartGame      = "BotStartGame"
+)
+
+type DriveBotMessage struct {
+	MessageType string           `json:"message-type"`
+	GameConfig  *test.GameConfig `json:"game-config"`
+}
 
 type DriverBot struct {
 	stopped chan bool
