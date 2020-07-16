@@ -12,6 +12,7 @@ import (
 /**
 NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 **/
+var GameManager = NewGameManager()
 
 var playerLogger = log.With().Str("logger_name", "game::player").Logger()
 
@@ -305,7 +306,7 @@ func (p *Player) GameProtoMessageFromAdapter(message *GameMessage) error {
 	return nil
 }
 
-func (p *Player) startGame(clubID uint32, gameNum uint32) error {
+func (p *Player) StartGame(clubID uint32, gameNum uint32) error {
 	var message GameMessage
 	message.ClubId = clubID
 	message.GameNum = gameNum
@@ -318,18 +319,18 @@ func (p *Player) startGame(clubID uint32, gameNum uint32) error {
 	return e
 }
 
-func (p *Player) joinGame(clubID uint32, gameNum uint32) error {
+func (p *Player) JoinGame(clubID uint32, gameNum uint32) error {
 	var message GameMessage
 	message.ClubId = clubID
 	message.GameNum = gameNum
 	message.MessageType = GameJoin
 
 	gameID := fmt.Sprintf("%d:%d", clubID, gameNum)
-	if _, ok := gameManager.activeGames[gameID]; !ok {
+	if _, ok := GameManager.activeGames[gameID]; !ok {
 		// game not found
 		return fmt.Errorf("Game %d is not found", gameNum)
 	}
-	game, _ := gameManager.activeGames[gameID]
+	game, _ := GameManager.activeGames[gameID]
 	game.addPlayer(p)
 	p.game = game
 
@@ -347,7 +348,7 @@ func (p *Player) joinGame(clubID uint32, gameNum uint32) error {
 	return e
 }
 
-func (p *Player) sitAtTable(seatNo uint32, buyIn float32) error {
+func (p *Player) SitAtTable(seatNo uint32, buyIn float32) error {
 	var message GameMessage
 	message.ClubId = p.ClubID
 	message.GameNum = p.GameNum
@@ -363,7 +364,7 @@ func (p *Player) sitAtTable(seatNo uint32, buyIn float32) error {
 // SetupNextHand method can be called only from the test driver
 // and this is available only in test mode.
 // We will never allow hands to be set by any scripts in real games
-func (p *Player) setupNextHand(deck []byte, buttonPos uint32) error {
+func (p *Player) SetupNextHand(deck []byte, buttonPos uint32) error {
 	var gameMessage GameMessage
 
 	nextHand := &GameSetupNextHandMessage{
@@ -379,7 +380,7 @@ func (p *Player) setupNextHand(deck []byte, buttonPos uint32) error {
 	return e
 }
 
-func (p *Player) getTableState() error {
+func (p *Player) GetTableState() error {
 	queryTableState := &GameQueryTableStateMessage{PlayerId: p.PlayerID}
 	var gameMessage GameMessage
 	gameMessage.ClubId = p.ClubID
@@ -397,16 +398,16 @@ func (p *Player) sendGameMessage(message *GameMessage) error {
 		return err
 	}
 	gameID := fmt.Sprintf("%d:%d", p.ClubID, p.GameNum)
-	if _, ok := gameManager.activeGames[gameID]; !ok {
+	if _, ok := GameManager.activeGames[gameID]; !ok {
 		// game not found
 		return fmt.Errorf("Game %d is not found", p.GameNum)
 	}
-	game, _ := gameManager.activeGames[gameID]
+	game, _ := GameManager.activeGames[gameID]
 	game.chGame <- messageData
 	return nil
 }
 
-func (p *Player) dealHand() error {
+func (p *Player) DealHand() error {
 
 	var gameMessage GameMessage
 
