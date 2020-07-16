@@ -18,8 +18,8 @@ import (
 // test driver subscription: game.testdriver2game
 // test driver publish: game.game2testdriver
 
-const testDriverToGame = "testdriver.2game"
-const gameToTestDriver = "game.2testdriver"
+const botDriverToGame = "driverbot.2game"
+const gameToBotDriver = "game.2driverpot"
 
 type NatsTestDriverListener struct {
 	stopped chan bool
@@ -39,7 +39,7 @@ func NewNatsTestDriverListener(url string) (*NatsTestDriverListener, error) {
 		stopped: make(chan bool),
 		nc:      nc,
 	}
-	nc.Subscribe(testDriverToGame, natsTestDriver.listenForMessages)
+	nc.Subscribe(botDriverToGame, natsTestDriver.listenForMessages)
 	return natsTestDriver, nil
 }
 
