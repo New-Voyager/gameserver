@@ -17,15 +17,19 @@ func main() {
 	zerolog.SetGlobalLevel(zerolog.WarnLevel)
 	var runServer = flag.Bool("server", true, "runs game server")
 	var runBotDriver = flag.Bool("bot", false, "runs bot")
+	var runGameScriptTests = flag.Bool("script-tests", false, "runs script tests")
 	flag.Parse()
+
+	if *runGameScriptTests {
+		testScripts()
+		return
+	}
 
 	if *runBotDriver {
 		runBot()
 	} else if *runServer {
 		runWithNats()
 	}
-	//testScripts()
-	// TestOmaha()
 }
 
 func runWithNats() {
