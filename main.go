@@ -7,19 +7,35 @@ import (
 
 	"github.com/rs/zerolog"
 	"voyager.com/server/game"
+	"voyager.com/server/nats"
 	"voyager.com/server/poker"
 )
 
 func main() {
 	zerolog.SetGlobalLevel(zerolog.WarnLevel)
 
+	//runWithNats()
+	testScripts()
+	// TestOmaha()
+}
+
+func runWithNats() {
+	listener, err := nats.NewNatsTestDriverListener(nats.NatsURL)
+	if err != nil {
+		fmt.Sprintf("Error when subscribing to NATS")
+		return
+	}
+	_ = listener
+	select {}
+}
+
+func testScripts() {
 	var runGameScript = flag.String("game-script", "test/game-scripts", "runs tests with game script files")
 	var testName = flag.String("testname", "", "runs a specific test")
 	flag.Parse()
 	if *runGameScript != "" {
 		game.RunGameScriptTests(*runGameScript, *testName)
 	}
-	//TestOmaha()
 }
 
 func testStuff() {

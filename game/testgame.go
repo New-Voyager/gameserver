@@ -17,7 +17,7 @@ type TestGame struct {
 	observer         *TestPlayer
 }
 
-func NewTestGame(gameScript *GameScript, clubID uint32,
+func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	gameType GameType,
 	name string,
 	autoStart bool,

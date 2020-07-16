@@ -9,7 +9,20 @@ import (
 	"voyager.com/server/poker"
 )
 
-func (h *Hand) run(t *TestDriver) error {
+type TestHand struct {
+	hand       *Hand
+	gameScript *TestGameScript
+
+	noMoreActions bool // set when HandNoMoreAction message is received
+}
+
+func NewTestHand(hand *Hand, gameScript *TestGameScript) *TestHand {
+	return &TestHand{
+		hand:       hand,
+		gameScript: gameScript,
+	}
+}
+func (h *TestHand) run(t *TestDriver) error {
 	// setup hand
 	err := h.setup(t)
 	if err != nil {
@@ -91,7 +104,7 @@ func (h *Hand) run(t *TestDriver) error {
 	return nil
 }
 
-func (h *Hand) performBettingRound(t *TestDriver, bettingRound *BettingRound) error {
+func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *BettingRound) error {
 	if !h.noMoreActions {
 		if bettingRound.SeatActions != nil {
 			bettingRound.Actions = make([]TestHandAction, len(bettingRound.SeatActions))
@@ -128,7 +141,7 @@ func (h *Hand) performBettingRound(t *TestDriver, bettingRound *BettingRound) er
 			message := HandMessage{
 				ClubId:      h.gameScript.testGame.clubID,
 				GameNum:     h.gameScript.testGame.gameNum,
-				HandNum:     h.Num,
+				HandNum:     h.hand.Num,
 				MessageType: HandPlayerActed,
 			}
 			actionType := ACTION(ACTION_value[action.Action])
@@ -160,27 +173,27 @@ func (h *Hand) performBettingRound(t *TestDriver, bettingRound *BettingRound) er
 	return nil
 }
 
-func (h *Hand) preflopActions(t *TestDriver) error {
-	e := h.performBettingRound(t, &h.PreflopAction)
+func (h *TestHand) preflopActions(t *TestDriver) error {
+	e := h.performBettingRound(t, &h.hand.PreflopAction)
 	return e
 }
 
-func (h *Hand) flopActions(t *TestDriver) error {
-	e := h.performBettingRound(t, &h.FlopAction)
+func (h *TestHand) flopActions(t *TestDriver) error {
+	e := h.performBettingRound(t, &h.hand.FlopAction)
 	return e
 }
 
-func (h *Hand) turnActions(t *TestDriver) error {
-	e := h.performBettingRound(t, &h.TurnAction)
+func (h *TestHand) turnActions(t *TestDriver) error {
+	e := h.performBettingRound(t, &h.hand.TurnAction)
 	return e
 }
 
-func (h *Hand) riverActions(t *TestDriver) error {
-	e := h.performBettingRound(t, &h.RiverAction)
+func (h *TestHand) riverActions(t *TestDriver) error {
+	e := h.performBettingRound(t, &h.hand.RiverAction)
 	return e
 }
 
-func (h *Hand) dealHand(t *TestDriver) error {
+func (h *TestHand) dealHand(t *TestDriver) error {
 	// deal new hand
 	h.gameScript.testGame.Observer().dealNextHand()
 
@@ -193,7 +206,7 @@ func (h *Hand) dealHand(t *TestDriver) error {
 
 	// verify current hand player position and cards dealt
 	actual := h.gameScript.observer.currentHand.GetNewHand()
-	verify := h.Setup.Verify
+	verify := h.hand.Setup.Verify
 	passed := true
 	if verify.Button != 0 && actual.ButtonPos != verify.Button {
 		h.addError(fmt.Errorf("Button position did not match. Expected: %d actual: %d", verify.Button, actual.ButtonPos))
@@ -241,22 +254,22 @@ func (h *Hand) dealHand(t *TestDriver) error {
 	return nil
 }
 
-func (h *Hand) setup(t *TestDriver) error {
+func (h *TestHand) setup(t *TestDriver) error {
 	playerCards := make([]poker.CardsInAscii, 0)
-	for _, cards := range h.Setup.SeatCards {
+	for _, cards := range h.hand.Setup.SeatCards {
 		playerCards = append(playerCards, cards.Cards)
 	}
 	// arrange deck
-	deck := poker.DeckFromScript(playerCards, h.Setup.Flop, poker.NewCard(h.Setup.Turn), poker.NewCard(h.Setup.River))
+	deck := poker.DeckFromScript(playerCards, h.hand.Setup.Flop, poker.NewCard(h.hand.Setup.Turn), poker.NewCard(h.hand.Setup.River))
 
 	// setup hand
-	h.gameScript.testGame.Observer().setupNextHand(deck.GetBytes(), h.Setup.ButtonPos)
+	h.gameScript.testGame.Observer().setupNextHand(deck.GetBytes(), h.hand.Setup.ButtonPos)
 	return nil
 }
 
-func (h *Hand) verifyHandResult(t *TestDriver, handResult *HandResult) error {
+func (h *TestHand) verifyHandResult(t *TestDriver, handResult *HandResult) error {
 	passed := true
-	for i, expectedWinner := range h.Result.Winners {
+	for i, expectedWinner := range h.hand.Result.Winners {
 		potWinner := handResult.PotWinners[uint32(i)]
 		winners := potWinner.GetHandWinner()
 		if len(winners) != 1 {
@@ -276,17 +289,17 @@ func (h *Hand) verifyHandResult(t *TestDriver, handResult *HandResult) error {
 		}
 	}
 
-	if h.Result.ActionEndedAt != "" {
+	if h.hand.Result.ActionEndedAt != "" {
 		actualActionEndedAt := HandStatus_name[int32(handResult.WonAt)]
-		if h.Result.ActionEndedAt != actualActionEndedAt {
+		if h.hand.Result.ActionEndedAt != actualActionEndedAt {
 			h.addError(fmt.Errorf("Action won at is not matching. Expected %s, actual: %s",
-				h.Result.ActionEndedAt, actualActionEndedAt))
+				h.hand.Result.ActionEndedAt, actualActionEndedAt))
 			passed = false
 		}
 	}
 
 	// now verify players stack
-	expectedStacks := h.Result.Stacks
+	expectedStacks := h.hand.Result.Stacks
 	for _, expectedStack := range expectedStacks {
 		for _, playerBalance := range handResult.BalanceAfterHand {
 			if playerBalance.SeatNo == expectedStack.Seat {
@@ -305,15 +318,15 @@ func (h *Hand) verifyHandResult(t *TestDriver, handResult *HandResult) error {
 	return nil
 }
 
-func (h *Hand) addError(e error) {
+func (h *TestHand) addError(e error) {
 	h.gameScript.result.addError(e)
 }
 
-func (h *Hand) getObserverLastHandMessage() *HandMessage {
+func (h *TestHand) getObserverLastHandMessage() *HandMessage {
 	return h.gameScript.observerLastHandMesage
 }
 
-func (h *Hand) verifyBettingRound(t *TestDriver, verify *VerifyBettingRound) error {
+func (h *TestHand) verifyBettingRound(t *TestDriver, verify *VerifyBettingRound) error {
 	lastHandMessage := h.getObserverLastHandMessage()
 	if verify.State != "" {
 		if verify.State == "FLOP" {

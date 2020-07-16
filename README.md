@@ -30,3 +30,4 @@ and player clients. To run nats server in the dev environment,
 use the following command to build and run nats server.
 
 make run-nats
+
