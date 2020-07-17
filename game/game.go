@@ -16,21 +16,29 @@ NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 
 var channelGameLogger = log.With().Str("logger_name", "game::game").Logger()
 
+type GameMessageReceiver interface {
+	BroadcastGameMessage(message *GameMessage)
+	BroadcastHandMessage(message *HandMessage)
+	SendHandMessageToPlayer(message *HandMessage, playerID uint32)
+	SendGameMessageToPlayer(message *GameMessage, playerID uint32)
+}
+
 type Game struct {
-	gameID         string
-	clubID         uint32
-	gameNum        uint32
-	manager        *Manager
-	gameType       GameType
-	title          string
-	end            chan bool
-	running        bool
-	chHand         chan []byte
-	chGame         chan []byte
-	allPlayers     map[uint32]*Player // players at the table and the players that are viewing
-	players        map[uint32]string
-	waitingPlayers []uint32
-	minPlayers     int
+	gameID          string
+	clubID          uint32
+	gameNum         uint32
+	manager         *Manager
+	gameType        GameType
+	title           string
+	end             chan bool
+	running         bool
+	chHand          chan []byte
+	chGame          chan []byte
+	allPlayers      map[uint32]*Player   // players at the table and the players that are viewing
+	messageReceiver *GameMessageReceiver // receives messages
+	players         map[uint32]string
+	waitingPlayers  []uint32
+	minPlayers      int
 
 	// test driver specific variables
 	autoStart     bool
@@ -41,21 +49,22 @@ type Game struct {
 	lock sync.Mutex
 }
 
-func NewPokerGame(gameManager *Manager, gameID string, gameType GameType,
+func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, gameID string, gameType GameType,
 	clubID uint32, gameNum uint32, minPlayers int, autoStart bool, autoDeal bool,
 	gameStatePersist PersistGameState,
 	handStatePersist PersistHandState) *Game {
 	title := fmt.Sprintf("%d:%d %s", clubID, gameNum, GameType_name[int32(gameType)])
 	game := Game{
-		manager:       gameManager,
-		gameID:        gameID,
-		gameType:      gameType,
-		title:         title,
-		clubID:        clubID,
-		gameNum:       gameNum,
-		autoStart:     autoStart,
-		autoDeal:      autoDeal,
-		testButtonPos: -1,
+		manager:         gameManager,
+		messageReceiver: messageReceiver,
+		gameID:          gameID,
+		gameType:        gameType,
+		title:           title,
+		clubID:          clubID,
+		gameNum:         gameNum,
+		autoStart:       autoStart,
+		autoDeal:        autoDeal,
+		testButtonPos:   -1,
 	}
 	game.allPlayers = make(map[uint32]*Player)
 	game.chGame = make(chan []byte)
@@ -332,27 +341,39 @@ func (game *Game) loadHandState(gameState *GameState) (*HandState, error) {
 }
 
 func (game *Game) broadcastHandMessage(message *HandMessage) {
-	b, _ := proto.Marshal(message)
-	for _, player := range game.allPlayers {
-		player.chHand <- b
+	if *game.messageReceiver != nil {
+		(*game.messageReceiver).BroadcastHandMessage(message)
+	} else {
+		b, _ := proto.Marshal(message)
+		for _, player := range game.allPlayers {
+			player.chHand <- b
+		}
 	}
 }
 
 func (game *Game) broadcastGameMessage(message *GameMessage) {
-	b, _ := proto.Marshal(message)
-	for _, player := range game.allPlayers {
-		player.chGame <- b
+	if *game.messageReceiver != nil {
+		(*game.messageReceiver).BroadcastGameMessage(message)
+	} else {
+		b, _ := proto.Marshal(message)
+		for _, player := range game.allPlayers {
+			player.chGame <- b
+		}
 	}
 }
 
-func (game *Game) sendGameMessage(message GameMessage) {
-	b, _ := proto.Marshal(&message)
+func (game *Game) SendGameMessage(message *GameMessage) {
+	b, _ := proto.Marshal(message)
 	game.chGame <- b
 }
 
 func (game *Game) sendHandMessageToPlayer(message *HandMessage, player *Player) {
-	b, _ := proto.Marshal(message)
-	player.chHand <- b
+	if *game.messageReceiver != nil {
+		(*game.messageReceiver).SendHandMessageToPlayer(message, player.PlayerID)
+	} else {
+		b, _ := proto.Marshal(message)
+		player.chHand <- b
+	}
 }
 
 func (game *Game) addPlayer(player *Player) error {

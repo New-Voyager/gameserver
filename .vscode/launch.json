@@ -11,10 +11,7 @@
       "mode": "auto",
       "program": "${workspaceFolder}/main.go",
       "env": {},
-      "args": ["--game-script", 
-              "game/game-scripts", 
-              "--testname", 
-              "showdown.yaml"]
+      "args": ["--script-tests"]
     },
     {
       "name": "Launch Server",

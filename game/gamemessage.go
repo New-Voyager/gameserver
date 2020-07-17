@@ -31,6 +31,8 @@ func (game *Game) handleGameMessage(message *GameMessage) {
 
 	case GameQueryTableState:
 		game.onQueryTableState(message)
+	case GameJoin:
+		game.onJoinGame(message)
 	}
 }
 
@@ -146,9 +148,20 @@ func (game *Game) onQueryTableState(message *GameMessage) error {
 	gameMessage.ClubId = game.clubID
 	gameMessage.GameNum = game.gameNum
 	gameMessage.MessageType = GameTableState
+	gameMessage.PlayerId = message.GetQueryTableState().PlayerId
 	gameMessage.GameMessage = &GameMessage_TableState{TableState: gameTableState}
-	messageData, _ := proto.Marshal(&gameMessage)
 
-	game.allPlayers[message.PlayerId].chGame <- messageData
+	if *game.messageReceiver != nil {
+		(*game.messageReceiver).SendGameMessageToPlayer(&gameMessage, message.GetQueryTableState().PlayerId)
+	} else {
+		messageData, _ := proto.Marshal(&gameMessage)
+		game.allPlayers[message.PlayerId].chGame <- messageData
+	}
+	return nil
+}
+
+func (game *Game) onJoinGame(message *GameMessage) error {
+	joinMessage := message.GetJoinGame()
+	game.players[joinMessage.PlayerId] = joinMessage.Name
 	return nil
 }

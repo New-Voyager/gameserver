@@ -23,13 +23,19 @@ func NewGameManager() *Manager {
 	}
 }
 
-func (gm *Manager) InitializeGame(clubID uint32, gameType GameType,
-	title string, minPlayers int, autoStart bool, autoDeal bool) uint32 {
-	gm.gameCount++
-	gameID := fmt.Sprintf("%d:%d", clubID, gm.gameCount)
-	game := NewPokerGame(gm, gameID,
+func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver,
+	clubID uint32, gameNum uint32, gameType GameType,
+	title string, minPlayers int, autoStart bool, autoDeal bool) (*Game, uint32) {
+	if gameNum == 0 {
+		gm.gameCount++
+		gameNum = gm.gameCount
+	}
+	gameID := fmt.Sprintf("%d:%d", clubID, gameNum)
+	game := NewPokerGame(gm,
+		&messageReceiver,
+		gameID,
 		GameType_HOLDEM,
-		clubID, gm.gameCount,
+		clubID, gameNum,
 		minPlayers,
 		autoStart,
 		autoDeal,
@@ -38,7 +44,7 @@ func (gm *Manager) InitializeGame(clubID uint32, gameType GameType,
 	gm.activeGames[gameID] = game
 
 	go game.runGame()
-	return gm.gameCount
+	return game, gameNum
 }
 
 func (gm *Manager) gameEnded(game *Game) {
