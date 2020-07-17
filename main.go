@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	var runServer = flag.Bool("server", true, "runs game server")
 	var runBotDriver = flag.Bool("bot", false, "runs bot")
 	var runGameScriptTests = flag.Bool("script-tests", false, "runs script tests")
@@ -33,7 +33,7 @@ func main() {
 }
 
 func runWithNats() {
-	listener, err := nats.NewNatsTestDriverListener(nats.NatsURL)
+	listener, err := nats.NewNatsDriverBotListener(nats.NatsURL)
 	if err != nil {
 		fmt.Printf("Error when subscribing to NATS")
 		return
