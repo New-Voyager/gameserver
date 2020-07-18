@@ -8,7 +8,7 @@ import (
 )
 
 type TestGameScript struct {
-	gameScript             *GameScript
+	gameScript             *game.GameScript
 	testGame               *TestGame
 	filename               string
 	result                 *ScriptTestResult
@@ -51,10 +51,11 @@ func (g *TestGameScript) configure(t *TestDriver) error {
 	if e != nil {
 		return e
 	}
+
 	return nil
 }
 
-func (g *TestGameScript) verifyTableResult(t *TestDriver, expectedPlayers []PlayerAtTable, where string) error {
+func (g *TestGameScript) verifyTableResult(t *TestDriver, expectedPlayers []game.PlayerAtTable, where string) error {
 	if expectedPlayers == nil {
 		return nil
 	}

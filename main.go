@@ -48,7 +48,7 @@ func runBot() {
 		fmt.Printf("Error when subscribing to NATS")
 		return
 	}
-	botDriver.RunGameScript("test/game-scripts/simple-hand.yaml")
+	botDriver.RunGameScript("test/game-scripts/two-pots.yaml")
 	_ = botDriver
 	select {}
 }

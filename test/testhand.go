@@ -11,13 +11,13 @@ import (
 )
 
 type TestHand struct {
-	hand       *Hand
+	hand       *game.Hand
 	gameScript *TestGameScript
 
 	noMoreActions bool // set when HandNoMoreAction message is received
 }
 
-func NewTestHand(hand *Hand, gameScript *TestGameScript) *TestHand {
+func NewTestHand(hand *game.Hand, gameScript *TestGameScript) *TestHand {
 	return &TestHand{
 		hand:       hand,
 		gameScript: gameScript,
@@ -105,10 +105,10 @@ func (h *TestHand) run(t *TestDriver) error {
 	return nil
 }
 
-func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *BettingRound) error {
+func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.BettingRound) error {
 	if !h.noMoreActions {
 		if bettingRound.SeatActions != nil {
-			bettingRound.Actions = make([]TestHandAction, len(bettingRound.SeatActions))
+			bettingRound.Actions = make([]game.TestHandAction, len(bettingRound.SeatActions))
 			for i, actionStr := range bettingRound.SeatActions {
 				// split the string
 				s := strings.Split(strings.Trim(actionStr, " "), ",")
@@ -116,7 +116,7 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *BettingRound
 					seatNo, _ := strconv.Atoi(strings.Trim(s[0], " "))
 					action := strings.Trim(s[1], " ")
 					amount, _ := strconv.ParseFloat(strings.Trim(s[2], " "), 32)
-					bettingRound.Actions[i] = TestHandAction{
+					bettingRound.Actions[i] = game.TestHandAction{
 						SeatNo: uint32(seatNo),
 						Action: action,
 						Amount: float32(amount),
@@ -124,7 +124,7 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *BettingRound
 				} else if len(s) == 2 {
 					seatNo, _ := strconv.Atoi(strings.Trim(s[0], " "))
 					action := strings.Trim(s[1], " ")
-					bettingRound.Actions[i] = TestHandAction{
+					bettingRound.Actions[i] = game.TestHandAction{
 						SeatNo: uint32(seatNo),
 						Action: action,
 					}
@@ -327,7 +327,7 @@ func (h *TestHand) getObserverLastHandMessage() *game.HandMessage {
 	return h.gameScript.observerLastHandMesage
 }
 
-func (h *TestHand) verifyBettingRound(t *TestDriver, verify *VerifyBettingRound) error {
+func (h *TestHand) verifyBettingRound(t *TestDriver, verify *game.VerifyBettingRound) error {
 	lastHandMessage := h.getObserverLastHandMessage()
 	if verify.State != "" {
 		if verify.State == "FLOP" {

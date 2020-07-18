@@ -22,7 +22,7 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	gameType game.GameType,
 	name string,
 	autoStart bool,
-	players []GamePlayer) (*TestGame, *TestPlayer) {
+	players []game.GamePlayer) (*TestGame, *TestPlayer) {
 
 	gamePlayers := make(map[uint32]*TestPlayer)
 	serverGame, gameNum := game.GameManager.InitializeGame(nil, clubID, 0, gameType, name, len(players), autoStart, false)
@@ -36,7 +36,7 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 
 	observerCh := make(chan []byte)
 	// add test driver as an observer/player
-	gameScriptPlayer := GamePlayer{ID: 0xFFFFFFFF, Name: "GameScript"}
+	gameScriptPlayer := game.GamePlayer{ID: 0xFFFFFFFF, Name: "GameScript"}
 	observer := NewTestPlayerAsObserver(gameScriptPlayer, observerCh)
 	player := game.NewPlayer(clubID, gameNum, gameScriptPlayer.Name, gameScriptPlayer.ID, observer)
 	observer.setPlayer(player)
@@ -52,7 +52,7 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	}, observer
 }
 
-func (t *TestGame) Start(playerAtSeats []PlayerSeat) {
+func (t *TestGame) Start(playerAtSeats []game.PlayerSeat) {
 	for _, testPlayer := range t.players {
 		testPlayer.player.JoinGame(t.clubID, t.gameNum)
 	}

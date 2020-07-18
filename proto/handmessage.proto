@@ -77,18 +77,19 @@ message HandMessage {
   uint32 hand_num = 4;
   uint32 seat_no = 5;       // if this message is targeted to a specific player
   string message_type = 6;
-  HandStatus hand_status = 7;
+  uint32 player_id = 7;
+  HandStatus hand_status = 8;
   oneof hand_message {
-    NextSeatAction  seat_action = 8;
-    HandDealCards deal_cards = 9;
-    NewHand new_hand = 10;
-    HandAction player_acted = 11;
-    ActionChange action_change = 12;
-    HandResult hand_result = 13;
-    Flop flop = 14;
-    Turn turn = 15;
-    River river = 16;
-    Showdown showdown = 17;
-    NoMoreActions no_more_actions = 18;
+    NextSeatAction  seat_action = 9;
+    HandDealCards deal_cards = 10;
+    NewHand new_hand = 11;
+    HandAction player_acted = 12;
+    ActionChange action_change = 13;
+    HandResult hand_result = 14;
+    Flop flop = 15;
+    Turn turn = 16;
+    River river = 17;
+    Showdown showdown = 18;
+    NoMoreActions no_more_actions = 19;
   }
 }

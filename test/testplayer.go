@@ -13,7 +13,7 @@ var testPlayerLogger = log.With().Str("logger_name", "test::testplayer").Logger(
 // TestPlayer is a receiver for game and hand messages
 // it also sends messages to game and hand via player object
 type TestPlayer struct {
-	playerInfo   GamePlayer
+	playerInfo   game.GamePlayer
 	player       *game.Player
 	seatNo       uint32
 	testObserver bool
@@ -42,13 +42,13 @@ type TestPlayer struct {
 	lastTableState *game.GameTableStateMessage
 }
 
-func NewTestPlayer(playerInfo GamePlayer) *TestPlayer {
+func NewTestPlayer(playerInfo game.GamePlayer) *TestPlayer {
 	return &TestPlayer{
 		playerInfo: playerInfo,
 	}
 }
 
-func NewTestPlayerAsObserver(playerInfo GamePlayer, observerCh chan []byte) *TestPlayer {
+func NewTestPlayerAsObserver(playerInfo game.GamePlayer, observerCh chan []byte) *TestPlayer {
 	return &TestPlayer{
 		playerInfo:   playerInfo,
 		testObserver: true,

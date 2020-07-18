@@ -1,4 +1,8 @@
-package test
+package game
+
+// The types used here are used by game scripts
+// These test configurations/game scripts are used for automated
+// testing or automated game playing
 
 /*
     type: HOLDEM

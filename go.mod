@@ -14,9 +14,11 @@ require (
 	github.com/rs/zerolog v1.19.0
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.6.1
+	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v2 v2.3.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
+	nhooyr.io/websocket v1.8.6
 )
 
 replace voyager.com/server/internal => ./internal

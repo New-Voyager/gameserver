@@ -286,10 +286,16 @@ func (game *Game) dealNewHand() error {
 
 		//messageData, _ := proto.Marshal(&message)
 		player := game.allPlayers[playerID]
-		handMessage := HandMessage{MessageType: HandDeal, GameNum: game.gameNum, ClubId: game.clubID}
+		handMessage := HandMessage{MessageType: HandDeal, GameNum: game.gameNum, ClubId: game.clubID, PlayerId: playerID}
 		handMessage.HandMessage = &HandMessage_DealCards{DealCards: &message}
 		b, _ := proto.Marshal(&handMessage)
-		player.chHand <- b
+
+		if *game.messageReceiver != nil {
+			(*game.messageReceiver).SendHandMessageToPlayer(&handMessage, playerID)
+
+		} else {
+			player.chHand <- b
+		}
 	}
 
 	// print next action
@@ -367,10 +373,16 @@ func (game *Game) SendGameMessage(message *GameMessage) {
 	game.chGame <- b
 }
 
-func (game *Game) sendHandMessageToPlayer(message *HandMessage, player *Player) {
+func (game *Game) SendHandMessage(message *HandMessage) {
+	b, _ := proto.Marshal(message)
+	game.chHand <- b
+}
+
+func (game *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint32) {
 	if *game.messageReceiver != nil {
-		(*game.messageReceiver).SendHandMessageToPlayer(message, player.PlayerID)
+		(*game.messageReceiver).SendHandMessageToPlayer(message, playerID)
 	} else {
+		player := game.allPlayers[playerID]
 		b, _ := proto.Marshal(message)
 		player.chHand <- b
 	}
