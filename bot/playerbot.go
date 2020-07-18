@@ -29,6 +29,8 @@ type PlayerBot struct {
 	observer           bool
 	lastGameMessage    *game.GameMessage
 	lastHandMessage    *game.HandMessage
+	playerStateMessage *game.GameTableStateMessage
+
 	waitObserverCh     chan int
 	nc                 *natsgo.Conn
 	game2PlayerSub     *natsgo.Subscription
@@ -75,6 +77,7 @@ func (p *PlayerBot) game2Player(msg *natsgo.Msg) {
 		case game.GameTableState:
 			if message.PlayerId != 0 {
 				if message.PlayerId == botPlayerID {
+					p.playerStateMessage = message.GetTableState()
 					p.waitObserverCh <- 1
 				}
 			}
@@ -83,7 +86,12 @@ func (p *PlayerBot) game2Player(msg *natsgo.Msg) {
 }
 
 func (p *PlayerBot) hand2Player(msg *natsgo.Msg) {
-
+	botPlayerLogger.Info().Msg(fmt.Sprintf("Message from %s", string(msg.Data)))
+	var message game.HandMessage
+	err := protojson.Unmarshal(msg.Data, &message)
+	if err == nil {
+		// handle hand messages to the player
+	}
 }
 
 func (p *PlayerBot) initialize(clubID uint32, gameNum uint32) {
@@ -94,7 +102,7 @@ func (p *PlayerBot) initialize(clubID uint32, gameNum uint32) {
 
 	// hand subjects
 	p.player2HandSubject = fmt.Sprintf("game.%d%d.hand.player", clubID, gameNum)
-	p.hand2PlayerSubject = fmt.Sprintf("game.%d%d.hand.game", clubID, gameNum)
+	p.hand2PlayerSubject = fmt.Sprintf("game.%d%d.hand.player.%d", clubID, gameNum, p.playerID)
 }
 
 func (p *PlayerBot) joinGame(clubID uint32, gameNum uint32) error {
@@ -127,7 +135,8 @@ func (p *PlayerBot) joinGame(clubID uint32, gameNum uint32) error {
 	gameMessage.GameNum = gameNum
 	gameMessage.PlayerId = p.playerID
 	gameMessage.MessageType = game.GameJoin
-	joinGame := &game.GameJoinMessage{Name: "bot"}
+	name := fmt.Sprintf("bot-%d", p.playerID)
+	joinGame := &game.GameJoinMessage{Name: name}
 	gameMessage.GameMessage = &game.GameMessage_JoinGame{JoinGame: joinGame}
 	protoData, err := protojson.Marshal(&gameMessage)
 	fmt.Printf("proto: %s\n", string(protoData))
@@ -193,4 +202,52 @@ func (p *PlayerBot) getTableState() error {
 	// send to game channel/subject
 	p.nc.Publish(p.player2GameSubject, protoData)
 	return nil
+}
+
+func (p *PlayerBot) setupNextHand(deck []byte, buttonPos uint32) error {
+	var gameMessage game.GameMessage
+
+	nextHand := &game.GameSetupNextHandMessage{
+		Deck:      deck,
+		ButtonPos: buttonPos,
+	}
+
+	gameMessage.ClubId = p.clubID
+	gameMessage.GameNum = p.gameNum
+	gameMessage.PlayerId = p.playerID
+	gameMessage.MessageType = game.GameSetupNextHand
+	gameMessage.GameMessage = &game.GameMessage_NextHand{NextHand: nextHand}
+	protoData, err := protojson.Marshal(&gameMessage)
+	fmt.Printf("proto: %s\n", string(protoData))
+	if err != nil {
+		botPlayerLogger.Error().
+			Msg(fmt.Sprintf("Could not setup hand. Error: %v", err))
+		return err
+	}
+
+	// send to game channel/subject
+	e := p.nc.Publish(p.player2GameSubject, protoData)
+	return e
+}
+
+func (p *PlayerBot) dealHand() error {
+	var gameMessage game.GameMessage
+
+	dealHandMessage := &game.GameDealHandMessage{}
+
+	gameMessage.ClubId = p.clubID
+	gameMessage.GameNum = p.gameNum
+	gameMessage.MessageType = game.GameDealHand
+	gameMessage.GameMessage = &game.GameMessage_DealHand{DealHand: dealHandMessage}
+	protoData, err := protojson.Marshal(&gameMessage)
+	fmt.Printf("proto: %s\n", string(protoData))
+	if err != nil {
+		botPlayerLogger.Error().
+			Msg(fmt.Sprintf("Could not setup deal hand. Error: %v", err))
+		return err
+	}
+
+	// send to game channel/subject
+	e := p.nc.Publish(p.player2GameSubject, protoData)
+	return e
 }

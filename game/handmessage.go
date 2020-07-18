@@ -218,8 +218,8 @@ func (game *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 			}
 			nextSeatMessage.HandMessage = &HandMessage_SeatAction{SeatAction: handState.NextSeatAction}
 			playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo-1]
-			player := game.allPlayers[playerID]
-			game.sendHandMessageToPlayer(nextSeatMessage, player)
+			//player := game.allPlayers[playerID]
+			game.sendHandMessageToPlayer(nextSeatMessage, playerID)
 
 			// action moves to the next player
 			actionChange := &ActionChange{

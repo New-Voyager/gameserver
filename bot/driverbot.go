@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 
 	"voyager.com/server/game"
+	"voyager.com/server/poker"
 
 	jsoniter "github.com/json-iterator/go"
 
@@ -12,7 +13,6 @@ import (
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
-	"voyager.com/server/test"
 )
 
 var driverBotLogger = log.With().Str("logger_name", "server::driverbot").Logger()
@@ -36,7 +36,7 @@ const (
 type DriverBotMessage struct {
 	BotId       string           `json:"bot-id"`
 	MessageType string           `json:"message-type"`
-	GameConfig  *test.GameConfig `json:"game-config"`
+	GameConfig  *game.GameConfig `json:"game-config"`
 	ClubId      uint32           `json:"club-id"`
 	GameNum     uint32           `json:"game-num"`
 }
@@ -45,11 +45,12 @@ type DriverBot struct {
 	botId          string
 	stopped        chan bool
 	players        map[uint32]*PlayerBot
+	currentHand    *game.Hand
 	observer       *PlayerBot // driver also attaches itself as an observer
 	waitCh         chan int
 	observerGameCh chan *game.GameMessage
 	observerHandCh chan *game.HandMessage
-	gameScript     *test.GameScript
+	gameScript     *game.GameScript
 	nc             *natsgo.Conn
 }
 
@@ -105,7 +106,7 @@ func (b *DriverBot) RunGameScript(filename string) error {
 		return err
 	}
 
-	var gameScript test.GameScript
+	var gameScript game.GameScript
 	err = yaml.Unmarshal(data, &gameScript)
 	if err != nil {
 		// failed to load game script file
@@ -121,7 +122,7 @@ func (b *DriverBot) RunGameScript(filename string) error {
 	return nil
 }
 
-func (b *DriverBot) run(gameScript *test.GameScript) error {
+func (b *DriverBot) run(gameScript *game.GameScript) error {
 	b.gameScript = gameScript
 	initializeGameMsg := &DriverBotMessage{
 		BotId:       b.botId,
@@ -146,6 +147,21 @@ func (b *DriverBot) run(gameScript *test.GameScript) error {
 	b.observer.getTableState()
 	<-b.waitCh
 	driverBotLogger.Info().Msg(fmt.Sprintf("Table state: %v", b.observer.lastGameMessage))
+
+	// verify table state
+	e = b.verifyTableResult(b.gameScript.AssignSeat.Verify.Table.Players, "take-seat")
+	if e != nil {
+		return e
+	}
+
+	// play hands
+	for _, hand := range b.gameScript.Hands {
+		err := b.runHand(&hand)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -198,5 +214,77 @@ func (b *DriverBot) onGameInitialized(message *DriverBotMessage) error {
 	}
 	driverBotLogger.Info().Msg("All players took the seats")
 	b.waitCh <- 1
+	return nil
+}
+
+func (b *DriverBot) verifyTableResult(expectedPlayers []game.PlayerAtTable, where string) error {
+	if expectedPlayers == nil {
+		return nil
+	}
+
+	if expectedPlayers != nil {
+		explectedPlayers := expectedPlayers
+		// validate the player stack here to ensure sit-in command worked
+		expectedPlayersInTable := len(explectedPlayers)
+		actualPlayersInTable := len(b.observer.playerStateMessage.GetPlayersState())
+		if expectedPlayersInTable != actualPlayersInTable {
+			e := fmt.Errorf("[%s section] Expected number of players (%d) did not match the actual players (%d)",
+				where, expectedPlayersInTable, actualPlayersInTable)
+			//g.result.addError(e)
+			return e
+		}
+	}
+	actualPlayers := b.observer.playerStateMessage.GetPlayersState()
+
+	// verify player in each seat and their stack
+	for i, expected := range expectedPlayers {
+		actual := actualPlayers[i]
+		if actual.PlayerId != expected.PlayerID {
+			e := fmt.Errorf("[%s section] Expected player (%v) actual player (%v)",
+				where, expected, actual)
+			//g.result.addError(e)
+			return e
+		}
+
+		if actual.GetCurrentBalance() != expected.Stack {
+			e := fmt.Errorf("[%s section] Player %d stack does not match. Expected: %f, actual: %f",
+				where, actual.PlayerId, expected.Stack, actual.CurrentBalance)
+			//g.result.addError(e)
+			return e
+		}
+	}
+
+	return nil
+}
+
+func (b *DriverBot) runHand(hand *game.Hand) error {
+	b.currentHand = hand
+	e := b.setupHand()
+	if e != nil {
+		return e
+	}
+
+	// deal hand
+	b.observer.dealHand()
+
+	return nil
+}
+
+func (b *DriverBot) setupHand() error {
+	currentHand := b.currentHand
+
+	playerCards := make([]poker.CardsInAscii, 0)
+	for _, cards := range currentHand.Setup.SeatCards {
+		playerCards = append(playerCards, cards.Cards)
+	}
+	// arrange deck
+	deck := poker.DeckFromScript(playerCards,
+		currentHand.Setup.Flop,
+		poker.NewCard(currentHand.Setup.Turn),
+		poker.NewCard(currentHand.Setup.River))
+
+	// setup hand
+	b.observer.setupNextHand(deck.GetBytes(), currentHand.Setup.ButtonPos)
+
 	return nil
 }

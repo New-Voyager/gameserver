@@ -8,6 +8,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
+	"voyager.com/server/game"
 )
 
 var testDriverLogger = log.With().Str("logger_name", "test::testdriver").Logger()
@@ -48,7 +49,7 @@ func (t *TestDriver) RunGameScript(filename string) error {
 		return err
 	}
 
-	var gameScript GameScript
+	var gameScript game.GameScript
 	err = yaml.Unmarshal(data, &gameScript)
 	if err != nil {
 		// failed to load game script file
