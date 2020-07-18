@@ -53,6 +53,7 @@ type NatsGame struct {
 	chEndGame              chan bool
 	player2GameSubject     string
 	player2HandSubject     string
+	hand2PlayerAllSubject  string
 	game2AllPlayersSubject string
 
 	serverGame *game.Game
@@ -76,6 +77,7 @@ func NewGame(clubID uint32, gameNum uint32) (*NatsGame, error) {
 
 	// hand subjects
 	player2HandSubject := fmt.Sprintf("game.%d%d.hand.player", clubID, gameNum)
+	hand2PlayerAllSubject := fmt.Sprintf("game.%d%d.hand.all", clubID, gameNum)
 
 	// we need to use the API to get the game configuration
 	game := &NatsGame{
@@ -86,6 +88,7 @@ func NewGame(clubID uint32, gameNum uint32) (*NatsGame, error) {
 		player2GameSubject:     player2GameSubject,
 		game2AllPlayersSubject: game2AllPlayersSubject,
 		player2HandSubject:     player2HandSubject,
+		hand2PlayerAllSubject:  hand2PlayerAllSubject,
 	}
 
 	// subscribe to topics
@@ -129,6 +132,14 @@ func (n *NatsGame) player2Game(msg *natsgo.Msg) {
 func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
 	natsLogger.Info().Uint32("game", n.gameNum).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Player->Hand: %s", string(msg.Data)))
+	var message game.HandMessage
+	//err := jsoniter.Unmarshal(msg.Data, &message)
+	e := protojson.Unmarshal(msg.Data, &message)
+	if e != nil {
+		return
+	}
+
+	n.serverGame.SendHandMessage(&message)
 }
 
 func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
@@ -142,9 +153,9 @@ func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 	natsLogger.Info().Uint32("game", n.gameNum).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Hand->AllPlayers: %s", message.MessageType))
-	hand2PlayerSubject := fmt.Sprintf("game.%d%d.hand.player.*", n.clubID, n.gameNum)
+	//hand2PlayerSubject := fmt.Sprintf("game.%d%d.hand.player.*", n.clubID, n.gameNum)
 	data, _ := protojson.Marshal(message)
-	n.nc.Publish(hand2PlayerSubject, data)
+	n.nc.Publish(n.hand2PlayerAllSubject, data)
 }
 
 func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID uint32) {

@@ -373,6 +373,11 @@ func (game *Game) SendGameMessage(message *GameMessage) {
 	game.chGame <- b
 }
 
+func (game *Game) SendHandMessage(message *HandMessage) {
+	b, _ := proto.Marshal(message)
+	game.chHand <- b
+}
+
 func (game *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint32) {
 	if *game.messageReceiver != nil {
 		(*game.messageReceiver).SendHandMessageToPlayer(message, playerID)
