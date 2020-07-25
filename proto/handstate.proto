@@ -150,13 +150,16 @@ message HandState {
   NextSeatAction next_seat_action = 29;
 
   // results
-  map <uint32, PotWinners> pot_winners = 30; // 0 is main pot winners
-  HandStatus hand_completed_at = 31;  
-  repeated PlayerBalance balance_after_hand = 32;
+  uint64 hand_started_at = 30;  
+  repeated PlayerBalance balance_before_hand = 31;
+  map <uint32, PotWinners> pot_winners = 32; // 0 is main pot winners
+  HandStatus hand_completed_at = 33;  
+  repeated PlayerBalance balance_after_hand = 34;
+  uint64 hand_ended_at = 35;  
 
-  repeated PlayerActRound players_acted = 33;
-  repeated uint32 all_in_players = 34;
-  HandStatus lastState = 35;
+  repeated PlayerActRound players_acted = 36;
+  repeated uint32 all_in_players = 37;
+  HandStatus lastState = 38;
 }
 
 message HandWinner {
@@ -169,5 +172,6 @@ message HandWinner {
 }
 
 message PotWinners {
-  repeated HandWinner hand_winner = 1;
+  repeated HandWinner hi_winners = 1;
+  repeated HandWinner low_winners = 2;
 }

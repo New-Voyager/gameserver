@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"voyager.com/server/poker"
@@ -58,6 +59,17 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 
 	// copy player's stack (we need to copy only the players that are in the hand)
 	h.PlayersState = h.getPlayersState(gameState)
+
+	h.BalanceBeforeHand = make([]*PlayerBalance, 0)
+	// also populate current balance of the players in the table
+	for seatNo, player := range h.ActiveSeats {
+		if player == 0 {
+			continue
+		}
+		state := h.GetPlayersState()[player]
+		h.BalanceBeforeHand = append(h.BalanceBeforeHand,
+			&PlayerBalance{SeatNo: uint32(seatNo + 1), PlayerId: player, Balance: state.Balance})
+	}
 
 	if deck == nil {
 		deck = poker.NewDeck(nil).Shuffle()
@@ -621,7 +633,7 @@ func (h *HandState) everyOneFoldedWinners() {
 		}
 		handWinners := make([]*HandWinner, 0)
 		handWinners = append(handWinners, handWinner)
-		potWinners[uint32(i)] = &PotWinners{HandWinner: handWinners}
+		potWinners[uint32(i)] = &PotWinners{HiWinners: handWinners}
 	}
 	h.setWinners(potWinners)
 }
@@ -634,7 +646,12 @@ func (h *HandState) setWinners(potWinners map[uint32]*PotWinners) {
 
 	// update player balance
 	for _, pot := range potWinners {
-		for _, handWinner := range pot.HandWinner {
+		for _, handWinner := range pot.HiWinners {
+			seatNo := handWinner.SeatNo
+			playerID := h.GetPlayersInSeats()[seatNo-1]
+			h.PlayersState[playerID].Balance += handWinner.Amount
+		}
+		for _, handWinner := range pot.LowWinners {
 			seatNo := handWinner.SeatNo
 			playerID := h.GetPlayersInSeats()[seatNo-1]
 			h.PlayersState[playerID].Balance += handWinner.Amount
@@ -662,5 +679,10 @@ func (h *HandState) getResult() *HandResult {
 	handResult.TurnActions = h.TurnActions
 	handResult.RiverActions = h.RiverActions
 	handResult.BalanceAfterHand = h.BalanceAfterHand
+	handResult.BalanceBeforeHand = h.BalanceBeforeHand
+	handResult.HandStartedAt = h.HandStartedAt
+	handResult.HandEndedAt = h.HandEndedAt
+	handResult.PlayersInSeats = h.PlayersInSeats
+	handResult.HandEndedAt = uint64(time.Now().Unix())
 	return handResult
 }

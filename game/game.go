@@ -230,11 +230,12 @@ func (game *Game) dealNewHand() error {
 
 	gameState.HandNum++
 	handState := &HandState{
-		ClubId:       gameState.GetClubId(),
-		GameNum:      gameState.GetGameNum(),
-		HandNum:      gameState.GetHandNum(),
-		GameType:     gameState.GetGameType(),
-		CurrentState: HandStatus_DEAL,
+		ClubId:        gameState.GetClubId(),
+		GameNum:       gameState.GetGameNum(),
+		HandNum:       gameState.GetHandNum(),
+		GameType:      gameState.GetGameType(),
+		CurrentState:  HandStatus_DEAL,
+		HandStartedAt: uint64(time.Now().Unix()),
 	}
 
 	handState.initialize(gameState, game.testDeckToUse, game.testButtonPos)

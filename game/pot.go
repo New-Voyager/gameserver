@@ -127,7 +127,7 @@ func (h *HoldemWinnerEvaluate) evaluate() {
 	for i := len(h.handState.Pots) - 1; i >= 0; i-- {
 		pot := h.handState.Pots[i]
 		potWinners := &PotWinners{}
-		potWinners.HandWinner = h.determineHandWinners(pot)
+		potWinners.HiWinners = h.determineHandWinners(pot)
 		h.winners[uint32(i)] = potWinners
 	}
 }

@@ -538,7 +538,7 @@ func (b *DriverBot) verifyHandResult(handResult *game.HandResult) error {
 	var e error
 	for i, expectedWinner := range b.currentHand.Result.Winners {
 		potWinner := handResult.PotWinners[uint32(i)]
-		winners := potWinner.GetHandWinner()
+		winners := potWinner.GetHiWinners()
 		if len(winners) != 1 {
 			passed = false
 		}

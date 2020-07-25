@@ -97,7 +97,15 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 					Str("player", t.player.PlayerName).
 					Msg(fmt.Sprintf("%s", string(jsonb)))
 			}
-
+			if handMessage.MessageType == game.HandResultMessage {
+				testPlayerLogger.Error().
+					Uint32("club", t.player.ClubID).
+					Uint32("game", t.player.GameNum).
+					Uint32("playerid", t.player.PlayerID).
+					Uint32("seatNo", t.player.SeatNo).
+					Str("player", t.player.PlayerName).
+					Msg(fmt.Sprintf("%s", string(jsonb)))
+			}
 			// save next action information
 			// used for pot validation
 			if handMessage.MessageType == game.HandNextAction {

@@ -66,6 +66,10 @@ message HandResult {
   HandStatus won_at = 6;
   repeated PlayerBalance balance_after_hand = 7;
   Showdown show_down = 8;   // cards shown at show down
+  uint64 hand_started_at = 9;  
+  repeated PlayerBalance balance_before_hand = 10;
+  uint64 hand_ended_at = 11; 
+  repeated uint32 players_in_seats = 12;
 }
 
 

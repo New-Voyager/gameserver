@@ -272,7 +272,7 @@ func (h *TestHand) verifyHandResult(t *TestDriver, handResult *game.HandResult) 
 	passed := true
 	for i, expectedWinner := range h.hand.Result.Winners {
 		potWinner := handResult.PotWinners[uint32(i)]
-		winners := potWinner.GetHandWinner()
+		winners := potWinner.GetHiWinners()
 		if len(winners) != 1 {
 			passed = false
 		}

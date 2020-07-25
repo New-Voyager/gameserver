@@ -33,6 +33,7 @@ func main() {
 }
 
 func runWithNats() {
+	fmt.Printf("Running the server with NATS\n")
 	listener, err := nats.NewNatsDriverBotListener(nats.NatsURL)
 	if err != nil {
 		fmt.Printf("Error when subscribing to NATS")
