@@ -25,9 +25,22 @@ export PATH=$PATH:$HOME/go/bin
 
 
 # Run nats server
+To compile NATS server docker image,
+```
+cd docker/nats
+make compile
+```
+
 We will use NATS messaging server as a broker between game server
 and player clients. To run nats server in the dev environment, 
 use the following command to build and run nats server.
 
 make run-nats
+
+# Run game server
+go run main.go --server
+
+
+# Run bot testing
+go run main.go --bot
 
