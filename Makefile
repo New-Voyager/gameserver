@@ -69,3 +69,8 @@ create-network:
 	docker rm -f game-server || true
 	docker network rm game || true
 	docker network create game
+
+stop:
+	docker rm -f nats || true
+	docker rm -f game-server || true
+	docker network rm game || true
