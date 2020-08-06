@@ -134,6 +134,7 @@ message HandState {
   // key is HandStatus
   map <uint32, SeatBetting> round_betting = 20;
 
+  // key is seat no
   map <uint32, bytes> players_cards = 21;
   bytes board_cards = 22;
   bytes board_cards_2 = 23;  // run it twice
@@ -141,6 +142,7 @@ message HandState {
   uint32 small_blind_pos = 24;
   uint32 big_blind_pos = 25;
 
+  // key is player id
   map <uint32, HandPlayerState> players_state = 26;
   float next_min_raise = 27;
 

@@ -13,11 +13,22 @@ import (
 	"voyager.com/server/test"
 )
 
+var runServer *bool
+var runBotDriver *bool
+var runGameScriptTests *bool
+var gameScriptsDir *string
+var testName *string
+var natsServer *string
+
 func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	var runServer = flag.Bool("server", true, "runs game server")
-	var runBotDriver = flag.Bool("bot", false, "runs bot")
-	var runGameScriptTests = flag.Bool("script-tests", false, "runs script tests")
+	runServer = flag.Bool("server", true, "runs game server")
+	runBotDriver = flag.Bool("bot", false, "runs bot")
+	runGameScriptTests = flag.Bool("script-tests", false, "runs script tests")
+	gameScriptsDir = flag.String("game-script", "test/game-scripts", "runs tests with game script files")
+	testName = flag.String("testname", "", "runs a specific test")
+	natsServer = flag.String("nats-server", "localhost", "nats server")
+
 	flag.Parse()
 
 	if *runGameScriptTests {
@@ -34,7 +45,9 @@ func main() {
 
 func runWithNats() {
 	fmt.Printf("Running the server with NATS\n")
-	listener, err := nats.NewNatsDriverBotListener(nats.NatsURL)
+	natsURL := fmt.Sprintf("nats://%s:4222", *natsServer)
+	fmt.Printf("NATS URL: %s\n", natsURL)
+	listener, err := nats.NewNatsDriverBotListener(natsURL)
 	if err != nil {
 		fmt.Printf("Error when subscribing to NATS")
 		return
@@ -44,7 +57,9 @@ func runWithNats() {
 }
 
 func runBot() {
-	botDriver, err := bot.NewDriverBot(nats.NatsURL)
+	natsURL := fmt.Sprintf("nats://%s:4222", *natsServer)
+	fmt.Printf("NATS URL: %s\n", natsURL)
+	botDriver, err := bot.NewDriverBot(natsURL)
 	if err != nil {
 		fmt.Printf("Error when subscribing to NATS")
 		return
@@ -55,11 +70,8 @@ func runBot() {
 }
 
 func testScripts() {
-	var runGameScript = flag.String("game-script", "test/game-scripts", "runs tests with game script files")
-	var testName = flag.String("testname", "", "runs a specific test")
-	flag.Parse()
-	if *runGameScript != "" {
-		test.RunGameScriptTests(*runGameScript, *testName)
+	if *gameScriptsDir != "" {
+		test.RunGameScriptTests(*gameScriptsDir, *testName)
 	}
 }
 
