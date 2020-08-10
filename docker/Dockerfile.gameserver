@@ -10,4 +10,5 @@ COPY --from=builder /build/game-server /app/
 COPY --from=builder /build/test/game-scripts /app/game-scripts
 
 WORKDIR /app
-CMD ["/app/game-server", "--script-tests", "/app/game-scripts"]
+# CMD ["/app/game-server", "--script-tests", "/app/game-scripts"]
+CMD ["/app/game-server", "--server", "--nats-server", "nats"]

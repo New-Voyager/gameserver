@@ -1,3 +1,16 @@
+# Nats builder
+
+FROM golang:1.13.10-alpine3.11 AS builder
+
+WORKDIR $GOPATH/src/github.com/nats-io/
+
+RUN apk add --update git && git clone https://github.com/nats-io/nats-server.git
+
+RUN cd nats-server && go build -o /app/nats-server
+
+
+# Nats runner
+
 FROM alpine:latest
 RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/* \
   mkdir /usr/local/share/ca-certificates/extra
@@ -6,12 +19,13 @@ COPY ./certs/ca.crt  /usr/local/share/ca-certificates/extra
 WORKDIR /app
 RUN mkdir /app/certs
 COPY ./certs/ /app/certs
-COPY ./nats-server /app/
+COPY --from=builder /app/nats-server /app/
 COPY ./nats.conf /app/
 
 RUN update-ca-certificates
 
 EXPOSE 4222
+EXPOSE 8222
 EXPOSE 9222
 
 ENTRYPOINT ["/app/nats-server", "-DV", "-c", "/app/nats.conf"]

@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  gameserver:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.gameserver
+    image: game-server
+    tty: true
+    depends_on:
+      - nats
+
+  nats:
+    image: nats-server
+    ports:
+      - '4222:4222'
+      - '8222:8222'
+      - '9222:9222'
+
+networks:
+  default:
+    external:
+      name: game
