@@ -1,4 +1,6 @@
-PROTOC_ZIP = protoc-3.7.1-linux-x86_64.zip
+PROTOC_ZIP := protoc-3.7.1-linux-x86_64.zip
+GCP_PROJECT_ID := voyager-01-285603
+BUILD_NO := $(shell cat build_number.txt)
 
 .PHONY: compile-proto
 compile-proto: install-protoc
@@ -36,18 +38,17 @@ install-protoc:
 	rm -f ${PROTOC_ZIP}
 
 
-.PHONY: run-nats
-run-nats:
-	cd docker/nats && make build
-	cd docker/nats && make run
+.PHONY: build-nats
+build-nats:
+	make -C docker/nats build
 
 .PHONY: run-nats
-run-nats-no-build:
-	cd docker/nats && make run
+run-nats: build-nats
+	make -C docker/nats run
 
 .PHONY: docker-build
 docker-build:
-	docker build -f docker/Dockerfile.alpine . -t game-server
+	docker build -f docker/Dockerfile.gameserver . -t game-server
 
 .PHONY: docker-test
 docker-test:
@@ -74,3 +75,21 @@ stop:
 	docker rm -f nats || true
 	docker rm -f game-server || true
 	docker network rm game || true
+
+
+.PHONY: up
+up:
+	docker-compose -f docker-compose.yaml up
+
+.PHONY: publish
+publish:
+	# publish nats
+	docker tag nats-server gcr.io/${GCP_PROJECT_ID}/nats-server:$(BUILD_NO)
+	docker tag nats-server gcr.io/${GCP_PROJECT_ID}/nats-server:latest
+	docker push gcr.io/${GCP_PROJECT_ID}/nats-server:$(BUILD_NO)
+	docker push gcr.io/${GCP_PROJECT_ID}/nats-server:latest
+	# publish gameserver
+	docker tag game-server gcr.io/${GCP_PROJECT_ID}/game-server:$(BUILD_NO)
+	docker tag game-server gcr.io/${GCP_PROJECT_ID}/game-server:latest
+	docker push gcr.io/${GCP_PROJECT_ID}/game-server:$(BUILD_NO)
+	docker push gcr.io/${GCP_PROJECT_ID}/game-server:latest
