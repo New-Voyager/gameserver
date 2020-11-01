@@ -75,4 +75,7 @@ make run-redis
 # or run them from VS code for debugging.
 make run-server
 make run-bot
+
+# Stop and clean up the running containers.
+make stop
 ```

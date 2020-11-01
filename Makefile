@@ -96,11 +96,12 @@ docker-test: create-network run-nats run-redis
 		-e REDIS_DB=0 \
 		game-server sh -c "PERSIST_METHOD=redis /app/game-server --script-tests && PERSIST_METHOD=memory /app/game-server --script-tests"
 
+.PHONY: stop
 stop:
 	docker rm -f nats || true
+	docker rm -f redis || true
 	docker rm -f game-server || true
-	docker network rm game || true
-
+	docker network rm $(DEFAULT_DOCKER_NET) || true
 
 .PHONY: up
 up:
