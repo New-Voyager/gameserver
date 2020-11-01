@@ -10,7 +10,14 @@
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/main.go",
-      "env": {},
+      "env": {
+        "NATS_HOST": "localhost",
+        "NATS_CLIENT_PORT": "4222",
+        "PERSIST_METHOD": "redis",
+        "REDIS_HOST": "localhost",
+        "REDIS_PORT": "6379",
+        "REDIS_DB": "0"
+      },
       "args": ["--script-tests"]
     },
     {
@@ -19,7 +26,14 @@
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/main.go",
-      "env": {},
+      "env": {
+        "NATS_HOST": "localhost",
+        "NATS_CLIENT_PORT": "4222",
+        "PERSIST_METHOD": "redis",
+        "REDIS_HOST": "localhost",
+        "REDIS_PORT": "6379",
+        "REDIS_DB": "0"
+      },
       "args": ["--server"]
     },
     {
@@ -28,7 +42,14 @@
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/main.go",
-      "env": {},
+      "env": {
+        "NATS_HOST": "localhost",
+        "NATS_CLIENT_PORT": "4222",
+        "PERSIST_METHOD": "redis",
+        "REDIS_HOST": "localhost",
+        "REDIS_PORT": "6379",
+        "REDIS_DB": "0"
+      },
       "args": ["--bot"]
     }         
   ]

@@ -7,15 +7,33 @@ services:
       dockerfile: docker/Dockerfile.gameserver
     image: game-server
     tty: true
+    restart: always
+    environment:
+      NATS_HOST: nats
+      NATS_CLIENT_PORT: 4222
+      PERSIST_METHOD: redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
     depends_on:
       - nats
 
   nats:
+    build:
+      context: docker/nats
+      dockerfile: Dockerfile.nats
     image: nats-server
+    restart: always
     ports:
       - '4222:4222'
       - '8222:8222'
       - '9222:9222'
+
+  redis:
+    image: redis
+    restart: always
+    ports:
+      - '6379:6379'
 
 networks:
   default:

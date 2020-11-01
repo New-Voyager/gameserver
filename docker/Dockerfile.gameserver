@@ -7,8 +7,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflag
 
 FROM alpine:latest
 COPY --from=builder /build/game-server /app/
-COPY --from=builder /build/test/game-scripts /app/game-scripts
+COPY --from=builder /build/test/game-scripts /app/test/game-scripts
 
 WORKDIR /app
-# CMD ["/app/game-server", "--script-tests", "/app/game-scripts"]
-CMD ["/app/game-server", "--server", "--nats-server", "nats"]
+# CMD ["/app/game-server", "--script-tests", "/app/test/game-scripts"]
+CMD ["/app/game-server", "--server"]

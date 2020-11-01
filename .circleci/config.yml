@@ -9,9 +9,14 @@ jobs:
 
     steps:
       - checkout
+      - setup_remote_docker:
+          version: 19.03.13
+      - run:
+          name: Build images
+          command: make docker-build
       - run:
           name: Run tests
           command: make test
       - run:
           name: Run game scripts test
-          command: make script-test
+          command: make docker-test

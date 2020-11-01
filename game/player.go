@@ -12,7 +12,6 @@ import (
 /**
 NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 **/
-var GameManager = NewGameManager()
 
 var playerLogger = log.With().Str("logger_name", "game::player").Logger()
 

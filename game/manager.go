@@ -11,10 +11,7 @@ type Manager struct {
 	activeGames      map[string]*Game
 }
 
-func NewGameManager() *Manager {
-	var gamePersist = NewMemoryGameStateTracker()
-	var handPersist = NewMemoryHandStateTracker()
-
+func NewGameManager(gamePersist PersistGameState, handPersist PersistHandState) *Manager {
 	return &Manager{
 		gameStatePersist: gamePersist,
 		handStatePersist: handPersist,
