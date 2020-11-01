@@ -13,7 +13,7 @@ jobs:
           version: 19.03.13
       - run:
           name: Build images
-          command: make build
+          command: make docker-build
       - run:
           name: Run tests
           command: make test

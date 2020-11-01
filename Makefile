@@ -20,7 +20,6 @@ compile-proto: install-protoc
 .PHONY: build
 build: compile-proto
 	go build
-	docker-compose build
 
 .PHONY: fmt
 fmt:
@@ -82,8 +81,8 @@ run-redis: create-network
 	docker run -d --name redis --network $(DEFAULT_DOCKER_NET) -p 6379:6379 redis
 
 .PHONY: docker-build
-docker-build:
-	docker build -f docker/Dockerfile.gameserver . -t game-server
+docker-build: compile-proto
+	docker-compose build
 
 .PHONY: docker-test
 docker-test:
