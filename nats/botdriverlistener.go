@@ -74,7 +74,12 @@ func (n *NatsDriverBotListener) initializeGame(botDriverMessage *bot.DriverBotMe
 	gameNum := uint32(1)
 
 	// initialize nats game
-	natsGame, _ := initializeNatsGame(clubID, gameNum)
+	natsGame, err := initializeNatsGame(clubID, gameNum)
+	if err != nil {
+		msg := fmt.Sprintf("Unable to initialize nats game: %v", err)
+		natsTestDriverLogger.Error().Msg(msg)
+		panic(msg)
+	}
 
 	serverGame, gameNum := gameManager.InitializeGame(*natsGame, clubID,
 		gameNum,
@@ -93,7 +98,7 @@ func (n *NatsDriverBotListener) initializeGame(botDriverMessage *bot.DriverBotMe
 		MessageType: bot.GameInitialized,
 	}
 	data, _ := jsoniter.Marshal(response)
-	err := n.nc.Publish(bot.GameToBotDriver, data)
+	err = n.nc.Publish(bot.GameToBotDriver, data)
 	if err != nil {
 		natsTestDriverLogger.Error().Msg(fmt.Sprintf("Failed to deliver message to driver bot"))
 		return
