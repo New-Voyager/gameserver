@@ -63,7 +63,7 @@ docker-build:
 docker-test:
 	docker run  --name game-server-it game-server /app/game-server --script-tests --game-script /app/game-scripts/
 
-.PHONY: run-nats
+.PHONY: run-nats-server
 run-nats-server:
 	docker rm -f nats || true
 	docker run --network game --name nats -it -p 4222:4222 -p 9222:9222 -d nats:latest
