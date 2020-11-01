@@ -6,6 +6,7 @@ import (
 	"math/rand"
 
 	"voyager.com/server/bot"
+	"voyager.com/server/util"
 
 	"github.com/rs/zerolog"
 	"voyager.com/server/nats"
@@ -27,7 +28,6 @@ func main() {
 	runGameScriptTests = flag.Bool("script-tests", false, "runs script tests")
 	gameScriptsDir = flag.String("game-script", "test/game-scripts", "runs tests with game script files")
 	testName = flag.String("testname", "", "runs a specific test")
-	natsServer = flag.String("nats-server", "localhost", "nats server")
 
 	flag.Parse()
 
@@ -45,7 +45,7 @@ func main() {
 
 func runWithNats() {
 	fmt.Printf("Running the server with NATS\n")
-	natsURL := fmt.Sprintf("nats://%s:4222", *natsServer)
+	natsURL := util.GameServerEnvironment.GetNatsClientConnURL()
 	fmt.Printf("NATS URL: %s\n", natsURL)
 	listener, err := nats.NewNatsDriverBotListener(natsURL)
 	if err != nil {
@@ -57,7 +57,7 @@ func runWithNats() {
 }
 
 func runBot() {
-	natsURL := fmt.Sprintf("nats://%s:4222", *natsServer)
+	natsURL := util.GameServerEnvironment.GetNatsClientConnURL()
 	fmt.Printf("NATS URL: %s\n", natsURL)
 	botDriver, err := bot.NewDriverBot(natsURL)
 	if err != nil {

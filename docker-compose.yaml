@@ -9,6 +9,8 @@ services:
     tty: true
     restart: always
     environment:
+      NATS_HOST: nats
+      NATS_CLIENT_PORT: 4222
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_DB: 0

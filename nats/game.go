@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/encoding/protojson"
 	"voyager.com/server/game"
+	"voyager.com/server/util"
 )
 
 // NatsGame is an adapter that interacts with the NATS server and
@@ -21,7 +22,7 @@ import (
 
 var natsLogger = log.With().Str("logger_name", "nats::game").Logger()
 
-const NatsURL = "nats://localhost:4222"
+var NatsURL = util.GameServerEnvironment.GetNatsClientConnURL()
 
 var gameManager = game.NewGameManager()
 

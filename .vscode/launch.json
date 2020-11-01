@@ -11,6 +11,8 @@
       "mode": "auto",
       "program": "${workspaceFolder}/main.go",
       "env": {
+        "NATS_HOST": "localhost",
+        "NATS_CLIENT_PORT": "4222",
         "REDIS_HOST": "localhost",
         "REDIS_PORT": "6379",
         "REDIS_DB": "0"
@@ -24,6 +26,8 @@
       "mode": "auto",
       "program": "${workspaceFolder}/main.go",
       "env": {
+        "NATS_HOST": "localhost",
+        "NATS_CLIENT_PORT": "4222",
         "REDIS_HOST": "localhost",
         "REDIS_PORT": "6379",
         "REDIS_DB": "0"
@@ -37,6 +41,8 @@
       "mode": "auto",
       "program": "${workspaceFolder}/main.go",
       "env": {
+        "NATS_HOST": "localhost",
+        "NATS_CLIENT_PORT": "4222",
         "REDIS_HOST": "localhost",
         "REDIS_PORT": "6379",
         "REDIS_DB": "0"

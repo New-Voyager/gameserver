@@ -11,18 +11,52 @@ import (
 var environmentLogger = log.With().Str("logger_name", "util::environment").Logger()
 
 type gameServerEnvironment struct {
-	RedisHost string
-	RedisPort string
-	RedisPW   string
-	RedisDB   string
+	NatsHost       string
+	NatsClientPort string
+	RedisHost      string
+	RedisPort      string
+	RedisPW        string
+	RedisDB        string
 }
 
 // GameServerEnvironment is a helper object for accessing environment variables.
 var GameServerEnvironment = &gameServerEnvironment{
-	RedisHost: "REDIS_HOST",
-	RedisPort: "REDIS_PORT",
-	RedisPW:   "REDIS_PW",
-	RedisDB:   "REDIS_DB",
+	NatsHost:       "NATS_HOST",
+	NatsClientPort: "NATS_CLIENT_PORT",
+	RedisHost:      "REDIS_HOST",
+	RedisPort:      "REDIS_PORT",
+	RedisPW:        "REDIS_PW",
+	RedisDB:        "REDIS_DB",
+}
+
+func (g *gameServerEnvironment) GetNatsHost() string {
+	host := os.Getenv(g.NatsHost)
+	if host == "" {
+		msg := fmt.Sprintf("%s is not defined", g.NatsHost)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	return host
+}
+
+func (g *gameServerEnvironment) GetNatsClientPort() int {
+	portStr := os.Getenv(g.NatsClientPort)
+	if portStr == "" {
+		msg := fmt.Sprintf("%s is not defined", g.NatsClientPort)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	portNum, err := strconv.Atoi(portStr)
+	if err != nil {
+		msg := fmt.Sprintf("Invalid NATS client port %s", portStr)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	return portNum
+}
+
+func (g *gameServerEnvironment) GetNatsClientConnURL() string {
+	return fmt.Sprintf("nats://%s:%d", g.GetNatsHost(), g.GetNatsClientPort())
 }
 
 func (g *gameServerEnvironment) GetRedisHost() string {

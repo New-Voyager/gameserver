@@ -9,6 +9,7 @@ import (
 
 	"voyager.com/server/game"
 	"voyager.com/server/poker"
+	"voyager.com/server/util"
 
 	jsoniter "github.com/json-iterator/go"
 
@@ -20,7 +21,8 @@ import (
 
 var driverBotLogger = log.With().Str("logger_name", "server::driverbot").Logger()
 
-const NatsURL = "nats://localhost:4222"
+var NatsURL = util.GameServerEnvironment.GetNatsClientConnURL()
+
 const BotDriverToGame = "driverbot.2game"
 const GameToBotDriver = "game.2driverpot"
 const botPlayerID = 0xFFFFFFFF

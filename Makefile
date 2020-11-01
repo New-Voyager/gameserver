@@ -2,6 +2,8 @@ PROTOC_ZIP := protoc-3.7.1-linux-x86_64.zip
 GCP_PROJECT_ID := voyager-01-285603
 BUILD_NO := $(shell cat build_number.txt)
 
+DEV_NATS_HOST := localhost
+DEV_NATS_CLIENT_PORT := 4222
 DEV_REDIS_HOST := localhost
 DEV_REDIS_PORT := 6379
 DEV_REDIS_DB := 0
@@ -26,13 +28,23 @@ fmt:
 	cd poker && go fmt
 
 .PHONY: test
+test: export NATS_HOST=$(DEV_NATS_HOST)
+test: export NATS_CLIENT_PORT=$(DEV_NATS_CLIENT_PORT)
+test: export REDIS_HOST=$(DEV_REDIS_HOST)
+test: export REDIS_PORT=$(DEV_REDIS_PORT)
+test: export REDIS_DB=$(DEV_REDIS_DB)
 test: build
-	REDIS_HOST=$(DEV_REDIS_HOST) REDIS_PORT=$(DEV_REDIS_PORT) REDIS_DB=$(DEV_REDIS_DB) go test voyager.com/server/poker
-	REDIS_HOST=$(DEV_REDIS_HOST) REDIS_PORT=$(DEV_REDIS_PORT) REDIS_DB=$(DEV_REDIS_DB) go test voyager.com/server/game
+	go test voyager.com/server/poker
+	go test voyager.com/server/game
 
 .PHONY: script-test
+script-test: export NATS_HOST=$(DEV_NATS_HOST)
+script-test: export NATS_CLIENT_PORT=$(DEV_NATS_CLIENT_PORT)
+script-test: export REDIS_HOST=$(DEV_REDIS_HOST)
+script-test: export REDIS_PORT=$(DEV_REDIS_PORT)
+script-test: export REDIS_DB=$(DEV_REDIS_DB)
 script-test: run-redis
-	REDIS_HOST=$(DEV_REDIS_HOST) REDIS_PORT=$(DEV_REDIS_PORT) REDIS_DB=$(DEV_REDIS_DB) go run main.go --script-tests
+	go run main.go --script-tests
 
 .PHONY: install-protoc
 install-protoc:
@@ -73,13 +85,23 @@ run: create-network run-nats-server
 	sleep 1
 	docker run --network game -it game-server /app/game-server --server --nats-server nats
 
-.PHONY: run-local-server
+.PHONY: go-run-server
+go-run-server: export NATS_HOST=$(DEV_NATS_HOST)
+go-run-server: export NATS_CLIENT_PORT=$(DEV_NATS_CLIENT_PORT)
+go-run-server: export REDIS_HOST=$(DEV_REDIS_HOST)
+go-run-server: export REDIS_PORT=$(DEV_REDIS_PORT)
+go-run-server: export REDIS_DB=$(DEV_REDIS_DB)
 go-run-server:
-	REDIS_HOST=$(DEV_REDIS_HOST) REDIS_PORT=$(DEV_REDIS_PORT) REDIS_DB=$(DEV_REDIS_DB) go run ./main.go --server
+	go run ./main.go --server
 
-.PHONY: run-local-bot
+.PHONY: go-run-bot
+go-run-bot: export NATS_HOST=$(DEV_NATS_HOST)
+go-run-bot: export NATS_CLIENT_PORT=$(DEV_NATS_CLIENT_PORT)
+go-run-bot: export REDIS_HOST=$(DEV_REDIS_HOST)
+go-run-bot: export REDIS_PORT=$(DEV_REDIS_PORT)
+go-run-bot: export REDIS_DB=$(DEV_REDIS_DB)
 go-run-bot:
-	REDIS_HOST=$(DEV_REDIS_HOST) REDIS_PORT=$(DEV_REDIS_PORT) REDIS_DB=$(DEV_REDIS_DB) go run ./main.go --bot
+	go run ./main.go --bot
 
 .PHONY: run-all
 create-network:
