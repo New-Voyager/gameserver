@@ -1,6 +1,7 @@
 PROTOC_ZIP := protoc-3.7.1-linux-x86_64.zip
 GCP_PROJECT_ID := voyager-01-285603
 BUILD_NO := $(shell cat build_number.txt)
+DEFAULT_DOCKER_NET := game
 
 DEV_NATS_HOST := localhost
 DEV_NATS_CLIENT_PORT := 4222
@@ -19,6 +20,7 @@ compile-proto: install-protoc
 .PHONY: build
 build: compile-proto
 	go build
+	docker-compose build
 
 .PHONY: fmt
 fmt:
@@ -46,6 +48,18 @@ script-test: export REDIS_DB=$(DEV_REDIS_DB)
 script-test: run-redis
 	go run main.go --script-tests
 
+.PHONY: script-test-ci
+script-test-ci: create-network run-nats-server run-redis
+	docker run -t --rm \
+		--name gameserver \
+		--network $(DEFAULT_DOCKER_NET) \
+		-e NATS_HOST=nats \
+		-e NATS_CLIENT_PORT=4222 \
+		-e REDIS_HOST=redis \
+		-e REDIS_PORT=6379 \
+		-e REDIS_DB=0 \
+		game-server sh -c "/app/game-server --script-tests"
+
 .PHONY: install-protoc
 install-protoc:
 	curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.7.1/${PROTOC_ZIP}
@@ -63,9 +77,9 @@ run-nats: build-nats
 	make -C docker/nats run
 
 .PHONY: run-redis
-run-redis:
+run-redis: create-network
 	docker rm -f redis || true
-	docker run -d --name redis -p 6379:6379 redis
+	docker run -d --name redis --network $(DEFAULT_DOCKER_NET) -p 6379:6379 redis
 
 .PHONY: docker-build
 docker-build:
@@ -76,14 +90,9 @@ docker-test:
 	docker run  --name game-server-it game-server /app/game-server --script-tests --game-script /app/game-scripts/
 
 .PHONY: run-nats-server
-run-nats-server:
+run-nats-server: create-network
 	docker rm -f nats || true
-	docker run --network game --name nats -it -p 4222:4222 -p 9222:9222 -d nats:latest
-
-.PHONY: run
-run: create-network run-nats-server
-	sleep 1
-	docker run --network game -it game-server /app/game-server --server --nats-server nats
+	docker run -d --name nats --network $(DEFAULT_DOCKER_NET) -p 4222:4222 -p 9222:9222 nats-server
 
 .PHONY: go-run-server
 go-run-server: export NATS_HOST=$(DEV_NATS_HOST)
@@ -103,12 +112,9 @@ go-run-bot: export REDIS_DB=$(DEV_REDIS_DB)
 go-run-bot:
 	go run ./main.go --bot
 
-.PHONY: run-all
+.PHONY: create-network
 create-network:
-	docker rm -f nats || true
-	docker rm -f game-server || true
-	docker network rm game || true
-	docker network create game
+	@docker network create $(DEFAULT_DOCKER_NET) 2>/dev/null || true
 
 stop:
 	docker rm -f nats || true
