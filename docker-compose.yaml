@@ -16,6 +16,9 @@ services:
       - nats
 
   nats:
+    build:
+      context: docker/nats
+      dockerfile: Dockerfile.nats
     image: nats-server
     ports:
       - '4222:4222'
