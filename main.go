@@ -19,7 +19,6 @@ var runBotDriver *bool
 var runGameScriptTests *bool
 var gameScriptsDir *string
 var testName *string
-var natsServer *string
 
 func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
