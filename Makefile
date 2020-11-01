@@ -17,16 +17,16 @@ compile-proto: install-protoc
 	protoc -I=./proto --go_out=./game ./proto/gamemessage.proto
 	protoc -I=./proto --go_out=./game ./proto/handmessage.proto
 
+.PHONY: install-protoc
+install-protoc:
+	curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.7.1/${PROTOC_ZIP}
+	sudo unzip -o ${PROTOC_ZIP} -d /usr/local bin/protoc
+	sudo unzip -o ${PROTOC_ZIP} -d /usr/local 'include/*'
+	rm -f ${PROTOC_ZIP}
+
 .PHONY: build
 build: compile-proto
 	go build
-
-.PHONY: fmt
-fmt:
-	go fmt
-	cd game && go fmt
-	cd internal && go fmt
-	cd poker && go fmt
 
 .PHONY: test
 test: export NATS_HOST=$(DEV_NATS_HOST)
@@ -47,8 +47,44 @@ script-test: export REDIS_DB=$(DEV_REDIS_DB)
 script-test: run-redis
 	go run main.go --script-tests
 
-.PHONY: script-test-ci
-script-test-ci: create-network run-nats-server run-redis
+.PHONY: docker-build
+docker-build: compile-proto
+	docker-compose build
+
+.PHONY: create-network
+create-network:
+	@docker network create $(DEFAULT_DOCKER_NET) 2>/dev/null || true
+
+.PHONY: run-nats
+run-nats: create-network
+	docker rm -f nats || true
+	docker run -d --name nats --network $(DEFAULT_DOCKER_NET) -p 4222:4222 -p 9222:9222 nats-server
+
+.PHONY: run-redis
+run-redis: create-network
+	docker rm -f redis || true
+	docker run -d --name redis --network $(DEFAULT_DOCKER_NET) -p 6379:6379 redis
+
+.PHONY: run-server
+run-server: export NATS_HOST=$(DEV_NATS_HOST)
+run-server: export NATS_CLIENT_PORT=$(DEV_NATS_CLIENT_PORT)
+run-server: export REDIS_HOST=$(DEV_REDIS_HOST)
+run-server: export REDIS_PORT=$(DEV_REDIS_PORT)
+run-server: export REDIS_DB=$(DEV_REDIS_DB)
+run-server:
+	go run ./main.go --server
+
+.PHONY: run-bot
+run-bot: export NATS_HOST=$(DEV_NATS_HOST)
+run-bot: export NATS_CLIENT_PORT=$(DEV_NATS_CLIENT_PORT)
+run-bot: export REDIS_HOST=$(DEV_REDIS_HOST)
+run-bot: export REDIS_PORT=$(DEV_REDIS_PORT)
+run-bot: export REDIS_DB=$(DEV_REDIS_DB)
+run-bot:
+	go run ./main.go --bot
+
+.PHONY: docker-test
+docker-test: create-network run-nats run-redis
 	docker run -t --rm \
 		--name gameserver \
 		--network $(DEFAULT_DOCKER_NET) \
@@ -59,62 +95,6 @@ script-test-ci: create-network run-nats-server run-redis
 		-e REDIS_DB=0 \
 		game-server sh -c "/app/game-server --script-tests"
 
-.PHONY: install-protoc
-install-protoc:
-	curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.7.1/${PROTOC_ZIP}
-	sudo unzip -o ${PROTOC_ZIP} -d /usr/local bin/protoc
-	sudo unzip -o ${PROTOC_ZIP} -d /usr/local 'include/*'
-	rm -f ${PROTOC_ZIP}
-
-
-.PHONY: build-nats
-build-nats:
-	make -C docker/nats build
-
-.PHONY: run-nats
-run-nats: build-nats
-	make -C docker/nats run
-
-.PHONY: run-redis
-run-redis: create-network
-	docker rm -f redis || true
-	docker run -d --name redis --network $(DEFAULT_DOCKER_NET) -p 6379:6379 redis
-
-.PHONY: docker-build
-docker-build: compile-proto
-	docker-compose build
-
-.PHONY: docker-test
-docker-test:
-	docker run  --name game-server-it game-server /app/game-server --script-tests --game-script /app/game-scripts/
-
-.PHONY: run-nats-server
-run-nats-server: create-network
-	docker rm -f nats || true
-	docker run -d --name nats --network $(DEFAULT_DOCKER_NET) -p 4222:4222 -p 9222:9222 nats-server
-
-.PHONY: go-run-server
-go-run-server: export NATS_HOST=$(DEV_NATS_HOST)
-go-run-server: export NATS_CLIENT_PORT=$(DEV_NATS_CLIENT_PORT)
-go-run-server: export REDIS_HOST=$(DEV_REDIS_HOST)
-go-run-server: export REDIS_PORT=$(DEV_REDIS_PORT)
-go-run-server: export REDIS_DB=$(DEV_REDIS_DB)
-go-run-server:
-	go run ./main.go --server
-
-.PHONY: go-run-bot
-go-run-bot: export NATS_HOST=$(DEV_NATS_HOST)
-go-run-bot: export NATS_CLIENT_PORT=$(DEV_NATS_CLIENT_PORT)
-go-run-bot: export REDIS_HOST=$(DEV_REDIS_HOST)
-go-run-bot: export REDIS_PORT=$(DEV_REDIS_PORT)
-go-run-bot: export REDIS_DB=$(DEV_REDIS_DB)
-go-run-bot:
-	go run ./main.go --bot
-
-.PHONY: create-network
-create-network:
-	@docker network create $(DEFAULT_DOCKER_NET) 2>/dev/null || true
-
 stop:
 	docker rm -f nats || true
 	docker rm -f game-server || true
@@ -124,6 +104,13 @@ stop:
 .PHONY: up
 up:
 	docker-compose -f docker-compose.yaml up
+
+.PHONY: fmt
+fmt:
+	go fmt
+	cd game && go fmt
+	cd internal && go fmt
+	cd poker && go fmt
 
 .PHONY: publish
 publish:

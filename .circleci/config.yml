@@ -19,4 +19,4 @@ jobs:
           command: make test
       - run:
           name: Run game scripts test
-          command: make script-test-ci
+          command: make docker-test
