@@ -31,9 +31,7 @@ build: compile-proto
 .PHONY: test
 test: export NATS_HOST=$(DEV_NATS_HOST)
 test: export NATS_CLIENT_PORT=$(DEV_NATS_CLIENT_PORT)
-test: export REDIS_HOST=$(DEV_REDIS_HOST)
-test: export REDIS_PORT=$(DEV_REDIS_PORT)
-test: export REDIS_DB=$(DEV_REDIS_DB)
+test: export PERSIST_METHOD=memory
 test: build
 	go test voyager.com/server/poker
 	go test voyager.com/server/game
@@ -41,6 +39,7 @@ test: build
 .PHONY: script-test
 script-test: export NATS_HOST=$(DEV_NATS_HOST)
 script-test: export NATS_CLIENT_PORT=$(DEV_NATS_CLIENT_PORT)
+script-test: export PERSIST_METHOD=redis
 script-test: export REDIS_HOST=$(DEV_REDIS_HOST)
 script-test: export REDIS_PORT=$(DEV_REDIS_PORT)
 script-test: export REDIS_DB=$(DEV_REDIS_DB)
@@ -68,6 +67,7 @@ run-redis: create-network
 .PHONY: run-server
 run-server: export NATS_HOST=$(DEV_NATS_HOST)
 run-server: export NATS_CLIENT_PORT=$(DEV_NATS_CLIENT_PORT)
+run-server: export PERSIST_METHOD=redis
 run-server: export REDIS_HOST=$(DEV_REDIS_HOST)
 run-server: export REDIS_PORT=$(DEV_REDIS_PORT)
 run-server: export REDIS_DB=$(DEV_REDIS_DB)
@@ -77,6 +77,7 @@ run-server:
 .PHONY: run-bot
 run-bot: export NATS_HOST=$(DEV_NATS_HOST)
 run-bot: export NATS_CLIENT_PORT=$(DEV_NATS_CLIENT_PORT)
+run-bot: export PERSIST_METHOD=redis
 run-bot: export REDIS_HOST=$(DEV_REDIS_HOST)
 run-bot: export REDIS_PORT=$(DEV_REDIS_PORT)
 run-bot: export REDIS_DB=$(DEV_REDIS_DB)
@@ -93,7 +94,7 @@ docker-test: create-network run-nats run-redis
 		-e REDIS_HOST=redis \
 		-e REDIS_PORT=6379 \
 		-e REDIS_DB=0 \
-		game-server sh -c "/app/game-server --script-tests"
+		game-server sh -c "PERSIST_METHOD=redis /app/game-server --script-tests && PERSIST_METHOD=memory /app/game-server --script-tests"
 
 stop:
 	docker rm -f nats || true

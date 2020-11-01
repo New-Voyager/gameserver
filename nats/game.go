@@ -24,8 +24,6 @@ var natsLogger = log.With().Str("logger_name", "nats::game").Logger()
 
 var NatsURL = util.GameServerEnvironment.GetNatsClientConnURL()
 
-var gameManager = game.NewGameManager()
-
 // id: clubId.gameNum
 /**
 For each game, we are going to listen in two subjects for incoming messages from players.

@@ -2,8 +2,6 @@ package game
 
 import (
 	"fmt"
-
-	"voyager.com/server/util"
 )
 
 type Manager struct {
@@ -13,14 +11,7 @@ type Manager struct {
 	activeGames      map[string]*Game
 }
 
-func NewGameManager() *Manager {
-	var redisHost = util.GameServerEnvironment.GetRedisHost()
-	var redisPort = util.GameServerEnvironment.GetRedisPort()
-	var redisPW = util.GameServerEnvironment.GetRedisPW()
-	var redisDB = util.GameServerEnvironment.GetRedisDB()
-	var gamePersist = NewRedisGameStateTracker(fmt.Sprintf("%s:%d", redisHost, redisPort), redisPW, redisDB)
-	var handPersist = NewRedisHandStateTracker(fmt.Sprintf("%s:%d", redisHost, redisPort), redisPW, redisDB)
-
+func NewGameManager(gamePersist PersistGameState, handPersist PersistHandState) *Manager {
 	return &Manager{
 		gameStatePersist: gamePersist,
 		handStatePersist: handPersist,

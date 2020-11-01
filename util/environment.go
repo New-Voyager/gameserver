@@ -13,6 +13,7 @@ var environmentLogger = log.With().Str("logger_name", "util::environment").Logge
 type gameServerEnvironment struct {
 	NatsHost       string
 	NatsClientPort string
+	PersistMethod  string
 	RedisHost      string
 	RedisPort      string
 	RedisPW        string
@@ -23,6 +24,7 @@ type gameServerEnvironment struct {
 var GameServerEnvironment = &gameServerEnvironment{
 	NatsHost:       "NATS_HOST",
 	NatsClientPort: "NATS_CLIENT_PORT",
+	PersistMethod:  "PERSIST_METHOD",
 	RedisHost:      "REDIS_HOST",
 	RedisPort:      "REDIS_PORT",
 	RedisPW:        "REDIS_PW",
@@ -57,6 +59,16 @@ func (g *gameServerEnvironment) GetNatsClientPort() int {
 
 func (g *gameServerEnvironment) GetNatsClientConnURL() string {
 	return fmt.Sprintf("nats://%s:%d", g.GetNatsHost(), g.GetNatsClientPort())
+}
+
+func (g *gameServerEnvironment) GetPersistMethod() string {
+	method := os.Getenv(g.PersistMethod)
+	if method == "" {
+		msg := fmt.Sprintf("%s is not defined", g.PersistMethod)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	return method
 }
 
 func (g *gameServerEnvironment) GetRedisHost() string {

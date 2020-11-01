@@ -81,7 +81,7 @@ func (n *NatsDriverBotListener) initializeGame(botDriverMessage *bot.DriverBotMe
 		panic(msg)
 	}
 
-	serverGame, gameNum := gameManager.InitializeGame(*natsGame, clubID,
+	serverGame, gameNum := game.GameManager.InitializeGame(*natsGame, clubID,
 		gameNum,
 		gameType,
 		gameConfig.Title,
