@@ -37,10 +37,15 @@ use the following command to build and run nats server.
 
 make run-nats
 
+# Run Redis server
+Run the Redis server.
+```
+make run-redis
+```
+
 # Run game server
-go run main.go --server
+make go-run-server
 
 
 # Run bot testing
-go run main.go --bot
-
+make go-run-bot

@@ -2,6 +2,10 @@ PROTOC_ZIP := protoc-3.7.1-linux-x86_64.zip
 GCP_PROJECT_ID := voyager-01-285603
 BUILD_NO := $(shell cat build_number.txt)
 
+DEV_REDIS_HOST := localhost
+DEV_REDIS_PORT := 6379
+DEV_REDIS_DB := 0
+
 .PHONY: compile-proto
 compile-proto: install-protoc
 	go get -u github.com/golang/protobuf/protoc-gen-go
@@ -23,12 +27,12 @@ fmt:
 
 .PHONY: test
 test: build
-	go test voyager.com/server/poker
-	go test voyager.com/server/game
+	REDIS_HOST=$(DEV_REDIS_HOST) REDIS_PORT=$(DEV_REDIS_PORT) REDIS_DB=$(DEV_REDIS_DB) go test voyager.com/server/poker
+	REDIS_HOST=$(DEV_REDIS_HOST) REDIS_PORT=$(DEV_REDIS_PORT) REDIS_DB=$(DEV_REDIS_DB) go test voyager.com/server/game
 
 .PHONY: script-test
-script-test:
-	go run main.go --script-tests
+script-test: run-redis
+	REDIS_HOST=$(DEV_REDIS_HOST) REDIS_PORT=$(DEV_REDIS_PORT) REDIS_DB=$(DEV_REDIS_DB) go run main.go --script-tests
 
 .PHONY: install-protoc
 install-protoc:
@@ -45,6 +49,11 @@ build-nats:
 .PHONY: run-nats
 run-nats: build-nats
 	make -C docker/nats run
+
+.PHONY: run-redis
+run-redis:
+	docker rm -f redis || true
+	docker run -d --name redis -p 6379:6379 redis
 
 .PHONY: docker-build
 docker-build:
@@ -63,6 +72,14 @@ run-nats-server:
 run: create-network run-nats-server
 	sleep 1
 	docker run --network game -it game-server /app/game-server --server --nats-server nats
+
+.PHONY: run-local-server
+go-run-server:
+	REDIS_HOST=$(DEV_REDIS_HOST) REDIS_PORT=$(DEV_REDIS_PORT) REDIS_DB=$(DEV_REDIS_DB) go run ./main.go --server
+
+.PHONY: run-local-bot
+go-run-bot:
+	REDIS_HOST=$(DEV_REDIS_HOST) REDIS_PORT=$(DEV_REDIS_PORT) REDIS_DB=$(DEV_REDIS_DB) go run ./main.go --bot
 
 .PHONY: run-all
 create-network:
