@@ -2,12 +2,10 @@ package game
 
 import (
 	"fmt"
-	"sync"
 
 	"voyager.com/server/util"
 )
 
-var gameMgrOnce sync.Once
 var GameManager *Manager = CreateGameManager()
 
 func CreateGameManager() *Manager {
