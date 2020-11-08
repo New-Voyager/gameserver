@@ -10,7 +10,7 @@ import (
 func (game *Game) handleGameMessage(message *GameMessage) {
 	channelGameLogger.Trace().
 		Uint32("club", game.clubID).
-		Uint32("game", game.gameNum).
+		Uint64("game", game.gameID).
 		Msg(fmt.Sprintf("Game message: %s. %v", message.MessageType, message))
 
 	switch message.MessageType {
@@ -46,7 +46,7 @@ func (game *Game) onPlayerTakeSeat(message *GameMessage) error {
 	if gameSit.SeatNo <= 0 || gameSit.SeatNo > gameState.MaxSeats {
 		channelGameLogger.Error().
 			Uint32("club", game.clubID).
-			Uint32("game", game.gameNum).
+			Uint64("game", game.gameID).
 			Str("message", "GameSitMessage").
 			Msg(fmt.Sprintf("Invalid seat no: %d Allowed values from 1-%d", gameSit.SeatNo, gameState.MaxSeats))
 		return fmt.Errorf("Invalid seat no: %d Allowed values from 1-%d", gameSit.SeatNo, gameState.MaxSeats)
@@ -57,7 +57,7 @@ func (game *Game) onPlayerTakeSeat(message *GameMessage) error {
 		// there is already a player in the seat
 		channelGameLogger.Error().
 			Uint32("club", game.clubID).
-			Uint32("game", game.gameNum).
+			Uint64("game", game.gameID).
 			Str("message", "GameSitMessage").
 			Msg(fmt.Sprintf("A player is already sitting in the seat: %d", gameSit.SeatNo))
 		return fmt.Errorf("A player is already sitting in the seat: %d", gameSit.SeatNo)
@@ -65,7 +65,7 @@ func (game *Game) onPlayerTakeSeat(message *GameMessage) error {
 
 	channelGameLogger.Info().
 		Uint32("club", game.clubID).
-		Uint32("game", game.gameNum).
+		Uint64("game", game.gameID).
 		Uint32("player", gameSit.PlayerId).
 		Str("message", "GameSitMessage").
 		Msg(fmt.Sprintf("Player %d took %d seat, buy-in: %f", gameSit.PlayerId, gameSit.SeatNo, gameSit.BuyIn))
@@ -90,7 +90,7 @@ func (game *Game) onPlayerTakeSeat(message *GameMessage) error {
 
 	// send player sat message to all
 	playerSatMessage := GamePlayerSatMessage{SeatNo: gameSit.SeatNo, BuyIn: gameSit.BuyIn, PlayerId: gameSit.PlayerId}
-	gameMessage := GameMessage{MessageType: PlayerSat, ClubId: message.ClubId, GameNum: message.GameNum}
+	gameMessage := GameMessage{MessageType: PlayerSat, ClubId: message.ClubId, GameId: message.GameId}
 	gameMessage.GameMessage = &GameMessage_PlayerSat{PlayerSat: &playerSatMessage}
 	game.broadcastGameMessage(&gameMessage)
 	return nil
@@ -146,7 +146,7 @@ func (game *Game) onQueryTableState(message *GameMessage) error {
 	gameTableState := &GameTableStateMessage{PlayersState: playersAtTable}
 	var gameMessage GameMessage
 	gameMessage.ClubId = game.clubID
-	gameMessage.GameNum = game.gameNum
+	gameMessage.GameId = game.gameID
 	gameMessage.MessageType = GameTableState
 	gameMessage.PlayerId = message.GetQueryTableState().PlayerId
 	gameMessage.GameMessage = &GameMessage_TableState{TableState: gameTableState}

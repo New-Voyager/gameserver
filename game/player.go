@@ -25,7 +25,7 @@ var playerLogger = log.With().Str("logger_name", "game::player").Logger()
 //
 type Player struct {
 	ClubID                  uint32
-	GameNum                 uint32
+	GameID                  uint64
 	PlayerName              string
 	PlayerID                uint32
 	SeatNo                  uint32
@@ -54,10 +54,10 @@ type PlayerMessageDelegate interface {
 	GameMessageFromGame(gameMessageBytes []byte, gameMessage *GameMessage, json []byte)
 }
 
-func NewPlayer(clubID uint32, gameNum uint32, name string, playerID uint32, delegate PlayerMessageDelegate) *Player {
+func NewPlayer(clubID uint32, gameID uint64, name string, playerID uint32, delegate PlayerMessageDelegate) *Player {
 	channelPlayer := Player{
 		ClubID:        clubID,
-		GameNum:       gameNum,
+		GameID:        gameID,
 		PlayerID:      playerID,
 		PlayerName:    name,
 		delegate:      delegate,
@@ -95,7 +95,7 @@ func (p *Player) handleHandMessage(messageBytes []byte, message HandMessage) {
 	} else {
 		playerLogger.Warn().
 			Uint32("club", message.ClubId).
-			Uint32("game", message.GameNum).
+			Uint64("game", message.GameId).
 			Msg(fmt.Sprintf("Unhandled Hand message type: %s %v", message.MessageType, message))
 	}
 }
@@ -305,10 +305,10 @@ func (p *Player) GameProtoMessageFromAdapter(message *GameMessage) error {
 	return nil
 }
 
-func (p *Player) StartGame(clubID uint32, gameNum uint32) error {
+func (p *Player) StartGame(clubID uint32, gameID uint64) error {
 	var message GameMessage
 	message.ClubId = clubID
-	message.GameNum = gameNum
+	message.GameId = gameID
 	message.MessageType = GameStart
 
 	startGame := &GameStartMessage{RequestingPlayerId: p.PlayerID}
@@ -318,18 +318,18 @@ func (p *Player) StartGame(clubID uint32, gameNum uint32) error {
 	return e
 }
 
-func (p *Player) JoinGame(clubID uint32, gameNum uint32) error {
+func (p *Player) JoinGame(clubID uint32, gameID uint64) error {
 	var message GameMessage
 	message.ClubId = clubID
-	message.GameNum = gameNum
+	message.GameId = gameID
 	message.MessageType = GameJoin
 
-	gameID := fmt.Sprintf("%d:%d", clubID, gameNum)
-	if _, ok := GameManager.activeGames[gameID]; !ok {
+	gameIDStr := fmt.Sprintf("%d", gameID)
+	if _, ok := GameManager.activeGames[gameIDStr]; !ok {
 		// game not found
-		return fmt.Errorf("Game %d is not found", gameNum)
+		return fmt.Errorf("Game %d is not found", gameID)
 	}
-	game, _ := GameManager.activeGames[gameID]
+	game, _ := GameManager.activeGames[gameIDStr]
 	game.addPlayer(p)
 	p.game = game
 
@@ -342,7 +342,7 @@ func (p *Player) JoinGame(clubID uint32, gameNum uint32) error {
 	e := p.GameProtoMessageFromAdapter(&message)
 	if e != nil {
 		p.ClubID = clubID
-		p.GameNum = gameNum
+		p.GameID = gameID
 	}
 	return e
 }
@@ -350,7 +350,7 @@ func (p *Player) JoinGame(clubID uint32, gameNum uint32) error {
 func (p *Player) SitAtTable(seatNo uint32, buyIn float32) error {
 	var message GameMessage
 	message.ClubId = p.ClubID
-	message.GameNum = p.GameNum
+	message.GameId = p.GameID
 	message.MessageType = PlayerTakeSeat
 
 	sitMessage := &GameSitMessage{PlayerId: p.PlayerID, SeatNo: seatNo, BuyIn: buyIn}
@@ -372,7 +372,7 @@ func (p *Player) SetupNextHand(deck []byte, buttonPos uint32) error {
 	}
 
 	gameMessage.ClubId = p.ClubID
-	gameMessage.GameNum = p.GameNum
+	gameMessage.GameId = p.GameID
 	gameMessage.MessageType = GameSetupNextHand
 	gameMessage.GameMessage = &GameMessage_NextHand{NextHand: nextHand}
 	e := p.GameProtoMessageFromAdapter(&gameMessage)
@@ -383,7 +383,7 @@ func (p *Player) GetTableState() error {
 	queryTableState := &GameQueryTableStateMessage{PlayerId: p.PlayerID}
 	var gameMessage GameMessage
 	gameMessage.ClubId = p.ClubID
-	gameMessage.GameNum = p.GameNum
+	gameMessage.GameId = p.GameID
 	gameMessage.PlayerId = p.PlayerID
 	gameMessage.MessageType = GameQueryTableState
 	gameMessage.GameMessage = &GameMessage_QueryTableState{QueryTableState: queryTableState}
@@ -396,12 +396,12 @@ func (p *Player) sendGameMessage(message *GameMessage) error {
 	if err != nil {
 		return err
 	}
-	gameID := fmt.Sprintf("%d:%d", p.ClubID, p.GameNum)
-	if _, ok := GameManager.activeGames[gameID]; !ok {
+	gameIDStr := fmt.Sprintf("%d", p.GameID)
+	if _, ok := GameManager.activeGames[gameIDStr]; !ok {
 		// game not found
-		return fmt.Errorf("Game %d is not found", p.GameNum)
+		return fmt.Errorf("Game %d is not found", p.GameID)
 	}
-	game, _ := GameManager.activeGames[gameID]
+	game, _ := GameManager.activeGames[gameIDStr]
 	game.chGame <- messageData
 	return nil
 }
@@ -413,7 +413,7 @@ func (p *Player) DealHand() error {
 	dealHandMessage := &GameDealHandMessage{}
 
 	gameMessage.ClubId = p.ClubID
-	gameMessage.GameNum = p.GameNum
+	gameMessage.GameId = p.GameID
 	gameMessage.MessageType = GameDealHand
 	gameMessage.GameMessage = &GameMessage_DealHand{DealHand: dealHandMessage}
 	e := p.GameProtoMessageFromAdapter(&gameMessage)

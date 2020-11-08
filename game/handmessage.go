@@ -9,7 +9,7 @@ import (
 func (game *Game) handleHandMessage(message *HandMessage) {
 	channelGameLogger.Debug().
 		Uint32("club", game.clubID).
-		Uint32("game", game.gameNum).
+		Uint64("game", game.gameID).
 		Uint32("player", message.SeatNo).
 		Str("message", message.MessageType).
 		Msg(fmt.Sprintf("%v", message))
@@ -23,7 +23,7 @@ func (game *Game) onPlayerActed(message *HandMessage) error {
 
 	channelGameLogger.Info().
 		Uint32("club", game.clubID).
-		Uint32("game", game.gameNum).
+		Uint64("game", game.gameID).
 		Uint32("player", message.SeatNo).
 		Str("message", message.MessageType).
 		Msg(fmt.Sprintf("%v", message))
@@ -69,7 +69,7 @@ func (game *Game) onPlayerActed(message *HandMessage) error {
 func (game *Game) gotoFlop(gameState *GameState, handState *HandState) {
 	channelGameLogger.Info().
 		Uint32("club", game.clubID).
-		Uint32("game", game.gameNum).
+		Uint64("game", game.gameID).
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
 	// we need to send flop cards to the board
@@ -88,7 +88,7 @@ func (game *Game) gotoFlop(gameState *GameState, handState *HandState) {
 	cardsStr := poker.CardsToString(boardCards)
 	flopMessage := &Flop{Board: boardCards, CardsStr: cardsStr}
 	handMessage := &HandMessage{ClubId: game.clubID,
-		GameNum:     game.gameNum,
+		GameId:      game.gameID,
 		HandNum:     handState.HandNum,
 		MessageType: HandFlop,
 		HandStatus:  handState.CurrentState}
@@ -100,7 +100,7 @@ func (game *Game) gotoFlop(gameState *GameState, handState *HandState) {
 func (game *Game) gotoTurn(gameState *GameState, handState *HandState) {
 	channelGameLogger.Info().
 		Uint32("club", game.clubID).
-		Uint32("game", game.gameNum).
+		Uint64("game", game.gameID).
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
 	// send turn card to the board
@@ -118,7 +118,7 @@ func (game *Game) gotoTurn(gameState *GameState, handState *HandState) {
 	}
 	turnMessage := &Turn{Board: boardCards, TurnCard: uint32(turn), CardsStr: cardsStr}
 	handMessage := &HandMessage{ClubId: game.clubID,
-		GameNum:     game.gameNum,
+		GameId:      game.gameID,
 		HandNum:     handState.HandNum,
 		MessageType: HandTurn,
 		HandStatus:  handState.CurrentState}
@@ -130,7 +130,7 @@ func (game *Game) gotoTurn(gameState *GameState, handState *HandState) {
 func (game *Game) gotoRiver(gameState *GameState, handState *HandState) {
 	channelGameLogger.Info().
 		Uint32("club", game.clubID).
-		Uint32("game", game.gameNum).
+		Uint64("game", game.gameID).
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
 	// send river card to the board
@@ -148,7 +148,7 @@ func (game *Game) gotoRiver(gameState *GameState, handState *HandState) {
 	}
 	riverMessage := &River{Board: boardCards, RiverCard: uint32(river), CardsStr: cardsStr}
 	handMessage := &HandMessage{ClubId: game.clubID,
-		GameNum:     game.gameNum,
+		GameId:      game.gameID,
 		HandNum:     handState.HandNum,
 		MessageType: HandRiver,
 		HandStatus:  handState.CurrentState}
@@ -170,7 +170,7 @@ func (game *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *Hand
 	// now send the data to users
 	handMessage := &HandMessage{
 		ClubId:      game.clubID,
-		GameNum:     game.gameNum,
+		GameId:      game.gameID,
 		HandNum:     handState.HandNum,
 		MessageType: HandResultMessage,
 		HandStatus:  handState.CurrentState,
@@ -212,7 +212,7 @@ func (game *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 			// tell the next player to act
 			nextSeatMessage := &HandMessage{
 				ClubId:      game.clubID,
-				GameNum:     game.gameNum,
+				GameId:      game.gameID,
 				HandNum:     handState.HandNum,
 				MessageType: HandPlayerAction,
 			}
@@ -228,7 +228,7 @@ func (game *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 			}
 			message := &HandMessage{
 				ClubId:      game.clubID,
-				GameNum:     game.gameNum,
+				GameId:      game.gameID,
 				HandNum:     handState.HandNum,
 				HandStatus:  handState.CurrentState,
 				MessageType: HandNextAction,
@@ -247,7 +247,7 @@ func (game *Game) handleNoMoreActions(gameState *GameState, handState *HandState
 	}
 	message := &HandMessage{
 		ClubId:      game.clubID,
-		GameNum:     game.gameNum,
+		GameId:      game.gameID,
 		HandNum:     handState.HandNum,
 		HandStatus:  handState.CurrentState,
 		MessageType: HandNoMoreActions,
@@ -283,7 +283,7 @@ func (game *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 		// now send the data to users
 		handMessage := &HandMessage{
 			ClubId:      game.clubID,
-			GameNum:     game.gameNum,
+			GameId:      game.gameID,
 			HandNum:     handState.HandNum,
 			MessageType: HandResultMessage,
 			HandStatus:  handState.CurrentState,

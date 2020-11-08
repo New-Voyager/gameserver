@@ -96,7 +96,7 @@ message SeatBetting {
 message HandState {
   uint32 club_id = 1;
 
-  uint32 game_num = 2;
+  uint64 game_id = 2;
 
   uint32 hand_num = 3;
 

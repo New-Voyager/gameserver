@@ -18,6 +18,7 @@ type gameServerEnvironment struct {
 	RedisPort      string
 	RedisPW        string
 	RedisDB        string
+	APIServerUrl   string
 }
 
 // GameServerEnvironment is a helper object for accessing environment variables.
@@ -29,6 +30,7 @@ var GameServerEnvironment = &gameServerEnvironment{
 	RedisPort:      "REDIS_PORT",
 	RedisPW:        "REDIS_PW",
 	RedisDB:        "REDIS_DB",
+	APIServerUrl:   "API_SERVER_URL",
 }
 
 func (g *gameServerEnvironment) GetNatsHost() string {
@@ -116,4 +118,14 @@ func (g *gameServerEnvironment) GetRedisDB() int {
 		panic(msg)
 	}
 	return dbNum
+}
+
+func (g *gameServerEnvironment) GetApiServerUrl() string {
+	host := os.Getenv(g.APIServerUrl)
+	if host == "" {
+		msg := fmt.Sprintf("%s is not defined", g.APIServerUrl)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	return host
 }

@@ -10,7 +10,7 @@ import (
 func (h *HandState) PrintTable(players map[uint32]string) string {
 	var b strings.Builder
 	b.Grow(32)
-	fmt.Fprintf(&b, "Game Num: %d Hand Num: %d, Seats: [", h.GameNum, h.HandNum)
+	fmt.Fprintf(&b, "Game ID: %d Hand Num: %d, Seats: [", h.GameId, h.HandNum)
 	for seatNo, playerID := range h.GetPlayersInSeats() {
 		seatNo++
 		if playerID == 0 {
