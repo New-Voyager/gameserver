@@ -1,6 +1,10 @@
 package nats
 
-import "fmt"
+import (
+	"fmt"
+
+	"voyager.com/server/game"
+)
 
 // This game manager is similar to game.GameManager.
 // However, this game manager active NatsGame objects.
@@ -13,9 +17,9 @@ var natsGameManager = &GameManager{
 	activeGames: make(map[string]*NatsGame),
 }
 
-func initializeNatsGame(clubID uint32, gameID uint64) (*NatsGame, error) {
+func initializeNatsGame(clubID uint32, gameID uint64, config *game.GameConfig) (*NatsGame, error) {
 	gameIDStr := fmt.Sprintf("%d:%d", clubID, gameID)
-	game, err := NewGame(clubID, gameID)
+	game, err := NewGame(clubID, gameID, config)
 	if err != nil {
 		return nil, err
 	}

@@ -62,7 +62,7 @@ type NatsGame struct {
 	nc             *natsgo.Conn
 }
 
-func NewGame(clubID uint32, gameID uint64) (*NatsGame, error) {
+func NewGame(clubID uint32, gameID uint64, config *game.GameConfig) (*NatsGame, error) {
 	// let us try to connect to nats server
 	nc, err := natsgo.Connect(NatsURL)
 	if err != nil {
@@ -79,7 +79,7 @@ func NewGame(clubID uint32, gameID uint64) (*NatsGame, error) {
 	hand2PlayerAllSubject := fmt.Sprintf("game.%d.hand.all", gameID)
 
 	// we need to use the API to get the game configuration
-	game := &NatsGame{
+	natsGame := &NatsGame{
 		clubID:                 clubID,
 		gameID:                 gameID,
 		chEndGame:              make(chan bool),
@@ -92,18 +92,27 @@ func NewGame(clubID uint32, gameID uint64) (*NatsGame, error) {
 
 	// subscribe to topics
 	var e error
-	game.player2HandSub, e = nc.Subscribe(player2HandSubject, game.player2Hand)
+	natsGame.player2HandSub, e = nc.Subscribe(player2HandSubject, natsGame.player2Hand)
 	if e != nil {
 		natsLogger.Error().Msg(fmt.Sprintf("Failed to subscribe to %s", player2HandSubject))
 		return nil, e
 	}
-	game.player2GameSub, e = nc.Subscribe(player2GameSubject, game.player2Game)
+	natsGame.player2GameSub, e = nc.Subscribe(player2GameSubject, natsGame.player2Game)
 	if e != nil {
 		natsLogger.Error().Msg(fmt.Sprintf("Failed to subscribe to %s", player2GameSubject))
-		game.player2HandSub.Unsubscribe()
+		natsGame.player2HandSub.Unsubscribe()
 		return nil, e
 	}
-	return game, nil
+	gameType := game.GameType(game.GameType_value[config.GameTypeStr])
+
+	serverGame, gameID := game.GameManager.InitializeGame(*natsGame, clubID,
+		gameID,
+		gameType,
+		config.Title,
+		int(config.MinPlayers),
+		config.AutoStart, false)
+	natsGame.serverGame = serverGame
+	return natsGame, nil
 }
 
 func (n *NatsGame) cleanup() {

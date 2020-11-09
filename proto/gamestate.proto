@@ -78,4 +78,13 @@ message GameState {
 
   uint32 max_seats = 14;
   uint32 min_players = 15;
+  uint32 game_length = 16;
+  float rakePercentage = 17;
+  float rakeCap = 18;
+  float buyInMin = 19;
+  float buyInMax = 20;
+  uint32 actionTime = 21;
+  bool privateGame = 22;
+  uint32 breakLength = 23;
+  bool autoKickAfterBreak = 24;
 }

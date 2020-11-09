@@ -39,7 +39,7 @@ func (g *TestGameScript) waitForObserver() *game.HandMessage {
 
 // configures the table with the configuration
 func (g *TestGameScript) configure(t *TestDriver) error {
-	gameType := game.GameType(game.GameType_value[g.gameScript.GameConfig.GameType])
+	gameType := game.GameType(game.GameType_value[g.gameScript.GameConfig.GameTypeStr])
 	g.testGame, g.observer = NewTestGame(g, 1, gameType, g.gameScript.GameConfig.Title, g.gameScript.GameConfig.AutoStart, g.gameScript.Players)
 	g.testGame.Start(g.gameScript.AssignSeat.Seats)
 	// get current game status

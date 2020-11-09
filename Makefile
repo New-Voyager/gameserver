@@ -17,6 +17,14 @@ compile-proto: install-protoc
 	protoc -I=./proto --go_out=./game ./proto/gamemessage.proto
 	protoc -I=./proto --go_out=./game ./proto/handmessage.proto
 
+.PHONY: compile-proto2
+compile-proto2:
+	go get -u github.com/golang/protobuf/protoc-gen-go
+	protoc -I=./proto --go_out=./game ./proto/gamestate.proto
+	protoc -I=./proto --go_out=./game ./proto/handstate.proto
+	protoc -I=./proto --go_out=./game ./proto/gamemessage.proto
+	protoc -I=./proto --go_out=./game ./proto/handmessage.proto
+
 .PHONY: install-protoc
 install-protoc:
 	curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.7.1/${PROTOC_ZIP}
@@ -26,6 +34,11 @@ install-protoc:
 
 .PHONY: build
 build: compile-proto
+	go build
+
+
+.PHONY: build2
+build2: compile-proto2
 	go build
 
 .PHONY: test
