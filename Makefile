@@ -10,7 +10,7 @@ DEV_REDIS_PORT := 6379
 DEV_REDIS_DB := 0
 
 .PHONY: compile-proto
-compile-proto: 
+compile-proto: install-protoc
 	go get -u github.com/golang/protobuf/protoc-gen-go
 	protoc -I=./proto --go_out=./game ./proto/gamestate.proto
 	protoc -I=./proto --go_out=./game ./proto/handstate.proto
