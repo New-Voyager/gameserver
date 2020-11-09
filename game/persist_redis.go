@@ -106,7 +106,7 @@ func (r *RedisHandStateTracker) Save(clubID uint32, gameID uint64, handID uint32
 }
 
 func (r *RedisHandStateTracker) Remove(clubID uint32, gameID uint64, handID uint32) error {
-	key := fmt.Sprintf("%d|%d", clubID, gameID, handID)
+	key := fmt.Sprintf("%d|%d", gameID, handID)
 	err := r.rdclient.Del(context.Background(), key).Err()
 	return err
 }
