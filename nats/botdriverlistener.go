@@ -3,8 +3,6 @@ package nats
 import (
 	"fmt"
 
-	"voyager.com/server/game"
-
 	jsoniter "github.com/json-iterator/go"
 
 	natsgo "github.com/nats-io/nats.go"
@@ -63,26 +61,16 @@ func (n *NatsDriverBotListener) listenForMessages(msg *natsgo.Msg) {
 
 func (n *NatsDriverBotListener) initializeGame(botDriverMessage *bot.DriverBotMessage) {
 	gameConfig := botDriverMessage.GameConfig
-	gameType := game.GameType(game.GameType_value[gameConfig.GameType])
 	clubID := uint32(1)
 	gameID := uint64(1)
 
 	// initialize nats game
-	natsGame, err := initializeNatsGame(clubID, gameID)
+	_, err := initializeNatsGame(clubID, gameID, gameConfig)
 	if err != nil {
 		msg := fmt.Sprintf("Unable to initialize nats game: %v", err)
 		natsTestDriverLogger.Error().Msg(msg)
 		panic(msg)
 	}
-
-	serverGame, gameID := game.GameManager.InitializeGame(*natsGame, clubID,
-		gameID,
-		gameType,
-		gameConfig.Title,
-		int(gameConfig.MinPlayers),
-		gameConfig.AutoStart, false)
-
-	natsGame.serverGame = serverGame
 
 	// respond to the driver bot with the game num
 	response := &bot.DriverBotMessage{

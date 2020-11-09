@@ -27,16 +27,30 @@ package game
 
 */
 type GameConfig struct {
-	GameType    string  `yaml:"type"`
-	MinPlayers  uint32  `yaml:"min-players"`
-	MaxPlayers  uint32  `yaml:"max-players"`
-	MinBuyin    float32 `yaml:"min-buyin"`
-	MaxBuyin    float32 `yaml:"max-buyin"`
-	AutoStart   bool    `yaml:"auto-start"`
-	AutoApprove bool    `yaml:"auto-approve"`
-	Title       string  `yaml:"title"`
-	SB          float32 `yaml:"sb"`
-	BB          float32 `yaml:"bb"`
+	ClubId             int     `json:"clubId"`
+	GameId             int     `json:"gameId"`
+	GameTypeStr        string  `yaml:"type"`
+	GameType           int     `json:"gameType"`
+	ClubCode           string  `json:"clubCode"`
+	GameCode           string  `json:"gameCode"`
+	Title              string  `json:"title" yaml:"title"`
+	SmallBlind         float64 `json:"smallBlind" yaml:"sb"`
+	BigBlind           float64 `json:"bigBlind" yaml:"bb"`
+	StraddleBet        float64 `json:"straddleBet"`
+	MinPlayers         float64 `json:"minPlayers" yaml:"min-players"`
+	MaxPlayers         float64 `json:"maxPlayers" yaml:"max-players"`
+	GameLength         int     `json:"gameLength"`
+	RakePercentage     float64 `json:"rakePercentage"`
+	RakeCap            float64 `json:"rakeCap"`
+	BuyInMin           float64 `json:"buyInMin" yaml:"min-buyin"`
+	BuyInMax           float64 `json:"buyInMax" yaml:"max-buyin"`
+	ActionTime         int     `json:"actionTime"`
+	StartedBy          string  `json:"startedBy"`
+	StartedByUuid      string  `json:"startedByUuid"`
+	BreakLength        int     `json:"breakLength"`
+	AutoKickAfterBreak bool    `json:"autoKickAfterBreak"`
+	AutoStart          bool    `yaml:"auto-start"`
+	AutoApprove        bool    `yaml:"auto-approve"`
 }
 
 type GamePlayer struct {
