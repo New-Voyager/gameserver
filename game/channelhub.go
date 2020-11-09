@@ -22,17 +22,17 @@ func NewGameHub() *GameHub {
 	return &GameHub{}
 }
 
-func (c *GameHub) InitializeGame(clubID uint32, gameNum uint32) error {
+func (c *GameHub) InitializeGame(clubID uint32, gameID uint32) error {
 	// TODO: We should fetch the game configuration from API server
 	return nil
 }
 
-func (c *GameHub) InitializeGameFromConfig(clubID uint32, gameNum uint32, gameConfig *GameConfig) error {
+func (c *GameHub) InitializeGameFromConfig(clubID uint32, gameID uint32, gameConfig *GameConfig) error {
 	// TODO: We should fetch the game configuration from API server
 	return nil
 }
 
-func (c *GameHub) StartGame(clubID uint32, gameNum uint32) error {
+func (c *GameHub) StartGame(clubID uint32, gameID uint32) error {
 	return nil
 }
 

@@ -141,7 +141,7 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.Betting
 			// send handmessage
 			message := game.HandMessage{
 				ClubId:      h.gameScript.testGame.clubID,
-				GameNum:     h.gameScript.testGame.gameNum,
+				GameId:      h.gameScript.testGame.gameID,
 				HandNum:     h.hand.Num,
 				MessageType: game.HandPlayerActed,
 			}

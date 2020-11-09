@@ -77,7 +77,7 @@ message HandResult {
 message HandMessage {
   string version = 1;
   uint32 club_id = 2;
-  uint32 game_num = 3;
+  uint64 game_id = 3;
   uint32 hand_num = 4;
   uint32 seat_no = 5;       // if this message is targeted to a specific player
   string message_type = 6;

@@ -10,8 +10,8 @@ import (
 
 var handLogger = log.With().Str("logger_name", "game::hand").Logger()
 
-func LoadHandState(handStatePersist PersistHandState, clubID uint32, gameNum uint32, handNum uint32) (*HandState, error) {
-	handState, err := handStatePersist.Load(clubID, gameNum, handNum)
+func LoadHandState(handStatePersist PersistHandState, clubID uint32, gameID uint64, handNum uint32) (*HandState, error) {
+	handState, err := handStatePersist.Load(clubID, gameID, handNum)
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +292,7 @@ func (h *HandState) actionReceived(gameState *GameState, action *HandAction) err
 	if h.NextSeatAction != nil {
 		if action.SeatNo != h.NextSeatAction.SeatNo {
 			handLogger.Error().
-				Uint32("game", gameState.GetGameNum()).
+				Uint64("game", gameState.GetGameId()).
 				Uint32("hand", gameState.GetHandNum()).
 				Msg(fmt.Sprintf("Invalid seat %d made action. Ignored. The next valid action seat is: %d",
 					action.SeatNo, h.NextSeatAction.SeatNo))
@@ -304,7 +304,7 @@ func (h *HandState) actionReceived(gameState *GameState, action *HandAction) err
 	if playerID == 0 {
 		// something wrong
 		handLogger.Error().
-			Uint32("game", gameState.GetGameNum()).
+			Uint64("game", gameState.GetGameId()).
 			Uint32("hand", gameState.GetHandNum()).
 			Uint32("seat", action.SeatNo).
 			Msg(fmt.Sprintf("Invalid seat %d. PlayerID is 0", action.SeatNo))
@@ -369,7 +369,7 @@ func (h *HandState) actionReceived(gameState *GameState, action *HandAction) err
 		if action.Amount < h.GetCurrentRaise() {
 			// invalid
 			handLogger.Error().
-				Uint32("game", gameState.GetGameNum()).
+				Uint64("game", gameState.GetGameId()).
 				Uint32("hand", gameState.GetHandNum()).
 				Uint32("seat", action.SeatNo).
 				Msg(fmt.Sprintf("Invalid raise %f. Current bet: %f", action.Amount, h.GetCurrentRaise()))

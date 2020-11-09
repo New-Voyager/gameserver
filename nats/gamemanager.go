@@ -13,13 +13,13 @@ var natsGameManager = &GameManager{
 	activeGames: make(map[string]*NatsGame),
 }
 
-func initializeNatsGame(clubID uint32, gameNum uint32) (*NatsGame, error) {
-	gameID := fmt.Sprintf("%d:%d", clubID, gameNum)
-	game, err := NewGame(clubID, gameNum)
+func initializeNatsGame(clubID uint32, gameID uint64) (*NatsGame, error) {
+	gameIDStr := fmt.Sprintf("%d:%d", clubID, gameID)
+	game, err := NewGame(clubID, gameID)
 	if err != nil {
 		return nil, err
 	}
-	natsGameManager.activeGames[gameID] = game
+	natsGameManager.activeGames[gameIDStr] = game
 	return game, nil
 }
 

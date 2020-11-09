@@ -5,7 +5,7 @@ import (
 )
 
 type Manager struct {
-	gameCount        uint32
+	gameCount        uint64
 	gameStatePersist PersistGameState
 	handStatePersist PersistHandState
 	activeGames      map[string]*Game
@@ -21,29 +21,30 @@ func NewGameManager(gamePersist PersistGameState, handPersist PersistHandState) 
 }
 
 func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver,
-	clubID uint32, gameNum uint32, gameType GameType,
-	title string, minPlayers int, autoStart bool, autoDeal bool) (*Game, uint32) {
-	if gameNum == 0 {
+	clubID uint32, gameID uint64, gameType GameType,
+	title string, minPlayers int, autoStart bool, autoDeal bool) (*Game, uint64) {
+	if gameID == 0 {
 		gm.gameCount++
-		gameNum = gm.gameCount
+		gameID = gm.gameCount
 	}
-	gameID := fmt.Sprintf("%d:%d", clubID, gameNum)
+	gameIDStr := fmt.Sprintf("%d", gameID)
 	game := NewPokerGame(gm,
 		&messageReceiver,
-		gameID,
+		gameIDStr,
 		GameType_HOLDEM,
-		clubID, gameNum,
+		clubID, gameID,
 		minPlayers,
 		autoStart,
 		autoDeal,
 		gm.gameStatePersist,
 		gm.handStatePersist)
-	gm.activeGames[gameID] = game
+	gm.activeGames[gameIDStr] = game
 
 	go game.runGame()
-	return game, gameNum
+	return game, gameID
 }
 
 func (gm *Manager) gameEnded(game *Game) {
-	delete(gm.activeGames, game.gameID)
+	gameIDStr := fmt.Sprintf("%d", game.gameID)
+	delete(gm.activeGames, gameIDStr)
 }

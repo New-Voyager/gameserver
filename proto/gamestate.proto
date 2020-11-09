@@ -43,7 +43,7 @@ enum GameStatus {
 message GameState {
 
   uint32 club_id = 1;
-  uint32 game_num = 2;
+  uint64 game_id = 2;   // game id is unique in the system
   // max 15 seats reserved
 
   // index 0-8 for 9 seats

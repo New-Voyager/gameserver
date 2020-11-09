@@ -38,8 +38,8 @@ func NewRedisHandStateTracker(redisURL string, redisPW string, redisDB int) *Red
 	}
 }
 
-func (r *RedisGameStateTracker) Load(clubID uint32, gameID uint32) (*GameState, error) {
-	key := fmt.Sprintf("%d|%d", clubID, gameID)
+func (r *RedisGameStateTracker) Load(clubID uint32, gameID uint64) (*GameState, error) {
+	key := fmt.Sprintf("%d", gameID)
 	gameStateBytes, err := r.rdclient.Get(context.Background(), key).Result()
 	if err == redis.Nil {
 		return nil, fmt.Errorf(fmt.Sprintf("Game state for Club: %d, Game: %d is not found", clubID, gameID))
@@ -54,8 +54,8 @@ func (r *RedisGameStateTracker) Load(clubID uint32, gameID uint32) (*GameState, 
 	return gameState, nil
 }
 
-func (r *RedisGameStateTracker) Save(clubID uint32, gameID uint32, state *GameState) error {
-	key := fmt.Sprintf("%d|%d", clubID, gameID)
+func (r *RedisGameStateTracker) Save(clubID uint32, gameID uint64, state *GameState) error {
+	key := fmt.Sprintf("%d", gameID)
 	stateInBytes, err := proto.Marshal(state)
 	if err != nil {
 		return err
@@ -64,23 +64,23 @@ func (r *RedisGameStateTracker) Save(clubID uint32, gameID uint32, state *GameSt
 	return err
 }
 
-func (r *RedisGameStateTracker) Remove(clubID uint32, gameID uint32) error {
-	key := fmt.Sprintf("%d|%d", clubID, gameID)
+func (r *RedisGameStateTracker) Remove(clubID uint32, gameID uint64) error {
+	key := fmt.Sprintf("%d", gameID)
 	err := r.rdclient.Del(context.Background(), key).Err()
 	return err
 }
 
-func (r *RedisGameStateTracker) NextGameId(clubID uint32) (uint32, error) {
+func (r *RedisGameStateTracker) NextGameId(clubID uint32) (uint64, error) {
 	key := fmt.Sprintf("club_%d_nextgameid", clubID)
 	result, err := r.rdclient.Incr(context.Background(), key).Result()
 	if err != nil {
 		return 0, err
 	}
-	return uint32(result), nil
+	return uint64(result), nil
 }
 
-func (r *RedisHandStateTracker) Load(clubID uint32, gameID uint32, handID uint32) (*HandState, error) {
-	key := fmt.Sprintf("%d|%d|%d", clubID, gameID, handID)
+func (r *RedisHandStateTracker) Load(clubID uint32, gameID uint64, handID uint32) (*HandState, error) {
+	key := fmt.Sprintf("%d|%d", gameID, handID)
 	handStateBytes, err := r.rdclient.Get(context.Background(), key).Result()
 	if err == redis.Nil {
 		return nil, fmt.Errorf(fmt.Sprintf("Hand state for Club: %d, Game: %d, Hand: %d is not found", clubID, gameID, handID))
@@ -95,8 +95,8 @@ func (r *RedisHandStateTracker) Load(clubID uint32, gameID uint32, handID uint32
 	return handState, nil
 }
 
-func (r *RedisHandStateTracker) Save(clubID uint32, gameID uint32, handID uint32, state *HandState) error {
-	key := fmt.Sprintf("%d|%d|%d", clubID, gameID, handID)
+func (r *RedisHandStateTracker) Save(clubID uint32, gameID uint64, handID uint32, state *HandState) error {
+	key := fmt.Sprintf("%d|%d", gameID, handID)
 	stateInBytes, err := proto.Marshal(state)
 	if err != nil {
 		return err
@@ -105,8 +105,8 @@ func (r *RedisHandStateTracker) Save(clubID uint32, gameID uint32, handID uint32
 	return err
 }
 
-func (r *RedisHandStateTracker) Remove(clubID uint32, gameID uint32, handID uint32) error {
-	key := fmt.Sprintf("%d|%d|%d", clubID, gameID, handID)
+func (r *RedisHandStateTracker) Remove(clubID uint32, gameID uint64, handID uint32) error {
+	key := fmt.Sprintf("%d|%d", gameID, handID)
 	err := r.rdclient.Del(context.Background(), key).Err()
 	return err
 }

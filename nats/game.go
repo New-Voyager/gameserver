@@ -48,7 +48,7 @@ Test driver scenario:
 
 type NatsGame struct {
 	clubID                 uint32
-	gameNum                uint32
+	gameID                 uint64
 	chEndGame              chan bool
 	player2GameSubject     string
 	player2HandSubject     string
@@ -62,7 +62,7 @@ type NatsGame struct {
 	nc             *natsgo.Conn
 }
 
-func NewGame(clubID uint32, gameNum uint32) (*NatsGame, error) {
+func NewGame(clubID uint32, gameID uint64) (*NatsGame, error) {
 	// let us try to connect to nats server
 	nc, err := natsgo.Connect(NatsURL)
 	if err != nil {
@@ -71,17 +71,17 @@ func NewGame(clubID uint32, gameNum uint32) (*NatsGame, error) {
 	}
 
 	// game subjects
-	player2GameSubject := fmt.Sprintf("game.%d%d.player", clubID, gameNum)
-	game2AllPlayersSubject := fmt.Sprintf("game.%d%d.allplayers", clubID, gameNum)
+	player2GameSubject := fmt.Sprintf("game.%d.player", gameID)
+	game2AllPlayersSubject := fmt.Sprintf("game.%d.allplayers", gameID)
 
 	// hand subjects
-	player2HandSubject := fmt.Sprintf("game.%d%d.hand.player", clubID, gameNum)
-	hand2PlayerAllSubject := fmt.Sprintf("game.%d%d.hand.all", clubID, gameNum)
+	player2HandSubject := fmt.Sprintf("game.%d.hand.player", gameID)
+	hand2PlayerAllSubject := fmt.Sprintf("game.%d.hand.all", gameID)
 
 	// we need to use the API to get the game configuration
 	game := &NatsGame{
 		clubID:                 clubID,
-		gameNum:                gameNum,
+		gameID:                 gameID,
 		chEndGame:              make(chan bool),
 		nc:                     nc,
 		player2GameSubject:     player2GameSubject,
@@ -113,7 +113,7 @@ func (n *NatsGame) cleanup() {
 
 // messages sent from player to game
 func (n *NatsGame) player2Game(msg *natsgo.Msg) {
-	natsLogger.Info().Uint32("game", n.gameNum).Uint32("clubID", n.clubID).
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Player->Game: %s", string(msg.Data)))
 	// convert to protobuf message
 	// convert json message to go message
@@ -129,7 +129,7 @@ func (n *NatsGame) player2Game(msg *natsgo.Msg) {
 
 // messages sent from player to game hand
 func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
-	natsLogger.Info().Uint32("game", n.gameNum).Uint32("clubID", n.clubID).
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Player->Hand: %s", string(msg.Data)))
 	var message game.HandMessage
 	//err := jsoniter.Unmarshal(msg.Data, &message)
@@ -142,7 +142,7 @@ func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
 }
 
 func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
-	natsLogger.Info().Uint32("game", n.gameNum).Uint32("clubID", n.clubID).
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Game->Player: %s", message.MessageType))
 	// let send this to all players
 	data, _ := protojson.Marshal(message)
@@ -150,7 +150,7 @@ func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 }
 
 func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
-	natsLogger.Info().Uint32("game", n.gameNum).Uint32("clubID", n.clubID).
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Hand->AllPlayers: %s", message.MessageType))
 	//hand2PlayerSubject := fmt.Sprintf("game.%d%d.hand.player.*", n.clubID, n.gameNum)
 	data, _ := protojson.Marshal(message)
@@ -158,18 +158,18 @@ func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 }
 
 func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID uint32) {
-	natsLogger.Info().Uint32("game", n.gameNum).Uint32("clubID", n.clubID).
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Hand->Player: %s", message.MessageType))
-	hand2PlayerSubject := fmt.Sprintf("game.%d%d.hand.player.%d", n.clubID, n.gameNum, playerID)
+	hand2PlayerSubject := fmt.Sprintf("game.%d.hand.player.%d", n.gameID, playerID)
 	message.PlayerId = playerID
 	data, _ := protojson.Marshal(message)
 	n.nc.Publish(hand2PlayerSubject, data)
 }
 
 func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID uint32) {
-	natsLogger.Info().Uint32("game", n.gameNum).Uint32("clubID", n.clubID).
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Game->Player: %s", message.MessageType))
-	subject := fmt.Sprintf("game.%d%d.player.%d", message.ClubId, message.GameNum, playerID)
+	subject := fmt.Sprintf("game.%d.player.%d", message.GameId, playerID)
 	// let send this to all players
 	data, _ := protojson.Marshal(message)
 	n.nc.Publish(subject, data)

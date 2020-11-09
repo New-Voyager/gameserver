@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"math/rand"
 
+	natsgo "github.com/nats-io/nats.go"
+
+	"voyager.com/server/apiserver"
 	"voyager.com/server/bot"
 	"voyager.com/server/util"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"voyager.com/server/nats"
 	"voyager.com/server/poker"
 	"voyager.com/server/test"
@@ -19,6 +23,7 @@ var runBotDriver *bool
 var runGameScriptTests *bool
 var gameScriptsDir *string
 var testName *string
+var mainLogger = log.With().Str("logger_name", "nats::main").Logger()
 
 func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
@@ -46,12 +51,24 @@ func runWithNats() {
 	fmt.Printf("Running the server with NATS\n")
 	natsURL := util.GameServerEnvironment.GetNatsClientConnURL()
 	fmt.Printf("NATS URL: %s\n", natsURL)
-	listener, err := nats.NewNatsDriverBotListener(natsURL)
+
+	nc, err := natsgo.Connect(natsURL)
+	if err != nil {
+		mainLogger.Error().Msg(fmt.Sprintf("Error connecting to NATS server, error: %v", err))
+		return
+	}
+
+	listener, err := nats.NewNatsDriverBotListener(nc)
 	if err != nil {
 		fmt.Printf("Error when subscribing to NATS")
 		return
 	}
 	_ = listener
+
+	// subscribe to api server events
+	apiserver.RegisterGameServer(util.GameServerEnvironment.GetApiServerUrl())
+	apiserver.SubscribeToNats(nc)
+
 	select {}
 }
 

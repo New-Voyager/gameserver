@@ -18,7 +18,7 @@ type PlayerBot struct {
 	stopped                chan bool
 	playerID               uint32
 	clubID                 uint32
-	gameNum                uint32
+	gameID                 uint64
 	player2GameSubject     string
 	game2PlayerSubject     string
 	game2AllPlayersSubject string
@@ -139,21 +139,21 @@ func (p *PlayerBot) hand2Player(msg *natsgo.Msg) {
 	}
 }
 
-func (p *PlayerBot) initialize(clubID uint32, gameNum uint32) {
+func (p *PlayerBot) initialize(clubID uint32, gameID uint64) {
 	// game subjects
-	p.player2GameSubject = fmt.Sprintf("game.%d%d.player", clubID, gameNum)
-	p.game2AllPlayersSubject = fmt.Sprintf("game.%d%d.allplayers", clubID, gameNum)
-	p.game2PlayerSubject = fmt.Sprintf("game.%d%d.player.%d", clubID, gameNum, p.playerID)
+	p.player2GameSubject = fmt.Sprintf("game.%d.player", gameID)
+	p.game2AllPlayersSubject = fmt.Sprintf("game.%d.allplayers", gameID)
+	p.game2PlayerSubject = fmt.Sprintf("game.%d.player.%d", gameID, p.playerID)
 
 	// hand subjects
-	p.player2HandSubject = fmt.Sprintf("game.%d%d.hand.player", clubID, gameNum)
-	p.hand2PlayerSubject = fmt.Sprintf("game.%d%d.hand.player.%d", clubID, gameNum, p.playerID)
-	p.hand2PlayerAllSubject = fmt.Sprintf("game.%d%d.hand.all", clubID, gameNum)
+	p.player2HandSubject = fmt.Sprintf("game.%d.hand.player", gameID)
+	p.hand2PlayerSubject = fmt.Sprintf("game.%d.hand.player.%d", gameID, p.playerID)
+	p.hand2PlayerAllSubject = fmt.Sprintf("game.%d.hand.all", gameID)
 
 }
 
-func (p *PlayerBot) joinGame(clubID uint32, gameNum uint32) error {
-	p.initialize(clubID, gameNum)
+func (p *PlayerBot) joinGame(clubID uint32, gameID uint64) error {
+	p.initialize(clubID, gameID)
 
 	var e error
 	p.game2PlayerSub, e = p.nc.Subscribe(p.game2PlayerSubject, p.game2Player)
@@ -186,7 +186,7 @@ func (p *PlayerBot) joinGame(clubID uint32, gameNum uint32) error {
 	// send a message to the game that this player is joining the game
 	var gameMessage game.GameMessage
 	gameMessage.ClubId = clubID
-	gameMessage.GameNum = gameNum
+	gameMessage.GameId = gameID
 	gameMessage.PlayerId = p.playerID
 	gameMessage.MessageType = game.GameJoin
 	name := fmt.Sprintf("bot-%d", p.playerID)
@@ -207,15 +207,15 @@ func (p *PlayerBot) joinGame(clubID uint32, gameNum uint32) error {
 	p.nc.Publish(p.player2GameSubject, protoData)
 
 	p.clubID = clubID
-	p.gameNum = gameNum
-	botPlayerLogger.Info().Msg(fmt.Sprintf("Player %d joined %d: %d", p.playerID, clubID, gameNum))
+	p.gameID = gameID
+	botPlayerLogger.Info().Msg(fmt.Sprintf("Player %d joined %d: %d", p.playerID, clubID, gameID))
 	return nil
 }
 
 func (p *PlayerBot) sitAtTable(seatNo uint32, buyIn float32) error {
 	var message game.GameMessage
 	message.ClubId = p.clubID
-	message.GameNum = p.gameNum
+	message.GameId = p.gameID
 	message.MessageType = game.PlayerTakeSeat
 	message.PlayerId = p.playerID
 	p.seatNo = seatNo
@@ -240,7 +240,7 @@ func (p *PlayerBot) getTableState() error {
 	queryTableState := &game.GameQueryTableStateMessage{PlayerId: p.playerID}
 	var gameMessage game.GameMessage
 	gameMessage.ClubId = p.clubID
-	gameMessage.GameNum = p.gameNum
+	gameMessage.GameId = p.gameID
 	gameMessage.PlayerId = p.playerID
 	gameMessage.MessageType = game.GameQueryTableState
 	gameMessage.GameMessage = &game.GameMessage_QueryTableState{QueryTableState: queryTableState}
@@ -267,7 +267,7 @@ func (p *PlayerBot) setupNextHand(deck []byte, buttonPos uint32) error {
 	}
 
 	gameMessage.ClubId = p.clubID
-	gameMessage.GameNum = p.gameNum
+	gameMessage.GameId = p.gameID
 	gameMessage.PlayerId = p.playerID
 	gameMessage.MessageType = game.GameSetupNextHand
 	gameMessage.GameMessage = &game.GameMessage_NextHand{NextHand: nextHand}
@@ -290,7 +290,7 @@ func (p *PlayerBot) dealHand() error {
 	dealHandMessage := &game.GameDealHandMessage{}
 
 	gameMessage.ClubId = p.clubID
-	gameMessage.GameNum = p.gameNum
+	gameMessage.GameId = p.gameID
 	gameMessage.MessageType = game.GameDealHand
 	gameMessage.GameMessage = &game.GameMessage_DealHand{DealHand: dealHandMessage}
 	protoData, err := protojson.Marshal(&gameMessage)
@@ -310,7 +310,7 @@ func (p *PlayerBot) act(handNum uint32, action game.ACTION, amount float32) erro
 	// send handmessage
 	message := game.HandMessage{
 		ClubId:      p.clubID,
-		GameNum:     p.gameNum,
+		GameId:      p.gameID,
 		HandNum:     handNum,
 		PlayerId:    p.playerID,
 		MessageType: game.HandPlayerActed,

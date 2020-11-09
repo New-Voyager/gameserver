@@ -30,13 +30,7 @@ type NatsDriverBotListener struct {
 
 var natsTestDriverLogger = log.With().Str("logger_name", "nats::game").Logger()
 
-func NewNatsDriverBotListener(url string) (*NatsDriverBotListener, error) {
-	nc, err := natsgo.Connect(url)
-	if err != nil {
-		natsTestDriverLogger.Error().Msg(fmt.Sprintf("Error connecting to NATS server, error: %v", err))
-		return nil, err
-	}
-
+func NewNatsDriverBotListener(nc *natsgo.Conn) (*NatsDriverBotListener, error) {
 	natsTestDriver := &NatsDriverBotListener{
 		stopped: make(chan bool),
 		nc:      nc,
@@ -71,18 +65,18 @@ func (n *NatsDriverBotListener) initializeGame(botDriverMessage *bot.DriverBotMe
 	gameConfig := botDriverMessage.GameConfig
 	gameType := game.GameType(game.GameType_value[gameConfig.GameType])
 	clubID := uint32(1)
-	gameNum := uint32(1)
+	gameID := uint64(1)
 
 	// initialize nats game
-	natsGame, err := initializeNatsGame(clubID, gameNum)
+	natsGame, err := initializeNatsGame(clubID, gameID)
 	if err != nil {
 		msg := fmt.Sprintf("Unable to initialize nats game: %v", err)
 		natsTestDriverLogger.Error().Msg(msg)
 		panic(msg)
 	}
 
-	serverGame, gameNum := game.GameManager.InitializeGame(*natsGame, clubID,
-		gameNum,
+	serverGame, gameID := game.GameManager.InitializeGame(*natsGame, clubID,
+		gameID,
 		gameType,
 		gameConfig.Title,
 		int(gameConfig.MinPlayers),
@@ -94,7 +88,7 @@ func (n *NatsDriverBotListener) initializeGame(botDriverMessage *bot.DriverBotMe
 	response := &bot.DriverBotMessage{
 		ClubId:      clubID,
 		BotId:       botDriverMessage.BotId,
-		GameNum:     gameNum,
+		GameId:      gameID,
 		MessageType: bot.GameInitialized,
 	}
 	data, _ := jsoniter.Marshal(response)

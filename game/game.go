@@ -24,9 +24,9 @@ type GameMessageReceiver interface {
 }
 
 type Game struct {
-	gameID          string
+	gameCode        string
 	clubID          uint32
-	gameNum         uint32
+	gameID          uint64
 	manager         *Manager
 	gameType        GameType
 	title           string
@@ -49,22 +49,22 @@ type Game struct {
 	lock sync.Mutex
 }
 
-func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, gameID string, gameType GameType,
-	clubID uint32, gameNum uint32, minPlayers int, autoStart bool, autoDeal bool,
+func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, gameCode string, gameType GameType,
+	clubID uint32, gameID uint64, minPlayers int, autoStart bool, autoDeal bool,
 	gameStatePersist PersistGameState,
 	handStatePersist PersistHandState) *Game {
-	title := fmt.Sprintf("%d:%d %s", clubID, gameNum, GameType_name[int32(gameType)])
+	title := fmt.Sprintf("%d:%d %s", clubID, gameID, GameType_name[int32(gameType)])
 	game := Game{
 		manager:         gameManager,
 		messageReceiver: messageReceiver,
-		gameID:          gameID,
-		gameType:        gameType,
-		title:           title,
-		clubID:          clubID,
-		gameNum:         gameNum,
-		autoStart:       autoStart,
-		autoDeal:        autoDeal,
-		testButtonPos:   -1,
+		//gameCode:        gameCode,
+		gameType:      gameType,
+		title:         title,
+		clubID:        clubID,
+		gameID:        gameID,
+		autoStart:     autoStart,
+		autoDeal:      autoDeal,
+		testButtonPos: -1,
 	}
 	game.allPlayers = make(map[uint32]*Player)
 	game.chGame = make(chan []byte)
@@ -102,7 +102,7 @@ func (game *Game) runGame() {
 			if err != nil {
 				channelGameLogger.Error().
 					Uint32("club", game.clubID).
-					Uint32("game", game.gameNum).
+					Uint64("game", game.gameID).
 					Msg(fmt.Sprintf("Failed to start game: %v", err))
 			} else {
 				if started {
@@ -130,7 +130,7 @@ func (game *Game) runGame() {
 				playersInSeats := game.playersInSeatsCount()
 				channelGameLogger.Trace().
 					Uint32("club", game.clubID).
-					Uint32("game", game.gameNum).
+					Uint64("game", game.gameID).
 					Msg(fmt.Sprintf("Waiting for players to join. %d players in the table, and waiting for %d more players",
 						playersInSeats, game.minPlayers-playersInSeats))
 				time.Sleep(50 * time.Millisecond)
@@ -147,7 +147,7 @@ func (game *Game) initialize() error {
 	// initialize game state
 	gameState := GameState{
 		ClubId:                game.clubID,
-		GameNum:               game.gameNum,
+		GameId:                game.gameID,
 		PlayersInSeats:        playersInSeats,
 		PlayersState:          playersState,
 		UtgStraddleAllowed:    false,
@@ -192,7 +192,7 @@ func (game *Game) startGame() (bool, error) {
 
 	channelGameLogger.Info().
 		Uint32("club", game.clubID).
-		Uint32("game", game.gameNum).
+		Uint64("game", game.gameID).
 		Msg(fmt.Sprintf("Game started. Good luck every one. Players in the table: %d. Waiting list players: %d",
 			playersInSeats, len(game.waitingPlayers)))
 
@@ -231,7 +231,7 @@ func (game *Game) dealNewHand() error {
 	gameState.HandNum++
 	handState := &HandState{
 		ClubId:        gameState.GetClubId(),
-		GameNum:       gameState.GetGameNum(),
+		GameId:        gameState.GetGameId(),
 		HandNum:       gameState.GetHandNum(),
 		GameType:      gameState.GetGameType(),
 		CurrentState:  HandStatus_DEAL,
@@ -247,7 +247,7 @@ func (game *Game) dealNewHand() error {
 
 	channelGameLogger.Trace().
 		Uint32("club", game.clubID).
-		Uint32("game", game.gameNum).
+		Uint64("game", game.gameID).
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Table: %s", handState.PrintTable(game.players)))
 
@@ -260,7 +260,7 @@ func (game *Game) dealNewHand() error {
 	}
 	handMessage := HandMessage{
 		MessageType: HandNewHand,
-		GameNum:     game.gameNum,
+		GameId:      game.gameID,
 		ClubId:      game.clubID,
 		HandNum:     handState.HandNum,
 		HandStatus:  handState.CurrentState,
@@ -287,7 +287,7 @@ func (game *Game) dealNewHand() error {
 
 		//messageData, _ := proto.Marshal(&message)
 		player := game.allPlayers[playerID]
-		handMessage := HandMessage{MessageType: HandDeal, GameNum: game.gameNum, ClubId: game.clubID, PlayerId: playerID}
+		handMessage := HandMessage{MessageType: HandDeal, GameId: game.gameID, ClubId: game.clubID, PlayerId: playerID}
 		handMessage.HandMessage = &HandMessage_DealCards{DealCards: &message}
 		b, _ := proto.Marshal(&handMessage)
 
@@ -302,7 +302,7 @@ func (game *Game) dealNewHand() error {
 	// print next action
 	channelGameLogger.Trace().
 		Uint32("club", game.clubID).
-		Uint32("game", game.gameNum).
+		Uint64("game", game.gameID).
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, gameState, game.players)))
 
@@ -315,11 +315,11 @@ func (game *Game) dealNewHand() error {
 }
 
 func (game *Game) loadState() (*GameState, error) {
-	gameState, err := game.manager.gameStatePersist.Load(game.clubID, game.gameNum)
+	gameState, err := game.manager.gameStatePersist.Load(game.clubID, game.gameID)
 	if err != nil {
 		channelGameLogger.Error().
 			Uint32("club", game.clubID).
-			Uint32("game", game.gameNum).
+			Uint64("game", game.gameID).
 			Msg(fmt.Sprintf("Error loading game state.  Error: %v", err))
 		return nil, err
 	}
@@ -328,13 +328,13 @@ func (game *Game) loadState() (*GameState, error) {
 }
 
 func (game *Game) saveState(gameState *GameState) error {
-	err := game.manager.gameStatePersist.Save(game.clubID, game.gameNum, gameState)
+	err := game.manager.gameStatePersist.Save(game.clubID, game.gameID, gameState)
 	return err
 }
 
 func (game *Game) saveHandState(gameState *GameState, handState *HandState) error {
 	err := game.manager.handStatePersist.Save(gameState.GetClubId(),
-		gameState.GetGameNum(),
+		gameState.GetGameId(),
 		handState.HandNum,
 		handState)
 	return err
@@ -342,7 +342,7 @@ func (game *Game) saveHandState(gameState *GameState, handState *HandState) erro
 
 func (game *Game) loadHandState(gameState *GameState) (*HandState, error) {
 	handState, err := game.manager.handStatePersist.Load(gameState.GetClubId(),
-		gameState.GetGameNum(),
+		gameState.GetGameId(),
 		gameState.GetHandNum())
 	return handState, err
 }

@@ -11,7 +11,7 @@ var testGameLogger = log.With().Str("logger_name", "test::testgame").Logger()
 // this is used for testing the game, hands, winners, split pots
 type TestGame struct {
 	clubID           uint32
-	gameNum          uint32
+	gameID           uint64
 	players          map[uint32]*TestPlayer
 	nextActionPlayer *TestPlayer
 	observerCh       chan []byte // observer and game manager/club owner
@@ -25,11 +25,11 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	players []game.GamePlayer) (*TestGame, *TestPlayer) {
 
 	gamePlayers := make(map[uint32]*TestPlayer)
-	serverGame, gameNum := game.GameManager.InitializeGame(nil, clubID, 0, gameType, name, len(players), autoStart, false)
+	serverGame, gameID := game.GameManager.InitializeGame(nil, clubID, 0, gameType, name, len(players), autoStart, false)
 	_ = serverGame
 	for _, playerInfo := range players {
 		testPlayer := NewTestPlayer(playerInfo)
-		player := game.NewPlayer(clubID, gameNum, playerInfo.Name, playerInfo.ID, testPlayer)
+		player := game.NewPlayer(clubID, gameID, playerInfo.Name, playerInfo.ID, testPlayer)
 		testPlayer.setPlayer(player)
 		gamePlayers[playerInfo.ID] = testPlayer
 	}
@@ -38,14 +38,14 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	// add test driver as an observer/player
 	gameScriptPlayer := game.GamePlayer{ID: 0xFFFFFFFF, Name: "GameScript"}
 	observer := NewTestPlayerAsObserver(gameScriptPlayer, observerCh)
-	player := game.NewPlayer(clubID, gameNum, gameScriptPlayer.Name, gameScriptPlayer.ID, observer)
+	player := game.NewPlayer(clubID, gameID, gameScriptPlayer.Name, gameScriptPlayer.ID, observer)
 	observer.setPlayer(player)
 	gamePlayers[gameScriptPlayer.ID] = observer
 
 	// wait for the cards to be dealt
 	return &TestGame{
 		clubID:     clubID,
-		gameNum:    gameNum,
+		gameID:     gameID,
 		players:    gamePlayers,
 		observerCh: observerCh,
 		observer:   observer,
@@ -54,21 +54,21 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 
 func (t *TestGame) Start(playerAtSeats []game.PlayerSeat) {
 	for _, testPlayer := range t.players {
-		testPlayer.player.JoinGame(t.clubID, t.gameNum)
+		testPlayer.player.JoinGame(t.clubID, t.gameID)
 	}
 
 	for _, testPlayer := range playerAtSeats {
 		t.players[testPlayer.Player].player.SitAtTable(testPlayer.SeatNo, testPlayer.BuyIn)
 	}
-	t.observer.player.StartGame(t.clubID, t.gameNum)
+	t.observer.player.StartGame(t.clubID, t.gameID)
 }
 
 func (t *TestGame) Observer() *TestPlayer {
 	return t.observer
 }
 
-func (o *TestPlayer) startGame(clubID uint32, gameNum uint32) error {
-	return o.player.StartGame(clubID, gameNum)
+func (o *TestPlayer) startGame(clubID uint32, gameID uint64) error {
+	return o.player.StartGame(clubID, gameID)
 }
 
 func (o *TestPlayer) setupNextHand(deck []byte, buttonPos uint32) error {

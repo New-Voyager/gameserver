@@ -43,7 +43,7 @@ type DriverBotMessage struct {
 	MessageType string           `json:"message-type"`
 	GameConfig  *game.GameConfig `json:"game-config"`
 	ClubId      uint32           `json:"club-id"`
-	GameNum     uint32           `json:"game-num"`
+	GameId      uint64           `json:"game-id"`
 }
 
 type DriverBot struct {
@@ -184,7 +184,7 @@ func (b *DriverBot) onGameInitialized(message *DriverBotMessage) error {
 	b.players[botPlayerID] = observer
 	observer.setObserver(b.waitCh)
 	b.observer = observer
-	observer.joinGame(message.ClubId, message.GameNum)
+	observer.joinGame(message.ClubId, message.GameId)
 	//observer.initialize(message.ClubId, message.GameNum)
 
 	// now let the players to join the game
@@ -196,9 +196,9 @@ func (b *DriverBot) onGameInitialized(message *DriverBotMessage) error {
 		}
 		b.players[player.ID] = botPlayer
 		// player joined the game
-		e = botPlayer.joinGame(message.ClubId, message.GameNum)
+		e = botPlayer.joinGame(message.ClubId, message.GameId)
 		if e != nil {
-			driverBotLogger.Error().Msg(fmt.Sprintf("Error occurred when bot player joing game. %d:%d", message.ClubId, message.GameNum))
+			driverBotLogger.Error().Msg(fmt.Sprintf("Error occurred when bot player joing game. %d:%d", message.ClubId, message.GameId))
 			return e
 		}
 	}

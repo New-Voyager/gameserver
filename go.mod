@@ -33,3 +33,5 @@ replace voyager.com/server/test => ./test
 replace voyager.com/server/nats => ./nats
 
 replace voyager.com/server/bot => ./bot
+
+replace voyager.com/server/apiserver => ./apiserver
