@@ -112,13 +112,34 @@ func (n *NatsGame) cleanup() {
 }
 
 // message sent from apiserver to game
-func (n *NatsGame) GameStatusChanged(gameID uint64, newStatus game.GameStatus) {
+func (n *NatsGame) gameStatusChanged(gameID uint64, newStatus game.GameStatus) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("APIServer->Game: Status changed. GameID: %d, NewStatus: %s", gameID, game.GameStatus_name[int32(newStatus)]))
 	var message game.GameMessage
 	message.GameId = gameID
 	message.MessageType = game.GameStatusChanged
 	message.GameMessage = &game.GameMessage_StatusChange{StatusChange: &game.GameStatusChangeMessage{NewStatus: newStatus}}
+
+	n.serverGame.SendGameMessage(&message)
+}
+
+// message sent from apiserver to game
+func (n *NatsGame) playerUpdate(gameID uint64, update *PlayerUpdate) {
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+		Msg(fmt.Sprintf("APIServer->Game: Player update. GameID: %d, PlayerId: %d NewStatus: %s",
+			gameID, update.PlayerId, game.PlayerStatus_name[int32(update.Status)]))
+	var message game.GameMessage
+	message.GameId = gameID
+	message.MessageType = game.PlayerUpdate
+	playerUpdate := game.GamePlayerUpdate{
+		PlayerId: update.PlayerId,
+		SeatNo:   uint32(update.SeatNo),
+		Status:   update.Status,
+		Stack:    float32(update.Stack),
+		BuyIn:    float32(update.BuyIn),
+	}
+
+	message.GameMessage = &game.GameMessage_PlayerUpdate{PlayerUpdate: &playerUpdate}
 
 	n.serverGame.SendGameMessage(&message)
 }
@@ -175,7 +196,7 @@ func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 	n.nc.Publish(n.hand2PlayerAllSubject, data)
 }
 
-func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID uint32) {
+func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID uint64) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Hand->Player: %s", message.MessageType))
 	hand2PlayerSubject := fmt.Sprintf("game.%d.hand.player.%d", n.gameID, playerID)
@@ -184,7 +205,7 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 	n.nc.Publish(hand2PlayerSubject, data)
 }
 
-func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID uint32) {
+func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID uint64) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Game->Player: %s", message.MessageType))
 	subject := fmt.Sprintf("game.%d.player.%d", message.GameId, playerID)

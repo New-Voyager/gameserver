@@ -7,7 +7,7 @@ import (
 	"voyager.com/server/poker"
 )
 
-func (h *HandState) PrintTable(players map[uint32]string) string {
+func (h *HandState) PrintTable(players map[uint64]string) string {
 	var b strings.Builder
 	b.Grow(32)
 	fmt.Fprintf(&b, "Game ID: %d Hand Num: %d, Seats: [", h.GameId, h.HandNum)
@@ -37,7 +37,7 @@ func (h *HandState) PrintTable(players map[uint32]string) string {
 	return b.String()
 }
 
-func (n *NextSeatAction) PrettyPrint(h *HandState, gameState *GameState, players map[uint32]string) string {
+func (n *NextSeatAction) PrettyPrint(h *HandState, gameState *GameState, players map[uint64]string) string {
 	seatNo := n.SeatNo
 	playerState := h.getPlayerFromSeat(seatNo)
 	playerID := gameState.GetPlayersInSeats()[seatNo-1]
@@ -65,7 +65,7 @@ func (n *NextSeatAction) PrettyPrint(h *HandState, gameState *GameState, players
 	return b.String()
 }
 
-func (h *HandState) PrintCurrentActionLog(gameState *GameState, players map[uint32]string) string {
+func (h *HandState) PrintCurrentActionLog(gameState *GameState, players map[uint64]string) string {
 	var log *HandActionLog
 	var b strings.Builder
 	b.Grow(32)
@@ -91,7 +91,7 @@ func (h *HandState) PrintCurrentActionLog(gameState *GameState, players map[uint
 	return b.String()
 }
 
-func (a *HandAction) Print(h *HandState, gameState *GameState, players map[uint32]string) string {
+func (a *HandAction) Print(h *HandState, gameState *GameState, players map[uint64]string) string {
 	action := ""
 	switch a.Action {
 	case ACTION_FOLD:

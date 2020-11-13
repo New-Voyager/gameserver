@@ -16,7 +16,7 @@ var botPlayerLogger = log.With().Str("logger_name", "bot::player").Logger()
 type PlayerBot struct {
 	botID                  string
 	stopped                chan bool
-	playerID               uint32
+	playerID               uint64
 	clubID                 uint32
 	gameID                 uint64
 	player2GameSubject     string
@@ -53,7 +53,7 @@ type PlayerBot struct {
 	hand2AllSub        *natsgo.Subscription
 }
 
-func NewPlayerBot(natsUrl string, playerID uint32) (*PlayerBot, error) {
+func NewPlayerBot(natsUrl string, playerID uint64) (*PlayerBot, error) {
 	nc, err := natsgo.Connect(natsUrl)
 	if err != nil {
 		driverBotLogger.Error().Msg(fmt.Sprintf("Error connecting to NATS server, error: %v", err))

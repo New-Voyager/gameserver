@@ -175,8 +175,8 @@ func (h *HandState) hasEveryOneActed() bool {
 	return allActed
 }
 
-func (h *HandState) getPlayersState(gameState *GameState) map[uint32]*HandPlayerState {
-	handPlayerState := make(map[uint32]*HandPlayerState, 0)
+func (h *HandState) getPlayersState(gameState *GameState) map[uint64]*HandPlayerState {
+	handPlayerState := make(map[uint64]*HandPlayerState, 0)
 	for j := 1; j <= int(gameState.GetMaxSeats()); j++ {
 		playerID := h.GetPlayersInSeats()[j-1]
 		if playerID == 0 {

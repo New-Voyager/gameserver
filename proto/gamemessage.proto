@@ -4,13 +4,13 @@ option go_package = "game";
 import "gamestate.proto";
 
 message GameSitMessage {
-  uint32 player_id = 1;
+  uint64 player_id = 1;
   uint32 seat_no = 2;
   float  buy_in = 3;
 }
 
 message GameJoinMessage {
-  uint32 player_id = 1;
+  uint64 player_id = 1;
   string name = 2;
 }
 
@@ -20,7 +20,7 @@ message GameStatusMessage {
 }
 
 message GamePlayerSatMessage {
-  uint32 player_id = 1;
+  uint64 player_id = 1;
   uint32 seat_no = 2;
   float  buy_in = 3;
 }
@@ -30,7 +30,7 @@ message GameStatusChangeMessage {
 }
 
 message PlayerAtTableState {
-  uint32 player_id = 1;
+  uint64 player_id = 1;
   uint32 seat_no = 2;
   float buy_in = 3;
   float current_balance = 4;
@@ -52,19 +52,18 @@ message GameSetupNextHandMessage {
 }
 
 message GameStartMessage {
-  uint32 requesting_player_id = 1;
+  uint64 requesting_player_id = 1;
 }
 
 message GameQueryTableStateMessage {
-  uint32 player_id = 1;     // the player asked for this
+  uint64 player_id = 1;     // the player asked for this
 }
-
 
 message GameMessage {
   string version = 1;
   uint32 club_id = 2;
   uint64 game_id = 3;
-  uint32 player_id = 4;
+  uint64 player_id = 4;
   string message_type = 5;
   oneof game_message {
     GameSitMessage  take_seat = 6;
@@ -77,5 +76,6 @@ message GameMessage {
     GameSetupNextHandMessage next_hand = 13;
     GameStartMessage start_game = 14;
     GameQueryTableStateMessage query_table_state = 15;
+    GamePlayerUpdate player_update = 16;
   }
 }

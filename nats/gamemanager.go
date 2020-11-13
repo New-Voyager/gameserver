@@ -54,7 +54,16 @@ func (gm *GameManager) EndNatsGame(clubID uint32, gameID uint64) {
 func (gm *GameManager) GameStatusChanged(gameID uint64, newStatus game.GameStatus) {
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	if game, ok := gm.activeGames[gameIDStr]; ok {
-		game.GameStatusChanged(gameID, newStatus)
+		game.gameStatusChanged(gameID, newStatus)
+	} else {
+		natsLogger.Error().Uint64("gameId", gameID).Msg(fmt.Sprintf("GameID: %d does not exist", gameID))
+	}
+}
+
+func (gm *GameManager) PlayerUpdate(gameID uint64, playerUpdate *PlayerUpdate) {
+	gameIDStr := fmt.Sprintf("%d", gameID)
+	if game, ok := gm.activeGames[gameIDStr]; ok {
+		game.playerUpdate(gameID, playerUpdate)
 	} else {
 		natsLogger.Error().Uint64("gameId", gameID).Msg(fmt.Sprintf("GameID: %d does not exist", gameID))
 	}

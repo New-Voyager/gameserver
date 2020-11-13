@@ -55,7 +55,7 @@ type GameConfig struct {
 
 type GamePlayer struct {
 	Name string `yaml:"name"`
-	ID   uint32 `yaml:"id"`
+	ID   uint64 `yaml:"id"`
 }
 
 /*
@@ -77,7 +77,7 @@ take-seat:
   wait: 1
 */
 type PlayerSeat struct {
-	Player uint32  `yaml:"player"`
+	Player uint64  `yaml:"player"`
 	SeatNo uint32  `yaml:"seat"`
 	BuyIn  float32 `yaml:"buy-in"`
 }
@@ -225,7 +225,7 @@ type GameScript struct {
 
 type PlayerAtTable struct {
 	SeatNo   uint32  `yaml:"seat"`
-	PlayerID uint32  `yaml:"player"`
+	PlayerID uint64  `yaml:"player"`
 	Stack    float32 `yaml:"stack"`
 }
 

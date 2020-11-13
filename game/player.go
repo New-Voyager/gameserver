@@ -27,7 +27,7 @@ type Player struct {
 	ClubID                  uint32
 	GameID                  uint64
 	PlayerName              string
-	PlayerID                uint32
+	PlayerID                uint64
 	SeatNo                  uint32
 	NetworkConnectionActive bool
 	// callbacks to interact with different player communication mechanism
@@ -54,7 +54,7 @@ type PlayerMessageDelegate interface {
 	GameMessageFromGame(gameMessageBytes []byte, gameMessage *GameMessage, json []byte)
 }
 
-func NewPlayer(clubID uint32, gameID uint64, name string, playerID uint32, delegate PlayerMessageDelegate) *Player {
+func NewPlayer(clubID uint32, gameID uint64, name string, playerID uint64, delegate PlayerMessageDelegate) *Player {
 	channelPlayer := Player{
 		ClubID:        clubID,
 		GameID:        gameID,

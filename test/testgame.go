@@ -12,7 +12,7 @@ var testGameLogger = log.With().Str("logger_name", "test::testgame").Logger()
 type TestGame struct {
 	clubID           uint32
 	gameID           uint64
-	players          map[uint32]*TestPlayer
+	players          map[uint64]*TestPlayer
 	nextActionPlayer *TestPlayer
 	observerCh       chan []byte // observer and game manager/club owner
 	observer         *TestPlayer
@@ -24,7 +24,7 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	autoStart bool,
 	players []game.GamePlayer) (*TestGame, *TestPlayer) {
 
-	gamePlayers := make(map[uint32]*TestPlayer)
+	gamePlayers := make(map[uint64]*TestPlayer)
 	serverGame, gameID := game.GameManager.InitializeGame(nil, clubID, 0, gameType, name, len(players), autoStart, false)
 	_ = serverGame
 	for _, playerInfo := range players {

@@ -4,15 +4,16 @@ option go_package = "game";
 
 
 enum PlayerStatus {
-  PLAYING = 0;
-  IN_QUEUE = 1;
-  BREAK = 2;
-  STANDING_UP = 3;
-  LEFT = 4;
-  KICKED_OUT = 5;
-  BLOCKED = 6;
-  WAIT_FOR_SITTING_APPROVAL = 7;
+  NOT_PLAYING = 0;
+  PLAYING = 1;
+  IN_QUEUE = 2;
+  IN_BREAK = 3;
+  STANDING_UP = 4;
+  LEFT = 5;
+  KICKED_OUT = 6;
+  BLOCKED = 7;
   LOST_CONNECTION = 8;
+  WAIT_FOR_BUYIN = 9;
 }
 
 message PlayerState {
@@ -45,6 +46,20 @@ enum TableStatus {
   TABLE_STATUS_GAME_RUNNING = 3;
 }
 
+// Player update comes from the API server
+// The same message is sent for 
+//    Player sitting in a seat
+//    Player buying/reloading chips
+//    Player taking a break
+//    Player leaving the game
+message GamePlayerUpdate {
+  uint64 player_id = 1;
+  uint32 seat_no = 2;
+  float stack = 3;
+  float buy_in = 4;
+  PlayerStatus status = 5;
+}
+
 message GameState {
 
   uint32 club_id = 1;
@@ -54,13 +69,13 @@ message GameState {
   // index 0-8 for 9 seats
   // the array item is player id
   // if array item is 0, that means the seat is empty 
-  repeated uint32 players_in_seats = 3 [packed=true];
+  repeated uint64 players_in_seats = 3 [packed=true];
 
   // players in the table and the queue
-  repeated uint32 players_in_game = 4 [packed=true];
+  repeated uint64 players_in_game = 4 [packed=true];
 
   // players who participated in the game
-  map<uint32, PlayerState> players_state = 5;
+  map<uint64, PlayerState> players_state = 5;
 
   bool utg_straddle_allowed = 6;
 
@@ -95,4 +110,9 @@ message GameState {
 
   // table status
   TableStatus table_status = 25;
+}
+
+message PendingGameUpdates {
+  uint64 game_id = 1;
+  repeated GamePlayerUpdate player_updates = 2;
 }

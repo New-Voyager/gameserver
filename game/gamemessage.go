@@ -33,6 +33,8 @@ func (game *Game) handleGameMessage(message *GameMessage) {
 		game.onQueryTableState(message)
 	case GameJoin:
 		game.onJoinGame(message)
+	case PlayerUpdate:
+		game.onPlayerUpdate(message)
 	}
 }
 
@@ -66,7 +68,7 @@ func (game *Game) onPlayerTakeSeat(message *GameMessage) error {
 	channelGameLogger.Info().
 		Uint32("club", game.clubID).
 		Uint64("game", game.gameID).
-		Uint32("player", gameSit.PlayerId).
+		Uint64("player", gameSit.PlayerId).
 		Str("message", "GameSitMessage").
 		Msg(fmt.Sprintf("Player %d took %d seat, buy-in: %f", gameSit.PlayerId, gameSit.SeatNo, gameSit.BuyIn))
 
@@ -78,7 +80,7 @@ func (game *Game) onPlayerTakeSeat(message *GameMessage) error {
 	// seat state: open, waiting for buyin approval, sitting, occupied, break, hold for certain time limit
 
 	if gameState.PlayersState == nil {
-		gameState.PlayersState = make(map[uint32]*PlayerState)
+		gameState.PlayersState = make(map[uint64]*PlayerState)
 	}
 	gameState.PlayersState[gameSit.PlayerId] = &PlayerState{BuyIn: gameSit.BuyIn, CurrentBalance: gameSit.BuyIn, Status: PlayerStatus_PLAYING}
 
@@ -191,5 +193,61 @@ func (game *Game) broadcastTableState() error {
 func (game *Game) onJoinGame(message *GameMessage) error {
 	joinMessage := message.GetJoinGame()
 	game.players[joinMessage.PlayerId] = joinMessage.Name
+	return nil
+}
+
+func (g *Game) onPlayerUpdate(message *GameMessage) error {
+	playerUpdate := message.GetPlayerUpdate()
+	channelGameLogger.Debug().Msg(fmt.Sprintf("Player update: %v", playerUpdate))
+	gameState, err := g.loadState()
+	if err != nil {
+		return err
+	}
+
+	if gameState.Status == GameStatus_ACTIVE &&
+		gameState.TableStatus == TableStatus_TABLE_STATUS_GAME_RUNNING {
+		// table is running
+		// add the update to pending updates
+	} else {
+		//playersInSeat := gameState.PlayersInSeats
+		channelGameLogger.Info().
+			Uint64("game", g.gameID).
+			Uint64("player", playerUpdate.PlayerId).
+			Str("message", "GameSitMessage").
+			Msg(fmt.Sprintf("Player %d took %d seat, buy-in: %f", playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate.BuyIn))
+
+		gameState.PlayersInSeats[playerUpdate.SeatNo-1] = playerUpdate.PlayerId
+		// TODO: Need to work on the buy-in and sitting
+		// This is a bigger work item. A multiple players will be auto-seated
+		// If the buy-in needs to approved by the club manager, we need to wait for the approval
+		// we need a state tracking for seat as well
+		// seat state: open, waiting for buyin approval, sitting, occupied, break, hold for certain time limit
+
+		if gameState.PlayersState == nil {
+			gameState.PlayersState = make(map[uint64]*PlayerState)
+		}
+		gameState.PlayersState[playerUpdate.PlayerId] = &PlayerState{BuyIn: playerUpdate.BuyIn,
+			CurrentBalance: playerUpdate.BuyIn,
+			Status:         playerUpdate.Status}
+
+		// save game state
+		err = g.saveState(gameState)
+		if err != nil {
+			return err
+		}
+
+		// send player sat message to all
+
+		// update the player status in the game state
+		err = g.saveState(gameState)
+		if err != nil {
+			return err
+		}
+	}
+
+	if gameState.Status == GameStatus_ACTIVE {
+		g.startGame()
+	}
+
 	return nil
 }

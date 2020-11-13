@@ -92,7 +92,7 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 				testPlayerLogger.Info().
 					Uint32("club", t.player.ClubID).
 					Uint64("game", t.player.GameID).
-					Uint32("playerid", t.player.PlayerID).
+					Uint64("playerid", t.player.PlayerID).
 					Uint32("seatNo", t.player.SeatNo).
 					Str("player", t.player.PlayerName).
 					Msg(fmt.Sprintf("%s", string(jsonb)))
@@ -101,7 +101,7 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 				testPlayerLogger.Error().
 					Uint32("club", t.player.ClubID).
 					Uint64("game", t.player.GameID).
-					Uint32("playerid", t.player.PlayerID).
+					Uint64("playerid", t.player.PlayerID).
 					Uint32("seatNo", t.player.SeatNo).
 					Str("player", t.player.PlayerName).
 					Msg(fmt.Sprintf("%s", string(jsonb)))
@@ -126,7 +126,7 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 		testPlayerLogger.Trace().
 			Uint32("club", t.player.ClubID).
 			Uint64("game", t.player.GameID).
-			Uint32("playerid", t.player.PlayerID).
+			Uint64("playerid", t.player.PlayerID).
 			Uint32("seatNo", t.player.SeatNo).
 			Str("player", t.player.PlayerName).
 			Msg(fmt.Sprintf("HAND MESSAGE Json: %s", string(jsonb)))
@@ -137,7 +137,7 @@ func (t *TestPlayer) GameMessageFromGame(messageBytes []byte, gameMessage *game.
 	testPlayerLogger.Trace().
 		Uint32("club", t.player.ClubID).
 		Uint64("game", t.player.GameID).
-		Uint32("playerid", t.player.PlayerID).
+		Uint64("playerid", t.player.PlayerID).
 		Uint32("seatNo", t.player.SeatNo).
 		Str("player", t.player.PlayerName).
 		Msg(fmt.Sprintf("GAME MESSAGE Json: %s", string(jsonb)))

@@ -49,8 +49,8 @@ type DriverBotMessage struct {
 type DriverBot struct {
 	botId          string
 	stopped        chan bool
-	players        map[uint32]*PlayerBot
-	playersInSeats map[uint32]uint32 // seatNo to player id
+	players        map[uint64]*PlayerBot
+	playersInSeats map[uint32]uint64 // seatNo to player id
 	currentHand    *game.Hand
 	noMoreActions  bool
 	observer       *PlayerBot // driver also attaches itself as an observer
@@ -72,8 +72,8 @@ func NewDriverBot(url string) (*DriverBot, error) {
 	driverBot := &DriverBot{
 		botId:          driverUuid.String(),
 		stopped:        make(chan bool),
-		players:        make(map[uint32]*PlayerBot),
-		playersInSeats: make(map[uint32]uint32),
+		players:        make(map[uint64]*PlayerBot),
+		playersInSeats: make(map[uint32]uint64),
 		nc:             nc,
 		waitCh:         make(chan int),
 		observerGameCh: make(chan *game.GameMessage),

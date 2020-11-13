@@ -12,3 +12,9 @@ type PersistHandState interface {
 	Save(clubID uint32, gameID uint64, handID uint32, state *HandState) error
 	Remove(clubID uint32, gameID uint64, handID uint32) error
 }
+
+type PersistGameUpdatesState interface {
+	Load(gameID uint64) (*PendingGameUpdates, error)
+	Save(gameID uint64, state *PendingGameUpdates) error
+	Remove(gameID uint64) error
+}

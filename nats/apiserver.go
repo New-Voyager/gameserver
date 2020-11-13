@@ -29,6 +29,31 @@ type GameStatus struct {
 	GameStatus uint32 `json:"gameStatus"`
 }
 
+/*
+
+  const message = {
+    type: 'PlayerUpdate',
+    gameServer: gameServer.serverNumber,
+    gameId: game.id,
+    playerId: player.id,
+    playerUuid: player.uuid,
+    name: player.name,
+    seatNo: playerGameInfo.seatNo,
+    stack: playerGameInfo.stack,
+    status: playerGameInfo.status,
+    buyIn: playerGameInfo.buyIn,
+  };
+*/
+
+type PlayerUpdate struct {
+	GameId   uint64            `json:"gameId"`
+	PlayerId uint64            `json:"playerId"`
+	SeatNo   uint64            `json:"seatNo"`
+	Stack    float64           `json:"Stack"`
+	Status   game.PlayerStatus `json:"status"`
+	BuyIn    float64           `json:"buyIn"`
+}
+
 // RegisterGameServer registers game server with the API server
 func RegisterGameServer(url string, gameManager *GameManager) *chan game.GameMessage {
 	apiServerUrl = url
@@ -87,6 +112,8 @@ func handleApiServerMessages(msg *natsgo.Msg) {
 		handleNewGame(msg.Data)
 	case "GameStatus":
 		handleGameStatus(msg.Data)
+	case "PlayerUpdate":
+		handlePlayerUpdate(msg.Data)
 	}
 }
 
@@ -126,6 +153,19 @@ func handleGameStatus(data []byte) {
 
 	log.Info().Uint64("gameId", gameStatus.GameId).Msg(fmt.Sprintf("New game status: %d", gameStatus.GameStatus))
 	natsGameManager.GameStatusChanged(gameStatus.GameId, game.GameStatus(gameStatus.GameStatus))
+}
+
+func handlePlayerUpdate(data []byte) {
+	var playerUpdate PlayerUpdate
+	var err error
+	err = jsoniter.Unmarshal(data, &playerUpdate)
+	if err != nil {
+		logger.Error().Msg(fmt.Sprintf("Game message cannot be unmarshalled. Error: %s", err.Error()))
+		return
+	}
+
+	log.Info().Uint64("gameId", playerUpdate.GameId).Msg(fmt.Sprintf("Player: %d seatNo: %d is updated: %v", playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate))
+	natsGameManager.PlayerUpdate(playerUpdate.GameId, &playerUpdate)
 }
 
 func UpdateTableStatus(gameID uint64, status game.TableStatus) error {

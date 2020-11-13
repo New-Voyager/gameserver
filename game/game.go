@@ -19,8 +19,8 @@ var channelGameLogger = log.With().Str("logger_name", "game::game").Logger()
 type GameMessageReceiver interface {
 	BroadcastGameMessage(message *GameMessage)
 	BroadcastHandMessage(message *HandMessage)
-	SendHandMessageToPlayer(message *HandMessage, playerID uint32)
-	SendGameMessageToPlayer(message *GameMessage, playerID uint32)
+	SendHandMessageToPlayer(message *HandMessage, playerID uint64)
+	SendGameMessageToPlayer(message *GameMessage, playerID uint64)
 }
 
 type Game struct {
@@ -34,10 +34,10 @@ type Game struct {
 	running         bool
 	chHand          chan []byte
 	chGame          chan []byte
-	allPlayers      map[uint32]*Player   // players at the table and the players that are viewing
+	allPlayers      map[uint64]*Player   // players at the table and the players that are viewing
 	messageReceiver *GameMessageReceiver // receives messages
-	players         map[uint32]string
-	waitingPlayers  []uint32
+	players         map[uint64]string
+	waitingPlayers  []uint64
 	minPlayers      int
 
 	// test driver specific variables
@@ -66,13 +66,13 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, ga
 		autoDeal:      autoDeal,
 		testButtonPos: -1,
 	}
-	game.allPlayers = make(map[uint32]*Player)
+	game.allPlayers = make(map[uint64]*Player)
 	game.chGame = make(chan []byte)
 	game.chHand = make(chan []byte)
 	game.end = make(chan bool)
-	game.waitingPlayers = make([]uint32, 0)
+	game.waitingPlayers = make([]uint64, 0)
 	game.minPlayers = minPlayers
-	game.players = make(map[uint32]string)
+	game.players = make(map[uint64]string)
 	game.initialize()
 	return &game
 }
@@ -141,8 +141,8 @@ func (game *Game) runGame() {
 }
 
 func (game *Game) initialize() error {
-	playersState := make(map[uint32]*PlayerState)
-	playersInSeats := make([]uint32, 9)
+	playersState := make(map[uint64]*PlayerState)
+	playersInSeats := make([]uint64, 9)
 
 	// initialize game state
 	gameState := GameState{
@@ -392,7 +392,7 @@ func (game *Game) SendHandMessage(message *HandMessage) {
 	game.chHand <- b
 }
 
-func (game *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint32) {
+func (game *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint64) {
 	if *game.messageReceiver != nil {
 		(*game.messageReceiver).SendHandMessageToPlayer(message, playerID)
 	} else {
