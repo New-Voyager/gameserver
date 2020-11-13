@@ -7,13 +7,12 @@ import (
 
 	natsgo "github.com/nats-io/nats.go"
 
-	"voyager.com/server/apiserver"
 	"voyager.com/server/bot"
+	"voyager.com/server/nats"
 	"voyager.com/server/util"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"voyager.com/server/nats"
 	"voyager.com/server/poker"
 	"voyager.com/server/test"
 )
@@ -57,8 +56,14 @@ func runWithNats() {
 		mainLogger.Error().Msg(fmt.Sprintf("Error connecting to NATS server, error: %v", err))
 		return
 	}
+	natsGameManager, err := nats.NewGameManager(nc)
+	// initialize nats game manager
+	if err != nil {
+		mainLogger.Error().Msg(fmt.Sprintf("Error creating NATS game manager, error: %v", err))
+		return
+	}
 
-	listener, err := nats.NewNatsDriverBotListener(nc)
+	listener, err := nats.NewNatsDriverBotListener(nc, natsGameManager)
 	if err != nil {
 		fmt.Printf("Error when subscribing to NATS")
 		return
@@ -66,8 +71,8 @@ func runWithNats() {
 	_ = listener
 
 	// subscribe to api server events
-	apiserver.RegisterGameServer(util.GameServerEnvironment.GetApiServerUrl())
-	apiserver.SubscribeToNats(nc)
+	nats.RegisterGameServer(util.GameServerEnvironment.GetApiServerUrl(), natsGameManager)
+	nats.SubscribeToNats(nc)
 
 	select {}
 }

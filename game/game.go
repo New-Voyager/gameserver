@@ -152,7 +152,7 @@ func (game *Game) initialize() error {
 		PlayersState:          playersState,
 		UtgStraddleAllowed:    false,
 		ButtonStraddleAllowed: false,
-		Status:                GameStatus_INITIALIZED,
+		Status:                GameStatus_CONFIGURED,
 		GameType:              game.gameType,
 		MinPlayers:            uint32(game.minPlayers),
 		HandNum:               0,
@@ -160,10 +160,12 @@ func (game *Game) initialize() error {
 		SmallBlind:            1.0,
 		BigBlind:              2.0,
 		MaxSeats:              9,
+		TableStatus:           TableStatus_TABLE_STATUS_WAITING_TO_BE_STARTED,
 	}
 	err := game.saveState(&gameState)
 	if err != nil {
-		return err
+		panic("Could not store game state")
+		//return err
 	}
 	return nil
 }
@@ -174,7 +176,7 @@ func (game *Game) startGame() (bool, error) {
 		return false, err
 	}
 
-	if !game.autoStart && gameState.Status != GameStatus_START_GAME_RECEIVED {
+	if !game.autoStart && gameState.Status != GameStatus_ACTIVE {
 		return false, nil
 	}
 
@@ -186,7 +188,18 @@ func (game *Game) startGame() (bool, error) {
 		}
 	}
 	if uint32(countPlayersInSeats) < gameState.GetMinPlayers() {
+		lastTableState := gameState.TableStatus
 		// not enough players
+		// set table status as not enough players
+		gameState.TableStatus = TableStatus_TABLE_STATUS_NOT_ENOUGH_PLAYERS
+		game.saveState(gameState)
+
+		// TODO:
+		// broadcast this message to the players
+		// update this message in API server
+		if lastTableState != gameState.TableStatus {
+			game.broadcastTableState()
+		}
 		return false, nil
 	}
 
@@ -204,7 +217,7 @@ func (game *Game) startGame() (bool, error) {
 			break
 		}
 	}
-	gameState.Status = GameStatus_RUNNING
+	gameState.Status = GameStatus_ACTIVE
 	err = game.saveState(gameState)
 	if err != nil {
 		return false, err

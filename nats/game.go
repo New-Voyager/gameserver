@@ -7,7 +7,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/encoding/protojson"
 	"voyager.com/server/game"
-	"voyager.com/server/util"
 )
 
 // NatsGame is an adapter that interacts with the NATS server and
@@ -21,8 +20,6 @@ import (
 //
 
 var natsLogger = log.With().Str("logger_name", "nats::game").Logger()
-
-var NatsURL = util.GameServerEnvironment.GetNatsClientConnURL()
 
 // id: clubId.gameNum
 /**
@@ -62,13 +59,7 @@ type NatsGame struct {
 	nc             *natsgo.Conn
 }
 
-func NewGame(clubID uint32, gameID uint64, config *game.GameConfig) (*NatsGame, error) {
-	// let us try to connect to nats server
-	nc, err := natsgo.Connect(NatsURL)
-	if err != nil {
-		natsLogger.Error().Msg(fmt.Sprintf("Failed to connect to nats server: %v", err))
-		return nil, err
-	}
+func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.GameConfig) (*NatsGame, error) {
 
 	// game subjects
 	player2GameSubject := fmt.Sprintf("game.%d.player", gameID)
@@ -120,6 +111,18 @@ func (n *NatsGame) cleanup() {
 	n.player2GameSub.Unsubscribe()
 }
 
+// message sent from apiserver to game
+func (n *NatsGame) GameStatusChanged(gameID uint64, newStatus game.GameStatus) {
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+		Msg(fmt.Sprintf("APIServer->Game: Status changed. GameID: %d, NewStatus: %s", gameID, game.GameStatus_name[int32(newStatus)]))
+	var message game.GameMessage
+	message.GameId = gameID
+	message.MessageType = game.GameStatusChanged
+	message.GameMessage = &game.GameMessage_StatusChange{StatusChange: &game.GameStatusChangeMessage{NewStatus: newStatus}}
+
+	n.serverGame.SendGameMessage(&message)
+}
+
 // messages sent from player to game
 func (n *NatsGame) player2Game(msg *natsgo.Msg) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
@@ -152,9 +155,15 @@ func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
 
 func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
-		Msg(fmt.Sprintf("Game->Player: %s", message.MessageType))
+		Msg(fmt.Sprintf("Game->AllPlayers: %s", message.MessageType))
 	// let send this to all players
 	data, _ := protojson.Marshal(message)
+
+	if message.MessageType == game.GameTableState {
+		// update table status
+		UpdateTableStatus(message.GameId, message.GetTableState().TableStatus)
+	}
+
 	n.nc.Publish(n.game2AllPlayersSubject, data)
 }
 

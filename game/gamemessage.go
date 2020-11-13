@@ -108,7 +108,7 @@ func (g *Game) onStatusChanged(message *GameMessage) error {
 		return err
 	}
 
-	if gameState.Status == GameStatus_START_GAME_RECEIVED {
+	if gameState.Status == GameStatus_ACTIVE {
 		g.startGame()
 	}
 
@@ -142,8 +142,12 @@ func (game *Game) onQueryTableState(message *GameMessage) error {
 	if err != nil {
 		return err
 	}
+	gameState, err := game.loadState()
+	if err != nil {
+		return err
+	}
 
-	gameTableState := &GameTableStateMessage{PlayersState: playersAtTable}
+	gameTableState := &GameTableStateMessage{PlayersState: playersAtTable, Status: gameState.Status, TableStatus: gameState.TableStatus}
 	var gameMessage GameMessage
 	gameMessage.ClubId = game.clubID
 	gameMessage.GameId = game.gameID
@@ -156,6 +160,30 @@ func (game *Game) onQueryTableState(message *GameMessage) error {
 	} else {
 		messageData, _ := proto.Marshal(&gameMessage)
 		game.allPlayers[message.PlayerId].chGame <- messageData
+	}
+	return nil
+}
+
+func (game *Game) broadcastTableState() error {
+	// get active players on the table
+	playersAtTable, err := game.getPlayersAtTable()
+	if err != nil {
+		return err
+	}
+	gameState, err := game.loadState()
+	if err != nil {
+		return err
+	}
+
+	gameTableState := &GameTableStateMessage{PlayersState: playersAtTable, Status: gameState.Status, TableStatus: gameState.TableStatus}
+	var gameMessage GameMessage
+	gameMessage.ClubId = game.clubID
+	gameMessage.GameId = game.gameID
+	gameMessage.MessageType = GameTableState
+	gameMessage.GameMessage = &GameMessage_TableState{TableState: gameTableState}
+
+	if *game.messageReceiver != nil {
+		(*game.messageReceiver).BroadcastGameMessage(&gameMessage)
 	}
 	return nil
 }

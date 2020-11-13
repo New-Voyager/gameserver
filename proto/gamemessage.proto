@@ -42,6 +42,8 @@ message GameDealHandMessage {
 
 message GameTableStateMessage {
   repeated PlayerAtTableState players_state = 1;
+  GameStatus status = 2;
+  TableStatus table_status = 3;
 }
 
 message GameSetupNextHandMessage {
@@ -56,6 +58,7 @@ message GameStartMessage {
 message GameQueryTableStateMessage {
   uint32 player_id = 1;     // the player asked for this
 }
+
 
 message GameMessage {
   string version = 1;

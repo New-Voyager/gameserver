@@ -27,8 +27,8 @@ package game
 
 */
 type GameConfig struct {
-	ClubId             int     `json:"clubId"`
-	GameId             int     `json:"gameId"`
+	ClubId             uint32  `json:"clubId"`
+	GameId             uint64  `json:"gameId"`
 	GameTypeStr        string  `yaml:"type"`
 	GameType           int     `json:"gameType"`
 	ClubCode           string  `json:"clubCode"`

@@ -3,34 +3,59 @@ package nats
 import (
 	"fmt"
 
+	natsgo "github.com/nats-io/nats.go"
+
 	"voyager.com/server/game"
+	"voyager.com/server/util"
 )
+
+var NatsURL = util.GameServerEnvironment.GetNatsClientConnURL()
 
 // This game manager is similar to game.GameManager.
 // However, this game manager active NatsGame objects.
 // This will cleanup a NatsGame object and removes when the game ends.
 type GameManager struct {
 	activeGames map[string]*NatsGame
+	nc          *natsgo.Conn
 }
 
-var natsGameManager = &GameManager{
-	activeGames: make(map[string]*NatsGame),
+func NewGameManager(nc *natsgo.Conn) (*GameManager, error) {
+	// let us try to connect to nats server
+	nc, err := natsgo.Connect(NatsURL)
+	if err != nil {
+		natsLogger.Error().Msg(fmt.Sprintf("Failed to connect to nats server: %v", err))
+		return nil, err
+	}
+
+	return &GameManager{
+		nc:          nc,
+		activeGames: make(map[string]*NatsGame),
+	}, nil
 }
 
-func initializeNatsGame(clubID uint32, gameID uint64, config *game.GameConfig) (*NatsGame, error) {
-	gameIDStr := fmt.Sprintf("%d:%d", clubID, gameID)
-	game, err := NewGame(clubID, gameID, config)
+func (gm *GameManager) NewGame(clubID uint32, gameID uint64, config *game.GameConfig) (*NatsGame, error) {
+	gameIDStr := fmt.Sprintf("%d", gameID)
+	game, err := newNatsGame(gm.nc, clubID, gameID, config)
 	if err != nil {
 		return nil, err
 	}
-	natsGameManager.activeGames[gameIDStr] = game
+	gm.activeGames[gameIDStr] = game
 	return game, nil
 }
 
-func endNatsGame(clubID uint32, gameNum uint32) {
-	gameID := fmt.Sprintf("%d:%d", clubID, gameNum)
-	if game, ok := natsGameManager.activeGames[gameID]; ok {
+func (gm *GameManager) EndNatsGame(clubID uint32, gameID uint64) {
+	gameIDStr := fmt.Sprintf("%d", gameID)
+	if game, ok := gm.activeGames[gameIDStr]; ok {
 		game.cleanup()
-		delete(natsGameManager.activeGames, gameID)
+		delete(gm.activeGames, gameIDStr)
+	}
+}
+
+func (gm *GameManager) GameStatusChanged(gameID uint64, newStatus game.GameStatus) {
+	gameIDStr := fmt.Sprintf("%d", gameID)
+	if game, ok := gm.activeGames[gameIDStr]; ok {
+		game.GameStatusChanged(gameID, newStatus)
+	} else {
+		natsLogger.Error().Uint64("gameId", gameID).Msg(fmt.Sprintf("GameID: %d does not exist", gameID))
 	}
 }
