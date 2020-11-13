@@ -22,13 +22,14 @@ import (
 // test driver publish: game.game2testdriver
 
 type NatsDriverBotListener struct {
-	stopped chan bool
-	nc      *natsgo.Conn
+	stopped     chan bool
+	nc          *natsgo.Conn
+	gameManager *GameManager
 }
 
 var natsTestDriverLogger = log.With().Str("logger_name", "nats::game").Logger()
 
-func NewNatsDriverBotListener(nc *natsgo.Conn) (*NatsDriverBotListener, error) {
+func NewNatsDriverBotListener(nc *natsgo.Conn, gameManager *GameManager) (*NatsDriverBotListener, error) {
 	natsTestDriver := &NatsDriverBotListener{
 		stopped: make(chan bool),
 		nc:      nc,
@@ -65,7 +66,7 @@ func (n *NatsDriverBotListener) initializeGame(botDriverMessage *bot.DriverBotMe
 	gameID := uint64(1)
 
 	// initialize nats game
-	_, err := initializeNatsGame(clubID, gameID, gameConfig)
+	_, err := n.gameManager.NewGame(clubID, gameID, gameConfig)
 	if err != nil {
 		msg := fmt.Sprintf("Unable to initialize nats game: %v", err)
 		natsTestDriverLogger.Error().Msg(msg)
