@@ -209,7 +209,6 @@ func (g *Game) onPlayerUpdate(message *GameMessage) error {
 		// table is running
 		// add the update to pending updates
 	} else {
-		//playersInSeat := gameState.PlayersInSeats
 		channelGameLogger.Info().
 			Uint64("game", g.gameID).
 			Uint64("player", playerUpdate.PlayerId).
@@ -217,12 +216,6 @@ func (g *Game) onPlayerUpdate(message *GameMessage) error {
 			Msg(fmt.Sprintf("Player %d took %d seat, buy-in: %f", playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate.BuyIn))
 
 		gameState.PlayersInSeats[playerUpdate.SeatNo-1] = playerUpdate.PlayerId
-		// TODO: Need to work on the buy-in and sitting
-		// This is a bigger work item. A multiple players will be auto-seated
-		// If the buy-in needs to approved by the club manager, we need to wait for the approval
-		// we need a state tracking for seat as well
-		// seat state: open, waiting for buyin approval, sitting, occupied, break, hold for certain time limit
-
 		if gameState.PlayersState == nil {
 			gameState.PlayersState = make(map[uint64]*PlayerState)
 		}

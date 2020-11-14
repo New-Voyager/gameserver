@@ -110,6 +110,8 @@ message GameState {
 
   // table status
   TableStatus table_status = 25;
+
+  float straddle = 26;
 }
 
 message PendingGameUpdates {
