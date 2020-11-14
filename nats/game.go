@@ -101,7 +101,7 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 		gameType,
 		config.Title,
 		int(config.MinPlayers),
-		config.AutoStart, false)
+		config.AutoStart, true)
 	natsGame.serverGame = serverGame
 	return natsGame, nil
 }
@@ -197,11 +197,12 @@ func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 }
 
 func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID uint64) {
-	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
-		Msg(fmt.Sprintf("Hand->Player: %s", message.MessageType))
 	hand2PlayerSubject := fmt.Sprintf("game.%d.hand.player.%d", n.gameID, playerID)
 	message.PlayerId = playerID
 	data, _ := protojson.Marshal(message)
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", message.MessageType).
+		Str("subject", hand2PlayerSubject).
+		Msg(fmt.Sprintf("Message: %s", string(data)))
 	n.nc.Publish(hand2PlayerSubject, data)
 }
 
