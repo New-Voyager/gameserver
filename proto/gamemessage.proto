@@ -17,6 +17,7 @@ message GameJoinMessage {
 
 message GameStatusMessage {
   GameStatus status = 1;
+  TableStatus table_status = 2;
 }
 
 message GamePlayerSatMessage {
