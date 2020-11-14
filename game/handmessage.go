@@ -39,7 +39,7 @@ func (game *Game) onPlayerActed(message *HandMessage) error {
 		return err
 	}
 
-	err = handState.actionReceived(gameState, message.GetPlayerActed())
+	err = handState.actionReceived(message.GetPlayerActed())
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (game *Game) gotoFlop(gameState *GameState, handState *HandState) {
 	for i, card := range cards {
 		boardCards[i] = uint32(card.GetByte())
 	}
-	handState.setupFlop(gameState, boardCards)
+	handState.setupFlop(boardCards)
 	game.saveHandState(gameState, handState)
 
 	cardsStr := poker.CardsToString(boardCards)
@@ -108,7 +108,7 @@ func (game *Game) gotoTurn(gameState *GameState, handState *HandState) {
 	deck.Draw(1)
 	handState.DeckIndex++
 	turn := uint32(deck.Draw(1)[0].GetByte())
-	handState.setupTurn(gameState, turn)
+	handState.setupTurn(turn)
 	game.saveHandState(gameState, handState)
 
 	cardsStr := poker.CardsToString(handState.BoardCards)
@@ -138,7 +138,7 @@ func (game *Game) gotoRiver(gameState *GameState, handState *HandState) {
 	deck.Draw(1)
 	handState.DeckIndex++
 	river := uint32(deck.Draw(1)[0].GetByte())
-	handState.setupRiver(gameState, river)
+	handState.setupRiver(river)
 	game.saveHandState(gameState, handState)
 
 	cardsStr := poker.CardsToString(handState.BoardCards)

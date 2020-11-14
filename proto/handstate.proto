@@ -162,6 +162,12 @@ message HandState {
   repeated PlayerActRound players_acted = 36;
   repeated uint32 all_in_players = 37;
   HandStatus lastState = 38;
+  uint32 max_seats = 39;
+  float big_blind = 40;
+  float small_blind = 41;
+  float straddle = 42;
+  float rakePercentage = 43;
+  float rakeCap = 44;
 }
 
 message HandWinner {
