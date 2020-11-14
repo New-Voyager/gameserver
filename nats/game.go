@@ -180,9 +180,9 @@ func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 	// let send this to all players
 	data, _ := protojson.Marshal(message)
 
-	if message.MessageType == game.GameTableState {
+	if message.MessageType == game.GameCurrentStatus {
 		// update table status
-		UpdateTableStatus(message.GameId, message.GetTableState().TableStatus)
+		UpdateTableStatus(message.GameId, message.GetStatus().GetTableStatus())
 	}
 
 	n.nc.Publish(n.game2AllPlayersSubject, data)

@@ -220,7 +220,7 @@ func (g *Game) onPlayerUpdate(message *GameMessage) error {
 			gameState.PlayersState = make(map[uint64]*PlayerState)
 		}
 		gameState.PlayersState[playerUpdate.PlayerId] = &PlayerState{BuyIn: playerUpdate.BuyIn,
-			CurrentBalance: playerUpdate.BuyIn,
+			CurrentBalance: playerUpdate.Stack,
 			Status:         playerUpdate.Status}
 
 		// save game state

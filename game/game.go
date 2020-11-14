@@ -202,6 +202,7 @@ func (game *Game) startGame() (bool, error) {
 		}
 		return false, nil
 	}
+	gameState.TableStatus = TableStatus_TABLE_STATUS_GAME_RUNNING
 
 	channelGameLogger.Info().
 		Uint32("club", game.clubID).
@@ -224,8 +225,8 @@ func (game *Game) startGame() (bool, error) {
 	}
 	game.running = true
 
-	gameMessage := GameMessage{MessageType: GameCurrentStatus, PlayerId: 0}
-	gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: gameState.Status}}
+	gameMessage := GameMessage{MessageType: GameCurrentStatus, GameId: game.gameID, PlayerId: 0}
+	gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: gameState.Status, TableStatus: gameState.TableStatus}}
 	game.broadcastGameMessage(&gameMessage)
 
 	if game.autoDeal {
