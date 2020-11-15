@@ -8,6 +8,7 @@ DEV_NATS_CLIENT_PORT := 4222
 DEV_REDIS_HOST := localhost
 DEV_REDIS_PORT := 6379
 DEV_REDIS_DB := 0
+DEV_API_SERVER_URL := http://localhost:9501
 
 .PHONY: compile-proto
 compile-proto: install-protoc
@@ -84,6 +85,7 @@ run-server: export PERSIST_METHOD=redis
 run-server: export REDIS_HOST=$(DEV_REDIS_HOST)
 run-server: export REDIS_PORT=$(DEV_REDIS_PORT)
 run-server: export REDIS_DB=$(DEV_REDIS_DB)
+run-server: export API_SERVER_URL=$(DEV_API_SERVER_URL)
 run-server:
 	go run ./main.go --server
 
