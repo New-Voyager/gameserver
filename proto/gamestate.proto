@@ -58,6 +58,7 @@ message GamePlayerUpdate {
   float stack = 3;
   float buy_in = 4;
   PlayerStatus status = 5;
+  float reload_chips = 7;
 }
 
 message GameState {

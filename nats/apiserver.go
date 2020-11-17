@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
+	"strings"
 
 	jsoniter "github.com/json-iterator/go"
 	natsgo "github.com/nats-io/nats.go"
@@ -62,6 +64,7 @@ func RegisterGameServer(url string, gameManager *GameManager) *chan game.GameMes
 	stopApiCh = make(chan bool)
 	stoppedApiCh = make(chan bool)
 	go listenForGameMessage()
+	registerGameServer()
 	return &apiServerch
 }
 
@@ -182,6 +185,73 @@ func UpdateTableStatus(gameID uint64, status game.TableStatus) error {
 	resp, err := http.Post(statusUrl, "application/json", bytes.NewBuffer(reqData))
 	if resp.StatusCode != 200 {
 		logger.Fatal().Uint64("game", gameID).Msg(fmt.Sprintf("Failed to update table status. Error: %d", resp.StatusCode))
+	}
+	return err
+}
+func getIp() (string, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return "", nil
+	}
+	var ip net.IP
+	// handle err
+	for _, i := range ifaces {
+		addrs, err := i.Addrs()
+		if err != nil {
+			continue
+		}
+
+		// handle err
+		for _, addr := range addrs {
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip.IsLoopback() {
+				continue
+			}
+			ipStr := ip.String()
+			if strings.Contains(ipStr, ":") {
+				continue
+			}
+			// process IP address
+			if ip != nil {
+				break
+			}
+			ip = nil
+		}
+		if ip != nil {
+			break
+		}
+	}
+	if ip == nil {
+		return "", fmt.Errorf("Could not get ip address")
+	}
+	return ip.String(), nil
+}
+
+func registerGameServer() error {
+	// update table status
+	var reqData []byte
+	var err error
+	ip, err := getIp()
+	if err != nil {
+		panic(fmt.Sprintf("Could not get ip address of the server"))
+	}
+
+	payload := map[string]interface{}{"ipAddress": ip, "currentMemory": 10000, "status": "ACTIVE"}
+	reqData, err = json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	statusUrl := fmt.Sprintf("%s/internal/register-game-server", apiServerUrl)
+	resp, err := http.Post(statusUrl, "application/json", bytes.NewBuffer(reqData))
+	if resp.StatusCode != 200 {
+		logger.Fatal().Msg(fmt.Sprintf("Failed to register server. Error: %d", resp.StatusCode))
+		panic("Count not register game server")
 	}
 	return err
 }
