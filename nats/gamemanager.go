@@ -6,6 +6,7 @@ import (
 	natsgo "github.com/nats-io/nats.go"
 
 	"voyager.com/server/game"
+	"voyager.com/server/poker"
 	"voyager.com/server/util"
 )
 
@@ -16,6 +17,7 @@ var NatsURL = util.GameServerEnvironment.GetNatsClientConnURL()
 // This will cleanup a NatsGame object and removes when the game ends.
 type GameManager struct {
 	activeGames map[string]*NatsGame
+	gameCodes   map[string]string
 	nc          *natsgo.Conn
 }
 
@@ -30,6 +32,7 @@ func NewGameManager(nc *natsgo.Conn) (*GameManager, error) {
 	return &GameManager{
 		nc:          nc,
 		activeGames: make(map[string]*NatsGame),
+		gameCodes:   make(map[string]string),
 	}, nil
 }
 
@@ -40,6 +43,7 @@ func (gm *GameManager) NewGame(clubID uint32, gameID uint64, config *game.GameCo
 		return nil, err
 	}
 	gm.activeGames[gameIDStr] = game
+	gm.gameCodes[gameIDStr] = config.GameCode
 	return game, nil
 }
 
@@ -48,6 +52,7 @@ func (gm *GameManager) EndNatsGame(clubID uint32, gameID uint64) {
 	if game, ok := gm.activeGames[gameIDStr]; ok {
 		game.cleanup()
 		delete(gm.activeGames, gameIDStr)
+		delete(gm.gameCodes, gameIDStr)
 	}
 }
 
@@ -67,4 +72,31 @@ func (gm *GameManager) PlayerUpdate(gameID uint64, playerUpdate *PlayerUpdate) {
 	} else {
 		natsLogger.Error().Uint64("gameId", gameID).Msg(fmt.Sprintf("GameID: %d does not exist", gameID))
 	}
+}
+
+func (gm *GameManager) SetupDeck(setupDeck SetupDeck) {
+	// first check whether the game is hosted by this game server
+	gameIDStr := fmt.Sprintf("%d", setupDeck.GameId)
+	var natsGame *NatsGame
+	var ok bool
+	if natsGame, ok = gm.activeGames[gameIDStr]; !ok {
+		// lookup using game code
+		gameIDStr, ok = gm.gameCodes[setupDeck.GameCode]
+		if !ok {
+			natsLogger.Error().Str("gameId", setupDeck.GameCode).Msg(fmt.Sprintf("Game code: %s does not exist", setupDeck.GameCode))
+		}
+	}
+
+	// send the message to the game to setup deck for next hand
+
+	playerCards := make([]poker.CardsInAscii, 0)
+	for _, cards := range setupDeck.PlayerCards {
+		playerCards = append(playerCards, cards.Cards)
+	}
+	// arrange deck
+	deck := poker.DeckFromScript(playerCards,
+		setupDeck.Flop,
+		poker.NewCard(setupDeck.Turn),
+		poker.NewCard(setupDeck.River))
+	natsGame.setupDeck(deck.GetBytes(), setupDeck.ButtonPos)
 }

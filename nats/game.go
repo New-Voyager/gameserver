@@ -144,6 +144,26 @@ func (n *NatsGame) playerUpdate(gameID uint64, update *PlayerUpdate) {
 	n.serverGame.SendGameMessage(&message)
 }
 
+// message sent from bot to game
+func (n *NatsGame) setupDeck(deck []byte, buttonPos uint32) {
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+		Msg(fmt.Sprintf("Bot->Game: Setup deck. GameID: %d, ButtonPos: %s", n.gameID, buttonPos))
+	// build a game message and send to the game
+	var message game.GameMessage
+
+	nextHand := &game.GameSetupNextHandMessage{
+		Deck:      deck,
+		ButtonPos: buttonPos,
+	}
+
+	message.ClubId = 0
+	message.GameId = n.gameID
+	message.MessageType = game.GameSetupNextHand
+	message.GameMessage = &game.GameMessage_NextHand{NextHand: nextHand}
+
+	n.serverGame.SendGameMessage(&message)
+}
+
 // messages sent from player to game
 func (n *NatsGame) player2Game(msg *natsgo.Msg) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
