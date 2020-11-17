@@ -209,19 +209,31 @@ func (g *Game) onPlayerUpdate(message *GameMessage) error {
 		// table is running
 		// add the update to pending updates
 	} else {
-		channelGameLogger.Info().
-			Uint64("game", g.gameID).
-			Uint64("player", playerUpdate.PlayerId).
-			Str("message", "GameSitMessage").
-			Msg(fmt.Sprintf("Player %d took %d seat, buy-in: %f", playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate.BuyIn))
 
-		gameState.PlayersInSeats[playerUpdate.SeatNo-1] = playerUpdate.PlayerId
-		if gameState.PlayersState == nil {
-			gameState.PlayersState = make(map[uint64]*PlayerState)
+		// NOTE: we should be here only when a player takes a seat
+		// or buys in
+		// or added to queue
+		if playerUpdate.SeatNo > 0 {
+			channelGameLogger.Info().
+				Uint64("game", g.gameID).
+				Uint64("player", playerUpdate.PlayerId).
+				Str("message", "GameSitMessage").
+				Msg(fmt.Sprintf("Player %d took %d seat, buy-in: %f", playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate.BuyIn))
+
+			gameState.PlayersInSeats[playerUpdate.SeatNo-1] = playerUpdate.PlayerId
+			if gameState.PlayersState == nil {
+				gameState.PlayersState = make(map[uint64]*PlayerState)
+			}
+			gameState.PlayersState[playerUpdate.PlayerId] = &PlayerState{BuyIn: playerUpdate.BuyIn,
+				CurrentBalance: playerUpdate.Stack,
+				Status:         playerUpdate.Status}
+		} else if playerUpdate.Status == PlayerStatus_LEFT {
+			// player left
+			panic("Player left should be handled up pending updates")
+		} else if playerUpdate.Status == PlayerStatus_IN_BREAK {
+			// player in break
+			panic("Player in break should be handled up pending updates")
 		}
-		gameState.PlayersState[playerUpdate.PlayerId] = &PlayerState{BuyIn: playerUpdate.BuyIn,
-			CurrentBalance: playerUpdate.Stack,
-			Status:         playerUpdate.Status}
 
 		// save game state
 		err = g.saveState(gameState)
@@ -229,12 +241,9 @@ func (g *Game) onPlayerUpdate(message *GameMessage) error {
 			return err
 		}
 
-		// send player sat message to all
-
-		// update the player status in the game state
-		err = g.saveState(gameState)
-		if err != nil {
-			return err
+		// send player update message to all
+		if *g.messageReceiver != nil {
+			(*g.messageReceiver).BroadcastGameMessage(message)
 		}
 	}
 

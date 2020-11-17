@@ -189,10 +189,14 @@ func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 }
 
 func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
-	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
-		Msg(fmt.Sprintf("Hand->AllPlayers: %s", message.MessageType))
+	//natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+	//	Msg(fmt.Sprintf("Hand->AllPlayers: %s", message.MessageType))
 	//hand2PlayerSubject := fmt.Sprintf("game.%d%d.hand.player.*", n.clubID, n.gameNum)
 	data, _ := protojson.Marshal(message)
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", message.MessageType).
+		Str("subject", n.hand2PlayerAllSubject).
+		Msg(fmt.Sprintf("H->A: %s", string(data)))
+
 	n.nc.Publish(n.hand2PlayerAllSubject, data)
 }
 
@@ -202,7 +206,7 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 	data, _ := protojson.Marshal(message)
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", message.MessageType).
 		Str("subject", hand2PlayerSubject).
-		Msg(fmt.Sprintf("Message: %s", string(data)))
+		Msg(fmt.Sprintf("H->P: %s", string(data)))
 	n.nc.Publish(hand2PlayerSubject, data)
 }
 
