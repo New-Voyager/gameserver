@@ -31,6 +31,7 @@ const botPlayerID = 0xFFFFFFFF
 const (
 	BotDriverInitializeGame = "B2GInitializeGame"
 	BotDriverStartGame      = "B2GStartGame"
+	BotDriverSetupDeck      = "B2GSetupDeck"
 )
 
 // game to bot driver messages
@@ -44,6 +45,7 @@ type DriverBotMessage struct {
 	GameConfig  *game.GameConfig `json:"game-config"`
 	ClubId      uint32           `json:"club-id"`
 	GameId      uint64           `json:"game-id"`
+	GameCode    string           `json:"game-code"`
 }
 
 type DriverBot struct {
