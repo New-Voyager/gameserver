@@ -20,6 +20,8 @@ message PlayerState {
   float buy_in = 1;
   float current_balance = 2;
   PlayerStatus status = 3;
+  string game_token = 4;
+  uint64 game_token_int = 5;    // 40 bit number to do XOR decipher the cards
 }
 
 enum GameType {
@@ -57,7 +59,8 @@ message GamePlayerUpdate {
   uint32 seat_no = 2;
   float stack = 3;
   float buy_in = 4;
-  PlayerStatus status = 5;
+  string game_token = 5;
+  PlayerStatus status = 6;
   float reload_chips = 7;
 }
 

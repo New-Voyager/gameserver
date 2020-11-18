@@ -1,6 +1,7 @@
 package game
 
 import (
+	"encoding/binary"
 	"fmt"
 	"sync"
 	"time"
@@ -265,13 +266,6 @@ func (game *Game) dealNewHand() error {
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Table: %s", handState.PrintTable(game.players)))
 
-	// send a new hand message to all players
-	newHand := NewHand{
-		ButtonPos:      handState.ButtonPos,
-		SbPos:          handState.SmallBlindPos,
-		BbPos:          handState.BigBlindPos,
-		NextActionSeat: handState.NextSeatAction.SeatNo,
-	}
 	handMessage := HandMessage{
 		MessageType: HandNewHand,
 		GameId:      game.gameID,
@@ -279,8 +273,7 @@ func (game *Game) dealNewHand() error {
 		HandNum:     handState.HandNum,
 		HandStatus:  handState.CurrentState,
 	}
-	handMessage.HandMessage = &HandMessage_NewHand{NewHand: &newHand}
-	game.broadcastHandMessage(&handMessage)
+	playersCards := make(map[uint32]string)
 
 	// send the cards to each player
 	for seatNo, playerID := range gameState.GetPlayersInSeats() {
@@ -289,29 +282,68 @@ func (game *Game) dealNewHand() error {
 			continue
 		}
 
+		// if the player is in break
+		playerState := handState.PlayersState[playerID]
+		if playerState.Status == HandPlayerState_SAT_OUT {
+			continue
+		}
+
 		// playerCards is a map
+		card64 := make([]byte, 8)
+
 		// seatNo is the key, cards are value
 		playerCards := handState.PlayersCards[uint32(seatNo+1)]
 		message := HandDealCards{SeatNo: uint32(seatNo + 1)}
-		message.Cards = make([]uint32, len(playerCards))
+		cards := make([]uint32, len(playerCards))
 		for i, card := range playerCards {
-			message.Cards[i] = uint32(card)
+			cards[i] = uint32(card)
+			card64[i] = card
 		}
-		message.CardsStr = poker.CardsToString(message.Cards)
 
-		//messageData, _ := proto.Marshal(&message)
-		player := game.allPlayers[playerID]
-		handMessage := HandMessage{MessageType: HandDeal, GameId: game.gameID, ClubId: game.clubID, PlayerId: playerID}
-		handMessage.HandMessage = &HandMessage_DealCards{DealCards: &message}
-		b, _ := proto.Marshal(&handMessage)
-
-		if *game.messageReceiver != nil {
-			(*game.messageReceiver).SendHandMessageToPlayer(&handMessage, playerID)
-
-		} else {
-			player.chHand <- b
+		// convert cards to uint64
+		cardsUint64 := binary.LittleEndian.Uint64(card64)
+		mask := gameState.PlayersState[playerID].GameTokenInt
+		maskCards := uint64(cardsUint64)
+		if mask != 0 {
+			maskCards = uint64(cardsUint64 ^ mask)
 		}
+		strippedCards := uint64(maskCards) & uint64(0x000000FFFFFFFFFF)
+		playersCards[uint32(seatNo+1)] = fmt.Sprintf("%d", strippedCards)
+
+		message.Cards = cards
+		message.CardsStr = poker.CardsToString(cards)
+
+		/*
+			//messageData, _ := proto.Marshal(&message)
+			player := game.allPlayers[playerID]
+			handMessage := HandMessage{MessageType: HandDeal, GameId: game.gameID, ClubId: game.clubID, PlayerId: playerID}
+			handMessage.HandMessage = &HandMessage_DealCards{DealCards: &message}
+			b, _ := proto.Marshal(&handMessage)
+
+			if *game.messageReceiver != nil {
+				(*game.messageReceiver).SendHandMessageToPlayer(&handMessage, playerID)
+
+			} else {
+				player.chHand <- b
+			}
+		*/
 	}
+
+	// send a new hand message to all players
+	newHand := NewHand{
+		ButtonPos:      handState.ButtonPos,
+		SbPos:          handState.SmallBlindPos,
+		BbPos:          handState.BigBlindPos,
+		NextActionSeat: handState.NextSeatAction.SeatNo,
+		PlayerCards:    playersCards,
+	}
+	// we dealt hands and setup for preflop, save handstate
+	// if we crash between state: deal and preflop, we will deal the cards again
+	game.saveHandState(gameState, handState)
+
+	//newHand.PlayerCards = playersCards
+	handMessage.HandMessage = &HandMessage_NewHand{NewHand: &newHand}
+	game.broadcastHandMessage(&handMessage)
 
 	// print next action
 	channelGameLogger.Trace().
@@ -319,10 +351,6 @@ func (game *Game) dealNewHand() error {
 		Uint64("game", game.gameID).
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, gameState, game.players)))
-
-	// we dealt hands and setup for preflop, save handstate
-	// if we crash between state: deal and preflop, we will deal the cards again
-	game.saveHandState(gameState, handState)
 
 	game.moveToNextAct(gameState, handState)
 	return nil
