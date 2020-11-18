@@ -11,12 +11,14 @@ message NewHand {
   uint32 sb_pos = 2;
   uint32 bb_pos = 3;
   uint32 next_action_seat = 4;
+  map <uint32, string> player_cards = 5;  // key: seat no, value: encrypted cards
 }
 
 //HandDealCards message is sent to each player when cards dealt to the player
 message HandDealCards {
   uint32 seat_no = 1;
   repeated uint32 cards = 2;  // I used int instead of byte is to display cards in json
+  //map <uint32, uint64> player_cards = 2;  // key: seat no, value: encrypted cards
   string cardsStr = 3; // string representation of the cards for logging
 }
 

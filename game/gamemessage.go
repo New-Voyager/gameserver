@@ -1,6 +1,8 @@
 package game
 
 import (
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 
 	"google.golang.org/protobuf/proto"
@@ -214,19 +216,50 @@ func (g *Game) onPlayerUpdate(message *GameMessage) error {
 		// or buys in
 		// or added to queue
 		if playerUpdate.SeatNo > 0 {
-			channelGameLogger.Info().
-				Uint64("game", g.gameID).
-				Uint64("player", playerUpdate.PlayerId).
-				Str("message", "GameSitMessage").
-				Msg(fmt.Sprintf("Player %d took %d seat, buy-in: %f", playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate.BuyIn))
 
 			gameState.PlayersInSeats[playerUpdate.SeatNo-1] = playerUpdate.PlayerId
 			if gameState.PlayersState == nil {
 				gameState.PlayersState = make(map[uint64]*PlayerState)
 			}
-			gameState.PlayersState[playerUpdate.PlayerId] = &PlayerState{BuyIn: playerUpdate.BuyIn,
-				CurrentBalance: playerUpdate.Stack,
-				Status:         playerUpdate.Status}
+			var tokenInt uint64
+			if playerUpdate.GameToken != "" {
+				// pad here 000000
+				gameToken := fmt.Sprintf("000000%s", playerUpdate.GameToken)
+				token, _ := hex.DecodeString(gameToken)
+				tokenInt = binary.LittleEndian.Uint64(token)
+				channelGameLogger.Info().
+					Uint64("game", g.gameID).
+					Uint64("player", playerUpdate.PlayerId).
+					Str("message", "GameSitMessage").
+					Msgf("Player %d took %d seat, buy-in: %f, gameToken: %s tokenXorKey: %X",
+						playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate.BuyIn, playerUpdate.GameToken, tokenInt)
+			} else {
+				channelGameLogger.Info().
+					Uint64("game", g.gameID).
+					Uint64("player", playerUpdate.PlayerId).
+					Str("message", "GameSitMessage").
+					Msgf("Player %d took %d seat, buy-in: %f",
+						playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate.BuyIn)
+			}
+			if playerUpdate.GameToken != "" {
+				gameState.PlayersState[playerUpdate.PlayerId] = &PlayerState{BuyIn: playerUpdate.BuyIn,
+					CurrentBalance: playerUpdate.Stack,
+					Status:         playerUpdate.Status,
+					GameToken:      playerUpdate.GameToken,
+					GameTokenInt:   tokenInt}
+			} else {
+				var gameToken string
+				var gameTokenInt uint64
+				if playerState, ok := gameState.PlayersState[playerUpdate.PlayerId]; ok {
+					gameToken = playerState.GameToken
+					gameTokenInt = playerState.GameTokenInt
+				}
+				gameState.PlayersState[playerUpdate.PlayerId] = &PlayerState{BuyIn: playerUpdate.BuyIn,
+					CurrentBalance: playerUpdate.Stack,
+					Status:         playerUpdate.Status,
+					GameToken:      gameToken,
+					GameTokenInt:   gameTokenInt}
+			}
 		} else if playerUpdate.Status == PlayerStatus_LEFT {
 			// player left
 			panic("Player left should be handled up pending updates")
