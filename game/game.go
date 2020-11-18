@@ -303,6 +303,9 @@ func (game *Game) dealNewHand() error {
 		// convert cards to uint64
 		cardsUint64 := binary.LittleEndian.Uint64(card64)
 		mask := gameState.PlayersState[playerID].GameTokenInt
+
+		// TODO: mask it.
+		mask = 0
 		maskCards := uint64(cardsUint64)
 		if mask != 0 {
 			maskCards = uint64(cardsUint64 ^ mask)
