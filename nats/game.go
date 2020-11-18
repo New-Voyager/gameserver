@@ -63,10 +63,10 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 
 	// game subjects
 	//player2GameSubject := fmt.Sprintf("game.%d.player", gameID)
-	game2AllPlayersSubject := fmt.Sprintf("game.%s.allplayers", config.GameCode)
+	game2AllPlayersSubject := fmt.Sprintf("game.%s.players", config.GameCode)
 
 	// hand subjects
-	player2HandSubject := fmt.Sprintf("player.%s.hand", config.GameCode)
+	player2HandSubject := fmt.Sprintf("players.%s.hand", config.GameCode)
 	hand2AllPlayersSubject := fmt.Sprintf("hand.%s.players", config.GameCode)
 
 	// we need to use the API to get the game configuration
