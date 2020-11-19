@@ -23,8 +23,8 @@ var driverBotLogger = log.With().Str("logger_name", "server::driverbot").Logger(
 
 var NatsURL = util.GameServerEnvironment.GetNatsClientConnURL()
 
-const BotDriverToGame = "driverbot.2game"
-const GameToBotDriver = "game.2driverpot"
+const BotDriverToGame = "driverbot.game"
+const GameToBotDriver = "game.driverpot"
 const botPlayerID = 0xFFFFFFFF
 
 // bot driver messages to game
