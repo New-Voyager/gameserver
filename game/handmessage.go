@@ -48,6 +48,10 @@ func (game *Game) onPlayerActed(message *HandMessage) error {
 	if err != nil {
 		return err
 	}
+
+	// broadcast this message to all the players
+	game.broadcastHandMessage(message)
+
 	// if only one player is remaining in the hand, we have a winner
 	if handState.NoActiveSeats == 1 {
 		game.sendWinnerBeforeShowdown(gameState, handState)
