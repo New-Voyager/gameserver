@@ -47,6 +47,7 @@ var natsTestDriverLogger = log.With().Str("logger_name", "nats::game").Logger()
 func NewNatsDriverBotListener(nc *natsgo.Conn, gameManager *GameManager) (*NatsDriverBotListener, error) {
 	natsTestDriver := &NatsDriverBotListener{
 		stopped: make(chan bool),
+		gameManager: gameManager,
 		nc:      nc,
 	}
 
