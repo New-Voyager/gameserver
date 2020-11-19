@@ -11,7 +11,6 @@ import (
 )
 
 type PlayerCard struct {
-	SeatNo int32    `json:"seat-no"`
 	Cards  []string `json:"cards"`
 }
 
