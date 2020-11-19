@@ -145,6 +145,10 @@ func (p *Player) onPlayerAction(messageBytes []byte, message HandMessage) error 
 	}
 
 	if p.delegate != nil {
+		if message.GetSeatAction().SeatNo != p.SeatNo {
+			return nil
+		}
+
 		p.delegate.HandMessageFromGame(messageBytes, &message, jsonb)
 	}
 	return nil
