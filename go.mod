@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/cweill/gotests v1.5.3 // indirect
+	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/go-redis/redis/v8 v8.3.3
 	github.com/golang/protobuf v1.4.3
 	github.com/google/uuid v1.1.1
@@ -15,6 +16,9 @@ require (
 	github.com/rs/zerolog v1.19.0
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.6.1
+	github.com/ugorji/go v1.2.0 // indirect
+	golang.org/x/crypto v0.0.0-20201117144127-c1f2f97bffc9 // indirect
+	golang.org/x/sys v0.0.0-20201119102817-f84b799fce68 // indirect
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v2 v2.3.0

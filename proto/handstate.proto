@@ -73,14 +73,25 @@ enum HandStatus {
 // As soon as a player raises the bet, all the previously acted players
 // will have to act again.
 // All in will be treated as acted
-enum PlayerActRound {
+enum PlayerActState {
   PLAYER_ACT_EMPTY_SEAT = 0;
   PLAYER_ACT_NOT_ACTED = 1;
   PLAYER_ACT_FOLDED = 2;
-  PLAYER_ACT_ACTED = 3;      // bet/raise/call/bb/straddle
   PLAYER_ACT_ALL_IN = 4;     // all in
   PLAYER_ACT_BB = 5;
   PLAYER_ACT_STRADDLE = 6;
+  PLAYER_ACT_BET = 7;
+  PLAYER_ACT_CALL = 8;
+  PLAYER_ACT_ALLIN = 9;
+  PLAYER_ACT_RAISE = 10;
+  PLAYER_ACT_CHECK = 11;
+  
+  // bet/raise/call/bb/straddle
+}
+
+message PlayerActRound {
+  PlayerActState  state = 1;
+  float amount = 2;
 }
 
 // message tracks number of players in this pot and the amount in the pot
