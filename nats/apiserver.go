@@ -249,10 +249,10 @@ func registerGameServer() error {
 	}
 
 	statusUrl := fmt.Sprintf("%s/internal/register-game-server", apiServerUrl)
-	resp, err := http.Post(statusUrl, "application/json", bytes.NewBuffer(reqData))
-	if resp.StatusCode != 200 {
-		logger.Fatal().Msg(fmt.Sprintf("Failed to register server. Error: %d", resp.StatusCode))
-		panic("Count not register game server")
-	}
+	http.Post(statusUrl, "application/json", bytes.NewBuffer(reqData))
+	//if resp.StatusCode != 200 {
+	//	logger.Fatal().Msg(fmt.Sprintf("Failed to register server. Error: %d", resp.StatusCode))
+	//	panic("Count not register game server")
+	//}
 	return err
 }
