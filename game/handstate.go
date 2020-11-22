@@ -613,15 +613,15 @@ func (h *HandState) prepareNextAction(currentAction *HandAction) *NextSeatAction
 	}
 
 	allInAvailable := false
+	canRaise := false
+	canBet := false
 	if h.CurrentRaise == 0.0 {
 		// then the caller can check
 		availableActions = append(availableActions, ACTION_CHECK)
-	} else {
-		// then the caller call, raise, or go all in
-		if playerState.Balance <= h.CurrentRaise || h.GameType == GameType_HOLDEM {
-			allInAvailable = true
-		}
 
+		// the player can bet
+		canBet = true
+	} else {
 		if playerState.Balance > h.CurrentRaise {
 			actedState := h.PlayersActed[actionSeat-1].State
 			if actedState == PlayerActState_PLAYER_ACT_BB ||
@@ -631,20 +631,37 @@ func (h *HandState) prepareNextAction(currentAction *HandAction) *NextSeatAction
 				availableActions = append(availableActions, ACTION_CALL)
 			}
 			nextAction.CallAmount = h.CurrentRaise
+			canRaise = true
+		}
+	}
 
-			if playerState.Balance < h.CurrentRaise*2 {
-				// the player can go all in
-				allInAvailable = true
-			}
-			availableActions = append(availableActions, ACTION_RAISE)
-			nextAction.MinRaiseAmount = h.CurrentRaise * 2
+	if canBet || canRaise {
+		// then the caller call, raise, or go all in
+		if playerState.Balance <= h.CurrentRaise || h.GameType == GameType_HOLDEM {
+			allInAvailable = true
 		}
 
+		if canBet {
+			// calculate what the maximum amount the player can bet
+			availableActions = append(availableActions, ACTION_BET)
+		}
+
+		if canRaise {
+			availableActions = append(availableActions, ACTION_RAISE)
+			nextAction.MinRaiseAmount = h.CurrentRaise * 2
+			// calculate the maximum amount the player can raise
+		}
+
+		if playerState.Balance < h.CurrentRaise*2 {
+			// the player can go all in
+			allInAvailable = true
+		}
 		if allInAvailable {
 			availableActions = append(availableActions, ACTION_ALLIN)
 			nextAction.AllInAmount = playerState.Balance
 		}
 	}
+
 	nextAction.AvailableActions = availableActions
 
 	return nextAction
