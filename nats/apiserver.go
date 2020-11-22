@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 
 	jsoniter "github.com/json-iterator/go"
@@ -242,17 +243,24 @@ func registerGameServer() error {
 		panic(fmt.Sprintf("Could not get ip address of the server"))
 	}
 
-	payload := map[string]interface{}{"ipAddress": ip, "currentMemory": 10000, "status": "ACTIVE"}
+	hostname, _ := os.Hostname()
+	url := fmt.Sprintf("http://%s:8080", hostname)
+	payload := map[string]interface{}{"ipAddress": ip, "currentMemory": 10000, "status": "ACTIVE", "url": url}
 	reqData, err = json.Marshal(payload)
 	if err != nil {
 		return err
 	}
 
 	statusUrl := fmt.Sprintf("%s/internal/register-game-server", apiServerUrl)
-	http.Post(statusUrl, "application/json", bytes.NewBuffer(reqData))
-	//if resp.StatusCode != 200 {
-	//	logger.Fatal().Msg(fmt.Sprintf("Failed to register server. Error: %d", resp.StatusCode))
-	//	panic("Count not register game server")
-	//}
+	resp, err := http.Post(statusUrl, "application/json", bytes.NewBuffer(reqData))
+	if err != nil {
+		logger.Fatal().Msg(fmt.Sprintf("Failed to register server. Error: %s", err.Error()))
+		panic("Count not register game server")
+	}
+
+	if resp.StatusCode != 200 {
+		logger.Fatal().Msg(fmt.Sprintf("Failed to register server. Error: %d", resp.StatusCode))
+		panic("Count not register game server")
+	}
 	return err
 }
