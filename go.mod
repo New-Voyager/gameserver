@@ -5,6 +5,7 @@ go 1.14
 require (
 	github.com/cweill/gotests v1.5.3 // indirect
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
+	github.com/gin-gonic/gin v1.6.3
 	github.com/go-redis/redis/v8 v8.3.3
 	github.com/golang/protobuf v1.4.3
 	github.com/google/uuid v1.1.1
@@ -39,3 +40,5 @@ replace voyager.com/server/nats => ./nats
 replace voyager.com/server/bot => ./bot
 
 replace voyager.com/server/apiserver => ./apiserver
+
+replace voyager.com/server/rest => ./rest

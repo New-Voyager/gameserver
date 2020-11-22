@@ -9,6 +9,7 @@ import (
 
 	"voyager.com/server/bot"
 	"voyager.com/server/nats"
+	"voyager.com/server/rest"
 	"voyager.com/server/util"
 
 	"github.com/rs/zerolog"
@@ -74,6 +75,8 @@ func runWithNats() {
 	nats.RegisterGameServer(util.GameServerEnvironment.GetApiServerUrl(), natsGameManager)
 	nats.SubscribeToNats(nc)
 
+	// run rest server
+	go rest.RunRestServer()
 	select {}
 }
 
