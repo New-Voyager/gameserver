@@ -644,9 +644,8 @@ func (h *HandState) prepareNextAction(currentAction *HandAction) *NextSeatAction
 			availableActions = append(availableActions, ACTION_ALLIN)
 			nextAction.AllInAmount = playerState.Balance
 		}
-
-		nextAction.AvailableActions = availableActions
 	}
+	nextAction.AvailableActions = availableActions
 
 	return nextAction
 }
