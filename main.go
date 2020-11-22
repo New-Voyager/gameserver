@@ -76,7 +76,7 @@ func runWithNats() {
 	nats.SubscribeToNats(nc)
 
 	// run rest server
-	go rest.RunRestServer()
+	go rest.RunRestServer(natsGameManager)
 	select {}
 }
 
