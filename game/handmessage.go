@@ -39,6 +39,14 @@ func (game *Game) onPlayerActed(message *HandMessage) error {
 		return err
 	}
 
+	if handState.NextSeatAction != nil && handState.NextSeatAction.SeatNo != message.GetPlayerActed().GetSeatNo() {
+		// Unexpected seat acted.
+		// This can happen when a player made a last-second action and the timeout was triggered
+		// at the same time. We get two actions in that case - one last-minute action from the player,
+		// and the other default action from the timeout handler. Discard the second action.
+		return nil
+	}
+
 	err = handState.actionReceived(message.GetPlayerActed())
 	if err != nil {
 		return err
@@ -222,6 +230,7 @@ func (game *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 			}
 			nextSeatMessage.HandMessage = &HandMessage_SeatAction{SeatAction: handState.NextSeatAction}
 			game.broadcastHandMessage(nextSeatMessage)
+			game.resetTimer(handState.NextSeatAction.SeatNo, handState.PlayersInSeats[handState.NextSeatAction.SeatNo])
 
 			// action moves to the next player
 			actionChange := &ActionChange{

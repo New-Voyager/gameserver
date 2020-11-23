@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/proto"
 	"voyager.com/server/poker"
+	"voyager.com/server/util"
 )
 
 /**
@@ -35,11 +36,14 @@ type Game struct {
 	running         bool
 	chHand          chan []byte
 	chGame          chan []byte
+	chPlayTimedOut  chan timerMsg
+	chResetTimer    chan timerMsg
 	allPlayers      map[uint64]*Player   // players at the table and the players that are viewing
 	messageReceiver *GameMessageReceiver // receives messages
 	players         map[uint64]string
 	waitingPlayers  []uint64
 	minPlayers      int
+	playTimeout     time.Duration
 
 	// test driver specific variables
 	autoStart     bool
@@ -48,6 +52,12 @@ type Game struct {
 	testButtonPos int32
 
 	lock sync.Mutex
+}
+
+type timerMsg struct {
+	seatNo uint32
+	playerID uint64
+	allowedTime time.Duration
 }
 
 func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, gameCode string, gameType GameType,
@@ -69,10 +79,13 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, ga
 	}
 	game.allPlayers = make(map[uint64]*Player)
 	game.chGame = make(chan []byte)
-	game.chHand = make(chan []byte)
+	game.chHand = make(chan []byte, 1)
+	game.chPlayTimedOut = make(chan timerMsg)
+	game.chResetTimer = make(chan timerMsg)
 	game.end = make(chan bool)
 	game.waitingPlayers = make([]uint64, 0)
 	game.minPlayers = minPlayers
+	game.playTimeout = time.Duration(util.GameServerEnvironment.GetPlayTimeout()) * time.Second
 	game.players = make(map[uint64]string)
 	game.initialize()
 	return &game
@@ -95,7 +108,45 @@ func (game *Game) playersInSeatsCount() int {
 	return countPlayersInSeats
 }
 
+func (game *Game) timerLoop(stop <-chan bool) {
+	var currentTimerMsg timerMsg
+	var expirationTime time.Time
+	for {
+		select {
+		case <- stop:
+			return
+		case msg := <- game.chResetTimer:
+			// Start the new timer.
+			currentTimerMsg = msg
+			expirationTime = time.Now().Add(msg.allowedTime)
+		default:
+			if time.Now().After(expirationTime) && !expirationTime.IsZero() {
+				// The player timed out.
+				game.chPlayTimedOut <- currentTimerMsg
+				expirationTime = time.Time{}
+			} else {
+				time.Sleep(10 * time.Millisecond)
+			}
+		}
+	}
+}
+
+func (game *Game) resetTimer(seatNo uint32, playerID uint64) {
+	channelGameLogger.Info().Msgf("Resetting timer. Current timer seat: %d timer: %s", seatNo, game.playTimeout)
+	game.chResetTimer <- timerMsg{
+		seatNo: seatNo,
+		playerID: playerID,
+		allowedTime: game.playTimeout,
+	}
+}
+
 func (game *Game) runGame() {
+	stopTimerLoop := make(chan bool)
+	defer func() {
+		stopTimerLoop <- true
+	}()
+	go game.timerLoop(stopTimerLoop)
+
 	ended := false
 	for !ended {
 		if !game.running {
@@ -126,6 +177,11 @@ func (game *Game) runGame() {
 			if err == nil {
 				game.handleGameMessage(&gameMessage)
 			}
+		case timeoutMsg := <- game.chPlayTimedOut:
+			err := game.handlePlayTimeout(timeoutMsg)
+			if err != nil {
+				channelGameLogger.Error().Msgf("Error while handling player timeout %+v", err)
+			}
 		default:
 			if !game.running {
 				playersInSeats := game.playersInSeatsCount()
@@ -136,9 +192,39 @@ func (game *Game) runGame() {
 						playersInSeats, game.minPlayers-playersInSeats))
 				time.Sleep(50 * time.Millisecond)
 			}
+			time.Sleep(10 * time.Millisecond)
 		}
 	}
 	game.manager.gameEnded(game)
+}
+
+func (game *Game) handlePlayTimeout(timeoutMsg timerMsg) error {
+	gameState, err := game.loadState()
+	if err != nil {
+		return err
+	}
+	handState, err := game.loadHandState(gameState)
+	if err != nil {
+		return err
+	}
+
+	// Force a default action for the timed-out player.
+	// TODO: What should be the correct default action?
+	handAction := HandAction{
+		SeatNo: timeoutMsg.seatNo,
+		Action: ACTION_FOLD,
+		Amount: 0.0,
+	}
+	handMessage := HandMessage{
+		MessageType: HandPlayerActed,
+		GameId:      game.gameID,
+		ClubId:      game.clubID,
+		HandNum:     handState.HandNum,
+		HandStatus:  handState.CurrentState,
+		HandMessage: &HandMessage_PlayerActed{PlayerActed: &handAction},
+	}
+	game.SendHandMessage(&handMessage)
+	return nil
 }
 
 func (game *Game) initialize() error {

@@ -19,6 +19,7 @@ type gameServerEnvironment struct {
 	RedisPW        string
 	RedisDB        string
 	APIServerUrl   string
+	PlayTimeout    string
 }
 
 // GameServerEnvironment is a helper object for accessing environment variables.
@@ -31,6 +32,7 @@ var GameServerEnvironment = &gameServerEnvironment{
 	RedisPW:        "REDIS_PW",
 	RedisDB:        "REDIS_DB",
 	APIServerUrl:   "API_SERVER_URL",
+	PlayTimeout:    "PLAY_TIMEOUT",
 }
 
 func (g *gameServerEnvironment) GetNatsHost() string {
@@ -128,4 +130,19 @@ func (g *gameServerEnvironment) GetApiServerUrl() string {
 		panic(msg)
 	}
 	return host
+}
+
+func (g *gameServerEnvironment) GetPlayTimeout() int {
+	s := os.Getenv(g.PlayTimeout)
+	if s == "" {
+		// 1 minute + a few seconds for slow network
+		return 62
+	}
+	timeoutSec, err := strconv.Atoi(s)
+	if err != nil {
+		msg := fmt.Sprintf("Invalid integer [%s] for play timeout value", s)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	return timeoutSec
 }
