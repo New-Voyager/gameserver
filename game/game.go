@@ -37,6 +37,7 @@ type Game struct {
 	chGame          chan []byte
 	chPlayTimedOut  chan timerMsg
 	chResetTimer    chan timerMsg
+	chPauseTimer    chan bool
 	allPlayers      map[uint64]*Player   // players at the table and the players that are viewing
 	messageReceiver *GameMessageReceiver // receives messages
 	players         map[uint64]string
@@ -82,10 +83,12 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, ga
 	game.chHand = make(chan []byte, 1)
 	game.chPlayTimedOut = make(chan timerMsg)
 	game.chResetTimer = make(chan timerMsg)
+	game.chPauseTimer = make(chan bool)
 	game.end = make(chan bool)
 	game.waitingPlayers = make([]uint64, 0)
 	game.minPlayers = minPlayers
 	game.players = make(map[uint64]string)
+	game.actionTime = actionTime
 	game.initialize()
 	return &game
 }
@@ -107,19 +110,23 @@ func (game *Game) playersInSeatsCount() int {
 	return countPlayersInSeats
 }
 
-func (game *Game) timerLoop(stop <-chan bool) {
+func (game *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
 	var currentTimerMsg timerMsg
 	var expirationTime time.Time
+	paused := true
 	for {
 		select {
 		case <-stop:
 			return
+		case <-pause:
+			paused = true
 		case msg := <-game.chResetTimer:
 			// Start the new timer.
 			currentTimerMsg = msg
 			expirationTime = time.Now().Add(msg.allowedTime)
+			paused = false
 		default:
-			if time.Now().After(expirationTime) && !expirationTime.IsZero() {
+			if !paused && time.Now().After(expirationTime) && !expirationTime.IsZero() {
 				// The player timed out.
 				game.chPlayTimedOut <- currentTimerMsg
 				expirationTime = time.Time{}
@@ -145,7 +152,7 @@ func (game *Game) runGame() {
 	defer func() {
 		stopTimerLoop <- true
 	}()
-	go game.timerLoop(stopTimerLoop)
+	go game.timerLoop(stopTimerLoop, game.chPauseTimer)
 
 	ended := false
 	for !ended {
@@ -196,6 +203,10 @@ func (game *Game) runGame() {
 		}
 	}
 	game.manager.gameEnded(game)
+}
+
+func (game *Game) pausePlayTimer() {
+	game.chPauseTimer <- true
 }
 
 func (game *Game) handlePlayTimeout(timeoutMsg timerMsg) error {
