@@ -20,6 +20,7 @@ message HandAction {
   uint32    seat_no = 1;
   ACTION    action = 2;
   float     amount = 3;
+  bool timed_out = 4;
 }
 
 message HandActionLog {

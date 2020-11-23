@@ -98,12 +98,16 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 	*/
 	gameType := game.GameType(game.GameType_value[config.GameTypeStr])
 
+	if config.ActionTime == 0 {
+		config.ActionTime = 20
+	}
+
 	serverGame, gameID := game.GameManager.InitializeGame(*natsGame, clubID,
 		gameID,
 		gameType,
 		config.Title,
 		int(config.MinPlayers),
-		config.AutoStart, true)
+		config.AutoStart, true, uint32(config.ActionTime))
 	natsGame.serverGame = serverGame
 	return natsGame, nil
 }

@@ -228,9 +228,16 @@ func (game *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 				HandNum:     handState.HandNum,
 				MessageType: HandPlayerAction,
 			}
+			var canCheck bool
+			for _, action := range nextSeatMessage.GetSeatAction().AvailableActions {
+				if action == ACTION_CHECK {
+					canCheck = true
+					break
+				}
+			}
 			nextSeatMessage.HandMessage = &HandMessage_SeatAction{SeatAction: handState.NextSeatAction}
 			game.broadcastHandMessage(nextSeatMessage)
-			game.resetTimer(handState.NextSeatAction.SeatNo, handState.PlayersInSeats[handState.NextSeatAction.SeatNo])
+			game.resetTimer(handState.NextSeatAction.SeatNo, handState.PlayersInSeats[handState.NextSeatAction.SeatNo], canCheck)
 
 			// action moves to the next player
 			actionChange := &ActionChange{
