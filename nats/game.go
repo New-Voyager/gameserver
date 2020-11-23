@@ -68,7 +68,7 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 
 	// hand subjects
 	player2HandSubject := fmt.Sprintf("player.%s.hand", config.GameCode)
-	hand2AllPlayersSubject := fmt.Sprintf("hand.%s.player.*", config.GameCode)
+	hand2AllPlayersSubject := fmt.Sprintf("hand.%s.player.all", config.GameCode)
 
 	// we need to use the API to get the game configuration
 	natsGame := &NatsGame{
@@ -221,11 +221,11 @@ func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 	//natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 	//	Msg(fmt.Sprintf("Hand->AllPlayers: %s", message.MessageType))
 	//hand2PlayerSubject := fmt.Sprintf("game.%d%d.hand.player.*", n.clubID, n.gameNum)
+	message.PlayerId = 0
 	data, _ := protojson.Marshal(message)
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", message.MessageType).
 		Str("subject", n.hand2PlayerAllSubject).
 		Msg(fmt.Sprintf("H->A: %s", string(data)))
-
 	n.nc.Publish(n.hand2PlayerAllSubject, data)
 }
 
@@ -236,7 +236,7 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", message.MessageType).
 		Str("subject", hand2PlayerSubject).
 		Msg(fmt.Sprintf("H->P: %s", string(data)))
-	n.nc.Publish(hand2PlayerSubject, data)
+	n.nc.Publish(n.hand2PlayerAllSubject, data)
 }
 
 func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID uint64) {
