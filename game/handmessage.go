@@ -229,7 +229,7 @@ func (game *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 				MessageType: HandPlayerAction,
 			}
 			var canCheck bool
-			for _, action := range nextSeatMessage.GetSeatAction().AvailableActions {
+			for _, action := range handState.NextSeatAction.AvailableActions {
 				if action == ACTION_CHECK {
 					canCheck = true
 					break
