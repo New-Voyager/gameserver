@@ -54,6 +54,7 @@ type NatsGame struct {
 
 	serverGame *game.Game
 
+	gameCode       string
 	player2GameSub *natsgo.Subscription
 	player2HandSub *natsgo.Subscription
 	nc             *natsgo.Conn
@@ -63,11 +64,11 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 
 	// game subjects
 	//player2GameSubject := fmt.Sprintf("game.%d.player", gameID)
-	game2AllPlayersSubject := fmt.Sprintf("game.%s.players", config.GameCode)
+	game2AllPlayersSubject := fmt.Sprintf("game.%s.player", config.GameCode)
 
 	// hand subjects
-	player2HandSubject := fmt.Sprintf("players.%s.hand", config.GameCode)
-	hand2AllPlayersSubject := fmt.Sprintf("hand.%s.players", config.GameCode)
+	player2HandSubject := fmt.Sprintf("player.%s.hand", config.GameCode)
+	hand2AllPlayersSubject := fmt.Sprintf("hand.%s.player.*", config.GameCode)
 
 	// we need to use the API to get the game configuration
 	natsGame := &NatsGame{
@@ -79,6 +80,7 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 		game2AllPlayersSubject: game2AllPlayersSubject,
 		player2HandSubject:     player2HandSubject,
 		hand2PlayerAllSubject:  hand2AllPlayersSubject,
+		gameCode:               config.GameCode,
 	}
 
 	// subscribe to topics
@@ -228,7 +230,7 @@ func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 }
 
 func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID uint64) {
-	hand2PlayerSubject := fmt.Sprintf("game.%d.hand.player.%d", n.gameID, playerID)
+	hand2PlayerSubject := fmt.Sprintf("hand.%s.player.%d", n.gameCode, playerID)
 	message.PlayerId = playerID
 	data, _ := protojson.Marshal(message)
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", message.MessageType).
@@ -240,7 +242,7 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID uint64) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Game->Player: %s", message.MessageType))
-	subject := fmt.Sprintf("game.%d.player.%d", message.GameId, playerID)
+	subject := fmt.Sprintf("game.%s.player.%d", n.gameCode, playerID)
 	// let send this to all players
 	data, _ := protojson.Marshal(message)
 	n.nc.Publish(subject, data)
