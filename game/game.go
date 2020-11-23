@@ -9,7 +9,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/proto"
 	"voyager.com/server/poker"
-	"voyager.com/server/util"
 )
 
 /**
@@ -43,7 +42,7 @@ type Game struct {
 	players         map[uint64]string
 	waitingPlayers  []uint64
 	minPlayers      int
-	playTimeout     time.Duration
+	actionTime      uint32
 
 	// test driver specific variables
 	autoStart     bool
@@ -55,13 +54,14 @@ type Game struct {
 }
 
 type timerMsg struct {
-	seatNo uint32
-	playerID uint64
+	seatNo      uint32
+	playerID    uint64
+	canCheck    bool
 	allowedTime time.Duration
 }
 
 func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, gameCode string, gameType GameType,
-	clubID uint32, gameID uint64, minPlayers int, autoStart bool, autoDeal bool,
+	clubID uint32, gameID uint64, minPlayers int, autoStart bool, autoDeal bool, actionTime uint32,
 	gameStatePersist PersistGameState,
 	handStatePersist PersistHandState) *Game {
 	title := fmt.Sprintf("%d:%d %s", clubID, gameID, GameType_name[int32(gameType)])
@@ -85,7 +85,6 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, ga
 	game.end = make(chan bool)
 	game.waitingPlayers = make([]uint64, 0)
 	game.minPlayers = minPlayers
-	game.playTimeout = time.Duration(util.GameServerEnvironment.GetPlayTimeout()) * time.Second
 	game.players = make(map[uint64]string)
 	game.initialize()
 	return &game
@@ -113,9 +112,9 @@ func (game *Game) timerLoop(stop <-chan bool) {
 	var expirationTime time.Time
 	for {
 		select {
-		case <- stop:
+		case <-stop:
 			return
-		case msg := <- game.chResetTimer:
+		case msg := <-game.chResetTimer:
 			// Start the new timer.
 			currentTimerMsg = msg
 			expirationTime = time.Now().Add(msg.allowedTime)
@@ -131,12 +130,13 @@ func (game *Game) timerLoop(stop <-chan bool) {
 	}
 }
 
-func (game *Game) resetTimer(seatNo uint32, playerID uint64) {
-	channelGameLogger.Info().Msgf("Resetting timer. Current timer seat: %d timer: %s", seatNo, game.playTimeout)
+func (game *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool) {
+	channelGameLogger.Info().Msgf("Resetting timer. Current timer seat: %d timer: %d", seatNo, game.actionTime)
 	game.chResetTimer <- timerMsg{
-		seatNo: seatNo,
-		playerID: playerID,
-		allowedTime: game.playTimeout,
+		seatNo:      seatNo,
+		playerID:    playerID,
+		allowedTime: time.Duration(game.actionTime) * time.Second,
+		canCheck:    canCheck,
 	}
 }
 
@@ -177,7 +177,7 @@ func (game *Game) runGame() {
 			if err == nil {
 				game.handleGameMessage(&gameMessage)
 			}
-		case timeoutMsg := <- game.chPlayTimedOut:
+		case timeoutMsg := <-game.chPlayTimedOut:
 			err := game.handlePlayTimeout(timeoutMsg)
 			if err != nil {
 				channelGameLogger.Error().Msgf("Error while handling player timeout %+v", err)
@@ -211,10 +211,15 @@ func (game *Game) handlePlayTimeout(timeoutMsg timerMsg) error {
 	// Force a default action for the timed-out player.
 	// TODO: What should be the correct default action?
 	handAction := HandAction{
-		SeatNo: timeoutMsg.seatNo,
-		Action: ACTION_FOLD,
-		Amount: 0.0,
+		SeatNo:   timeoutMsg.seatNo,
+		Action:   ACTION_FOLD,
+		Amount:   0.0,
+		TimedOut: true,
 	}
+	if timeoutMsg.canCheck {
+		handAction.Action = ACTION_CHECK
+	}
+
 	handMessage := HandMessage{
 		MessageType: HandPlayerActed,
 		GameId:      game.gameID,
@@ -248,6 +253,7 @@ func (game *Game) initialize() error {
 		BigBlind:              2.0,
 		MaxSeats:              9,
 		TableStatus:           TableStatus_TABLE_STATUS_WAITING_TO_BE_STARTED,
+		ActionTime:            game.actionTime,
 	}
 	err := game.saveState(&gameState)
 	if err != nil {

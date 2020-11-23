@@ -25,7 +25,7 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	players []game.GamePlayer) (*TestGame, *TestPlayer) {
 
 	gamePlayers := make(map[uint64]*TestPlayer)
-	serverGame, gameID := game.GameManager.InitializeGame(nil, clubID, 0, gameType, name, len(players), autoStart, false)
+	serverGame, gameID := game.GameManager.InitializeGame(nil, clubID, 0, gameType, name, len(players), autoStart, false, 5)
 	_ = serverGame
 	for _, playerInfo := range players {
 		testPlayer := NewTestPlayer(playerInfo)
