@@ -28,6 +28,9 @@ func (game *Game) onPlayerActed(message *HandMessage) error {
 		Str("message", message.MessageType).
 		Msg(fmt.Sprintf("%v", message))
 
+	// pause play timer
+	game.pausePlayTimer()
+
 	gameState, err := game.loadState()
 	if err != nil {
 		return err
