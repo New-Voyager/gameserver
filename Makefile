@@ -10,6 +10,8 @@ DEV_REDIS_PORT := 6379
 DEV_REDIS_DB := 0
 DEV_API_SERVER_URL := http://localhost:9501
 
+REDIS_VERSION := 6.0.9
+
 .PHONY: compile-proto
 compile-proto: install-protoc
 	go get -u github.com/golang/protobuf/protoc-gen-go
@@ -76,7 +78,7 @@ run-nats: create-network
 .PHONY: run-redis
 run-redis: create-network
 	docker rm -f redis || true
-	docker run -d --name redis --network $(DEFAULT_DOCKER_NET) -p 6379:6379 redis
+	docker run -d --name redis --network $(DEFAULT_DOCKER_NET) -p 6379:6379 redis:$(REDIS_VERSION)
 
 .PHONY: run-server
 run-server: export NATS_HOST=$(DEV_NATS_HOST)
@@ -131,6 +133,10 @@ fmt:
 
 .PHONY: publish
 publish:
+	# publish redis so that we don't have to pull from the docker hub
+	docker pull redis:${REDIS_VERSION}
+	docker tag redis:${REDIS_VERSION} gcr.io/${GCP_PROJECT_ID}/redis:${REDIS_VERSION}
+	docker push gcr.io/${GCP_PROJECT_ID}/${REDIS_IMAGE}
 	# publish nats
 	docker tag nats-server gcr.io/${GCP_PROJECT_ID}/nats-server:$(BUILD_NO)
 	docker tag nats-server gcr.io/${GCP_PROJECT_ID}/nats-server:latest
