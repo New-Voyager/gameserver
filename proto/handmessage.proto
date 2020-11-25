@@ -99,5 +99,6 @@ message HandMessage {
     River river = 17;
     Showdown showdown = 18;
     NoMoreActions no_more_actions = 19;
+    HandState current_hand_state = 20;
   }
 }
