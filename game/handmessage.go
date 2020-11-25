@@ -14,9 +14,50 @@ func (game *Game) handleHandMessage(message *HandMessage) {
 		Str("message", message.MessageType).
 		Msg(fmt.Sprintf("%v", message))
 
-	if message.MessageType == HandPlayerActed {
+	switch message.MessageType {
+	case HandPlayerActed:
 		game.onPlayerActed(message)
+	case HandQueryCurrentHand:
+		game.onQueryCurrentHand(message)
 	}
+}
+
+func (game *Game) onQueryCurrentHand(message *HandMessage) error {
+	gameState, err := game.loadState()
+	if err != nil {
+		return err
+	}
+
+	// get hand state
+	handState, err := game.loadHandState(gameState)
+	if err != nil {
+		return err
+	}
+
+	// remove other players' cards
+	allPlayerCards := handState.GetPlayersCards()
+	var playerSeatNo uint32
+	playerID := message.GetPlayerId()
+	for i, pid := range gameState.GetPlayersInSeats() {
+		if pid == playerID {
+			playerSeatNo = uint32(i)
+		}
+	}
+	var playerCards map[uint32][]byte
+	playerCards[playerSeatNo] = allPlayerCards[playerSeatNo]
+	handState.PlayersCards = playerCards
+
+	handStateMsg := &HandMessage{
+		ClubId:      game.clubID,
+		GameId:      game.gameID,
+		PlayerId:    message.GetPlayerId(),
+		HandNum:     handState.HandNum,
+		MessageType: HandQueryCurrentHand,
+		HandMessage: &HandMessage_CurrentHandState{CurrentHandState: handState},
+	}
+
+	game.broadcastHandMessage(handStateMsg)
+	return nil
 }
 
 func (game *Game) onPlayerActed(message *HandMessage) error {
