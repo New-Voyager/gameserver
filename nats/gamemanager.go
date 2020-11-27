@@ -83,7 +83,8 @@ func (gm *GameManager) SetupDeck(setupDeck SetupDeck) {
 		// lookup using game code
 		gameIDStr, ok = gm.gameCodes[setupDeck.GameCode]
 		if !ok {
-			natsLogger.Error().Str("gameId", setupDeck.GameCode).Msg(fmt.Sprintf("Game code: %s does not exist", setupDeck.GameCode))
+			natsLogger.Error().Str("gameId", setupDeck.GameCode).Msg(fmt.Sprintf("Game code: %s does not exist. Aborting setup-deck.", setupDeck.GameCode))
+			return
 		}
 	}
 
