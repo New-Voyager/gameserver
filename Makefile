@@ -73,7 +73,7 @@ create-network:
 .PHONY: run-nats
 run-nats: create-network
 	docker rm -f nats || true
-	docker run -d --name nats --network $(DEFAULT_DOCKER_NET) -p 4222:4222 -p 9222:9222 nats-server
+	docker run -d --name nats --network $(DEFAULT_DOCKER_NET) -p 4222:4222 -p 9222:9222 -p 8222:8222 nats-server
 
 .PHONY: run-redis
 run-redis: create-network
