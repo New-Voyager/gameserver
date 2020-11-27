@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
+	"os/exec"
 	"strings"
 
 	jsoniter "github.com/json-iterator/go"
@@ -243,7 +243,10 @@ func registerGameServer() error {
 		panic(fmt.Sprintf("Could not get ip address of the server"))
 	}
 
-	hostname, _ := os.Hostname()
+	hostname, err := getFqdn()
+	if err != nil {
+		return err
+	}
 	url := fmt.Sprintf("http://%s:8080", hostname)
 	payload := map[string]interface{}{"ipAddress": ip, "currentMemory": 10000, "status": "ACTIVE", "url": url}
 	reqData, err = json.Marshal(payload)
@@ -263,4 +266,18 @@ func registerGameServer() error {
 		panic("Count not register game server")
 	}
 	return err
+}
+
+func getFqdn() (string, error) {
+	cmd := exec.Command("/bin/hostname", "-f")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("Error when getting hostname: %v", err)
+	}
+	fqdn := out.String()
+	fqdn = fqdn[:len(fqdn)-1] // removing EOL
+
+	return fqdn, nil
 }
