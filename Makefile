@@ -133,10 +133,14 @@ fmt:
 
 .PHONY: publish
 publish:
-	# publish redis so that we don't have to pull from the docker hub
+	# publish redis and curl so that we don't have to pull from the docker hub
+	# curl image is used in helm chart
 	docker pull redis:${REDIS_VERSION}
 	docker tag redis:${REDIS_VERSION} gcr.io/${GCP_PROJECT_ID}/redis:${REDIS_VERSION}
-	docker push gcr.io/${GCP_PROJECT_ID}/${REDIS_IMAGE}
+	docker push gcr.io/${GCP_PROJECT_ID}/redis:${REDIS_VERSION}
+	docker pull curlimages/curl:7.72.0
+	docker tag curlimages/curl:7.72.0 gcr.io/${GCP_PROJECT_ID}/curlimages/curl:7.72.0
+	docker push gcr.io/${GCP_PROJECT_ID}/curlimages/curl:7.72.0
 	# publish nats
 	docker tag nats-server gcr.io/${GCP_PROJECT_ID}/nats-server:$(BUILD_NO)
 	docker tag nats-server gcr.io/${GCP_PROJECT_ID}/nats-server:latest
