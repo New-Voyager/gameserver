@@ -105,6 +105,34 @@ message SeatBetting {
   repeated float seat_bet  = 1;
 }
 
+message CurrentHandState {
+  uint64 game_id = 1;
+
+  uint32 hand_num = 2;
+
+  // game type
+  GameType game_type = 3;
+
+  HandStatus current_stage = 4;
+
+  uint32 button_pos = 5;
+  uint32 small_blind_pos = 6;
+  uint32 big_blind_pos = 7;
+
+  float big_blind = 8;
+  float small_blind = 9;
+  float straddle = 10;
+
+  repeated PlayerActRound players_acted = 11;
+
+  bytes board_cards = 12;
+  bytes board_cards_2 = 13;  // run it twice
+
+  string player_cards = 14;  // current player's cards if the player is playing
+  map <uint64, float> players_stack = 15; 
+  NextSeatAction next_seat_action = 16;
+}
+
 message HandState {
   uint32 club_id = 1;
 
