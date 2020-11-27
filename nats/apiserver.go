@@ -32,22 +32,6 @@ type GameStatus struct {
 	GameStatus uint32 `json:"gameStatus"`
 }
 
-/*
-
-  const message = {
-    type: 'PlayerUpdate',
-    gameServer: gameServer.serverNumber,
-    gameId: game.id,
-    playerId: player.id,
-    playerUuid: player.uuid,
-    name: player.name,
-    seatNo: playerGameInfo.seatNo,
-    stack: playerGameInfo.stack,
-    status: playerGameInfo.status,
-    buyIn: playerGameInfo.buyIn,
-  };
-*/
-
 type PlayerUpdate struct {
 	GameId    uint64            `json:"gameId"`
 	PlayerId  uint64            `json:"playerId"`
@@ -235,7 +219,6 @@ func getIp() (string, error) {
 }
 
 func registerGameServer() error {
-	// update table status
 	var reqData []byte
 	var err error
 	ip, err := getIp()
@@ -258,12 +241,12 @@ func registerGameServer() error {
 	resp, err := http.Post(statusUrl, "application/json", bytes.NewBuffer(reqData))
 	if err != nil {
 		logger.Fatal().Msg(fmt.Sprintf("Failed to register server. Error: %s", err.Error()))
-		panic("Count not register game server")
+		panic("Failed when registering game server")
 	}
 
 	if resp.StatusCode != 200 {
 		logger.Fatal().Msg(fmt.Sprintf("Failed to register server. Error: %d", resp.StatusCode))
-		panic("Count not register game server")
+		panic("Failed when registering game server")
 	}
 	return err
 }

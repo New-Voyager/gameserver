@@ -34,18 +34,32 @@ func (game *Game) onQueryCurrentHand(message *HandMessage) error {
 		return err
 	}
 
-	// remove other players' cards
-	allPlayerCards := handState.GetPlayersCards()
+	currentHandState := CurrentHandState{
+		HandNum:      handState.HandNum,
+		GameType:     handState.GameType,
+		CurrentStage: handState.CurrentState,
+		PlayersActed: handState.PlayersActed, // do we need to make a copy here?
+		BoardCards:   handState.BoardCards,
+		BoardCards_2: handState.BoardCards_2,
+	}
+
 	var playerSeatNo uint32
-	playerID := message.GetPlayerId()
-	for i, pid := range gameState.GetPlayersInSeats() {
-		if pid == playerID {
-			playerSeatNo = uint32(i)
+	for seatNo, pid := range handState.GetPlayersInSeats() {
+		if pid == message.PlayerId {
+			playerSeatNo = uint32(seatNo + 1)
+			break
 		}
 	}
-	var playerCards map[uint32][]byte
-	playerCards[playerSeatNo] = allPlayerCards[playerSeatNo]
-	handState.PlayersCards = playerCards
+	if playerSeatNo != 0 {
+		_, maskedCards := game.maskCards(handState.GetPlayersCards()[playerSeatNo],
+			gameState.PlayersState[message.PlayerId].GameTokenInt)
+		currentHandState.PlayerCards = fmt.Sprintf("%d", maskedCards)
+	}
+	currentHandState.NextSeatAction = handState.NextSeatAction
+	currentHandState.PlayersStack = make(map[uint64]float32, 0)
+	for playerID, state := range handState.GetPlayersState() {
+		currentHandState.PlayersStack[playerID] = state.Balance
+	}
 
 	handStateMsg := &HandMessage{
 		ClubId:      game.clubID,
@@ -53,10 +67,9 @@ func (game *Game) onQueryCurrentHand(message *HandMessage) error {
 		PlayerId:    message.GetPlayerId(),
 		HandNum:     handState.HandNum,
 		MessageType: HandQueryCurrentHand,
-		HandMessage: &HandMessage_CurrentHandState{CurrentHandState: handState},
+		HandMessage: &HandMessage_CurrentHandState{CurrentHandState: &currentHandState},
 	}
-
-	game.broadcastHandMessage(handStateMsg)
+	game.sendHandMessageToPlayer(handStateMsg, message.GetPlayerId())
 	return nil
 }
 

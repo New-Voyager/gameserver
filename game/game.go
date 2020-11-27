@@ -340,6 +340,29 @@ func (game *Game) startGame() (bool, error) {
 	return true, nil
 }
 
+func (game *Game) maskCards(playerCards []byte, gameToken uint64) ([]uint32, uint64) {
+	// playerCards is a map
+	card64 := make([]byte, 8)
+	cards := make([]uint32, len(playerCards))
+	for i, card := range playerCards {
+		cards[i] = uint32(card)
+		card64[i] = card
+	}
+
+	// convert cards to uint64
+	cardsUint64 := binary.LittleEndian.Uint64(card64)
+	mask := gameToken
+
+	// TODO: mask it.
+	mask = 0
+	maskCards := uint64(cardsUint64)
+	if mask != 0 {
+		maskCards = uint64(cardsUint64 ^ mask)
+	}
+	maskedCards := uint64(maskCards) & uint64(0x000000FFFFFFFFFF)
+	return cards, maskedCards
+}
+
 func (game *Game) dealNewHand() error {
 	gameState, err := game.loadState()
 	if err != nil {
@@ -391,31 +414,12 @@ func (game *Game) dealNewHand() error {
 			continue
 		}
 
-		// playerCards is a map
-		card64 := make([]byte, 8)
-
 		// seatNo is the key, cards are value
 		playerCards := handState.PlayersCards[uint32(seatNo+1)]
 		message := HandDealCards{SeatNo: uint32(seatNo + 1)}
-		cards := make([]uint32, len(playerCards))
-		for i, card := range playerCards {
-			cards[i] = uint32(card)
-			card64[i] = card
-		}
 
-		// convert cards to uint64
-		cardsUint64 := binary.LittleEndian.Uint64(card64)
-		mask := gameState.PlayersState[playerID].GameTokenInt
-
-		// TODO: mask it.
-		mask = 0
-		maskCards := uint64(cardsUint64)
-		if mask != 0 {
-			maskCards = uint64(cardsUint64 ^ mask)
-		}
-		strippedCards := uint64(maskCards) & uint64(0x000000FFFFFFFFFF)
-		playersCards[uint32(seatNo+1)] = fmt.Sprintf("%d", strippedCards)
-
+		cards, maskedCards := game.maskCards(playerCards, gameState.PlayersState[playerID].GameTokenInt)
+		playersCards[uint32(seatNo+1)] = fmt.Sprintf("%d", maskedCards)
 		message.Cards = cards
 		message.CardsStr = poker.CardsToString(cards)
 
