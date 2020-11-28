@@ -44,6 +44,7 @@ type Game struct {
 	waitingPlayers  []uint64
 	minPlayers      int
 	actionTime      uint32
+	actionSeat      actionSeat
 
 	// test driver specific variables
 	autoStart     bool
@@ -59,6 +60,11 @@ type timerMsg struct {
 	playerID    uint64
 	canCheck    bool
 	allowedTime time.Duration
+}
+
+type actionSeat struct {
+	seatNo              uint32
+	remainingActionTime uint32
 }
 
 func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, gameCode string, gameType GameType,
@@ -126,12 +132,24 @@ func (game *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
 			expirationTime = time.Now().Add(msg.allowedTime)
 			paused = false
 		default:
-			if !paused && time.Now().After(expirationTime) && !expirationTime.IsZero() {
-				// The player timed out.
-				game.chPlayTimedOut <- currentTimerMsg
-				expirationTime = time.Time{}
+			if !paused {
+				remainingTime := expirationTime.Sub(time.Now()).Seconds()
+				if remainingTime < 0 {
+					remainingTime = 0
+				}
+				game.actionSeat = actionSeat{
+					seatNo:              currentTimerMsg.seatNo,
+					remainingActionTime: uint32(remainingTime),
+				}
+
+				if remainingTime <= 0 {
+					// The player timed out.
+					game.chPlayTimedOut <- currentTimerMsg
+					expirationTime = time.Time{}
+					paused = true
+				}
 			} else {
-				time.Sleep(10 * time.Millisecond)
+				time.Sleep(100 * time.Millisecond)
 			}
 		}
 	}
