@@ -53,7 +53,6 @@ func (game *Game) onQueryCurrentHand(message *HandMessage) error {
 		HandNum:      handState.HandNum,
 		GameType:     handState.GameType,
 		CurrentRound: handState.CurrentState,
-		//PlayersActed: handState.PlayersActed, // do we need to make a copy here?
 		BoardCards:   handState.BoardCards,
 		BoardCards_2: handState.BoardCards_2,
 	}
@@ -85,6 +84,7 @@ func (game *Game) onQueryCurrentHand(message *HandMessage) error {
 	for playerID, state := range handState.GetPlayersState() {
 		currentHandState.PlayersStack[playerID] = state.Balance
 	}
+	currentHandState.NextSeatAction = handState.NextSeatAction
 
 	handStateMsg := &HandMessage{
 		ClubId:      game.clubID,
