@@ -64,19 +64,20 @@ message GameMessage {
   string version = 1;
   uint32 club_id = 2;
   uint64 game_id = 3;
-  uint64 player_id = 4;
-  string message_type = 5;
+  string game_code = 4;
+  uint64 player_id = 5;
+  string message_type = 6;
   oneof game_message {
-    GameSitMessage  take_seat = 6;
-    GameStatusMessage status = 7;
-    GamePlayerSatMessage  player_sat = 8;
-    GameStatusChangeMessage status_change = 9;
-    GameJoinMessage join_game = 10;
-    GameDealHandMessage deal_hand = 11;
-    GameTableStateMessage table_state = 12;
-    GameSetupNextHandMessage next_hand = 13;
-    GameStartMessage start_game = 14;
-    GameQueryTableStateMessage query_table_state = 15;
-    GamePlayerUpdate player_update = 16;
+    GameSitMessage  take_seat = 7;
+    GameStatusMessage status = 8;
+    GamePlayerSatMessage  player_sat = 9;
+    GameStatusChangeMessage status_change = 10;
+    GameJoinMessage join_game = 11;
+    GameDealHandMessage deal_hand = 12;
+    GameTableStateMessage table_state = 13;
+    GameSetupNextHandMessage next_hand = 14;
+    GameStartMessage start_game = 15;
+    GameQueryTableStateMessage query_table_state = 16;
+    GamePlayerUpdate player_update = 17;
   }
 }

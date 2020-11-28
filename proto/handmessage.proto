@@ -83,24 +83,25 @@ message HandMessage {
   string version = 1;
   uint32 club_id = 2;
   uint64 game_id = 3;
-  uint32 hand_num = 4;
-  uint32 seat_no = 5;       // if this message is targeted to a specific player
-  string message_type = 6;
-  uint64 player_id = 7;
-  string game_token = 8;    // game token assigned to a player for this game
-  HandStatus hand_status = 9;
+  string game_code = 4;
+  uint32 hand_num = 5;
+  uint32 seat_no = 6;       // if this message is targeted to a specific player
+  string message_type = 7;
+  uint64 player_id = 8;
+  string game_token = 9;    // game token assigned to a player for this game
+  HandStatus hand_status = 10;
   oneof hand_message {
-    NextSeatAction  seat_action = 10;
-    HandDealCards deal_cards = 11;
-    NewHand new_hand = 12;
-    HandAction player_acted = 13;
-    ActionChange action_change = 14;
-    HandResult hand_result = 15;
-    Flop flop = 16;
-    Turn turn = 17;
-    River river = 18;
-    Showdown showdown = 19;
-    NoMoreActions no_more_actions = 20;
-    CurrentHandState current_hand_state = 21;
+    NextSeatAction  seat_action = 11;
+    HandDealCards deal_cards = 12;
+    NewHand new_hand = 13;
+    HandAction player_acted = 14;
+    ActionChange action_change = 15;
+    HandResult hand_result = 16;
+    Flop flop = 17;
+    Turn turn = 18;
+    River river = 19;
+    Showdown showdown = 20;
+    NoMoreActions no_more_actions = 21;
+    CurrentHandState current_hand_state = 22;
   }
 }

@@ -113,7 +113,7 @@ message CurrentHandState {
   // game type
   GameType game_type = 3;
 
-  HandStatus current_stage = 4;
+  HandStatus current_round = 4;
 
   uint32 button_pos = 5;
   uint32 small_blind_pos = 6;
@@ -123,14 +123,16 @@ message CurrentHandState {
   float small_blind = 9;
   float straddle = 10;
 
-  repeated PlayerActRound players_acted = 11;
+  map <uint32, HandPlayerState> players_state = 11; // seat no, player status
+  map<uint32, PlayerActRound> players_acted = 12;   // seat no, player action in this round
 
-  bytes board_cards = 12;
-  bytes board_cards_2 = 13;  // run it twice
+  bytes board_cards = 13;
+  bytes board_cards_2 = 14;  // run it twice
 
-  string player_cards = 14;  // current player's cards if the player is playing
-  map <uint64, float> players_stack = 15; 
-  NextSeatAction next_seat_action = 16;
+  string player_cards = 15;  // current player's cards if the player is playing
+  map <uint64, float> players_stack = 16; 
+  uint32 next_seat_to_act = 17;
+  uint32 remaining_action_time = 18;
 }
 
 message HandState {

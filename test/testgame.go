@@ -1,6 +1,8 @@
 package test
 
 import (
+	"fmt"
+
 	"github.com/rs/zerolog/log"
 	"voyager.com/server/game"
 )
@@ -25,7 +27,8 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	players []game.GamePlayer) (*TestGame, *TestPlayer) {
 
 	gamePlayers := make(map[uint64]*TestPlayer)
-	serverGame, gameID := game.GameManager.InitializeGame(nil, clubID, 0, gameType, name, len(players), autoStart, false, 5)
+	gameCode := fmt.Sprintf("000000")
+	serverGame, gameID := game.GameManager.InitializeGame(nil, clubID, 0, gameType, gameCode, name, len(players), autoStart, false, 5)
 	_ = serverGame
 	for _, playerInfo := range players {
 		testPlayer := NewTestPlayer(playerInfo)

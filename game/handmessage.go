@@ -33,15 +33,31 @@ func (game *Game) onQueryCurrentHand(message *HandMessage) error {
 	if err != nil {
 		return err
 	}
+	if handState == nil || handState.HandNum == 0 {
+		currentHandState := CurrentHandState{
+			HandNum: 0,
+		}
+		handStateMsg := &HandMessage{
+			GameId:      game.gameID,
+			PlayerId:    message.GetPlayerId(),
+			HandNum:     0,
+			MessageType: HandQueryCurrentHand,
+			HandMessage: &HandMessage_CurrentHandState{CurrentHandState: &currentHandState},
+		}
+
+		game.sendHandMessageToPlayer(handStateMsg, message.GetPlayerId())
+		return nil
+	}
 
 	currentHandState := CurrentHandState{
 		HandNum:      handState.HandNum,
 		GameType:     handState.GameType,
-		CurrentStage: handState.CurrentState,
-		PlayersActed: handState.PlayersActed, // do we need to make a copy here?
+		CurrentRound: handState.CurrentState,
+		//PlayersActed: handState.PlayersActed, // do we need to make a copy here?
 		BoardCards:   handState.BoardCards,
 		BoardCards_2: handState.BoardCards_2,
 	}
+	currentHandState.PlayersActed = make(map[uint32]*PlayerActRound, 0)
 
 	var playerSeatNo uint32
 	for seatNo, pid := range handState.GetPlayersInSeats() {
@@ -50,12 +66,21 @@ func (game *Game) onQueryCurrentHand(message *HandMessage) error {
 			break
 		}
 	}
+
+	for seatNo, action := range handState.GetPlayersActed() {
+		if action.State == PlayerActState_PLAYER_ACT_EMPTY_SEAT {
+			continue
+		}
+		currentHandState.PlayersActed[uint32(seatNo+1)] = action
+	}
+
 	if playerSeatNo != 0 {
 		_, maskedCards := game.maskCards(handState.GetPlayersCards()[playerSeatNo],
 			gameState.PlayersState[message.PlayerId].GameTokenInt)
 		currentHandState.PlayerCards = fmt.Sprintf("%d", maskedCards)
 	}
-	currentHandState.NextSeatAction = handState.NextSeatAction
+	currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
+	currentHandState.RemainingActionTime = game.remainingActionTime
 	currentHandState.PlayersStack = make(map[uint64]float32, 0)
 	for playerID, state := range handState.GetPlayersState() {
 		currentHandState.PlayersStack[playerID] = state.Balance
