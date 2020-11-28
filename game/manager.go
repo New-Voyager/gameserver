@@ -21,7 +21,7 @@ func NewGameManager(gamePersist PersistGameState, handPersist PersistHandState) 
 }
 
 func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver,
-	clubID uint32, gameID uint64, gameType GameType,
+	clubID uint32, gameID uint64, gameType GameType, gameCode string,
 	title string, minPlayers int, autoStart bool, autoDeal bool, actionTime uint32) (*Game, uint64) {
 	if gameID == 0 {
 		gm.gameCount++
@@ -30,7 +30,7 @@ func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver,
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	game := NewPokerGame(gm,
 		&messageReceiver,
-		gameIDStr,
+		gameCode,
 		GameType_HOLDEM,
 		clubID, gameID,
 		minPlayers,

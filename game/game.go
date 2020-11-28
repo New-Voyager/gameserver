@@ -25,27 +25,26 @@ type GameMessageReceiver interface {
 }
 
 type Game struct {
-	gameCode        string
-	clubID          uint32
-	gameID          uint64
-	manager         *Manager
-	gameType        GameType
-	title           string
-	end             chan bool
-	running         bool
-	chHand          chan []byte
-	chGame          chan []byte
-	chPlayTimedOut  chan timerMsg
-	chResetTimer    chan timerMsg
-	chPauseTimer    chan bool
-	allPlayers      map[uint64]*Player   // players at the table and the players that are viewing
-	messageReceiver *GameMessageReceiver // receives messages
-	players         map[uint64]string
-	waitingPlayers  []uint64
-	minPlayers      int
-	actionTime      uint32
-	actionSeat      actionSeat
-
+	gameCode            string
+	clubID              uint32
+	gameID              uint64
+	manager             *Manager
+	gameType            GameType
+	title               string
+	end                 chan bool
+	running             bool
+	chHand              chan []byte
+	chGame              chan []byte
+	chPlayTimedOut      chan timerMsg
+	chResetTimer        chan timerMsg
+	chPauseTimer        chan bool
+	allPlayers          map[uint64]*Player   // players at the table and the players that are viewing
+	messageReceiver     *GameMessageReceiver // receives messages
+	players             map[uint64]string
+	waitingPlayers      []uint64
+	minPlayers          int
+	actionTime          uint32
+	remainingActionTime uint32
 	// test driver specific variables
 	autoStart     bool
 	autoDeal      bool
@@ -62,11 +61,6 @@ type timerMsg struct {
 	allowedTime time.Duration
 }
 
-type actionSeat struct {
-	seatNo              uint32
-	remainingActionTime uint32
-}
-
 func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, gameCode string, gameType GameType,
 	clubID uint32, gameID uint64, minPlayers int, autoStart bool, autoDeal bool, actionTime uint32,
 	gameStatePersist PersistGameState,
@@ -75,14 +69,14 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, ga
 	game := Game{
 		manager:         gameManager,
 		messageReceiver: messageReceiver,
-		//gameCode:        gameCode,
-		gameType:      gameType,
-		title:         title,
-		clubID:        clubID,
-		gameID:        gameID,
-		autoStart:     autoStart,
-		autoDeal:      autoDeal,
-		testButtonPos: -1,
+		gameCode:        gameCode,
+		gameType:        gameType,
+		title:           title,
+		clubID:          clubID,
+		gameID:          gameID,
+		autoStart:       autoStart,
+		autoDeal:        autoDeal,
+		testButtonPos:   -1,
 	}
 	game.allPlayers = make(map[uint64]*Player)
 	game.chGame = make(chan []byte)
@@ -137,10 +131,7 @@ func (game *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
 				if remainingTime < 0 {
 					remainingTime = 0
 				}
-				game.actionSeat = actionSeat{
-					seatNo:              currentTimerMsg.seatNo,
-					remainingActionTime: uint32(remainingTime),
-				}
+				game.remainingActionTime = uint32(remainingTime)
 
 				if remainingTime <= 0 {
 					// The player timed out.
@@ -517,6 +508,7 @@ func (game *Game) loadHandState(gameState *GameState) (*HandState, error) {
 }
 
 func (game *Game) broadcastHandMessage(message *HandMessage) {
+	message.GameCode = game.gameCode
 	if *game.messageReceiver != nil {
 		(*game.messageReceiver).BroadcastHandMessage(message)
 	} else {
@@ -528,6 +520,7 @@ func (game *Game) broadcastHandMessage(message *HandMessage) {
 }
 
 func (game *Game) broadcastGameMessage(message *GameMessage) {
+	message.GameCode = game.gameCode
 	if *game.messageReceiver != nil {
 		(*game.messageReceiver).BroadcastGameMessage(message)
 	} else {
@@ -539,16 +532,19 @@ func (game *Game) broadcastGameMessage(message *GameMessage) {
 }
 
 func (game *Game) SendGameMessage(message *GameMessage) {
+	message.GameCode = game.gameCode
 	b, _ := proto.Marshal(message)
 	game.chGame <- b
 }
 
 func (game *Game) SendHandMessage(message *HandMessage) {
+	message.GameCode = game.gameCode
 	b, _ := proto.Marshal(message)
 	game.chHand <- b
 }
 
 func (game *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint64) {
+	message.GameCode = game.gameCode
 	if *game.messageReceiver != nil {
 		(*game.messageReceiver).SendHandMessageToPlayer(message, playerID)
 	} else {
