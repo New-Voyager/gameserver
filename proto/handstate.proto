@@ -133,6 +133,8 @@ message CurrentHandState {
   map <uint64, float> players_stack = 16; 
   uint32 next_seat_to_act = 17;
   uint32 remaining_action_time = 18;
+
+  NextSeatAction next_seat_action = 19;
 }
 
 message HandState {
