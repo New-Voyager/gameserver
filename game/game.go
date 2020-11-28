@@ -148,9 +148,8 @@ func (game *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
 					expirationTime = time.Time{}
 					paused = true
 				}
-			} else {
-				time.Sleep(100 * time.Millisecond)
 			}
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
 }
