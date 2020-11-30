@@ -403,6 +403,9 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		//h.PlayersActed[action.SeatNo-1] = PlayerActRound_PLAYER_ACT_ACTED
 		//allin := false
 		state := PlayerActState_PLAYER_ACT_RAISE
+		if action.Action == ACTION_BET {
+			state = PlayerActState_PLAYER_ACT_BET
+		}
 		if action.Action == ACTION_ALLIN {
 			state = PlayerActState_PLAYER_ACT_ALL_IN
 			// player is all in
