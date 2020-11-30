@@ -404,7 +404,7 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		//allin := false
 		state := PlayerActState_PLAYER_ACT_RAISE
 		if action.Action == ACTION_ALLIN {
-			state = PlayerActState_PLAYER_ACT_ALLIN
+			state = PlayerActState_PLAYER_ACT_ALL_IN
 			// player is all in
 			action.Amount = playerBetSoFar + playerState.Balance
 		}
@@ -423,7 +423,7 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		if diff == playerState.Balance {
 			// player is all in
 			action.Action = ACTION_ALLIN
-			h.actionChanged(action.SeatNo, PlayerActState_PLAYER_ACT_ALLIN, action.Amount)
+			h.actionChanged(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, action.Amount)
 			//h.PlayersActed[action.SeatNo-1] = PlayerActRound_PLAYER_ACT_ALL_IN
 			h.AllInPlayers[action.SeatNo-1] = 1
 			playerState.Balance = 0

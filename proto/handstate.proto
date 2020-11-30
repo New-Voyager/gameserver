@@ -83,9 +83,8 @@ enum PlayerActState {
   PLAYER_ACT_STRADDLE = 6;
   PLAYER_ACT_BET = 7;
   PLAYER_ACT_CALL = 8;
-  PLAYER_ACT_ALLIN = 9;
-  PLAYER_ACT_RAISE = 10;
-  PLAYER_ACT_CHECK = 11;
+  PLAYER_ACT_RAISE = 9;
+  PLAYER_ACT_CHECK = 10;
   
   // bet/raise/call/bb/straddle
 }
