@@ -24,7 +24,10 @@ const (
 
 	// These messages are used by the test driver
 	GameSetupNextHand string = "SETUP_NEXT_HAND"
-	GameDealHand      string = "DEAL_NEW_HAND"
+
+	// messages used internally to move the game
+	GameMoveToNextHand string = "MOVE_TO_NEXT_HAND"
+	GameDealHand       string = "DEAL_NEW_HAND"
 )
 
 // Hand messages

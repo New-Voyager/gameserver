@@ -6,13 +6,15 @@ import (
 
 type Manager struct {
 	gameCount        uint64
+	apiServerUrl     string
 	gameStatePersist PersistGameState
 	handStatePersist PersistHandState
 	activeGames      map[string]*Game
 }
 
-func NewGameManager(gamePersist PersistGameState, handPersist PersistHandState) *Manager {
+func NewGameManager(apiServerUrl string, gamePersist PersistGameState, handPersist PersistHandState) *Manager {
 	return &Manager{
+		apiServerUrl:     apiServerUrl,
 		gameStatePersist: gamePersist,
 		handStatePersist: handPersist,
 		activeGames:      make(map[string]*Game),
@@ -38,7 +40,8 @@ func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver,
 		autoDeal,
 		actionTime,
 		gm.gameStatePersist,
-		gm.handStatePersist)
+		gm.handStatePersist,
+		gm.apiServerUrl)
 	gm.activeGames[gameIDStr] = game
 
 	go game.runGame()

@@ -273,6 +273,13 @@ func (game *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *Hand
 	handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
 	game.broadcastHandMessage(handMessage)
 
+	// send a message to game to start new hand
+	gameMessage := &GameMessage{
+		GameId:      game.gameID,
+		MessageType: GameMoveToNextHand,
+	}
+	game.SendGameMessage(gameMessage)
+
 	return nil
 }
 
@@ -392,6 +399,12 @@ func (game *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 		handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
 		game.broadcastHandMessage(handMessage)
 
+		// send a message to game to start new hand
+		gameMessage := &GameMessage{
+			GameId:      game.gameID,
+			MessageType: GameMoveToNextHand,
+		}
+		game.SendGameMessage(gameMessage)
 		_ = 0
 	}
 }
