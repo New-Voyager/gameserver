@@ -127,7 +127,7 @@ func (g *gameServerEnvironment) GetApiServerUrl() string {
 	if host == "" {
 		msg := fmt.Sprintf("%s is not defined", g.APIServerUrl)
 		environmentLogger.Error().Msg(msg)
-		panic(msg)
+		return ""
 	}
 	return host
 }

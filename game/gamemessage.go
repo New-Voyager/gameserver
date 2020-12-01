@@ -51,6 +51,12 @@ func processPendingUpdates(gameId uint64) {
 }
 
 func (game *Game) onMoveToNextHand(message *GameMessage) error {
+
+	// if this game is used by script test, don't look for pending updates
+	if game.scriptTest {
+		return nil
+	}
+
 	// before we move to next hand, query API server whether we have any pending updates
 	// if there are no pending updates, deal next hand
 
