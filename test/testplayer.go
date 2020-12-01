@@ -67,26 +67,40 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 	if handMessage.MessageType == game.HandNewHand {
 		t.currentHand = handMessage
 		t.flop = nil
-
-		if t.seatNo > 0 {
-			// unscramble cards
-			maskedCards := t.currentHand.GetNewHand().PlayerCards[t.seatNo]
-			c, _ := strconv.ParseInt(maskedCards, 10, 64)
-			b := make([]byte, 8)
-			binary.LittleEndian.PutUint64(b, uint64(c))
-			cards := make([]uint32, 0)
-			i := 0
-			for _, card := range b {
-				if card == 0 {
-					break
+		/*
+			if t.seatNo > 0 {
+				// unscramble cards
+				maskedCards := t.currentHand.GetNewHand().PlayerCards[t.seatNo]
+				c, _ := strconv.ParseInt(maskedCards, 10, 64)
+				b := make([]byte, 8)
+				binary.LittleEndian.PutUint64(b, uint64(c))
+				cards := make([]uint32, 0)
+				i := 0
+				for _, card := range b {
+					if card == 0 {
+						break
+					}
+					cards = append(cards, uint32(card))
+					i++
 				}
-				cards = append(cards, uint32(card))
-				i++
-			}
-			t.cards = cards
-		}
+				t.cards = cards
+			}*/
 	} else if handMessage.MessageType == "DEAL" {
-		t.cards = handMessage.GetDealCards().Cards
+		// unscramble cards
+		maskedCards := handMessage.GetDealCards().Cards
+		c, _ := strconv.ParseInt(maskedCards, 10, 64)
+		b := make([]byte, 8)
+		binary.LittleEndian.PutUint64(b, uint64(c))
+		cards := make([]uint32, 0)
+		i := 0
+		for _, card := range b {
+			if card == 0 {
+				break
+			}
+			cards = append(cards, uint32(card))
+			i++
+		}
+		t.cards = cards
 	} else if handMessage.MessageType == "FLOP" {
 		t.flop = handMessage.GetFlop()
 	} else if handMessage.MessageType == "TURN" {

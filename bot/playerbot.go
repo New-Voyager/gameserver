@@ -1,7 +1,9 @@
 package bot
 
 import (
+	"encoding/binary"
 	"fmt"
+	"strconv"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"voyager.com/server/game"
@@ -120,7 +122,21 @@ func (p *PlayerBot) hand2Player(msg *natsgo.Msg) {
 			p.cards = nil
 		case game.HandDeal:
 			if message.PlayerId == p.playerID {
-				p.cards = message.GetDealCards().Cards
+				// unscramble cards
+				maskedCards := message.GetDealCards().Cards
+				c, _ := strconv.ParseInt(maskedCards, 10, 64)
+				b := make([]byte, 8)
+				binary.LittleEndian.PutUint64(b, uint64(c))
+				cards := make([]uint32, 0)
+				i := 0
+				for _, card := range b {
+					if card == 0 {
+						break
+					}
+					cards = append(cards, uint32(card))
+					i++
+				}
+				p.cards = cards
 			}
 		case game.HandFlop:
 			p.flop = message.GetFlop()

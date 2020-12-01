@@ -325,8 +325,9 @@ func (game *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 				}
 			}
 			nextSeatMessage.HandMessage = &HandMessage_SeatAction{SeatAction: handState.NextSeatAction}
-			game.broadcastHandMessage(nextSeatMessage)
-			game.resetTimer(handState.NextSeatAction.SeatNo, handState.PlayersInSeats[handState.NextSeatAction.SeatNo], canCheck)
+			playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
+			game.sendHandMessageToPlayer(nextSeatMessage, playerID)
+			game.resetTimer(handState.NextSeatAction.SeatNo, playerID, canCheck)
 
 			// action moves to the next player
 			actionChange := &ActionChange{
