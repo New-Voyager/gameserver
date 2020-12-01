@@ -157,7 +157,7 @@ func (n *NatsGame) playerUpdate(gameID uint64, update *PlayerUpdate) {
 // message sent from bot to game
 func (n *NatsGame) setupDeck(deck []byte, buttonPos uint32) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
-		Msg(fmt.Sprintf("Bot->Game: Setup deck. GameID: %d, ButtonPos: %s", n.gameID, buttonPos))
+		Msg(fmt.Sprintf("Bot->Game: Setup deck. GameID: %d, ButtonPos: %d", n.gameID, buttonPos))
 	// build a game message and send to the game
 	var message game.GameMessage
 
@@ -195,7 +195,6 @@ func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Player->Hand: %s", string(msg.Data)))
 	var message game.HandMessage
-	//err := jsoniter.Unmarshal(msg.Data, &message)
 	e := protojson.Unmarshal(msg.Data, &message)
 	if e != nil {
 		return
@@ -219,9 +218,6 @@ func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 }
 
 func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
-	//natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
-	//	Msg(fmt.Sprintf("Hand->AllPlayers: %s", message.MessageType))
-	//hand2PlayerSubject := fmt.Sprintf("game.%d%d.hand.player.*", n.clubID, n.gameNum)
 	message.PlayerId = 0
 	data, _ := protojson.Marshal(message)
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", message.MessageType).
@@ -244,7 +240,6 @@ func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID ui
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Game->Player: %s", message.MessageType))
 	subject := fmt.Sprintf("game.%s.player.%d", n.gameCode, playerID)
-	// let send this to all players
 	data, _ := protojson.Marshal(message)
 	n.nc.Publish(subject, data)
 }
