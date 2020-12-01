@@ -54,6 +54,7 @@ type Game struct {
 	autoDeal      bool
 	testDeckToUse *poker.Deck
 	testButtonPos int32
+	scriptTest    bool
 
 	lock sync.Mutex
 }
@@ -97,6 +98,10 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, ga
 	game.actionTime = actionTime
 	game.initialize()
 	return &game
+}
+
+func (game *Game) SetScriptTest(scriptTest bool) {
+	game.scriptTest = scriptTest
 }
 
 func (game *Game) playersInSeatsCount() int {
