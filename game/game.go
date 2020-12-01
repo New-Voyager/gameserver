@@ -2,7 +2,10 @@ package game
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"sync"
 	"time"
 
@@ -45,6 +48,7 @@ type Game struct {
 	minPlayers          int
 	actionTime          uint32
 	remainingActionTime uint32
+	apiServerUrl        string
 	// test driver specific variables
 	autoStart     bool
 	autoDeal      bool
@@ -64,7 +68,8 @@ type timerMsg struct {
 func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, gameCode string, gameType GameType,
 	clubID uint32, gameID uint64, minPlayers int, autoStart bool, autoDeal bool, actionTime uint32,
 	gameStatePersist PersistGameState,
-	handStatePersist PersistHandState) *Game {
+	handStatePersist PersistHandState,
+	apiServerUrl string) *Game {
 	title := fmt.Sprintf("%d:%d %s", clubID, gameID, GameType_name[int32(gameType)])
 	game := Game{
 		manager:         gameManager,
@@ -77,9 +82,10 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, ga
 		autoStart:       autoStart,
 		autoDeal:        autoDeal,
 		testButtonPos:   -1,
+		apiServerUrl:    apiServerUrl,
 	}
 	game.allPlayers = make(map[uint64]*Player)
-	game.chGame = make(chan []byte)
+	game.chGame = make(chan []byte, 1)
 	game.chHand = make(chan []byte, 1)
 	game.chPlayTimedOut = make(chan timerMsg)
 	game.chResetTimer = make(chan timerMsg)
@@ -131,6 +137,7 @@ func (game *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
 				if remainingTime < 0 {
 					remainingTime = 0
 				}
+				// track remainingActionTime to show the new observer how much time the current player has to act
 				game.remainingActionTime = uint32(remainingTime)
 
 				if remainingTime <= 0 {
@@ -583,4 +590,28 @@ func (game *Game) getPlayersAtTable() ([]*PlayerAtTableState, error) {
 	}
 
 	return ret, nil
+}
+
+func anyPendingUpdates(apiServerUrl string, gameID uint64) (bool, error) {
+	url := fmt.Sprintf("%s/internal/any-pending-updates/gameId/%d", apiServerUrl, gameID)
+	resp, err := http.Get(url)
+	if resp.StatusCode != 200 {
+		channelGameLogger.Fatal().Uint64("game", gameID).Msg(fmt.Sprintf("Failed to get pending status. Error: %d", resp.StatusCode))
+		return false, fmt.Errorf("Failed to get pending status")
+	}
+
+	type pendingUpdates struct {
+		PendingUpdates bool
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return false, err
+	}
+	var updates pendingUpdates
+	err = json.Unmarshal(body, &updates)
+	if err != nil {
+		return false, err
+	}
+	return updates.PendingUpdates, nil
 }

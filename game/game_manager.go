@@ -6,9 +6,13 @@ import (
 	"voyager.com/server/util"
 )
 
-var GameManager *Manager = CreateGameManager()
+var GameManager *Manager
 
-func CreateGameManager() *Manager {
+func CreateGameManager(apiServerUrl string) *Manager {
+	if GameManager != nil {
+		return GameManager
+	}
+
 	var gamePersist PersistGameState
 	var handPersist PersistHandState
 	var persistMethod = util.GameServerEnvironment.GetPersistMethod()
@@ -23,5 +27,6 @@ func CreateGameManager() *Manager {
 		gamePersist = NewMemoryGameStateTracker()
 		handPersist = NewMemoryHandStateTracker()
 	}
-	return NewGameManager(gamePersist, handPersist)
+	GameManager = NewGameManager(apiServerUrl, gamePersist, handPersist)
+	return GameManager
 }

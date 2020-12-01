@@ -8,6 +8,7 @@ import (
 	natsgo "github.com/nats-io/nats.go"
 
 	"voyager.com/server/bot"
+	"voyager.com/server/game"
 	"voyager.com/server/nats"
 	"voyager.com/server/rest"
 	"voyager.com/server/util"
@@ -34,6 +35,9 @@ func main() {
 	testName = flag.String("testname", "", "runs a specific test")
 
 	flag.Parse()
+
+	// create game manager
+	game.CreateGameManager(util.GameServerEnvironment.GetApiServerUrl())
 
 	if *runGameScriptTests {
 		testScripts()

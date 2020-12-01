@@ -33,11 +33,40 @@ func (game *Game) handleGameMessage(message *GameMessage) {
 
 	case GameQueryTableState:
 		game.onQueryTableState(message)
+
 	case GameJoin:
 		game.onJoinGame(message)
+
 	case PlayerUpdate:
 		game.onPlayerUpdate(message)
+
+	case GameMoveToNextHand:
+		game.onMoveToNextHand(message)
 	}
+}
+
+func processPendingUpdates(gameId uint64) {
+	// call api server processPendingUpdates
+	channelGameLogger.Info().Msgf("Processing pending updates for the game %d", gameId)
+}
+
+func (game *Game) onMoveToNextHand(message *GameMessage) error {
+	// before we move to next hand, query API server whether we have any pending updates
+	// if there are no pending updates, deal next hand
+
+	// check any pending updates
+	pendingUpdates, _ := anyPendingUpdates(game.apiServerUrl, game.gameID)
+	if pendingUpdates {
+		go processPendingUpdates(game.gameID)
+	} else {
+		gameMessage := &GameMessage{
+			GameId:      game.gameID,
+			MessageType: GameDealHand,
+		}
+		game.SendGameMessage(gameMessage)
+	}
+
+	return nil
 }
 
 func (game *Game) onPlayerTakeSeat(message *GameMessage) error {
