@@ -243,3 +243,20 @@ func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID ui
 	data, _ := protojson.Marshal(message)
 	n.nc.Publish(subject, data)
 }
+
+func (n *NatsGame) gameEnded() error {
+	// first send a message to all the players
+	message := &game.GameMessage{
+		GameId:      n.gameID,
+		GameCode:    n.gameCode,
+		MessageType: game.GameCurrentStatus,
+	}
+	message.GameMessage = &game.GameMessage_Status{Status: &game.GameStatusMessage{Status: game.GameStatus_ENDED,
+		TableStatus: game.TableStatus_TABLE_STATUS_WAITING_TO_BE_STARTED}}
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+		Msg(fmt.Sprintf("Game->All: %s Game ENDED", message.MessageType))
+	n.BroadcastGameMessage(message)
+
+	n.serverGame.GameEnded()
+	return nil
+}
