@@ -233,7 +233,7 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", message.MessageType).
 		Str("subject", hand2PlayerSubject).
 		Msg(fmt.Sprintf("H->P: %s", string(data)))
-	n.nc.Publish(n.hand2PlayerAllSubject, data)
+	n.nc.Publish(hand2PlayerSubject, data)
 }
 
 func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID uint64) {
