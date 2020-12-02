@@ -389,6 +389,12 @@ func (game *Game) dealNewHand() error {
 		return err
 	}
 
+	// remove the old handstate
+	handState1, _ := game.loadHandState(gameState)
+	if handState1 != nil {
+		game.removeHandState(gameState, handState1)
+	}
+
 	gameState.HandNum++
 	handState := &HandState{
 		ClubId:        gameState.GetClubId(),
@@ -510,6 +516,17 @@ func (game *Game) saveHandState(gameState *GameState, handState *HandState) erro
 	return err
 }
 
+func (game *Game) removeHandState(gameState *GameState, handState *HandState) error {
+	if gameState == nil || handState == nil {
+		return nil
+	}
+
+	err := game.manager.handStatePersist.Remove(gameState.GetClubId(),
+		gameState.GetGameId(),
+		handState.HandNum)
+	return err
+}
+
 func (game *Game) loadHandState(gameState *GameState) (*HandState, error) {
 	handState, err := game.manager.handStatePersist.Load(gameState.GetClubId(),
 		gameState.GetGameId(),
@@ -617,4 +634,20 @@ func anyPendingUpdates(apiServerUrl string, gameID uint64) (bool, error) {
 		return false, err
 	}
 	return updates.PendingUpdates, nil
+}
+
+func (game *Game) GameEnded() error {
+	gameState, err := game.loadState()
+	if err != nil {
+		return err
+	}
+
+	if gameState != nil {
+		// remove the old handstate
+		handState, _ := game.loadHandState(gameState)
+		if handState != nil {
+			game.removeHandState(gameState, handState)
+		}
+	}
+	return nil
 }

@@ -21,6 +21,14 @@ type GameManager struct {
 	nc          *natsgo.Conn
 }
 
+const (
+	GAMESTATUS_UNKNOWN    = 0
+	GAMESTATUS_CONFIGURED = 1
+	GAMESTATUS_ACTIVE     = 2
+	GAMESTATUS_PAUSED     = 3
+	GAMESTATUS_ENDED      = 4
+)
+
 func NewGameManager(nc *natsgo.Conn) (*GameManager, error) {
 	// let us try to connect to nats server
 	nc, err := natsgo.Connect(NatsURL)
@@ -60,7 +68,13 @@ func (gm *GameManager) GameStatusChanged(gameID uint64, newStatus game.GameStatu
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	if game, ok := gm.activeGames[gameIDStr]; ok {
 		// if game ended, remove natsgame and game
-		game.gameStatusChanged(gameID, newStatus)
+		if newStatus == GAMESTATUS_ENDED {
+			delete(gm.activeGames, gameIDStr)
+			delete(gm.gameCodes, gameIDStr)
+			game.gameEnded()
+		} else {
+			game.gameStatusChanged(gameID, newStatus)
+		}
 	} else {
 		natsLogger.Error().Uint64("gameId", gameID).Msg(fmt.Sprintf("GameID: %d does not exist", gameID))
 	}

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"net/http"
 
 	"google.golang.org/protobuf/proto"
 	"voyager.com/server/poker"
@@ -45,9 +46,14 @@ func (game *Game) handleGameMessage(message *GameMessage) {
 	}
 }
 
-func processPendingUpdates(gameId uint64) {
+func processPendingUpdates(apiServerUrl string, gameID uint64) {
 	// call api server processPendingUpdates
-	channelGameLogger.Info().Msgf("Processing pending updates for the game %d", gameId)
+	channelGameLogger.Info().Msgf("Processing pending updates for the game %d", gameID)
+	url := fmt.Sprintf("%s/internal/process-pending-updates/gameId/%d", apiServerUrl, gameID)
+	resp, _ := http.Post(url, "application/json", nil)
+	if resp.StatusCode != 200 {
+		channelGameLogger.Fatal().Uint64("game", gameID).Msg(fmt.Sprintf("Failed to process pending updates. Error: %d", resp.StatusCode))
+	}
 }
 
 func (game *Game) onMoveToNextHand(message *GameMessage) error {
@@ -63,7 +69,7 @@ func (game *Game) onMoveToNextHand(message *GameMessage) error {
 	// check any pending updates
 	pendingUpdates, _ := anyPendingUpdates(game.apiServerUrl, game.gameID)
 	if pendingUpdates {
-		go processPendingUpdates(game.gameID)
+		go processPendingUpdates(game.apiServerUrl, game.gameID)
 	} else {
 		gameMessage := &GameMessage{
 			GameId:      game.gameID,
