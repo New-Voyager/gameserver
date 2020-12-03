@@ -145,14 +145,8 @@ func gamePendingUpdates(c *gin.Context) {
 	}
 
 	started := c.Query("started")
-	if gameIDStr == "" {
-		c.String(400, "Failed to read game-id param from pending-updates endpoint")
-	}
-
 	done := c.Query("done")
-	if gameIDStr == "" {
-		c.String(400, "Failed to read game-id param from pending-updates endpoint")
-	}
+
 	gameID, err := strconv.ParseUint(gameIDStr, 10, 64)
 	if err != nil {
 		c.String(400, "Failed to parse game-id [%s] from pending-updates endpoint.", gameIDStr)
