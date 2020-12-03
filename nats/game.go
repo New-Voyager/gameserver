@@ -154,6 +154,15 @@ func (n *NatsGame) playerUpdate(gameID uint64, update *PlayerUpdate) {
 	n.serverGame.SendGameMessage(&message)
 }
 
+func (n *NatsGame) pendingUpdatesDone() {
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+		Msg(fmt.Sprintf("APIServer->Game: Pending updates done. GameID: %d", n.gameID))
+	var message game.GameMessage
+	message.GameId = n.gameID
+	message.MessageType = game.GamePendingUpdatesDone
+	n.serverGame.SendGameMessage(&message)
+}
+
 // message sent from bot to game
 func (n *NatsGame) setupDeck(deck []byte, buttonPos uint32) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).

@@ -34,10 +34,21 @@ func (h *HandState) initializeBettingRound() {
 
 func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos int32) {
 	// settle players in the seats
-	h.PlayersInSeats = gameState.GetPlayersInSeats()
+	h.PlayersInSeats = make([]uint64, gameState.MaxSeats)
 	h.NoActiveSeats = 0
-	for _, playerID := range h.PlayersInSeats {
+
+	// update active seats with players who are playing
+	for seatNo, playerID := range gameState.GetPlayersInSeats() {
 		if playerID != 0 {
+			// get player state
+			state := gameState.PlayersState[playerID]
+			if state == nil {
+				continue
+			}
+			if state.Status == PlayerStatus_IN_BREAK || state.CurrentBalance == 0 {
+				continue
+			}
+			h.PlayersInSeats[seatNo] = playerID
 			h.NoActiveSeats++
 		}
 	}
@@ -73,9 +84,9 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 		if player == 0 {
 			continue
 		}
-		state := h.GetPlayersState()[player]
+		state := gameState.GetPlayersState()[player]
 		h.BalanceBeforeHand = append(h.BalanceBeforeHand,
-			&PlayerBalance{SeatNo: uint32(seatNo + 1), PlayerId: player, Balance: state.Balance})
+			&PlayerBalance{SeatNo: uint32(seatNo + 1), PlayerId: player, Balance: state.CurrentBalance})
 	}
 
 	if deck == nil {

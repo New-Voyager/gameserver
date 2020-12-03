@@ -278,7 +278,7 @@ func (game *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *Hand
 		GameId:      game.gameID,
 		MessageType: GameMoveToNextHand,
 	}
-	game.SendGameMessage(gameMessage)
+	go game.SendGameMessage(gameMessage)
 
 	return nil
 }
@@ -405,7 +405,7 @@ func (game *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 			GameId:      game.gameID,
 			MessageType: GameMoveToNextHand,
 		}
-		game.SendGameMessage(gameMessage)
+		go game.SendGameMessage(gameMessage)
 		_ = 0
 	}
 }
