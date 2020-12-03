@@ -10,6 +10,7 @@ const (
 )
 
 // Game messages
+// These messages can be sent to game only from api server or test driver
 const (
 	GameJoin            string = "JOIN"
 	GameCurrentStatus   string = "GAME_STATUS"
@@ -26,8 +27,13 @@ const (
 	GameSetupNextHand string = "SETUP_NEXT_HAND"
 
 	// messages used internally to move the game
+	// hand to game or game to game
 	GameMoveToNextHand string = "MOVE_TO_NEXT_HAND"
 	GameDealHand       string = "DEAL_NEW_HAND"
+
+	// API Server
+	GamePendingUpdatesStarted string = "GamePendingUpdatesStarted"
+	GamePendingUpdatesDone    string = "GamePendingUpdatesDone"
 )
 
 // Hand messages

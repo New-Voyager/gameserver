@@ -50,13 +50,13 @@ type Game struct {
 	remainingActionTime uint32
 	apiServerUrl        string
 	// test driver specific variables
-	autoStart     bool
-	autoDeal      bool
-	testDeckToUse *poker.Deck
-	testButtonPos int32
-	scriptTest    bool
-
-	lock sync.Mutex
+	autoStart               bool
+	autoDeal                bool
+	testDeckToUse           *poker.Deck
+	testButtonPos           int32
+	scriptTest              bool
+	inProcessPendingUpdates bool
+	lock                    sync.Mutex
 }
 
 type timerMsg struct {
@@ -86,7 +86,7 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, ga
 		apiServerUrl:    apiServerUrl,
 	}
 	game.allPlayers = make(map[uint64]*Player)
-	game.chGame = make(chan []byte, 1)
+	game.chGame = make(chan []byte)
 	game.chHand = make(chan []byte, 1)
 	game.chPlayTimedOut = make(chan timerMsg)
 	game.chResetTimer = make(chan timerMsg)

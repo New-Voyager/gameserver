@@ -75,6 +75,8 @@ func RunRestServer(gameManager *nats.GameManager) {
 	r.POST("/new-game", newGame)
 	r.POST("/player-update", playerUpdate)
 	r.POST("/game-update-status", gameUpdateStatus)
+	r.POST("/pending-updates", gamePendingUpdates)
+
 	r.POST("/start-timer", startTimer)
 	r.POST("/cancel-timer", cancelTimer)
 	r.Run(":8080")
@@ -134,6 +136,29 @@ func gameUpdateStatus(c *gin.Context) {
 	}
 	log.Info().Uint64("gameId", gameStatus.GameId).Msg(fmt.Sprintf("New game status: %d", gameStatus.GameStatus))
 	natsGameManager.GameStatusChanged(gameStatus.GameId, game.GameStatus(gameStatus.GameStatus))
+}
+
+func gamePendingUpdates(c *gin.Context) {
+	gameIDStr := c.Query("game-id")
+	if gameIDStr == "" {
+		c.String(400, "Failed to read game-id param from pending-updates endpoint")
+	}
+
+	started := c.Query("started")
+	done := c.Query("done")
+
+	gameID, err := strconv.ParseUint(gameIDStr, 10, 64)
+	if err != nil {
+		c.String(400, "Failed to parse game-id [%s] from pending-updates endpoint.", gameIDStr)
+	}
+	if started != "" {
+		// API server started processing pending updates
+		//natsGameManager.GamePendingUpdatesStarted(gameID)
+		panic("Not implemented")
+	} else if done != "" {
+		// pending updates done, game can resume
+		natsGameManager.PendingUpdatesDone(gameID)
+	}
 }
 
 func startTimer(c *gin.Context) {

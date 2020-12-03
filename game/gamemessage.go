@@ -43,6 +43,9 @@ func (game *Game) handleGameMessage(message *GameMessage) {
 
 	case GameMoveToNextHand:
 		game.onMoveToNextHand(message)
+
+	case GamePendingUpdatesDone:
+		game.onPendingUpdatesDone(message)
 	}
 }
 
@@ -54,6 +57,25 @@ func processPendingUpdates(apiServerUrl string, gameID uint64) {
 	if resp.StatusCode != 200 {
 		channelGameLogger.Fatal().Uint64("game", gameID).Msg(fmt.Sprintf("Failed to process pending updates. Error: %d", resp.StatusCode))
 	}
+}
+
+func (game *Game) onPendingUpdatesDone(message *GameMessage) error {
+	game.inProcessPendingUpdates = false
+	// move to next hand
+	gameState, err := game.loadState()
+	if err != nil {
+		return err
+	}
+
+	if gameState.Status == GameStatus_ACTIVE && gameState.TableStatus == TableStatus_TABLE_STATUS_GAME_RUNNING {
+		// deal next hand
+		gameMessage := &GameMessage{
+			GameId:      game.gameID,
+			MessageType: GameDealHand,
+		}
+		go game.SendGameMessage(gameMessage)
+	}
+	return nil
 }
 
 func (game *Game) onMoveToNextHand(message *GameMessage) error {
@@ -69,13 +91,14 @@ func (game *Game) onMoveToNextHand(message *GameMessage) error {
 	// check any pending updates
 	pendingUpdates, _ := anyPendingUpdates(game.apiServerUrl, game.gameID)
 	if pendingUpdates {
+		game.inProcessPendingUpdates = true
 		go processPendingUpdates(game.apiServerUrl, game.gameID)
 	} else {
 		gameMessage := &GameMessage{
 			GameId:      game.gameID,
 			MessageType: GameDealHand,
 		}
-		game.SendGameMessage(gameMessage)
+		go game.SendGameMessage(gameMessage)
 	}
 
 	return nil
@@ -241,85 +264,88 @@ func (game *Game) onJoinGame(message *GameMessage) error {
 
 func (g *Game) onPlayerUpdate(message *GameMessage) error {
 	playerUpdate := message.GetPlayerUpdate()
-	channelGameLogger.Debug().Msg(fmt.Sprintf("Player update: %v", playerUpdate))
+	channelGameLogger.Info().Msg(fmt.Sprintf("Player update: %v", playerUpdate))
 	gameState, err := g.loadState()
 	if err != nil {
 		return err
 	}
+	if gameState.PlayersState == nil {
+		gameState.PlayersState = make(map[uint64]*PlayerState)
+	}
 
-	if gameState.Status == GameStatus_ACTIVE &&
-		gameState.TableStatus == TableStatus_TABLE_STATUS_GAME_RUNNING {
-		// table is running
-		// add the update to pending updates
+	if playerUpdate.Status == PlayerStatus_KICKED_OUT ||
+		playerUpdate.Status == PlayerStatus_LEFT {
+		// the player is out of the game
+		for i, playerId := range gameState.PlayersInSeats {
+			if playerId == playerUpdate.PlayerId {
+				// this is the seat no where player was sitting
+				gameState.PlayersInSeats[i] = 0
+			}
+		}
+	} else if playerUpdate.Status == PlayerStatus_IN_BREAK {
+		gameState.PlayersState[playerUpdate.PlayerId].Status = playerUpdate.Status
 	} else {
-
-		// NOTE: we should be here only when a player takes a seat
-		// or buys in
-		// or added to queue
-		if playerUpdate.SeatNo > 0 {
-
-			gameState.PlayersInSeats[playerUpdate.SeatNo-1] = playerUpdate.PlayerId
-			if gameState.PlayersState == nil {
-				gameState.PlayersState = make(map[uint64]*PlayerState)
-			}
-			var tokenInt uint64
-			if playerUpdate.GameToken != "" {
-				// pad here 000000
-				gameToken := fmt.Sprintf("000000%s", playerUpdate.GameToken)
-				token, _ := hex.DecodeString(gameToken)
-				tokenInt = binary.LittleEndian.Uint64(token)
-				channelGameLogger.Info().
-					Uint64("game", g.gameID).
-					Uint64("player", playerUpdate.PlayerId).
-					Str("message", "GameSitMessage").
-					Msgf("Player %d took %d seat, buy-in: %f, gameToken: %s tokenXorKey: %X",
-						playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate.BuyIn, playerUpdate.GameToken, tokenInt)
-			} else {
-				channelGameLogger.Info().
-					Uint64("game", g.gameID).
-					Uint64("player", playerUpdate.PlayerId).
-					Str("message", "GameSitMessage").
-					Msgf("Player %d took %d seat, buy-in: %f",
-						playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate.BuyIn)
-			}
-			if playerUpdate.GameToken != "" {
-				gameState.PlayersState[playerUpdate.PlayerId] = &PlayerState{BuyIn: playerUpdate.BuyIn,
-					CurrentBalance: playerUpdate.Stack,
-					Status:         playerUpdate.Status,
-					GameToken:      playerUpdate.GameToken,
-					GameTokenInt:   tokenInt}
-			} else {
-				var gameToken string
-				var gameTokenInt uint64
-				if playerState, ok := gameState.PlayersState[playerUpdate.PlayerId]; ok {
-					gameToken = playerState.GameToken
-					gameTokenInt = playerState.GameTokenInt
-				}
-				gameState.PlayersState[playerUpdate.PlayerId] = &PlayerState{BuyIn: playerUpdate.BuyIn,
-					CurrentBalance: playerUpdate.Stack,
-					Status:         playerUpdate.Status,
-					GameToken:      gameToken,
-					GameTokenInt:   gameTokenInt}
-			}
-		} else if playerUpdate.Status == PlayerStatus_LEFT {
-			// player left
-			panic("Player left should be handled up pending updates")
-		} else if playerUpdate.Status == PlayerStatus_IN_BREAK {
-			// player in break
-			panic("Player in break should be handled up pending updates")
+		// we can only update the players that are in seats
+		if playerUpdate.SeatNo == 0 {
+			channelGameLogger.Error().Msg(fmt.Sprintf("Player update: SeatNo cannot be empty. %+v", playerUpdate))
+			return fmt.Errorf("SeatNo cannot be empty")
 		}
 
-		// save game state
-		err = g.saveState(gameState)
-		if err != nil {
-			return err
+		// buyin/reload/sitting in the table
+		gameState.PlayersInSeats[playerUpdate.SeatNo-1] = playerUpdate.PlayerId
+		var tokenInt uint64
+		if playerUpdate.GameToken != "" {
+			// pad here 000000
+			gameToken := fmt.Sprintf("000000%s", playerUpdate.GameToken)
+			token, _ := hex.DecodeString(gameToken)
+			tokenInt = binary.LittleEndian.Uint64(token)
+			channelGameLogger.Info().
+				Uint64("game", g.gameID).
+				Uint64("player", playerUpdate.PlayerId).
+				Str("message", "GameSitMessage").
+				Msgf("Player %d took %d seat, buy-in: %f, gameToken: %s tokenXorKey: %X",
+					playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate.BuyIn, playerUpdate.GameToken, tokenInt)
+		} else {
+			channelGameLogger.Info().
+				Uint64("game", g.gameID).
+				Uint64("player", playerUpdate.PlayerId).
+				Str("message", "GameSitMessage").
+				Msgf("Player %d took %d seat, buy-in: %f",
+					playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate.BuyIn)
 		}
-
-		// send player update message to all
-		if *g.messageReceiver != nil {
-			(*g.messageReceiver).BroadcastGameMessage(message)
+		if playerUpdate.GameToken != "" {
+			gameState.PlayersState[playerUpdate.PlayerId] = &PlayerState{BuyIn: playerUpdate.BuyIn,
+				CurrentBalance: playerUpdate.Stack,
+				Status:         playerUpdate.Status,
+				GameToken:      playerUpdate.GameToken,
+				GameTokenInt:   tokenInt}
+		} else {
+			var gameToken string
+			var gameTokenInt uint64
+			if playerState, ok := gameState.PlayersState[playerUpdate.PlayerId]; ok {
+				gameToken = playerState.GameToken
+				gameTokenInt = playerState.GameTokenInt
+			}
+			gameState.PlayersState[playerUpdate.PlayerId] = &PlayerState{BuyIn: playerUpdate.BuyIn,
+				CurrentBalance: playerUpdate.Stack,
+				Status:         playerUpdate.Status,
+				GameToken:      gameToken,
+				GameTokenInt:   gameTokenInt}
 		}
 	}
+
+	// save game state
+	err = g.saveState(gameState)
+	if err != nil {
+		return err
+	}
+
+	// send player update message to all
+	if *g.messageReceiver != nil {
+		(*g.messageReceiver).BroadcastGameMessage(message)
+	}
+
+	channelGameLogger.Info().Msg(fmt.Sprintf("Player update: %v DONE", playerUpdate))
 
 	if gameState.Status == GameStatus_ACTIVE {
 		g.startGame()

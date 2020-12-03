@@ -89,6 +89,15 @@ func (gm *GameManager) PlayerUpdate(gameID uint64, playerUpdate *PlayerUpdate) {
 	}
 }
 
+func (gm *GameManager) PendingUpdatesDone(gameID uint64) {
+	gameIDStr := fmt.Sprintf("%d", gameID)
+	if game, ok := gm.activeGames[gameIDStr]; ok {
+		game.pendingUpdatesDone()
+	} else {
+		natsLogger.Error().Uint64("gameId", gameID).Msg(fmt.Sprintf("GameID: %d does not exist", gameID))
+	}
+}
+
 func (gm *GameManager) SetupDeck(setupDeck SetupDeck) {
 	// first check whether the game is hosted by this game server
 	gameIDStr := fmt.Sprintf("%d", setupDeck.GameId)
