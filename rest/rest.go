@@ -149,9 +149,9 @@ func startTimer(c *gin.Context) {
 	if purpose == "" {
 		c.String(400, "Failed to read purpose param from start-timer endpoint.")
 	}
-	timeoutSecondsStr := c.Query("timeout-seconds")
-	if timeoutSecondsStr == "" {
-		c.String(400, "Failed to read timeout-seconds param from start-timer endpoint.")
+	timeoutAtStr := c.Query("timeout-at")
+	if timeoutAtStr == "" {
+		c.String(400, "Failed to read timeout-at param from start-timer endpoint.")
 	}
 	gameID, err := strconv.ParseUint(gameIDStr, 10, 64)
 	if err != nil {
@@ -161,14 +161,14 @@ func startTimer(c *gin.Context) {
 	if err != nil {
 		c.String(400, "Failed to parse player-id [%s] from start-time endpoint.", playerIDStr)
 	}
-	timeoutSeconds, err := strconv.ParseUint(timeoutSecondsStr, 10, 32)
+	timeoutAt, err := strconv.ParseInt(timeoutAtStr, 10, 64)
 	if err != nil {
-		c.String(400, "Failed to parse timeout-seconds [%s] from start-time endpoint.", timeoutSecondsStr)
+		c.String(400, "Failed to parse timeout-at [%s] from start-time endpoint.", timeoutAtStr)
 	}
 
-	restLogger.Info().Msgf("start-timer game id: %s player id: %s purpose: %s timeout: %s (seconds)", gameIDStr, playerIDStr, purpose, timeoutSecondsStr)
+	restLogger.Info().Msgf("start-timer game id: %s player id: %s purpose: %s timeout: %s (seconds)", gameIDStr, playerIDStr, purpose, timeoutAtStr)
 
-	timeoutController.AddTimer(gameID, playerID, purpose, uint32(timeoutSeconds))
+	timeoutController.AddTimer(gameID, playerID, purpose, timeoutAt)
 }
 
 func cancelTimer(c *gin.Context) {
