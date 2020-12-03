@@ -49,7 +49,6 @@ type Timer struct {
 	gameID      uint64
 	playerID    uint64
 	purpose     string
-	timeoutSec  uint32
 	expireTs    int64
 	isCancelled bool
 	key         string
@@ -76,20 +75,31 @@ func (c *Controller) Stop() {
 }
 
 // AddTimer creates a new Timer to track.
-func (c *Controller) AddTimer(gameID uint64, playerID uint64, purpose string, timeoutSec uint32) {
-	// .Unix() truncates the sub-second part. Add 1 second to compensate that.
-	// This will extend the timeout by some milliseconds, but that's fine.
-	expireTs := time.Now().Add(time.Duration(timeoutSec+1) * time.Second).Unix()
-
+func (c *Controller) AddTimer(gameID uint64, playerID uint64, purpose string, expireTs int64) {
 	timerKey := c.getTimerKey(gameID, playerID, purpose)
 	timer := Timer{
-		gameID:     gameID,
-		playerID:   playerID,
-		purpose:    purpose,
-		timeoutSec: timeoutSec,
-		expireTs:   expireTs,
-		key:        timerKey,
+		gameID:   gameID,
+		playerID: playerID,
+		purpose:  purpose,
+		expireTs: expireTs,
+		key:      timerKey,
 	}
+
+	currentTs := time.Now().Unix()
+	if expireTs <= currentTs {
+		// This is already expired. Notify immediately without queueing.
+		go notifyTimeout(&timer)
+		return
+	}
+
+	if expireTs == currentTs+1 {
+		// Since unix timestamp is one second resolution, this could have less than
+		// a second left to expire. Add one second to make sure it doesn't
+		// miss the loop.
+		expireTs++
+		timer.expireTs = expireTs
+	}
+
 	c.timersByExpirationLock.Lock()
 	timers, exists := c.timersByExpiration[expireTs]
 	if !exists {
