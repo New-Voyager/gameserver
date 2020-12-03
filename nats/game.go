@@ -151,7 +151,7 @@ func (n *NatsGame) playerUpdate(gameID uint64, update *PlayerUpdate) {
 
 	message.GameMessage = &game.GameMessage_PlayerUpdate{PlayerUpdate: &playerUpdate}
 
-	n.serverGame.SendGameMessage(&message)
+	go n.serverGame.SendGameMessage(&message)
 }
 
 func (n *NatsGame) pendingUpdatesDone() {
@@ -160,7 +160,7 @@ func (n *NatsGame) pendingUpdatesDone() {
 	var message game.GameMessage
 	message.GameId = n.gameID
 	message.MessageType = game.GamePendingUpdatesDone
-	n.serverGame.SendGameMessage(&message)
+	go n.serverGame.SendGameMessage(&message)
 }
 
 // message sent from bot to game
