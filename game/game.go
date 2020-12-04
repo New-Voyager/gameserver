@@ -46,6 +46,7 @@ type Game struct {
 	players             map[uint64]string
 	waitingPlayers      []uint64
 	minPlayers          int
+	maxSeats            int
 	actionTime          uint32
 	remainingActionTime uint32
 	apiServerUrl        string
@@ -67,7 +68,7 @@ type timerMsg struct {
 }
 
 func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, gameCode string, gameType GameType,
-	clubID uint32, gameID uint64, minPlayers int, autoStart bool, autoDeal bool, actionTime uint32,
+	clubID uint32, gameID uint64, minPlayers int, maxSeats int, autoStart bool, autoDeal bool, actionTime uint32,
 	gameStatePersist PersistGameState,
 	handStatePersist PersistHandState,
 	apiServerUrl string) *Game {
@@ -83,6 +84,8 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, ga
 		autoStart:       autoStart,
 		autoDeal:        autoDeal,
 		testButtonPos:   -1,
+		minPlayers:      minPlayers,
+		maxSeats:        maxSeats,
 		apiServerUrl:    apiServerUrl,
 	}
 	game.allPlayers = make(map[uint64]*Player)
@@ -265,7 +268,7 @@ func (game *Game) handlePlayTimeout(timeoutMsg timerMsg) error {
 
 func (game *Game) initialize() error {
 	playersState := make(map[uint64]*PlayerState)
-	playersInSeats := make([]uint64, 9)
+	playersInSeats := make([]uint64, game.maxSeats)
 
 	// initialize game state
 	gameState := GameState{
@@ -282,7 +285,7 @@ func (game *Game) initialize() error {
 		ButtonPos:             0,
 		SmallBlind:            1.0,
 		BigBlind:              2.0,
-		MaxSeats:              9,
+		MaxSeats:              uint32(game.maxSeats),
 		TableStatus:           TableStatus_TABLE_STATUS_WAITING_TO_BE_STARTED,
 		ActionTime:            game.actionTime,
 	}
@@ -623,25 +626,34 @@ func (game *Game) getPlayersAtTable() ([]*PlayerAtTableState, error) {
 }
 
 func anyPendingUpdates(apiServerUrl string, gameID uint64) (bool, error) {
-	url := fmt.Sprintf("%s/internal/any-pending-updates/gameId/%d", apiServerUrl, gameID)
-	resp, err := http.Get(url)
-	if resp.StatusCode != 200 {
-		channelGameLogger.Fatal().Uint64("game", gameID).Msg(fmt.Sprintf("Failed to get pending status. Error: %d", resp.StatusCode))
-		return false, fmt.Errorf("Failed to get pending status")
-	}
-
 	type pendingUpdates struct {
 		PendingUpdates bool
 	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return false, err
-	}
 	var updates pendingUpdates
-	err = json.Unmarshal(body, &updates)
-	if err != nil {
-		return false, err
+	url := fmt.Sprintf("%s/internal/any-pending-updates/gameId/%d", apiServerUrl, gameID)
+	retry := true
+	for retry {
+		resp, err := http.Get(url)
+		if resp == nil {
+			channelGameLogger.Error().Msgf("Connection to API server is lost. Waiting for 5 seconds before retrying")
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		if resp.StatusCode != 200 {
+			channelGameLogger.Fatal().Uint64("game", gameID).Msg(fmt.Sprintf("Failed to get pending status. Error: %d", resp.StatusCode))
+			return false, fmt.Errorf("Failed to get pending status")
+		}
+
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return false, err
+		}
+		err = json.Unmarshal(body, &updates)
+		if err != nil {
+			return false, err
+		}
+		retry = false
 	}
 	return updates.PendingUpdates, nil
 }
