@@ -395,6 +395,13 @@ func (game *Game) dealNewHand() error {
 		game.removeHandState(gameState, handState1)
 	}
 
+	moveButton := gameState.HandNum > 1
+
+	if game.testButtonPos != -1 {
+		gameState.ButtonPos = uint32(game.testButtonPos)
+		moveButton = false
+	}
+
 	gameState.HandNum++
 	handState := &HandState{
 		ClubId:        gameState.GetClubId(),
@@ -405,7 +412,10 @@ func (game *Game) dealNewHand() error {
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
 
-	handState.initialize(gameState, game.testDeckToUse, game.testButtonPos)
+	handState.initialize(gameState, game.testDeckToUse, gameState.ButtonPos, moveButton)
+
+	game.testDeckToUse = nil
+	game.testButtonPos = -1
 	gameState.ButtonPos = handState.GetButtonPos()
 
 	// save the game and hand

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"time"
 
 	"google.golang.org/protobuf/proto"
 	"voyager.com/server/poker"
@@ -79,6 +80,8 @@ func (game *Game) onPendingUpdatesDone(message *GameMessage) error {
 }
 
 func (game *Game) onMoveToNextHand(message *GameMessage) error {
+
+	time.Sleep(3 * time.Second)
 
 	// if this game is used by script test, don't look for pending updates
 	if game.scriptTest {

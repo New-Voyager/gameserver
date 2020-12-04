@@ -32,7 +32,7 @@ func (h *HandState) initializeBettingRound() {
 	h.resetPlayerActions()
 }
 
-func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos int32) {
+func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos uint32, moveButton bool) {
 	// settle players in the seats
 	h.PlayersInSeats = make([]uint64, gameState.MaxSeats)
 	h.NoActiveSeats = 0
@@ -58,16 +58,15 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 	h.Straddle = gameState.Straddle
 	h.RakePercentage = gameState.RakePercentage
 	h.RakeCap = gameState.RakeCap
+	h.ButtonPos = buttonPos
 
 	// if the players don't have money less than the blinds
 	// don't let them play
 	h.ActiveSeats = gameState.GetPlayersInSeats()
 
 	// determine button and blinds
-	if buttonPos == -1 {
+	if moveButton {
 		h.ButtonPos = h.moveButton()
-	} else {
-		h.ButtonPos = uint32(buttonPos)
 	}
 
 	// TODO: make sure small blind is still there
