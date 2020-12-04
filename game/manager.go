@@ -24,7 +24,8 @@ func NewGameManager(apiServerUrl string, gamePersist PersistGameState, handPersi
 
 func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver,
 	clubID uint32, gameID uint64, gameType GameType, gameCode string,
-	title string, minPlayers int, autoStart bool, autoDeal bool, actionTime uint32) (*Game, uint64) {
+	title string, minPlayers int, maxPlayers int,
+	autoStart bool, autoDeal bool, actionTime uint32) (*Game, uint64) {
 	if gameID == 0 {
 		gm.gameCount++
 		gameID = gm.gameCount
@@ -36,6 +37,7 @@ func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver,
 		GameType_HOLDEM,
 		clubID, gameID,
 		minPlayers,
+		maxPlayers,
 		autoStart,
 		autoDeal,
 		actionTime,
