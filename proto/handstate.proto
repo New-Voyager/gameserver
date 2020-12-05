@@ -125,15 +125,19 @@ message CurrentHandState {
   map <uint32, HandPlayerState> players_state = 11; // seat no, player status
   map<uint32, PlayerActRound> players_acted = 12;   // seat no, player action in this round
 
-  bytes board_cards = 13;
-  bytes board_cards_2 = 14;  // run it twice
+  repeated uint32 board_cards = 13;
+  repeated uint32 board_cards_2 = 14;  // run it twice
+  string cardsStr = 15; // string representation of the cards for logging
+  string cards2Str = 16; // string representation of the cards for logging
+  
+  string player_cards = 17;  // current player's cards if the player is playing
+  map <uint64, float> players_stack = 18; 
+  uint32 next_seat_to_act = 19;
+  uint32 remaining_action_time = 20;
 
-  string player_cards = 15;  // current player's cards if the player is playing
-  map <uint64, float> players_stack = 16; 
-  uint32 next_seat_to_act = 17;
-  uint32 remaining_action_time = 18;
-
-  NextSeatAction next_seat_action = 19;
+  NextSeatAction next_seat_action = 21;
+  repeated float pots = 22; // pots in the center
+  float pot_updates = 23;   // pot updated based on the bets
 }
 
 message HandState {

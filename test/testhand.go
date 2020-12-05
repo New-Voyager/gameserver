@@ -379,7 +379,7 @@ func (h *TestHand) verifyBettingRound(t *TestDriver, verify *game.VerifyBettingR
 	if verify.Pots != nil {
 
 		// get pot information from the observer
-		gamePots := h.gameScript.observer.actionChange.GetActionChange().Pots
+		gamePots := h.gameScript.observer.actionChange.GetActionChange().SeatsPots
 		if h.gameScript.observer.noMoreActions != nil {
 			gamePots = h.gameScript.observer.noMoreActions.GetNoMoreActions().Pots
 		}
