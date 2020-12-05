@@ -49,12 +49,32 @@ func (game *Game) onQueryCurrentHand(message *HandMessage) error {
 		return nil
 	}
 
+	cardsStr := poker.CardsToString(handState.BoardCards)
+	boardCards := make([]uint32, len(handState.BoardCards))
+	for i, card := range handState.BoardCards {
+		boardCards[i] = uint32(card)
+	}
+
+	pots := make([]float32, 0)
+	for _, pot := range handState.Pots {
+		pots = append(pots, pot.Pot)
+	}
+	currentPot := pots[len(pots)-1]
+	currentBettingRound := handState.RoundBetting[uint32(handState.CurrentState)]
+	seatBets := currentBettingRound.SeatBet
+	for _, bet := range seatBets {
+		currentPot = currentPot + bet
+	}
+
 	currentHandState := CurrentHandState{
 		HandNum:      handState.HandNum,
 		GameType:     handState.GameType,
 		CurrentRound: handState.CurrentState,
-		BoardCards:   handState.BoardCards,
-		BoardCards_2: handState.BoardCards_2,
+		BoardCards:   boardCards,
+		BoardCards_2: nil,
+		CardsStr:     cardsStr,
+		Pots:         pots,
+		PotUpdates:   currentPot,
 	}
 	currentHandState.PlayersActed = make(map[uint32]*PlayerActRound, 0)
 
@@ -81,8 +101,9 @@ func (game *Game) onQueryCurrentHand(message *HandMessage) error {
 	currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
 	currentHandState.RemainingActionTime = game.remainingActionTime
 	currentHandState.PlayersStack = make(map[uint64]float32, 0)
-	for playerID, state := range handState.GetPlayersState() {
-		currentHandState.PlayersStack[playerID] = state.Balance
+	playerState := handState.GetPlayersState()
+	for seatNo, playerID := range handState.GetPlayersInSeats() {
+		currentHandState.PlayersStack[uint64(seatNo)] = playerState[playerID].Balance
 	}
 	currentHandState.NextSeatAction = handState.NextSeatAction
 
@@ -329,10 +350,23 @@ func (game *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 			game.sendHandMessageToPlayer(nextSeatMessage, playerID)
 			game.resetTimer(handState.NextSeatAction.SeatNo, playerID, canCheck)
 
+			pots := make([]float32, 0)
+			for _, pot := range handState.Pots {
+				pots = append(pots, pot.Pot)
+			}
+			currentPot := pots[len(pots)-1]
+			currentBettingRound := handState.RoundBetting[uint32(handState.CurrentState)]
+			seatBets := currentBettingRound.SeatBet
+			for _, bet := range seatBets {
+				currentPot = currentPot + bet
+			}
+
 			// action moves to the next player
 			actionChange := &ActionChange{
-				SeatNo: handState.NextSeatAction.SeatNo,
-				Pots:   handState.Pots,
+				SeatNo:     handState.NextSeatAction.SeatNo,
+				Pots:       pots,
+				PotUpdates: currentPot,
+				SeatsPots:  handState.Pots,
 			}
 			message := &HandMessage{
 				ClubId:      game.clubID,

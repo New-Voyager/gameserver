@@ -494,7 +494,7 @@ func (b *DriverBot) verifyBettingRound(verify *game.VerifyBettingRound) error {
 
 	if verify.Pots != nil {
 		// get pot information from the observer
-		gamePots := b.observer.actionChange.GetActionChange().Pots
+		gamePots := b.observer.actionChange.GetActionChange().SeatsPots
 		if b.observer.noMoreActions != nil {
 			gamePots = b.observer.noMoreActions.GetNoMoreActions().Pots
 		}
