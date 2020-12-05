@@ -55,6 +55,12 @@ func processPendingUpdates(apiServerUrl string, gameID uint64) {
 	channelGameLogger.Info().Msgf("Processing pending updates for the game %d", gameID)
 	url := fmt.Sprintf("%s/internal/process-pending-updates/gameId/%d", apiServerUrl, gameID)
 	resp, _ := http.Post(url, "application/json", nil)
+
+	// if the api server returns nil, do nothing
+	if resp == nil {
+		return
+	}
+
 	if resp.StatusCode != 200 {
 		channelGameLogger.Fatal().Uint64("game", gameID).Msg(fmt.Sprintf("Failed to process pending updates. Error: %d", resp.StatusCode))
 	}
