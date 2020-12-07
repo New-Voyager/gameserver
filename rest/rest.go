@@ -156,6 +156,7 @@ func gamePendingUpdates(c *gin.Context) {
 		//natsGameManager.GamePendingUpdatesStarted(gameID)
 		panic("Not implemented")
 	} else if done != "" {
+		restLogger.Info().Msgf("****** Pending updates done for game %d", gameID)
 		// pending updates done, game can resume
 		natsGameManager.PendingUpdatesDone(gameID)
 	}

@@ -94,6 +94,11 @@ func (game *Game) onMoveToNextHand(message *GameMessage) error {
 		return nil
 	}
 
+	if game.inProcessPendingUpdates {
+		channelGameLogger.Info().Msgf("******* Processing pending updates. How did we get here?")
+		return nil
+	}
+
 	// before we move to next hand, query API server whether we have any pending updates
 	// if there are no pending updates, deal next hand
 
@@ -300,6 +305,18 @@ func (g *Game) onPlayerUpdate(message *GameMessage) error {
 			return fmt.Errorf("SeatNo cannot be empty")
 		}
 
+		// check to see if the player switched seat
+		for seatNoIdx, playerID := range gameState.PlayersInSeats {
+			seatNo := seatNoIdx + 1
+			if playerID == playerUpdate.PlayerId &&
+				uint32(seatNo) != playerUpdate.SeatNo {
+				// this player switch seat
+				channelGameLogger.Error().Msgf("Player %d switched seat from %d to %d", playerID, seatNo, playerUpdate.SeatNo)
+				gameState.PlayersInSeats[seatNoIdx] = 0
+				break
+			}
+		}
+
 		// buyin/reload/sitting in the table
 		gameState.PlayersInSeats[playerUpdate.SeatNo-1] = playerUpdate.PlayerId
 		var tokenInt uint64
@@ -356,7 +373,7 @@ func (g *Game) onPlayerUpdate(message *GameMessage) error {
 
 	channelGameLogger.Info().Msg(fmt.Sprintf("Player update: %v DONE", playerUpdate))
 
-	if gameState.Status == GameStatus_ACTIVE {
+	if gameState.Status == GameStatus_ACTIVE && !g.running {
 		g.startGame()
 	}
 
