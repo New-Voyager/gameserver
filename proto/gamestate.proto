@@ -48,6 +48,17 @@ enum TableStatus {
   TABLE_STATUS_GAME_RUNNING = 3;
 }
 
+// Player update since the last hand
+enum NewUpdate {
+  NEW_PLAYER = 0;
+  RELOAD_CHIPS = 1;
+  SWITCH_SEAT = 2;
+  TAKE_BREAK = 3;
+  SIT_BACK = 4;
+  LEFT_THE_GAME = 5;
+  EMPTY_STACK = 6;
+}
+
 // Player update comes from the API server
 // The same message is sent for 
 //    Player sitting in a seat
@@ -62,6 +73,7 @@ message GamePlayerUpdate {
   string game_token = 5;
   PlayerStatus status = 6;
   float reload_chips = 7;
+  NewUpdate new_update = 8;
 }
 
 message GameState {

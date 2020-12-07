@@ -103,6 +103,9 @@ func (game *Game) onQueryCurrentHand(message *HandMessage) error {
 	currentHandState.PlayersStack = make(map[uint64]float32, 0)
 	playerState := handState.GetPlayersState()
 	for seatNo, playerID := range handState.GetPlayersInSeats() {
+		if playerID == 0 {
+			continue
+		}
 		currentHandState.PlayersStack[uint64(seatNo)] = playerState[playerID].Balance
 	}
 	currentHandState.NextSeatAction = handState.NextSeatAction
