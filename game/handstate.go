@@ -100,6 +100,41 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 	mainPot := initializePot(int(gameState.MaxSeats))
 	h.Pots = append(h.Pots, mainPot)
 
+	deck.Draw(1)
+	h.DeckIndex++
+	cards := deck.Draw(3)
+	h.DeckIndex += 3
+	h.FlopCards = make([]uint32, 3)
+	fmt.Printf("Flop Cards: ")
+	for i, card := range cards {
+		h.FlopCards[i] = uint32(card.GetByte())
+		fmt.Printf("%s", poker.CardToString(uint32(card.GetByte())))
+	}
+	fmt.Printf("\n")
+
+	// burn card
+	cards = deck.Draw(1)
+	burnCard := uint32(cards[0].GetByte())
+	fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
+	h.DeckIndex++
+	// turn card
+	cards = deck.Draw(1)
+	h.DeckIndex++
+	h.TurnCard = uint32(cards[0].GetByte())
+	fmt.Printf("Turn card: %s\n", poker.CardToString(h.TurnCard))
+
+	// burn card
+	cards = deck.Draw(1)
+	h.DeckIndex++
+	burnCard = uint32(cards[0].GetByte())
+	fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
+
+	// river card
+	cards = deck.Draw(1)
+	h.DeckIndex++
+	h.RiverCard = uint32(cards[0].GetByte())
+	fmt.Printf("River card: %s\n", poker.CardToString(h.RiverCard))
+
 	// setup data structure to handle betting rounds
 	h.initializeBettingRound()
 
@@ -166,6 +201,18 @@ func (h *HandState) setupPreflob() {
 
 	// big blind is the last one to act
 	h.PlayersActed[h.BigBlindPos-1] = &PlayerActRound{State: PlayerActState_PLAYER_ACT_BB, Amount: bigBlind}
+
+	// track whether the player is active in this round or not
+	for j := 1; j <= int(h.GetMaxSeats()); j++ {
+		playerID := h.GetPlayersInSeats()[j-1]
+		if playerID == 0 {
+			continue
+		}
+		playerState, found := h.GetPlayersState()[playerID]
+		if found {
+			playerState.Round = HandStatus_PREFLOP
+		}
+	}
 }
 
 func (h *HandState) resetPlayerActions() {
@@ -365,6 +412,8 @@ func (h *HandState) actionReceived(action *HandAction) error {
 	if action.Action == ACTION_FOLD {
 		h.ActiveSeats[action.SeatNo-1] = 0
 		h.NoActiveSeats--
+
+		// track what round player folded the hand
 		playerState.Status = HandPlayerState_FOLDED
 		h.PlayersActed[action.SeatNo-1].State = PlayerActState_PLAYER_ACT_FOLDED
 	} else if action.Action == ACTION_CHECK {
@@ -582,6 +631,18 @@ func (h *HandState) setupNextRound(state HandStatus) {
 	nextAction.AllInAmount = playerState.Balance
 
 	h.NextSeatAction = nextAction
+
+	// track whether the player is active in this round or not
+	for j := 1; j <= int(h.GetMaxSeats()); j++ {
+		playerID := h.GetPlayersInSeats()[j-1]
+		if playerID == 0 {
+			continue
+		}
+		playerState, found := h.GetPlayersState()[playerID]
+		if found {
+			playerState.Round = state
+		}
+	}
 }
 
 func (h *HandState) setupFlop(board []uint32) {

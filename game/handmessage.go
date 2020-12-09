@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 
+	"google.golang.org/protobuf/encoding/protojson"
 	"voyager.com/server/poker"
 )
 
@@ -191,15 +192,18 @@ func (game *Game) gotoFlop(gameState *GameState, handState *HandState) {
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
 	// we need to send flop cards to the board
-	deck := poker.NewDeckFromBytes(handState.Deck, int(handState.DeckIndex))
-	deck.Draw(1)
-	handState.DeckIndex++
-	cards := deck.Draw(3)
-	handState.DeckIndex += 3
+	/*
+		deck := poker.NewDeckFromBytes(handState.Deck, int(handState.DeckIndex))
+		deck.Draw(1)
+		handState.DeckIndex++
+		cards := deck.Draw(3)
+		handState.DeckIndex += 3
+	*/
 	boardCards := make([]uint32, 3)
-	for i, card := range cards {
-		boardCards[i] = uint32(card.GetByte())
+	for i, card := range handState.FlopCards {
+		boardCards[i] = card
 	}
+
 	handState.setupFlop(boardCards)
 	game.saveHandState(gameState, handState)
 
@@ -222,11 +226,13 @@ func (game *Game) gotoTurn(gameState *GameState, handState *HandState) {
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
 	// send turn card to the board
-	deck := poker.NewDeckFromBytes(handState.Deck, int(handState.DeckIndex))
-	deck.Draw(1)
-	handState.DeckIndex++
-	turn := uint32(deck.Draw(1)[0].GetByte())
-	handState.setupTurn(turn)
+	/*
+		deck := poker.NewDeckFromBytes(handState.Deck, int(handState.DeckIndex))
+		deck.Draw(1)
+		handState.DeckIndex++
+		turn := uint32(deck.Draw(1)[0].GetByte())
+	*/
+	handState.setupTurn(handState.TurnCard)
 	game.saveHandState(gameState, handState)
 
 	cardsStr := poker.CardsToString(handState.BoardCards)
@@ -234,7 +240,7 @@ func (game *Game) gotoTurn(gameState *GameState, handState *HandState) {
 	for i, card := range handState.BoardCards {
 		boardCards[i] = uint32(card)
 	}
-	turnMessage := &Turn{Board: boardCards, TurnCard: uint32(turn), CardsStr: cardsStr}
+	turnMessage := &Turn{Board: boardCards, TurnCard: uint32(handState.TurnCard), CardsStr: cardsStr}
 	handMessage := &HandMessage{ClubId: game.clubID,
 		GameId:      game.gameID,
 		HandNum:     handState.HandNum,
@@ -252,11 +258,14 @@ func (game *Game) gotoRiver(gameState *GameState, handState *HandState) {
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
 	// send river card to the board
-	deck := poker.NewDeckFromBytes(handState.Deck, int(handState.DeckIndex))
-	deck.Draw(1)
-	handState.DeckIndex++
-	river := uint32(deck.Draw(1)[0].GetByte())
-	handState.setupRiver(river)
+	/*
+		deck := poker.NewDeckFromBytes(handState.Deck, int(handState.DeckIndex))
+		deck.Draw(1)
+		handState.DeckIndex++
+		river := uint32(deck.Draw(1)[0].GetByte())
+	*/
+
+	handState.setupRiver(handState.RiverCard)
 	game.saveHandState(gameState, handState)
 
 	cardsStr := poker.CardsToString(handState.BoardCards)
@@ -264,7 +273,7 @@ func (game *Game) gotoRiver(gameState *GameState, handState *HandState) {
 	for i, card := range handState.BoardCards {
 		boardCards[i] = uint32(card)
 	}
-	riverMessage := &River{Board: boardCards, RiverCard: uint32(river), CardsStr: cardsStr}
+	riverMessage := &River{Board: boardCards, RiverCard: uint32(handState.RiverCard), CardsStr: cardsStr}
 	handMessage := &HandMessage{ClubId: game.clubID,
 		GameId:      game.gameID,
 		HandNum:     handState.HandNum,
@@ -293,6 +302,9 @@ func (game *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *Hand
 		MessageType: HandResultMessage,
 		HandStatus:  handState.CurrentState,
 	}
+
+	// save the hand
+	game.saveHand(gameState, handState, handResult, nil)
 
 	handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
 	game.broadcastHandMessage(handMessage)
@@ -434,6 +446,9 @@ func (game *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 			HandStatus:  handState.CurrentState,
 		}
 
+		// save the hand
+		game.saveHand(gameState, handState, handResult, evaluate)
+
 		handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
 		game.broadcastHandMessage(handMessage)
 
@@ -445,4 +460,110 @@ func (game *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 		go game.SendGameMessage(gameMessage)
 		_ = 0
 	}
+}
+
+func (g *Game) saveHand(gameState *GameState, h *HandState, handResult *HandResult, evaluate *HoldemWinnerEvaluate) error {
+	/*
+		message PlayerCards {
+			repeated uint32 cards = 1;        // cards
+			repeated uint32 best_cards = 2;   // best_cards
+			uint32 rank = 3;                  // best rank
+			HandStatus played_until = 4;      // played until what stage
+		}
+
+		message SaveResult  {
+		uint64 game_id = 1;
+		HandResult hand_result = 2;
+		HighHand high_hand = 3;
+		repeated uint64 reward_tracking_ids = 4;
+		bytes board_cards = 5;
+		bytes board_cards_2 = 6;  // run it twice
+		bytes flop = 6;
+		uint32 turn = 7;
+		uint32 river = 8;
+		map<uint64, PlayerCards> player_cards = 9;    // player cards with rank
+		}
+	*/
+	var bestSeatHands map[uint32]*evaluatedCards
+	if h.BoardCards != nil {
+		if evaluate == nil {
+			evaluate = NewHoldemWinnerEvaluate(gameState, h)
+			if gameState.GameType == GameType_HOLDEM {
+				evaluate.evaluate()
+			}
+		}
+		bestSeatHands = evaluate.getEvaluatedCards()
+		fmt.Printf("\n\n================================================================\n\n")
+		for seatNo, hand := range bestSeatHands {
+			fmt.Printf("Seat: %d, Cards:%+v, Str: %s Rank: %d, rankStr: %s\n", seatNo, hand.cards,
+				poker.CardsToString(hand.cards), hand.rank, poker.RankString(hand.rank))
+		}
+		fmt.Printf("\n\n================================================================\n\n")
+	}
+
+	// saves hand result in the database
+	result := &SaveResult{
+		RewardTrackingIds: gameState.RewardTrackingIds,
+		HandResult:        handResult,
+		Turn:              h.TurnCard,
+		River:             h.RiverCard,
+	}
+	if h.BoardCards != nil {
+		result.BoardCards = make([]uint32, len(h.BoardCards))
+		for i, card := range h.BoardCards {
+			result.BoardCards[i] = uint32(card)
+		}
+	}
+
+	if h.BoardCards_2 != nil {
+		result.BoardCards_2 = make([]uint32, len(h.BoardCards_2))
+		for i, card := range h.BoardCards {
+			result.BoardCards_2[i] = uint32(card)
+		}
+	}
+
+	if h.FlopCards != nil {
+		result.Flop = make([]uint32, len(h.FlopCards))
+		for i, card := range h.FlopCards {
+			result.Flop[i] = uint32(card)
+		}
+	}
+
+	result.PlayerCards = make(map[uint32]*PlayerCards, 0)
+	for seatNo, cards := range h.PlayersCards {
+		playerID := h.GetPlayersInSeats()[seatNo-1]
+		if playerID == 0 {
+			continue
+		}
+		playerState, _ := h.GetPlayersState()[playerID]
+		playerCard := &PlayerCards{
+			PlayedUntil: playerState.Round,
+		}
+		playerCard.Rank = uint32(0xFFFFFFFF)
+		var evaluatedCards *evaluatedCards
+		if bestSeatHands != nil {
+			evaluatedCards = bestSeatHands[seatNo]
+			if evaluatedCards != nil {
+				playerCard.Rank = uint32(evaluatedCards.rank)
+			}
+		}
+
+		playerCard.Cards = make([]uint32, len(cards))
+		for i, card := range cards {
+			playerCard.Cards[i] = uint32(card)
+		}
+
+		if evaluatedCards != nil {
+			playerCard.BestCards = make([]uint32, len(evaluatedCards.cards))
+			for i, card := range evaluatedCards.cards {
+				playerCard.BestCards[i] = uint32(card)
+			}
+		}
+
+		result.PlayerCards[seatNo] = playerCard
+	}
+	data, _ := protojson.Marshal(result)
+	fmt.Printf("%s\n", string(data))
+	_ = result
+	return nil
 }
