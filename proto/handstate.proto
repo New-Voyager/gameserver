@@ -49,6 +49,7 @@ message HandPlayerState {
   }
   Status status = 1;
   float balance = 2;
+  HandStatus round = 3;
 }
 
 message PlayerBalance {
@@ -215,6 +216,10 @@ message HandState {
   float straddle = 42;
   float rakePercentage = 43;
   float rakeCap = 44;
+
+  repeated uint32 flop_cards = 45;
+  uint32 turn_card = 46;
+  uint32 river_card = 47;
 }
 
 message HandWinner {

@@ -20,28 +20,22 @@ players:
   - name: player3
     id: 3
 
-# after the table is initialized
-# the players will sit in the table
-# test driver will validate the sitting process worked correctly
-# after players sat on the table, the seat numbers will be used by the game
-# the player ids are only used for settling balances at the end in the database
 take-seat:
   button-pos: 1
   seats:
     -
       seat: 1 
       player: 1
-      buy-in: 100
+      buy-in: 50
     -
       seat: 5 
       player: 2
-      buy-in: 100
+      buy-in: 50
     -
       seat: 8 
       player: 3
-      buy-in: 100
+      buy-in: 50
 
-  # wait for one second delay for the game to settle
   wait: 1
 
   # verify the table/player configuration is correct
@@ -51,15 +45,15 @@ take-seat:
         -
           seat: 1 
           player: 1
-          stack: 100
+          stack: 50
         -
           seat: 5 
           player: 2
-          stack: 100
+          stack: 50
         -
           seat: 8 
           player: 3
-          stack: 100
+          stack: 50
 
 # deal the following hands in the table
 hands:
@@ -67,21 +61,16 @@ hands:
     num: 1
     setup:
       button-pos: 1
-      flop: ["Ac", "Ad", "2c"]
-      turn: Td
-      river: 4s
+      flop: ["3c", "3d", "2c"]
+      turn: 5c
+      river: Kh
       seat-cards:
-        # seat cards in the order players are sitting 
-        # seat 1 gets Kh Qd
-        # seat 5 gets 3s 7s
-        # seat 8 gets 9h 2s
         - 
-          cards: ["Kh", "Qd"]
+          cards: ["3h", "3s"]
         -
-          cards: ["3s", "7s"]
+          cards: ["2d", "2s"]
         -
-          cards: ["9h", "2s"]
-      # here the game engine sends the cards to the players
+          cards: ["Ac", "4c"]
       verify:
         # verify button, sb, bb positions
         # verify next action seat position
@@ -94,63 +83,53 @@ hands:
         dealt-cards:
           -
             seat-no: 5
-            cards: ["Kh", "Qd"]
+            cards: ["3h", "3s"]
           -
             seat-no: 8
-            cards: ["3s", "7s"]
+            cards: ["2d", "2s"]
           -
             seat-no: 1
-            cards: ["9h", "2s"]
+            cards: ["Ac", "4c"]
    
     # simulate pre-flop action
     preflop-action:
-      seat-actions:
-        - 1, CALL, 2
-        - 5, CALL, 2
-        - 8, CHECK
+      actions:
+        -
+          seat: 1
+          action: ALLIN
+        - 
+          seat: 5
+          action: ALLIN
+        - 
+          seat: 8
+          action: ALLIN
 
       # verify preflop-action result
       # since both players folded, the round ended with a hand result
       verify:
+        no-more-actions: true
         state: FLOP
-        board: ["Ac", "Ad", "2c"]
-
-    flop-action:
-      seat-actions:
-        - 5, CHECK
-        - 8, BET, 2
-        - 1, CALL, 2
-        - 5, RAISE, 4
-        - 8, FOLD
-        - 1, CALL, 4
-      verify:
-        state: TURN
-        board: ["Ac", "Ad", "2c", "Td"]
-
-    turn-action:
-      seat-actions:
-        - 5, CHECK
-        - 1, BET, 10
-        - 5, FOLD
-      verify:
-        state: RESULT
+        pots:
+          -
+            pot: 150.0
+            seats: [1, 5, 8]
 
     result:
       winners:
         -
           seat: 1
-          receive: 26.0
-      action-ended: TURN
+          receive: 150.0
+      action-ended: SHOW_DOWN
       
       # balance indicates the player balance after the hand
       # bb player won a chip
       stacks:
         -
           seat: 1
-          stack: 110
+          stack: 150
         -
           seat: 5
-          stack: 94
+          stack: 0
         -
           seat: 8
-          stack: 96
+          stack: 0

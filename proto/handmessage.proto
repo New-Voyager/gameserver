@@ -77,9 +77,35 @@ message HandResult {
   
   // seat number is index and player id is value
   repeated uint64 players_in_seats = 12;
+  repeated uint32 board_cards = 13;
 }
 
+message HighHand {
+  uint64 player_id = 1;
+  uint32 hh_rank = 2;
+  repeated uint32 cards = 3;
+  repeated uint32 player_cards = 4;
+}
 
+message PlayerCards {
+  repeated uint32 cards = 1;        // cards
+  repeated uint32 best_cards = 2;   // best_cards
+  uint32 rank = 3;                  // best rank
+  HandStatus played_until = 4;      // played until what stage
+}
+
+message SaveResult  {
+  uint64 game_id = 1;
+  HandResult hand_result = 2;
+  HighHand high_hand = 3;
+  repeated uint64 reward_tracking_ids = 4;
+  repeated uint32 board_cards = 5;
+  repeated uint32 board_cards_2 = 6;  // run it twice
+  repeated uint32 flop = 7;
+  uint32 turn = 8;
+  uint32 river = 9;
+  map<uint32, PlayerCards> player_cards = 10;    // player cards with rank (key: seat_no)
+}
 
 //HandMessage packages the actual message with Hand information (clubid, game_num, hand_num) 
 message HandMessage {

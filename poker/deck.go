@@ -181,6 +181,7 @@ func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, ri
 	currentCard := deck.cards[deckIndex]
 	deck.cards[deckIndex] = turn
 	deck.cards[cardLoc] = currentCard
+	deckIndex++
 
 	// burn card
 	deckIndex++
