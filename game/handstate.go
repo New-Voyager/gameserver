@@ -794,19 +794,16 @@ func (h *HandState) setWinners(potWinners map[uint32]*PotWinners) {
 	}
 }
 
-func (h *HandState) getResult() *HandResult {
-	handResult := &HandResult{}
+func (h *HandState) getLog() *HandLog {
+	handResult := &HandLog{}
 	handResult.PotWinners = h.PotWinners
 	handResult.WonAt = h.HandCompletedAt
 	handResult.PreflopActions = h.PreflopActions
 	handResult.FlopActions = h.FlopActions
 	handResult.TurnActions = h.TurnActions
 	handResult.RiverActions = h.RiverActions
-	handResult.BalanceAfterHand = h.BalanceAfterHand
-	handResult.BalanceBeforeHand = h.BalanceBeforeHand
 	handResult.HandStartedAt = h.HandStartedAt
 	handResult.HandEndedAt = h.HandEndedAt
-	handResult.PlayersInSeats = h.PlayersInSeats
 	handResult.HandEndedAt = uint64(time.Now().Unix())
 	return handResult
 }

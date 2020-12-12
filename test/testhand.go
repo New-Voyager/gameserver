@@ -271,7 +271,7 @@ func (h *TestHand) setup(t *TestDriver) error {
 func (h *TestHand) verifyHandResult(t *TestDriver, handResult *game.HandResult) error {
 	passed := true
 	for i, expectedWinner := range h.hand.Result.Winners {
-		potWinner := handResult.PotWinners[uint32(i)]
+		potWinner := handResult.HandLog.PotWinners[uint32(i)]
 		winners := potWinner.GetHiWinners()
 		if len(winners) != 1 {
 			passed = false
@@ -291,7 +291,7 @@ func (h *TestHand) verifyHandResult(t *TestDriver, handResult *game.HandResult) 
 	}
 
 	if h.hand.Result.ActionEndedAt != "" {
-		actualActionEndedAt := game.HandStatus_name[int32(handResult.WonAt)]
+		actualActionEndedAt := game.HandStatus_name[int32(handResult.HandLog.WonAt)]
 		if h.hand.Result.ActionEndedAt != actualActionEndedAt {
 			h.addError(fmt.Errorf("Action won at is not matching. Expected %s, actual: %s",
 				h.hand.Result.ActionEndedAt, actualActionEndedAt))
@@ -302,11 +302,12 @@ func (h *TestHand) verifyHandResult(t *TestDriver, handResult *game.HandResult) 
 	// now verify players stack
 	expectedStacks := h.hand.Result.Stacks
 	for _, expectedStack := range expectedStacks {
-		for _, playerBalance := range handResult.BalanceAfterHand {
-			if playerBalance.SeatNo == expectedStack.Seat {
-				if playerBalance.Balance != expectedStack.Stack {
-					h.addError(fmt.Errorf("Player %d seatNo: %d is not matching. Expected %f, actual: %f", playerBalance.PlayerId, playerBalance.SeatNo,
-						expectedStack.Stack, playerBalance.Balance))
+		for seatNo, player := range handResult.Players {
+
+			if seatNo == expectedStack.Seat {
+				if player.Balance.After != expectedStack.Stack {
+					h.addError(fmt.Errorf("Player %d seatNo: %d is not matching. Expected %f, actual: %f", player.Balance.After, seatNo,
+						expectedStack.Stack, player.Balance.After))
 					passed = false
 				}
 			}
