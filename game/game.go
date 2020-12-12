@@ -50,6 +50,7 @@ type Game struct {
 	actionTime          uint32
 	remainingActionTime uint32
 	apiServerUrl        string
+	rewardTrackingIds   []uint32
 	// test driver specific variables
 	autoStart               bool
 	autoDeal                bool
@@ -69,24 +70,26 @@ type timerMsg struct {
 
 func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, gameCode string, gameType GameType,
 	clubID uint32, gameID uint64, minPlayers int, maxSeats int, autoStart bool, autoDeal bool, actionTime uint32,
+	rewardTrackingIds []uint32,
 	gameStatePersist PersistGameState,
 	handStatePersist PersistHandState,
 	apiServerUrl string) *Game {
 	title := fmt.Sprintf("%d:%d %s", clubID, gameID, GameType_name[int32(gameType)])
 	game := Game{
-		manager:         gameManager,
-		messageReceiver: messageReceiver,
-		gameCode:        gameCode,
-		gameType:        gameType,
-		title:           title,
-		clubID:          clubID,
-		gameID:          gameID,
-		autoStart:       autoStart,
-		autoDeal:        autoDeal,
-		testButtonPos:   -1,
-		minPlayers:      minPlayers,
-		maxSeats:        maxSeats,
-		apiServerUrl:    apiServerUrl,
+		manager:           gameManager,
+		messageReceiver:   messageReceiver,
+		gameCode:          gameCode,
+		gameType:          gameType,
+		title:             title,
+		clubID:            clubID,
+		gameID:            gameID,
+		autoStart:         autoStart,
+		autoDeal:          autoDeal,
+		testButtonPos:     -1,
+		minPlayers:        minPlayers,
+		maxSeats:          maxSeats,
+		apiServerUrl:      apiServerUrl,
+		rewardTrackingIds: rewardTrackingIds,
 	}
 	game.allPlayers = make(map[uint64]*Player)
 	game.chGame = make(chan []byte)
