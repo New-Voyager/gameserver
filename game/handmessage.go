@@ -1,7 +1,9 @@
 package game
 
 import (
+	"bytes"
 	"fmt"
+	"net/http"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"voyager.com/server/poker"
@@ -291,8 +293,7 @@ func (game *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *Hand
 	if err != nil {
 		return err
 	}
-	// send the hand to the database to store first
-	handResult := handState.getResult()
+	handResult := game.getHandResult(gameState, handState, nil)
 
 	// now send the data to users
 	handMessage := &HandMessage{
@@ -303,9 +304,10 @@ func (game *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *Hand
 		HandStatus:  handState.CurrentState,
 	}
 
-	// save the hand
-	game.saveHand(gameState, handState, handResult, nil)
+	// send the hand to the database to store first
+	game.saveHandResult(handResult)
 
+	// send to all the players
 	handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
 	game.broadcastHandMessage(handMessage)
 
@@ -434,8 +436,7 @@ func (game *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 		handState.HandCompletedAt = HandStatus_SHOW_DOWN
 		handState.setWinners(evaluate.winners)
 
-		// send the hand to the database to store first
-		handResult := handState.getResult()
+		handResult := game.getHandResult(gameState, handState, evaluate)
 
 		// now send the data to users
 		handMessage := &HandMessage{
@@ -446,8 +447,8 @@ func (game *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 			HandStatus:  handState.CurrentState,
 		}
 
-		// save the hand
-		game.saveHand(gameState, handState, handResult, evaluate)
+		// send the hand to the database to store first
+		game.saveHandResult(handResult)
 
 		handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
 		game.broadcastHandMessage(handMessage)
@@ -462,28 +463,7 @@ func (game *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 	}
 }
 
-func (g *Game) saveHand(gameState *GameState, h *HandState, handResult *HandResult, evaluate *HoldemWinnerEvaluate) error {
-	/*
-		message PlayerCards {
-			repeated uint32 cards = 1;        // cards
-			repeated uint32 best_cards = 2;   // best_cards
-			uint32 rank = 3;                  // best rank
-			HandStatus played_until = 4;      // played until what stage
-		}
-
-		message SaveResult  {
-		uint64 game_id = 1;
-		HandResult hand_result = 2;
-		HighHand high_hand = 3;
-		repeated uint64 reward_tracking_ids = 4;
-		bytes board_cards = 5;
-		bytes board_cards_2 = 6;  // run it twice
-		bytes flop = 6;
-		uint32 turn = 7;
-		uint32 river = 8;
-		map<uint64, PlayerCards> player_cards = 9;    // player cards with rank
-		}
-	*/
+func (g *Game) getHandResult(gameState *GameState, h *HandState, evaluate *HoldemWinnerEvaluate) *HandResult {
 	var bestSeatHands map[uint32]*evaluatedCards
 	if h.BoardCards != nil {
 		if evaluate == nil {
@@ -500,70 +480,111 @@ func (g *Game) saveHand(gameState *GameState, h *HandState, handResult *HandResu
 		}
 		fmt.Printf("\n\n================================================================\n\n")
 	}
-
-	// saves hand result in the database
-	result := &SaveResult{
-		RewardTrackingIds: gameState.RewardTrackingIds,
-		HandResult:        handResult,
-		Turn:              h.TurnCard,
-		River:             h.RiverCard,
+	handResult := &HandResult{
+		GameId:   gameState.GameId,
+		HandNum:  h.HandNum,
+		GameType: h.GameType,
 	}
+
+	handResult.HandLog = h.getLog()
+
+	handResult.RewardTrackingIds = gameState.RewardTrackingIds
+	handResult.Turn = h.TurnCard
+	handResult.River = h.RiverCard
 	if h.BoardCards != nil {
-		result.BoardCards = make([]uint32, len(h.BoardCards))
+		handResult.BoardCards = make([]uint32, len(h.BoardCards))
 		for i, card := range h.BoardCards {
-			result.BoardCards[i] = uint32(card)
+			handResult.BoardCards[i] = uint32(card)
 		}
 	}
 
 	if h.BoardCards_2 != nil {
-		result.BoardCards_2 = make([]uint32, len(h.BoardCards_2))
+		handResult.BoardCards_2 = make([]uint32, len(h.BoardCards_2))
 		for i, card := range h.BoardCards {
-			result.BoardCards_2[i] = uint32(card)
+			handResult.BoardCards_2[i] = uint32(card)
 		}
 	}
 
 	if h.FlopCards != nil {
-		result.Flop = make([]uint32, len(h.FlopCards))
+		handResult.Flop = make([]uint32, len(h.FlopCards))
 		for i, card := range h.FlopCards {
-			result.Flop[i] = uint32(card)
+			handResult.Flop[i] = uint32(card)
 		}
 	}
-
-	result.PlayerCards = make(map[uint32]*PlayerCards, 0)
-	for seatNo, cards := range h.PlayersCards {
-		playerID := h.GetPlayersInSeats()[seatNo-1]
+	handResult.Players = make(map[uint32]*PlayerInfo, 0)
+	for seatNoIdx, playerID := range h.GetPlayersInSeats() {
 		if playerID == 0 {
 			continue
 		}
-		playerState, _ := h.GetPlayersState()[playerID]
-		playerCard := &PlayerCards{
-			PlayedUntil: playerState.Round,
+		seatNo := uint32(seatNoIdx + 1)
+		balanceBefore := float32(0)
+		balanceAfter := float32(0)
+		for _, playerBalance := range h.BalanceBeforeHand {
+			if playerID == playerBalance.PlayerId {
+				balanceBefore = playerBalance.Balance
+				break
+			}
 		}
-		playerCard.Rank = uint32(0xFFFFFFFF)
+
+		for _, playerBalance := range h.BalanceAfterHand {
+			if playerID == playerBalance.PlayerId {
+				balanceAfter = playerBalance.Balance
+				break
+			}
+		}
+
+		rank := uint32(0xFFFFFFFF)
 		var evaluatedCards *evaluatedCards
 		if bestSeatHands != nil {
 			evaluatedCards = bestSeatHands[seatNo]
 			if evaluatedCards != nil {
-				playerCard.Rank = uint32(evaluatedCards.rank)
+				rank = uint32(evaluatedCards.rank)
 			}
 		}
 
-		playerCard.Cards = make([]uint32, len(cards))
+		cards := h.PlayersCards[seatNo]
+		playerCards := make([]uint32, len(cards))
 		for i, card := range cards {
-			playerCard.Cards[i] = uint32(card)
+			playerCards[i] = uint32(card)
 		}
-
+		var bestCards []uint32
 		if evaluatedCards != nil {
-			playerCard.BestCards = make([]uint32, len(evaluatedCards.cards))
+			bestCards = make([]uint32, len(evaluatedCards.cards))
 			for i, card := range evaluatedCards.cards {
-				playerCard.BestCards[i] = uint32(card)
+				bestCards[i] = uint32(card)
 			}
 		}
 
-		result.PlayerCards[seatNo] = playerCard
+		playerState, _ := h.GetPlayersState()[playerID]
+		playerInfo := &PlayerInfo{
+			Id:          playerID,
+			PlayedUntil: playerState.Round,
+			Balance: &HandPlayerBalance{
+				Before: balanceBefore,
+				After:  balanceAfter,
+			},
+			Cards:     playerCards,
+			BestCards: bestCards,
+			Rank:      rank,
+		}
+		handResult.Players[seatNo] = playerInfo
 	}
-	data, _ := protojson.Marshal(result)
+
+	return handResult
+}
+
+func (g *Game) saveHandResult(result *HandResult) {
+	// call the API server to save the hand result
+	var m protojson.MarshalOptions
+	m.EmitUnpopulated = true
+	data, _ := m.Marshal(result)
 	fmt.Printf("%s\n", string(data))
-	_ = result
-	return nil
+
+	url := fmt.Sprintf("%s/internal/post-hand/gameId/%d/handNum/%d", g.apiServerUrl, result.GameId, result.HandNum)
+	resp, _ := http.Post(url, "application/json", bytes.NewBuffer(data))
+	// if the api server returns nil, do nothing
+	if resp == nil {
+		return
+	}
+	fmt.Printf("Posted successfully")
 }
