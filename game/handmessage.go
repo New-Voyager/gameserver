@@ -488,7 +488,7 @@ func (g *Game) getHandResult(gameState *GameState, h *HandState, evaluate *Holde
 
 	handResult.HandLog = h.getLog()
 
-	handResult.RewardTrackingIds = gameState.RewardTrackingIds
+	handResult.RewardTrackingIds = g.rewardTrackingIds
 	handResult.Turn = h.TurnCard
 	handResult.River = h.RiverCard
 	if h.BoardCards != nil {
