@@ -100,7 +100,7 @@ message HandResult  {
   uint32 hand_num = 2;
   GameType game_type = 3;
   HandLog hand_log = 4;
-  repeated uint64 reward_tracking_ids = 5;
+  repeated uint32 reward_tracking_ids = 5;
   repeated uint32 board_cards = 6;
   repeated uint32 board_cards_2 = 7;  // run it twice
   repeated uint32 flop = 8;

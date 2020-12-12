@@ -111,7 +111,7 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 		config.Title,
 		int(config.MinPlayers),
 		int(config.MaxPlayers),
-		config.AutoStart, true, uint32(config.ActionTime))
+		config.AutoStart, true, uint32(config.ActionTime), config.RewardTrackingIds)
 	natsGame.serverGame = serverGame
 	return natsGame, nil
 }

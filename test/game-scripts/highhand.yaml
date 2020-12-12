@@ -1,0 +1,181 @@
+disabled: false
+game-config:
+  type: HOLDEM
+  max-players: 9
+  min-players: 3
+  min-buyin: 60.0
+  max-buyin: 300.0
+  auto-start: false
+  auto-approve: true
+  title: 3 players playing
+  sb: 1.0
+  bb: 2.0
+
+# players in the game
+players:
+  - name: player1
+    id: 1
+  - name: player2
+    id: 2
+  - name: player3
+    id: 3
+
+take-seat:
+  button-pos: 1
+  seats:
+    -
+      seat: 1 
+      player: 1
+      buy-in: 50
+    -
+      seat: 5 
+      player: 2
+      buy-in: 50
+    -
+      seat: 8 
+      player: 3
+      buy-in: 50
+
+  wait: 1
+
+  # verify the table/player configuration is correct
+  verify:
+    table:
+      players:
+        -
+          seat: 1 
+          player: 1
+          stack: 50
+        -
+          seat: 5 
+          player: 2
+          stack: 50
+        -
+          seat: 8 
+          player: 3
+          stack: 50
+
+# deal the following hands in the table
+hands:
+  -
+    num: 1
+    setup:
+      button-pos: 1
+      flop: ["Ac", "Ad", "Kc"]
+      turn: 5c
+      river: Kh
+      seat-cards:
+        - 
+          cards: ["Ah", "5s"]
+        -
+          cards: ["Kd", "Ks"]
+        -
+          cards: ["2d", "4s"]
+      verify:
+        # verify button, sb, bb positions
+        # verify next action seat position
+        # verify current hand state
+        button: 1
+        sb: 5
+        bb: 8
+        next-action-pos: 1
+        state: PREFLOP
+        dealt-cards:
+          -
+            seat-no: 5
+            cards: ["Ah", "5s"]
+          -
+            seat-no: 8
+            cards: ["Kd", "Ks"]
+          -
+            seat-no: 1
+            cards: ["2d", "4s"]
+   
+    # simulate pre-flop action
+    preflop-action:
+      seat-actions:
+        - 1, CALL, 2
+        - 5, CALL, 2
+        - 8, CHECK
+
+    flop-action:
+      seat-actions:
+        - 5, CHECK
+        - 8, CHECK
+        - 1, CHECK
+
+    turn-action:
+      seat-actions:
+        - 5, CHECK
+        - 8, CHECK
+        - 1, CHECK
+
+    river-action:
+      seat-actions:
+        - 5, CHECK
+        - 8, CHECK
+        - 1, CHECK
+  -
+    num: 2
+    setup:
+      button-pos: 1
+      flop: ["Ac", "Ad", "2c"]
+      turn: Td
+      river: 4s
+      seat-cards:
+        # seat cards in the order players are sitting 
+        # seat 1 gets Kh Qd
+        # seat 5 gets 3s 7s
+        # seat 8 gets 9h 2s
+        - 
+          cards: ["Kh", "Qd"]
+        -
+          cards: ["3s", "7s"]
+        -
+          cards: ["9h", "2s"]
+
+    # simulate pre-flop action
+    preflop-action:
+      seat-actions:
+        - 1, FOLD
+        - 5, FOLD
+  -
+    num: 3
+    setup:
+      button-pos: 1
+      flop: ["3c", "3d", "2c"]
+      turn: 5c
+      river: Kh
+      seat-cards:
+        - 
+          cards: ["3h", "3s"]
+        -
+          cards: ["2d", "2s"]
+        -
+          cards: ["Ac", "4c"]
+      verify:
+        # verify button, sb, bb positions
+        # verify next action seat position
+        # verify current hand state
+        button: 1
+        sb: 5
+        bb: 8
+        next-action-pos: 1
+        state: PREFLOP
+        dealt-cards:
+          -
+            seat-no: 5
+            cards: ["3h", "3s"]
+          -
+            seat-no: 8
+            cards: ["2d", "2s"]
+          -
+            seat-no: 1
+            cards: ["Ac", "4c"]
+   
+    # simulate pre-flop action
+    preflop-action:
+      seat-actions:
+        - 1, ALLIN
+        - 5, ALLIN
+        - 8, ALLIN
