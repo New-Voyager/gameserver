@@ -2,6 +2,8 @@ PROTOC_ZIP := protoc-3.7.1-linux-x86_64.zip
 GCP_PROJECT_ID := voyager-01-285603
 BUILD_NO := $(shell cat build_number.txt)
 DEFAULT_DOCKER_NET := game
+DO_REGISTRY := registry.digitalocean.com/voyager
+GCP_REGISTRY := gcr.io/${GCP_PROJECT_ID}
 
 DEV_NATS_HOST := localhost
 DEV_NATS_CLIENT_PORT := 4222
@@ -132,22 +134,32 @@ fmt:
 	cd poker && go fmt
 
 .PHONY: publish
-publish:
+publish: export REGISTRY=${GCP_REGISTRY}
+publish:  publish-common
+
+.PHONY: do-publish
+do-publish: export REGISTRY=${DO_REGISTRY}
+do-publish: publish-common
+
+.PHONY: publish-common
+publish-common:
 	# publish redis and curl so that we don't have to pull from the docker hub
 	# curl image is used in helm chart
 	docker pull redis:${REDIS_VERSION}
-	docker tag redis:${REDIS_VERSION} gcr.io/${GCP_PROJECT_ID}/redis:${REDIS_VERSION}
-	docker push gcr.io/${GCP_PROJECT_ID}/redis:${REDIS_VERSION}
+	docker tag redis:${REDIS_VERSION} ${REGISTRY}/redis:${REDIS_VERSION}
+	docker push ${REGISTRY}/redis:${REDIS_VERSION}
 	docker pull curlimages/curl:7.72.0
-	docker tag curlimages/curl:7.72.0 gcr.io/${GCP_PROJECT_ID}/curlimages/curl:7.72.0
-	docker push gcr.io/${GCP_PROJECT_ID}/curlimages/curl:7.72.0
+	docker tag curlimages/curl:7.72.0 ${REGISTRY}/curlimages/curl:7.72.0
+	docker push ${REGISTRY}/curlimages/curl:7.72.0
+
 	# publish nats
-	docker tag nats-server gcr.io/${GCP_PROJECT_ID}/nats-server:$(BUILD_NO)
-	docker tag nats-server gcr.io/${GCP_PROJECT_ID}/nats-server:latest
-	docker push gcr.io/${GCP_PROJECT_ID}/nats-server:$(BUILD_NO)
-	docker push gcr.io/${GCP_PROJECT_ID}/nats-server:latest
+	docker tag nats-server ${REGISTRY}/nats-server:$(BUILD_NO)
+	docker tag nats-server ${REGISTRY}/nats-server:latest
+	docker push ${REGISTRY}/nats-server:$(BUILD_NO)
+	docker push ${REGISTRY}/nats-server:latest
+
 	# publish gameserver
-	docker tag game-server gcr.io/${GCP_PROJECT_ID}/game-server:$(BUILD_NO)
-	docker tag game-server gcr.io/${GCP_PROJECT_ID}/game-server:latest
-	docker push gcr.io/${GCP_PROJECT_ID}/game-server:$(BUILD_NO)
-	docker push gcr.io/${GCP_PROJECT_ID}/game-server:latest
+	docker tag game-server ${REGISTRY}/game-server:$(BUILD_NO)
+	docker tag game-server ${REGISTRY}/game-server:latest
+	docker push ${REGISTRY}/game-server:$(BUILD_NO)
+	docker push ${REGISTRY}/game-server:latest
