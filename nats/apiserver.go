@@ -172,6 +172,7 @@ func UpdateTableStatus(gameID uint64, status game.TableStatus) error {
 	if resp.StatusCode != 200 {
 		logger.Fatal().Uint64("game", gameID).Msg(fmt.Sprintf("Failed to update table status. Error: %d", resp.StatusCode))
 	}
+	defer resp.Body.Close()
 	return err
 }
 func getIp() (string, error) {
@@ -243,6 +244,7 @@ func registerGameServer() error {
 		logger.Fatal().Msg(fmt.Sprintf("Failed to register server. Error: %s", err.Error()))
 		panic("Failed when registering game server")
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		logger.Fatal().Msg(fmt.Sprintf("Failed to register server. Error: %d", resp.StatusCode))
