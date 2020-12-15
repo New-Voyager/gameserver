@@ -586,5 +586,6 @@ func (g *Game) saveHandResult(result *HandResult) {
 	if resp == nil {
 		return
 	}
+	defer resp.Body.Close()
 	fmt.Printf("Posted successfully")
 }

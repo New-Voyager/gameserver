@@ -642,12 +642,12 @@ func anyPendingUpdates(apiServerUrl string, gameID uint64) (bool, error) {
 			time.Sleep(5 * time.Second)
 			continue
 		}
+		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
 			channelGameLogger.Fatal().Uint64("game", gameID).Msg(fmt.Sprintf("Failed to get pending status. Error: %d", resp.StatusCode))
 			return false, fmt.Errorf("Failed to get pending status")
 		}
 
-		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return false, err
