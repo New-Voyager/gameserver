@@ -21,6 +21,7 @@ message HandAction {
   ACTION    action = 2;
   float     amount = 3;
   bool timed_out = 4;
+  float stack = 5;        // player current stack (populated by game)
 }
 
 message HandActionLog {

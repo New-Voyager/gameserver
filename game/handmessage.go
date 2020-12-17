@@ -172,6 +172,11 @@ func (game *Game) onPlayerActed(message *HandMessage) error {
 		return err
 	}
 
+	// Send player's current stack to be updated in the UI
+	seatNo := message.GetPlayerActed().GetSeatNo()
+	playerID := handState.PlayersInSeats[seatNo-1]
+
+	message.GetPlayerActed().Stack = handState.PlayersState[playerID].Balance
 	// broadcast this message to all the players
 	game.broadcastHandMessage(message)
 
