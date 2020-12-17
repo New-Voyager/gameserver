@@ -70,14 +70,19 @@ func (game *Game) onQueryCurrentHand(message *HandMessage) error {
 	}
 
 	currentHandState := CurrentHandState{
-		HandNum:      handState.HandNum,
-		GameType:     handState.GameType,
-		CurrentRound: handState.CurrentState,
-		BoardCards:   boardCards,
-		BoardCards_2: nil,
-		CardsStr:     cardsStr,
-		Pots:         pots,
-		PotUpdates:   currentPot,
+		HandNum:       handState.HandNum,
+		GameType:      handState.GameType,
+		CurrentRound:  handState.CurrentState,
+		BoardCards:    boardCards,
+		BoardCards_2:  nil,
+		CardsStr:      cardsStr,
+		Pots:          pots,
+		PotUpdates:    currentPot,
+		ButtonPos:     handState.ButtonPos,
+		SmallBlindPos: handState.SmallBlindPos,
+		BigBlindPos:   handState.BigBlindPos,
+		SmallBlind:    handState.SmallBlind,
+		BigBlind:      handState.BigBlind,
 	}
 	currentHandState.PlayersActed = make(map[uint32]*PlayerActRound, 0)
 
@@ -105,10 +110,11 @@ func (game *Game) onQueryCurrentHand(message *HandMessage) error {
 	currentHandState.RemainingActionTime = game.remainingActionTime
 	currentHandState.PlayersStack = make(map[uint64]float32, 0)
 	playerState := handState.GetPlayersState()
-	for seatNo, playerID := range handState.GetPlayersInSeats() {
+	for seatNoIdx, playerID := range handState.GetPlayersInSeats() {
 		if playerID == 0 {
 			continue
 		}
+		seatNo := seatNoIdx + 1
 		currentHandState.PlayersStack[uint64(seatNo)] = playerState[playerID].Balance
 	}
 	currentHandState.NextSeatAction = handState.NextSeatAction
