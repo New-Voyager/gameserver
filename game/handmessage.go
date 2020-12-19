@@ -304,7 +304,6 @@ func (game *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *Hand
 	if err != nil {
 		return err
 	}
-	handResult := game.getHandResult(gameState, handState, nil)
 
 	// now send the data to users
 	handMessage := &HandMessage{
@@ -316,9 +315,11 @@ func (game *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *Hand
 	}
 
 	// send the hand to the database to store first
+	handResult := game.getHandResult(gameState, handState, nil, true /*db*/)
 	game.saveHandResult(handResult)
 
 	// send to all the players
+	handResult = game.getHandResult(gameState, handState, nil, false /*db*/)
 	handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
 	game.broadcastHandMessage(handMessage)
 
@@ -447,8 +448,6 @@ func (game *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 		handState.HandCompletedAt = HandStatus_SHOW_DOWN
 		handState.setWinners(evaluate.winners)
 
-		handResult := game.getHandResult(gameState, handState, evaluate)
-
 		// now send the data to users
 		handMessage := &HandMessage{
 			ClubId:      game.clubID,
@@ -459,8 +458,10 @@ func (game *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 		}
 
 		// send the hand to the database to store first
+		handResult := game.getHandResult(gameState, handState, nil, true /*db*/)
 		game.saveHandResult(handResult)
 
+		handResult = game.getHandResult(gameState, handState, nil, false /*db*/)
 		handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
 		game.broadcastHandMessage(handMessage)
 
@@ -474,7 +475,7 @@ func (game *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 	}
 }
 
-func (g *Game) getHandResult(gameState *GameState, h *HandState, evaluate *HoldemWinnerEvaluate) *HandResult {
+func (g *Game) getHandResult(gameState *GameState, h *HandState, evaluate *HoldemWinnerEvaluate, database bool) *HandResult {
 	var bestSeatHands map[uint32]*evaluatedCards
 	var highHands map[uint32]*evaluatedCards
 
@@ -534,9 +535,18 @@ func (g *Game) getHandResult(gameState *GameState, h *HandState, evaluate *Holde
 	}
 	handResult.Players = make(map[uint32]*PlayerInfo, 0)
 	for seatNoIdx, playerID := range h.GetPlayersInSeats() {
+
+		// no player in the seat
 		if playerID == 0 {
 			continue
 		}
+
+		// determine whether the player has folded
+		playerFolded := false
+		if h.ActiveSeats[seatNoIdx] == 0 {
+			playerFolded = true
+		}
+
 		seatNo := uint32(seatNoIdx + 1)
 		balanceBefore := float32(0)
 		balanceAfter := float32(0)
@@ -554,33 +564,37 @@ func (g *Game) getHandResult(gameState *GameState, h *HandState, evaluate *Holde
 			}
 		}
 
+		// calculate high rank only the player hasn't folded
 		rank := uint32(0xFFFFFFFF)
-		var evaluatedCards *evaluatedCards
-		if bestSeatHands != nil {
-			evaluatedCards = bestSeatHands[seatNo]
-			if evaluatedCards != nil {
-				rank = uint32(evaluatedCards.rank)
-			}
-		}
+		highHandRank := uint32(0xFFFFFFFF)
+		var bestCards []uint32
+		var highHandBestCards []uint32
 
 		cards := h.PlayersCards[seatNo]
 		playerCards := make([]uint32, len(cards))
 		for i, card := range cards {
 			playerCards[i] = uint32(card)
 		}
-		var bestCards []uint32
-		if evaluatedCards != nil {
-			bestCards = make([]uint32, len(evaluatedCards.cards))
-			for i, card := range evaluatedCards.cards {
-				bestCards[i] = uint32(card)
+		if !playerFolded {
+			var evaluatedCards *evaluatedCards
+			if bestSeatHands != nil {
+				evaluatedCards = bestSeatHands[seatNo]
+				if evaluatedCards != nil {
+					rank = uint32(evaluatedCards.rank)
+				}
 			}
-		}
-		var highHandBestCards []uint32
-		highHandRank := uint32(0xFFFFFFFF)
-		if highHands != nil {
-			if highHands[seatNo] != nil {
-				highHandRank = uint32(highHands[seatNo].rank)
-				highHandBestCards = highHands[seatNo].getCards()
+
+			if evaluatedCards != nil {
+				bestCards = make([]uint32, len(evaluatedCards.cards))
+				for i, card := range evaluatedCards.cards {
+					bestCards[i] = uint32(card)
+				}
+			}
+			if highHands != nil {
+				if highHands[seatNo] != nil {
+					highHandRank = uint32(highHands[seatNo].rank)
+					highHandBestCards = highHands[seatNo].getCards()
+				}
 			}
 		}
 
@@ -592,11 +606,15 @@ func (g *Game) getHandResult(gameState *GameState, h *HandState, evaluate *Holde
 				Before: balanceBefore,
 				After:  balanceAfter,
 			},
-			Cards:     playerCards,
-			BestCards: bestCards,
-			Rank:      rank,
-			HhCards:   highHandBestCards,
-			HhRank:    highHandRank,
+		}
+
+		if !playerFolded || database {
+			// player is active or the result is stored in database
+			playerInfo.Cards = playerCards
+			playerInfo.BestCards = bestCards
+			playerInfo.Rank = rank
+			playerInfo.HhCards = highHandBestCards
+			playerInfo.HhRank = highHandRank
 		}
 		handResult.Players[seatNo] = playerInfo
 	}

@@ -3,14 +3,32 @@ package game
 import "voyager.com/server/poker"
 
 type evaluatedCards struct {
-	rank  int32
-	cards []byte
+	rank        int32
+	cards       []byte
+	playerCards []byte
+	boardCards  []byte
 }
 
 func (e evaluatedCards) getCards() []uint32 {
 	cards := make([]uint32, len(e.cards))
 	for i := range e.cards {
 		cards[i] = uint32(e.cards[i])
+	}
+	return cards
+}
+
+func (e evaluatedCards) getPlayerCards() []uint32 {
+	cards := make([]uint32, len(e.playerCards))
+	for i := range e.playerCards {
+		cards[i] = uint32(e.playerCards[i])
+	}
+	return cards
+}
+
+func (e evaluatedCards) getBoardCards() []uint32 {
+	cards := make([]uint32, len(e.boardCards))
+	for i := range e.boardCards {
+		cards[i] = uint32(e.boardCards[i])
 	}
 	return cards
 }
@@ -78,7 +96,15 @@ func (h *HoldemWinnerEvaluate) determineHandWinners(pot *SeatsInPots) []*HandWin
 			evaluatedCards := h.activeSeatBestCombo[seatNo]
 			rankStr := poker.RankString(evaluatedCards.rank)
 			s := poker.CardsToString(evaluatedCards.cards)
-			handWinners[i] = &HandWinner{SeatNo: seatNo, Amount: splitChips, WinningCards: evaluatedCards.getCards(), WinningCardsStr: s, RankStr: rankStr}
+			handWinners[i] = &HandWinner{
+				SeatNo:          seatNo,
+				Amount:          splitChips,
+				WinningCards:    evaluatedCards.getCards(),
+				WinningCardsStr: s,
+				RankStr:         rankStr,
+				BoardCards:      evaluatedCards.getBoardCards(),
+				PlayerCards:     evaluatedCards.getPlayerCards(),
+			}
 			i++
 		}
 	}
@@ -98,9 +124,30 @@ func (h *HoldemWinnerEvaluate) evaluatePlayerBestCards() {
 		allCards = append(allCards, seatCards...)
 		cards := poker.FromByteCards(allCards)
 		rank, playerBestCards := poker.Evaluate(cards)
+
+		// determine what player cards and board cards used to determine best cards
+		seatCardsInCard := poker.FromByteCards(seatCards)
+		playerCards := make([]poker.Card, 0)
+		boardCards := make([]poker.Card, 0)
+		for _, card := range playerBestCards {
+			isPlayerCard := false
+			for _, playerCard := range seatCardsInCard {
+				if playerCard == card {
+					isPlayerCard = true
+					break
+				}
+			}
+			if isPlayerCard {
+				playerCards = append(playerCards, card)
+			} else {
+				boardCards = append(boardCards, card)
+			}
+		}
 		h.activeSeatBestCombo[uint32(seatNoIdx+1)] = &evaluatedCards{
-			rank:  rank,
-			cards: poker.CardsToByteCards(playerBestCards),
+			rank:        rank,
+			cards:       poker.CardsToByteCards(playerBestCards),
+			playerCards: poker.CardsToByteCards(playerCards),
+			boardCards:  poker.CardsToByteCards(boardCards),
 		}
 	}
 }
