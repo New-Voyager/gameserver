@@ -230,6 +230,8 @@ message HandWinner {
   repeated uint32 winning_cards = 4;
   string winning_cards_str = 5;
   string rank_str = 6;
+  repeated uint32 player_cards = 7;
+  repeated uint32 board_cards = 8;
 }
 
 message PotWinners {
