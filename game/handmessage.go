@@ -476,6 +476,8 @@ func (game *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 
 func (g *Game) getHandResult(gameState *GameState, h *HandState, evaluate *HoldemWinnerEvaluate) *HandResult {
 	var bestSeatHands map[uint32]*evaluatedCards
+	var highHands map[uint32]*evaluatedCards
+
 	if h.BoardCards != nil {
 		if evaluate == nil {
 			evaluate = NewHoldemWinnerEvaluate(gameState, h)
@@ -483,11 +485,19 @@ func (g *Game) getHandResult(gameState *GameState, h *HandState, evaluate *Holde
 				evaluate.evaluate()
 			}
 		}
+		// evaluate player's high hands always
+		evaluate.evaluatePlayerHighHand()
+
 		bestSeatHands = evaluate.getEvaluatedCards()
+		highHands = evaluate.getHighhandCards()
 		fmt.Printf("\n\n================================================================\n\n")
 		for seatNo, hand := range bestSeatHands {
-			fmt.Printf("Seat: %d, Cards:%+v, Str: %s Rank: %d, rankStr: %s\n", seatNo, hand.cards,
-				poker.CardsToString(hand.cards), hand.rank, poker.RankString(hand.rank))
+			highHand := highHands[seatNo]
+			fmt.Printf("Seat: %d, Cards:%+v, Str: %s Rank: %d, rankStr: %s, hhHand: %s rank: %d rankStr: %s\n",
+				seatNo,
+				hand.cards,
+				poker.CardsToString(hand.cards), hand.rank, poker.RankString(hand.rank),
+				poker.CardToString(highHand.cards), highHand.rank, poker.RankString((highHand.rank)))
 		}
 		fmt.Printf("\n\n================================================================\n\n")
 	}
@@ -565,6 +575,14 @@ func (g *Game) getHandResult(gameState *GameState, h *HandState, evaluate *Holde
 				bestCards[i] = uint32(card)
 			}
 		}
+		var highHandBestCards []uint32
+		highHandRank := uint32(0xFFFFFFFF)
+		if highHands != nil {
+			if highHands[seatNo] != nil {
+				highHandRank = uint32(highHands[seatNo].rank)
+				highHandBestCards = highHands[seatNo].getCards()
+			}
+		}
 
 		playerState, _ := h.GetPlayersState()[playerID]
 		playerInfo := &PlayerInfo{
@@ -577,6 +595,8 @@ func (g *Game) getHandResult(gameState *GameState, h *HandState, evaluate *Holde
 			Cards:     playerCards,
 			BestCards: bestCards,
 			Rank:      rank,
+			HhCards:   highHandBestCards,
+			HhRank:    highHandRank,
 		}
 		handResult.Players[seatNo] = playerInfo
 	}

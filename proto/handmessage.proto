@@ -93,6 +93,8 @@ message PlayerInfo {
   uint32 rank = 4;                  // best rank
   HandStatus played_until = 5;      // played until what stage
   HandPlayerBalance balance = 6;
+  repeated uint32 hh_cards = 7;     // high hand cards
+  uint32 hh_rank = 8;      // high hand rank
 }
 
 message HandResult  {

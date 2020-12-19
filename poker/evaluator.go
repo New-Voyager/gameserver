@@ -107,6 +107,11 @@ type OmahaResult struct {
 	LowCards []Card
 }
 
+type HighHand struct {
+	HiRank  int32
+	HiCards []Card
+}
+
 func EvaluateOmaha(playerCards []Card, boardCards []Card) OmahaResult {
 	minimum := int32(maxHighCard)
 	lowScore := int32(0x7FFFFFF)
@@ -147,5 +152,36 @@ func EvaluateOmaha(playerCards []Card, boardCards []Card) OmahaResult {
 		LowFound: lowFound,
 		LowRank:  lowScore,
 		LowCards: lowCards,
+	}
+}
+
+func EvaluateHighHand(playerCards []Card, boardCards []Card) HighHand {
+	minimum := int32(maxHighCard)
+
+	playerPairs := make([][]Card, 0)
+	for pair := range combinations(playerCards, 2) {
+		playerPairs = append(playerPairs, pair)
+	}
+	boardPairs := make([][]Card, 0)
+	for pair := range combinations(boardCards, 3) {
+		boardPairs = append(boardPairs, pair)
+	}
+	bestCards := make([]Card, 5)
+	for _, playerPair := range playerPairs {
+		for _, boardPair := range boardPairs {
+			cards := make([]Card, 0)
+			cards = append(cards, playerPair...)
+			cards = append(cards, boardPair...)
+			score, _ := five(cards...)
+			if score < minimum {
+				minimum = score
+				copy(bestCards, cards)
+			}
+		}
+	}
+
+	return HighHand{
+		HiRank:  minimum,
+		HiCards: bestCards,
 	}
 }

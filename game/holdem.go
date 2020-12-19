@@ -20,6 +20,7 @@ type HoldemWinnerEvaluate struct {
 	gameState           *GameState
 	activeSeatBestCombo map[uint32]*evaluatedCards
 	winners             map[uint32]*PotWinners
+	highHandCombo       map[uint32]*evaluatedCards
 }
 
 func NewHoldemWinnerEvaluate(gameState *GameState, handState *HandState) *HoldemWinnerEvaluate {
@@ -28,6 +29,7 @@ func NewHoldemWinnerEvaluate(gameState *GameState, handState *HandState) *Holdem
 		gameState:           gameState,
 		activeSeatBestCombo: make(map[uint32]*evaluatedCards, gameState.MaxSeats),
 		winners:             make(map[uint32]*PotWinners),
+		highHandCombo:       make(map[uint32]*evaluatedCards, gameState.MaxSeats),
 	}
 }
 
@@ -103,6 +105,26 @@ func (h *HoldemWinnerEvaluate) evaluatePlayerBestCards() {
 	}
 }
 
+func (h *HoldemWinnerEvaluate) evaluatePlayerHighHand() {
+	boardCards := poker.FromByteCards(h.handState.BoardCards)
+	// determine rank for each active player
+	for seatNoIdx, active := range h.handState.ActiveSeats {
+		if active == 0 {
+			continue
+		}
+		playerCards := poker.FromByteCards(h.handState.PlayersCards[uint32(seatNoIdx+1)])
+		highHand := poker.EvaluateHighHand(playerCards, boardCards)
+		h.highHandCombo[uint32(seatNoIdx+1)] = &evaluatedCards{
+			rank:  highHand.HiRank,
+			cards: poker.CardsToByteCards(highHand.HiCards),
+		}
+	}
+}
+
 func (h *HoldemWinnerEvaluate) getEvaluatedCards() map[uint32]*evaluatedCards {
 	return h.activeSeatBestCombo
+}
+
+func (h *HoldemWinnerEvaluate) getHighhandCards() map[uint32]*evaluatedCards {
+	return h.highHandCombo
 }
