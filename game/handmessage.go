@@ -219,9 +219,13 @@ func (game *Game) gotoFlop(gameState *GameState, handState *HandState) {
 
 	handState.setupFlop(boardCards)
 	game.saveHandState(gameState, handState)
+	pots := make([]float32, 0)
+	for _, pot := range handState.Pots {
+		pots = append(pots, pot.Pot)
+	}
 
 	cardsStr := poker.CardsToString(boardCards)
-	flopMessage := &Flop{Board: boardCards, CardsStr: cardsStr}
+	flopMessage := &Flop{Board: boardCards, CardsStr: cardsStr, Pots: pots, SeatsPots: handState.Pots}
 	handMessage := &HandMessage{ClubId: game.clubID,
 		GameId:      game.gameID,
 		HandNum:     handState.HandNum,
@@ -253,7 +257,11 @@ func (game *Game) gotoTurn(gameState *GameState, handState *HandState) {
 	for i, card := range handState.BoardCards {
 		boardCards[i] = uint32(card)
 	}
-	turnMessage := &Turn{Board: boardCards, TurnCard: uint32(handState.TurnCard), CardsStr: cardsStr}
+	pots := make([]float32, 0)
+	for _, pot := range handState.Pots {
+		pots = append(pots, pot.Pot)
+	}
+	turnMessage := &Turn{Board: boardCards, TurnCard: uint32(handState.TurnCard), CardsStr: cardsStr, Pots: pots, SeatsPots: handState.Pots}
 	handMessage := &HandMessage{ClubId: game.clubID,
 		GameId:      game.gameID,
 		HandNum:     handState.HandNum,
@@ -286,7 +294,11 @@ func (game *Game) gotoRiver(gameState *GameState, handState *HandState) {
 	for i, card := range handState.BoardCards {
 		boardCards[i] = uint32(card)
 	}
-	riverMessage := &River{Board: boardCards, RiverCard: uint32(handState.RiverCard), CardsStr: cardsStr}
+	pots := make([]float32, 0)
+	for _, pot := range handState.Pots {
+		pots = append(pots, pot.Pot)
+	}
+	riverMessage := &River{Board: boardCards, RiverCard: uint32(handState.RiverCard), CardsStr: cardsStr, Pots: pots, SeatsPots: handState.Pots}
 	handMessage := &HandMessage{ClubId: game.clubID,
 		GameId:      game.gameID,
 		HandNum:     handState.HandNum,
