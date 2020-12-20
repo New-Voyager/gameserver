@@ -140,8 +140,10 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		Str("message", message.MessageType).
 		Msg(fmt.Sprintf("%v", message))
 
-	// pause play timer
-	g.pausePlayTimer()
+	if message.SeatNo == g.timerSeatNo {
+		// pause play timer
+		g.pausePlayTimer(message.SeatNo)
+	}
 
 	gameState, err := g.loadState()
 	if err != nil {

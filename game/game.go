@@ -38,6 +38,7 @@ type Game struct {
 	chPauseTimer        chan bool
 	allPlayers          map[uint64]*Player   // players at the table and the players that are viewing
 	messageReceiver     *GameMessageReceiver // receives messages
+	actionTimeStart     time.Time
 	players             map[uint64]string
 	waitingPlayers      []uint64
 	remainingActionTime uint32
@@ -50,6 +51,7 @@ type Game struct {
 	inProcessPendingUpdates bool
 	config                  *GameConfig
 	lock                    sync.Mutex
+	timerSeatNo             uint32
 }
 
 type timerMsg struct {
@@ -144,6 +146,9 @@ func (game *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
 
 func (game *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool) {
 	channelGameLogger.Info().Msgf("Resetting timer. Current timer seat: %d timer: %d", seatNo, game.config.ActionTime)
+	fmt.Printf("Resetting timer. Current timer seat: %d timer: %d\n", seatNo, game.config.ActionTime)
+	game.timerSeatNo = seatNo
+	game.actionTimeStart = time.Now()
 	game.chResetTimer <- timerMsg{
 		seatNo:      seatNo,
 		playerID:    playerID,
@@ -210,7 +215,10 @@ func (game *Game) runGame() {
 	game.manager.gameEnded(game)
 }
 
-func (game *Game) pausePlayTimer() {
+func (game *Game) pausePlayTimer(seatNo uint32) {
+	actionResponseTime := time.Now().Sub(game.actionTimeStart)
+
+	fmt.Printf("Pausing timer. Seat responded seat: %d Responded in: %fs \n", seatNo, actionResponseTime.Seconds())
 	game.chPauseTimer <- true
 }
 
