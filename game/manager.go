@@ -22,13 +22,13 @@ func NewGameManager(apiServerUrl string, gamePersist PersistGameState, handPersi
 	}
 }
 
-func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver, config *GameConfig, autoDeal bool) (*Game, uint64) {
+func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver, config *GameConfig, autoDeal bool) (*Game, uint64, error) {
 	if config.GameId == 0 {
 		gm.gameCount++
 		config.GameId = gm.gameCount
 	}
 	gameIDStr := fmt.Sprintf("%d", config.GameId)
-	game := NewPokerGame(gm,
+	game, err := NewPokerGame(gm,
 		&messageReceiver,
 		config,
 		autoDeal,
@@ -37,8 +37,11 @@ func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver, config *G
 		gm.apiServerUrl)
 	gm.activeGames[gameIDStr] = game
 
+	if err != nil {
+		return nil, 0, err
+	}
 	go game.runGame()
-	return game, config.GameId
+	return game, config.GameId, nil
 }
 
 func (gm *Manager) gameEnded(game *Game) {

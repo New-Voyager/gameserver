@@ -64,8 +64,12 @@ type timerMsg struct {
 func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, config *GameConfig, autoDeal bool,
 	gameStatePersist PersistGameState,
 	handStatePersist PersistHandState,
-	apiServerUrl string) *Game {
+	apiServerUrl string) (*Game, error) {
 
+	if config.SmallBlind == 0.0 || config.BigBlind == 0.0 {
+		channelGameLogger.Error().Msgf("Game cannot be configured with small blind and big blind")
+		return nil, fmt.Errorf("Blinds must be set. SmallBlind: %f BigBlind: %f", config.SmallBlind, config.BigBlind)
+	}
 	game := Game{
 		manager:         gameManager,
 		messageReceiver: messageReceiver,
@@ -84,7 +88,7 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, co
 	game.waitingPlayers = make([]uint64, 0)
 	game.players = make(map[uint64]string)
 	game.initialize()
-	return &game
+	return &game, nil
 }
 
 func (game *Game) SetScriptTest(scriptTest bool) {

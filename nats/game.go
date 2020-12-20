@@ -95,7 +95,10 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 		config.ActionTime = 20
 	}
 
-	serverGame, gameID := game.GameManager.InitializeGame(*natsGame, config, true)
+	serverGame, gameID, err := game.GameManager.InitializeGame(*natsGame, config, true)
+	if err != nil {
+		return nil, err
+	}
 	natsGame.serverGame = serverGame
 	return natsGame, nil
 }
