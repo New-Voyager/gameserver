@@ -207,6 +207,7 @@ func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 	data, _ := protojson.Marshal(message)
 
 	if message.MessageType == game.GameCurrentStatus {
+		fmt.Printf("%s\n", string(data))
 		// update table status
 		UpdateTableStatus(message.GameId, message.GetStatus().GetTableStatus())
 	}
@@ -249,7 +250,7 @@ func (n *NatsGame) gameEnded() error {
 		MessageType: game.GameCurrentStatus,
 	}
 	message.GameMessage = &game.GameMessage_Status{Status: &game.GameStatusMessage{Status: game.GameStatus_ENDED,
-		TableStatus: game.TableStatus_TABLE_STATUS_WAITING_TO_BE_STARTED}}
+		TableStatus: game.TableStatus_WAITING_TO_BE_STARTED}}
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Game->All: %s Game ENDED", message.MessageType))
 	n.BroadcastGameMessage(message)

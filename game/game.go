@@ -280,7 +280,7 @@ func (game *Game) initialize() error {
 		SmallBlind:            float32(game.config.SmallBlind),
 		BigBlind:              float32(game.config.BigBlind),
 		MaxSeats:              uint32(game.config.MaxPlayers),
-		TableStatus:           TableStatus_TABLE_STATUS_WAITING_TO_BE_STARTED,
+		TableStatus:           TableStatus_WAITING_TO_BE_STARTED,
 		ActionTime:            uint32(game.config.ActionTime),
 	}
 	err := game.saveState(&gameState)
@@ -312,7 +312,7 @@ func (game *Game) startGame() (bool, error) {
 		lastTableState := gameState.TableStatus
 		// not enough players
 		// set table status as not enough players
-		gameState.TableStatus = TableStatus_TABLE_STATUS_NOT_ENOUGH_PLAYERS
+		gameState.TableStatus = TableStatus_NOT_ENOUGH_PLAYERS
 		game.saveState(gameState)
 
 		// TODO:
@@ -323,7 +323,7 @@ func (game *Game) startGame() (bool, error) {
 		}
 		return false, nil
 	}
-	gameState.TableStatus = TableStatus_TABLE_STATUS_GAME_RUNNING
+	gameState.TableStatus = TableStatus_GAME_RUNNING
 
 	channelGameLogger.Info().
 		Uint32("club", game.config.ClubId).

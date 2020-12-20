@@ -76,7 +76,7 @@ func (game *Game) onPendingUpdatesDone(message *GameMessage) error {
 		return err
 	}
 
-	if gameState.Status == GameStatus_ACTIVE && gameState.TableStatus == TableStatus_TABLE_STATUS_GAME_RUNNING {
+	if gameState.Status == GameStatus_ACTIVE && gameState.TableStatus == TableStatus_GAME_RUNNING {
 		// deal next hand
 		gameMessage := &GameMessage{
 			GameId:      game.config.GameId,
