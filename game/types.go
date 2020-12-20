@@ -30,15 +30,15 @@ type GameConfig struct {
 	ClubId             uint32   `json:"clubId"`
 	GameId             uint64   `json:"gameId"`
 	GameTypeStr        string   `yaml:"type"`
-	GameType           int      `json:"gameType"`
+	GameType           GameType `json:"gameType"`
 	ClubCode           string   `json:"clubCode"`
 	GameCode           string   `json:"gameCode"`
 	Title              string   `json:"title" yaml:"title"`
 	SmallBlind         float64  `json:"smallBlind" yaml:"sb"`
 	BigBlind           float64  `json:"bigBlind" yaml:"bb"`
 	StraddleBet        float64  `json:"straddleBet"`
-	MinPlayers         float64  `json:"minPlayers" yaml:"min-players"`
-	MaxPlayers         float64  `json:"maxPlayers" yaml:"max-players"`
+	MinPlayers         int      `json:"minPlayers" yaml:"min-players"`
+	MaxPlayers         int      `json:"maxPlayers" yaml:"max-players"`
 	GameLength         int      `json:"gameLength"`
 	RakePercentage     float64  `json:"rakePercentage"`
 	RakeCap            float64  `json:"rakeCap"`

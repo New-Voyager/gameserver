@@ -90,28 +90,15 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 		natsLogger.Error().Msg(fmt.Sprintf("Failed to subscribe to %s", player2HandSubject))
 		return nil, e
 	}
-	/*
-		natsGame.player2GameSub, e = nc.Subscribe(player2GameSubject, natsGame.player2Game)
-		if e != nil {
-			natsLogger.Error().Msg(fmt.Sprintf("Failed to subscribe to %s", player2GameSubject))
-			natsGame.player2HandSub.Unsubscribe()
-			return nil, e
-		}
-	*/
-	gameType := game.GameType(game.GameType_value[config.GameTypeStr])
 
 	if config.ActionTime == 0 {
 		config.ActionTime = 20
 	}
 
-	serverGame, gameID := game.GameManager.InitializeGame(*natsGame, clubID,
-		gameID,
-		gameType,
-		config.GameCode,
-		config.Title,
-		int(config.MinPlayers),
-		int(config.MaxPlayers),
-		config.AutoStart, true, uint32(config.ActionTime), config.RewardTrackingIds)
+	serverGame, gameID, err := game.GameManager.InitializeGame(*natsGame, config, true)
+	if err != nil {
+		return nil, err
+	}
 	natsGame.serverGame = serverGame
 	return natsGame, nil
 }
@@ -220,6 +207,7 @@ func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 	data, _ := protojson.Marshal(message)
 
 	if message.MessageType == game.GameCurrentStatus {
+		fmt.Printf("%s\n", string(data))
 		// update table status
 		UpdateTableStatus(message.GameId, message.GetStatus().GetTableStatus())
 	}
@@ -262,7 +250,7 @@ func (n *NatsGame) gameEnded() error {
 		MessageType: game.GameCurrentStatus,
 	}
 	message.GameMessage = &game.GameMessage_Status{Status: &game.GameStatusMessage{Status: game.GameStatus_ENDED,
-		TableStatus: game.TableStatus_TABLE_STATUS_WAITING_TO_BE_STARTED}}
+		TableStatus: game.TableStatus_WAITING_TO_BE_STARTED}}
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Game->All: %s Game ENDED", message.MessageType))
 	n.BroadcastGameMessage(message)

@@ -107,7 +107,7 @@ func newGame(c *gin.Context) {
 
 	c.JSON(http.StatusOK, tableStatus{
 		GameID:      gameConfig.GameId,
-		TableStatus: uint32(game.TableStatus_TABLE_STATUS_WAITING_TO_BE_STARTED),
+		TableStatus: uint32(game.TableStatus_WAITING_TO_BE_STARTED),
 	})
 }
 

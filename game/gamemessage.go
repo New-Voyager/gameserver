@@ -13,8 +13,8 @@ import (
 
 func (game *Game) handleGameMessage(message *GameMessage) {
 	channelGameLogger.Trace().
-		Uint32("club", game.clubID).
-		Uint64("game", game.gameID).
+		Uint32("club", game.config.ClubId).
+		Str("game", game.config.GameCode).
 		Msg(fmt.Sprintf("Game message: %s. %v", message.MessageType, message))
 
 	switch message.MessageType {
@@ -76,10 +76,10 @@ func (game *Game) onPendingUpdatesDone(message *GameMessage) error {
 		return err
 	}
 
-	if gameState.Status == GameStatus_ACTIVE && gameState.TableStatus == TableStatus_TABLE_STATUS_GAME_RUNNING {
+	if gameState.Status == GameStatus_ACTIVE && gameState.TableStatus == TableStatus_GAME_RUNNING {
 		// deal next hand
 		gameMessage := &GameMessage{
-			GameId:      game.gameID,
+			GameId:      game.config.GameId,
 			MessageType: GameDealHand,
 		}
 		go game.SendGameMessage(gameMessage)
@@ -105,13 +105,13 @@ func (game *Game) onMoveToNextHand(message *GameMessage) error {
 	// if there are no pending updates, deal next hand
 
 	// check any pending updates
-	pendingUpdates, _ := anyPendingUpdates(game.apiServerUrl, game.gameID)
+	pendingUpdates, _ := anyPendingUpdates(game.apiServerUrl, game.config.GameId)
 	if pendingUpdates {
 		game.inProcessPendingUpdates = true
-		go processPendingUpdates(game.apiServerUrl, game.gameID)
+		go processPendingUpdates(game.apiServerUrl, game.config.GameId)
 	} else {
 		gameMessage := &GameMessage{
-			GameId:      game.gameID,
+			GameId:      game.config.GameId,
 			MessageType: GameDealHand,
 		}
 		go game.SendGameMessage(gameMessage)
@@ -129,8 +129,8 @@ func (game *Game) onPlayerTakeSeat(message *GameMessage) error {
 
 	if gameSit.SeatNo <= 0 || gameSit.SeatNo > gameState.MaxSeats {
 		channelGameLogger.Error().
-			Uint32("club", game.clubID).
-			Uint64("game", game.gameID).
+			Uint32("club", game.config.ClubId).
+			Str("game", game.config.GameCode).
 			Str("message", "GameSitMessage").
 			Msg(fmt.Sprintf("Invalid seat no: %d Allowed values from 1-%d", gameSit.SeatNo, gameState.MaxSeats))
 		return fmt.Errorf("Invalid seat no: %d Allowed values from 1-%d", gameSit.SeatNo, gameState.MaxSeats)
@@ -140,16 +140,16 @@ func (game *Game) onPlayerTakeSeat(message *GameMessage) error {
 	if playersInSeat[gameSit.SeatNo-1] != 0 {
 		// there is already a player in the seat
 		channelGameLogger.Error().
-			Uint32("club", game.clubID).
-			Uint64("game", game.gameID).
+			Uint32("club", game.config.ClubId).
+			Str("game", game.config.GameCode).
 			Str("message", "GameSitMessage").
 			Msg(fmt.Sprintf("A player is already sitting in the seat: %d", gameSit.SeatNo))
 		return fmt.Errorf("A player is already sitting in the seat: %d", gameSit.SeatNo)
 	}
 
 	channelGameLogger.Info().
-		Uint32("club", game.clubID).
-		Uint64("game", game.gameID).
+		Uint32("club", game.config.ClubId).
+		Str("game", game.config.GameCode).
 		Uint64("player", gameSit.PlayerId).
 		Str("message", "GameSitMessage").
 		Msg(fmt.Sprintf("Player %d took %d seat, buy-in: %f", gameSit.PlayerId, gameSit.SeatNo, gameSit.BuyIn))
@@ -233,8 +233,8 @@ func (game *Game) onQueryTableState(message *GameMessage) error {
 
 	gameTableState := &GameTableStateMessage{PlayersState: playersAtTable, Status: gameState.Status, TableStatus: gameState.TableStatus}
 	var gameMessage GameMessage
-	gameMessage.ClubId = game.clubID
-	gameMessage.GameId = game.gameID
+	gameMessage.ClubId = game.config.ClubId
+	gameMessage.GameId = game.config.GameId
 	gameMessage.MessageType = GameTableState
 	gameMessage.PlayerId = message.GetQueryTableState().PlayerId
 	gameMessage.GameMessage = &GameMessage_TableState{TableState: gameTableState}
@@ -261,8 +261,8 @@ func (game *Game) broadcastTableState() error {
 
 	gameTableState := &GameTableStateMessage{PlayersState: playersAtTable, Status: gameState.Status, TableStatus: gameState.TableStatus}
 	var gameMessage GameMessage
-	gameMessage.ClubId = game.clubID
-	gameMessage.GameId = game.gameID
+	gameMessage.ClubId = game.config.ClubId
+	gameMessage.GameId = game.config.GameId
 	gameMessage.MessageType = GameTableState
 	gameMessage.GameMessage = &GameMessage_TableState{TableState: gameTableState}
 
@@ -328,14 +328,14 @@ func (g *Game) onPlayerUpdate(message *GameMessage) error {
 			token, _ := hex.DecodeString(gameToken)
 			tokenInt = binary.LittleEndian.Uint64(token)
 			channelGameLogger.Info().
-				Uint64("game", g.gameID).
+				Str("game", g.config.GameCode).
 				Uint64("player", playerUpdate.PlayerId).
 				Str("message", "GameSitMessage").
 				Msgf("Player %d took %d seat, buy-in: %f, gameToken: %s tokenXorKey: %X",
 					playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate.BuyIn, playerUpdate.GameToken, tokenInt)
 		} else {
 			channelGameLogger.Info().
-				Uint64("game", g.gameID).
+				Str("game", g.config.GameCode).
 				Uint64("player", playerUpdate.PlayerId).
 				Str("message", "GameSitMessage").
 				Msgf("Player %d took %d seat, buy-in: %f",

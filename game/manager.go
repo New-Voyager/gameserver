@@ -22,36 +22,29 @@ func NewGameManager(apiServerUrl string, gamePersist PersistGameState, handPersi
 	}
 }
 
-func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver,
-	clubID uint32, gameID uint64, gameType GameType, gameCode string,
-	title string, minPlayers int, maxPlayers int,
-	autoStart bool, autoDeal bool, actionTime uint32, rewardTrackingIds []uint32) (*Game, uint64) {
-	if gameID == 0 {
+func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver, config *GameConfig, autoDeal bool) (*Game, uint64, error) {
+	if config.GameId == 0 {
 		gm.gameCount++
-		gameID = gm.gameCount
+		config.GameId = gm.gameCount
 	}
-	gameIDStr := fmt.Sprintf("%d", gameID)
-	game := NewPokerGame(gm,
+	gameIDStr := fmt.Sprintf("%d", config.GameId)
+	game, err := NewPokerGame(gm,
 		&messageReceiver,
-		gameCode,
-		GameType_HOLDEM,
-		clubID, gameID,
-		minPlayers,
-		maxPlayers,
-		autoStart,
+		config,
 		autoDeal,
-		actionTime,
-		rewardTrackingIds,
 		gm.gameStatePersist,
 		gm.handStatePersist,
 		gm.apiServerUrl)
 	gm.activeGames[gameIDStr] = game
 
+	if err != nil {
+		return nil, 0, err
+	}
 	go game.runGame()
-	return game, gameID
+	return game, config.GameId, nil
 }
 
 func (gm *Manager) gameEnded(game *Game) {
-	gameIDStr := fmt.Sprintf("%d", game.gameID)
+	gameIDStr := fmt.Sprintf("%d", game.config.GameId)
 	delete(gm.activeGames, gameIDStr)
 }

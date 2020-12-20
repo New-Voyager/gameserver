@@ -9,30 +9,30 @@ import (
 	"voyager.com/server/poker"
 )
 
-func (game *Game) handleHandMessage(message *HandMessage) {
+func (g *Game) handleHandMessage(message *HandMessage) {
 	channelGameLogger.Debug().
-		Uint32("club", game.clubID).
-		Uint64("game", game.gameID).
+		Uint32("club", g.config.ClubId).
+		Str("game", g.config.GameCode).
 		Uint32("player", message.SeatNo).
 		Str("message", message.MessageType).
 		Msg(fmt.Sprintf("%v", message))
 
 	switch message.MessageType {
 	case HandPlayerActed:
-		game.onPlayerActed(message)
+		g.onPlayerActed(message)
 	case HandQueryCurrentHand:
-		game.onQueryCurrentHand(message)
+		g.onQueryCurrentHand(message)
 	}
 }
 
-func (game *Game) onQueryCurrentHand(message *HandMessage) error {
-	gameState, err := game.loadState()
+func (g *Game) onQueryCurrentHand(message *HandMessage) error {
+	gameState, err := g.loadState()
 	if err != nil {
 		return err
 	}
 
 	// get hand state
-	handState, err := game.loadHandState(gameState)
+	handState, err := g.loadHandState(gameState)
 	if err != nil {
 		return err
 	}
@@ -41,14 +41,14 @@ func (game *Game) onQueryCurrentHand(message *HandMessage) error {
 			HandNum: 0,
 		}
 		handStateMsg := &HandMessage{
-			GameId:      game.gameID,
+			GameId:      g.config.GameId,
 			PlayerId:    message.GetPlayerId(),
 			HandNum:     0,
 			MessageType: HandQueryCurrentHand,
 			HandMessage: &HandMessage_CurrentHandState{CurrentHandState: &currentHandState},
 		}
 
-		game.sendHandMessageToPlayer(handStateMsg, message.GetPlayerId())
+		g.sendHandMessageToPlayer(handStateMsg, message.GetPlayerId())
 		return nil
 	}
 
@@ -102,12 +102,12 @@ func (game *Game) onQueryCurrentHand(message *HandMessage) error {
 	}
 
 	if playerSeatNo != 0 {
-		_, maskedCards := game.maskCards(handState.GetPlayersCards()[playerSeatNo],
+		_, maskedCards := g.maskCards(handState.GetPlayersCards()[playerSeatNo],
 			gameState.PlayersState[message.PlayerId].GameTokenInt)
 		currentHandState.PlayerCards = fmt.Sprintf("%d", maskedCards)
 	}
 	currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
-	currentHandState.RemainingActionTime = game.remainingActionTime
+	currentHandState.RemainingActionTime = g.remainingActionTime
 	currentHandState.PlayersStack = make(map[uint64]float32, 0)
 	playerState := handState.GetPlayersState()
 	for seatNoIdx, playerID := range handState.GetPlayersInSeats() {
@@ -120,36 +120,38 @@ func (game *Game) onQueryCurrentHand(message *HandMessage) error {
 	currentHandState.NextSeatAction = handState.NextSeatAction
 
 	handStateMsg := &HandMessage{
-		ClubId:      game.clubID,
-		GameId:      game.gameID,
+		ClubId:      g.config.ClubId,
+		GameId:      g.config.GameId,
 		PlayerId:    message.GetPlayerId(),
 		HandNum:     handState.HandNum,
 		MessageType: HandQueryCurrentHand,
 		HandMessage: &HandMessage_CurrentHandState{CurrentHandState: &currentHandState},
 	}
-	game.sendHandMessageToPlayer(handStateMsg, message.GetPlayerId())
+	g.sendHandMessageToPlayer(handStateMsg, message.GetPlayerId())
 	return nil
 }
 
-func (game *Game) onPlayerActed(message *HandMessage) error {
+func (g *Game) onPlayerActed(message *HandMessage) error {
 
 	channelGameLogger.Info().
-		Uint32("club", game.clubID).
-		Uint64("game", game.gameID).
+		Uint32("club", g.config.ClubId).
+		Str("game", g.config.GameCode).
 		Uint32("player", message.SeatNo).
 		Str("message", message.MessageType).
 		Msg(fmt.Sprintf("%v", message))
 
-	// pause play timer
-	game.pausePlayTimer()
+	if message.SeatNo == g.timerSeatNo {
+		// pause play timer
+		g.pausePlayTimer(message.SeatNo)
+	}
 
-	gameState, err := game.loadState()
+	gameState, err := g.loadState()
 	if err != nil {
 		return err
 	}
 
 	// get hand state
-	handState, err := game.loadHandState(gameState)
+	handState, err := g.loadHandState(gameState)
 	if err != nil {
 		return err
 	}
@@ -167,7 +169,7 @@ func (game *Game) onPlayerActed(message *HandMessage) error {
 		return err
 	}
 
-	err = game.saveHandState(gameState, handState)
+	err = g.saveHandState(gameState, handState)
 	if err != nil {
 		return err
 	}
@@ -178,30 +180,30 @@ func (game *Game) onPlayerActed(message *HandMessage) error {
 
 	message.GetPlayerActed().Stack = handState.PlayersState[playerID].Balance
 	// broadcast this message to all the players
-	game.broadcastHandMessage(message)
+	g.broadcastHandMessage(message)
 
 	// if only one player is remaining in the hand, we have a winner
 	if handState.NoActiveSeats == 1 {
-		game.sendWinnerBeforeShowdown(gameState, handState)
+		g.sendWinnerBeforeShowdown(gameState, handState)
 		// result of the hand is sent
 
 		// wait for the animation to complete before we send the next hand
 		// if it is not auto deal, we return from here
-		if !game.autoDeal {
+		if !g.autoDeal {
 			return nil
 		}
 	} else {
 		// if the current player is where the action ends, move to the next round
-		game.moveToNextAct(gameState, handState)
+		g.moveToNextAct(gameState, handState)
 	}
 
 	return nil
 }
 
-func (game *Game) gotoFlop(gameState *GameState, handState *HandState) {
+func (g *Game) gotoFlop(gameState *GameState, handState *HandState) {
 	channelGameLogger.Info().
-		Uint32("club", game.clubID).
-		Uint64("game", game.gameID).
+		Uint32("club", g.config.ClubId).
+		Str("game", g.config.GameCode).
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
 	// we need to send flop cards to the board
@@ -218,7 +220,7 @@ func (game *Game) gotoFlop(gameState *GameState, handState *HandState) {
 	}
 
 	handState.setupFlop(boardCards)
-	game.saveHandState(gameState, handState)
+	g.saveHandState(gameState, handState)
 	pots := make([]float32, 0)
 	for _, pot := range handState.Pots {
 		pots = append(pots, pot.Pot)
@@ -226,20 +228,20 @@ func (game *Game) gotoFlop(gameState *GameState, handState *HandState) {
 
 	cardsStr := poker.CardsToString(boardCards)
 	flopMessage := &Flop{Board: boardCards, CardsStr: cardsStr, Pots: pots, SeatsPots: handState.Pots}
-	handMessage := &HandMessage{ClubId: game.clubID,
-		GameId:      game.gameID,
+	handMessage := &HandMessage{ClubId: g.config.ClubId,
+		GameId:      g.config.GameId,
 		HandNum:     handState.HandNum,
 		MessageType: HandFlop,
 		HandStatus:  handState.CurrentState}
 	handMessage.HandMessage = &HandMessage_Flop{Flop: flopMessage}
-	game.broadcastHandMessage(handMessage)
-	game.saveHandState(gameState, handState)
+	g.broadcastHandMessage(handMessage)
+	g.saveHandState(gameState, handState)
 }
 
-func (game *Game) gotoTurn(gameState *GameState, handState *HandState) {
+func (g *Game) gotoTurn(gameState *GameState, handState *HandState) {
 	channelGameLogger.Info().
-		Uint32("club", game.clubID).
-		Uint64("game", game.gameID).
+		Uint32("club", g.config.ClubId).
+		Str("game", g.config.GameCode).
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
 	// send turn card to the board
@@ -250,7 +252,7 @@ func (game *Game) gotoTurn(gameState *GameState, handState *HandState) {
 		turn := uint32(deck.Draw(1)[0].GetByte())
 	*/
 	handState.setupTurn(handState.TurnCard)
-	game.saveHandState(gameState, handState)
+	g.saveHandState(gameState, handState)
 
 	cardsStr := poker.CardsToString(handState.BoardCards)
 	boardCards := make([]uint32, len(handState.BoardCards))
@@ -262,20 +264,20 @@ func (game *Game) gotoTurn(gameState *GameState, handState *HandState) {
 		pots = append(pots, pot.Pot)
 	}
 	turnMessage := &Turn{Board: boardCards, TurnCard: uint32(handState.TurnCard), CardsStr: cardsStr, Pots: pots, SeatsPots: handState.Pots}
-	handMessage := &HandMessage{ClubId: game.clubID,
-		GameId:      game.gameID,
+	handMessage := &HandMessage{ClubId: g.config.ClubId,
+		GameId:      g.config.GameId,
 		HandNum:     handState.HandNum,
 		MessageType: HandTurn,
 		HandStatus:  handState.CurrentState}
 	handMessage.HandMessage = &HandMessage_Turn{Turn: turnMessage}
-	game.broadcastHandMessage(handMessage)
-	game.saveHandState(gameState, handState)
+	g.broadcastHandMessage(handMessage)
+	g.saveHandState(gameState, handState)
 }
 
-func (game *Game) gotoRiver(gameState *GameState, handState *HandState) {
+func (g *Game) gotoRiver(gameState *GameState, handState *HandState) {
 	channelGameLogger.Info().
-		Uint32("club", game.clubID).
-		Uint64("game", game.gameID).
+		Uint32("club", g.config.ClubId).
+		Str("game", g.config.GameCode).
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
 	// send river card to the board
@@ -287,7 +289,7 @@ func (game *Game) gotoRiver(gameState *GameState, handState *HandState) {
 	*/
 
 	handState.setupRiver(handState.RiverCard)
-	game.saveHandState(gameState, handState)
+	g.saveHandState(gameState, handState)
 
 	cardsStr := poker.CardsToString(handState.BoardCards)
 	boardCards := make([]uint32, len(handState.BoardCards))
@@ -299,83 +301,83 @@ func (game *Game) gotoRiver(gameState *GameState, handState *HandState) {
 		pots = append(pots, pot.Pot)
 	}
 	riverMessage := &River{Board: boardCards, RiverCard: uint32(handState.RiverCard), CardsStr: cardsStr, Pots: pots, SeatsPots: handState.Pots}
-	handMessage := &HandMessage{ClubId: game.clubID,
-		GameId:      game.gameID,
+	handMessage := &HandMessage{ClubId: g.config.ClubId,
+		GameId:      g.config.GameId,
 		HandNum:     handState.HandNum,
 		MessageType: HandRiver,
 		HandStatus:  handState.CurrentState}
 	handMessage.HandMessage = &HandMessage_River{River: riverMessage}
-	game.broadcastHandMessage(handMessage)
-	game.saveHandState(gameState, handState)
+	g.broadcastHandMessage(handMessage)
+	g.saveHandState(gameState, handState)
 }
 
-func (game *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandState) error {
+func (g *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandState) error {
 	// every one folded except one player, send the pot to the player
 	handState.everyOneFoldedWinners()
-	err := game.saveHandState(gameState, handState)
+	err := g.saveHandState(gameState, handState)
 	if err != nil {
 		return err
 	}
 
 	// now send the data to users
 	handMessage := &HandMessage{
-		ClubId:      game.clubID,
-		GameId:      game.gameID,
+		ClubId:      g.config.ClubId,
+		GameId:      g.config.GameId,
 		HandNum:     handState.HandNum,
 		MessageType: HandResultMessage,
 		HandStatus:  handState.CurrentState,
 	}
 
 	// send the hand to the database to store first
-	handResult := game.getHandResult(gameState, handState, nil, true /*db*/)
-	game.saveHandResult(handResult)
+	handResult := g.getHandResult(gameState, handState, nil, true /*db*/)
+	g.saveHandResult(handResult)
 
 	// send to all the players
-	handResult = game.getHandResult(gameState, handState, nil, false /*db*/)
+	handResult = g.getHandResult(gameState, handState, nil, false /*db*/)
 	handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
-	game.broadcastHandMessage(handMessage)
+	g.broadcastHandMessage(handMessage)
 
 	// send a message to game to start new hand
 	gameMessage := &GameMessage{
-		GameId:      game.gameID,
+		GameId:      g.config.GameId,
 		MessageType: GameMoveToNextHand,
 	}
-	go game.SendGameMessage(gameMessage)
+	go g.SendGameMessage(gameMessage)
 
 	return nil
 }
 
-func (game *Game) moveToNextRound(gameState *GameState, handState *HandState) {
+func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) {
 	if handState.LastState == HandStatus_DEAL {
 		return
 	}
 
 	if handState.LastState == HandStatus_PREFLOP && handState.CurrentState == HandStatus_FLOP {
-		game.gotoFlop(gameState, handState)
+		g.gotoFlop(gameState, handState)
 	} else if handState.LastState == HandStatus_FLOP && handState.CurrentState == HandStatus_TURN {
-		game.gotoTurn(gameState, handState)
+		g.gotoTurn(gameState, handState)
 	} else if handState.LastState == HandStatus_TURN && handState.CurrentState == HandStatus_RIVER {
-		game.gotoRiver(gameState, handState)
+		g.gotoRiver(gameState, handState)
 	} else if handState.LastState == HandStatus_RIVER && handState.CurrentState == HandStatus_SHOW_DOWN {
-		game.gotoShowdown(gameState, handState)
+		g.gotoShowdown(gameState, handState)
 	}
 }
 
-func (game *Game) moveToNextAct(gameState *GameState, handState *HandState) {
+func (g *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 	if handState.isAllActivePlayersAllIn() {
-		game.handleNoMoreActions(gameState, handState)
+		g.handleNoMoreActions(gameState, handState)
 	} else {
 
 		if handState.LastState != handState.CurrentState {
 			// move to next round
-			game.moveToNextRound(gameState, handState)
+			g.moveToNextRound(gameState, handState)
 		}
 
 		if handState.NextSeatAction != nil {
 			// tell the next player to act
 			nextSeatMessage := &HandMessage{
-				ClubId:      game.clubID,
-				GameId:      game.gameID,
+				ClubId:      g.config.ClubId,
+				GameId:      g.config.GameId,
 				HandNum:     handState.HandNum,
 				MessageType: HandPlayerAction,
 			}
@@ -388,8 +390,8 @@ func (game *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 			}
 			nextSeatMessage.HandMessage = &HandMessage_SeatAction{SeatAction: handState.NextSeatAction}
 			playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo-1]
-			game.sendHandMessageToPlayer(nextSeatMessage, playerID)
-			game.resetTimer(handState.NextSeatAction.SeatNo, playerID, canCheck)
+			g.sendHandMessageToPlayer(nextSeatMessage, playerID)
+			g.resetTimer(handState.NextSeatAction.SeatNo, playerID, canCheck)
 
 			pots := make([]float32, 0)
 			for _, pot := range handState.Pots {
@@ -410,50 +412,50 @@ func (game *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 				SeatsPots:  handState.Pots,
 			}
 			message := &HandMessage{
-				ClubId:      game.clubID,
-				GameId:      game.gameID,
+				ClubId:      g.config.ClubId,
+				GameId:      g.config.GameId,
 				HandNum:     handState.HandNum,
 				HandStatus:  handState.CurrentState,
 				MessageType: HandNextAction,
 			}
 			message.HandMessage = &HandMessage_ActionChange{ActionChange: actionChange}
-			game.broadcastHandMessage(message)
+			g.broadcastHandMessage(message)
 		}
 	}
 }
 
-func (game *Game) handleNoMoreActions(gameState *GameState, handState *HandState) {
+func (g *Game) handleNoMoreActions(gameState *GameState, handState *HandState) {
 
 	// broadcast the players no more actions
 	handMessage := &NoMoreActions{
 		Pots: handState.Pots,
 	}
 	message := &HandMessage{
-		ClubId:      game.clubID,
-		GameId:      game.gameID,
+		ClubId:      g.config.ClubId,
+		GameId:      g.config.GameId,
 		HandNum:     handState.HandNum,
 		HandStatus:  handState.CurrentState,
 		MessageType: HandNoMoreActions,
 	}
 	message.HandMessage = &HandMessage_NoMoreActions{NoMoreActions: handMessage}
-	game.broadcastHandMessage(message)
+	g.broadcastHandMessage(message)
 	for handState.CurrentState != HandStatus_SHOW_DOWN {
 		switch handState.CurrentState {
 		case HandStatus_FLOP:
-			game.gotoFlop(gameState, handState)
+			g.gotoFlop(gameState, handState)
 			handState.CurrentState = HandStatus_TURN
 		case HandStatus_TURN:
-			game.gotoTurn(gameState, handState)
+			g.gotoTurn(gameState, handState)
 			handState.CurrentState = HandStatus_RIVER
 		case HandStatus_RIVER:
-			game.gotoRiver(gameState, handState)
+			g.gotoRiver(gameState, handState)
 			handState.CurrentState = HandStatus_SHOW_DOWN
 		}
 	}
-	game.gotoShowdown(gameState, handState)
+	g.gotoShowdown(gameState, handState)
 }
 
-func (game *Game) gotoShowdown(gameState *GameState, handState *HandState) {
+func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 	evaluate := NewHoldemWinnerEvaluate(gameState, handState)
 	if gameState.GameType == GameType_HOLDEM {
 		evaluate.evaluate()
@@ -462,27 +464,27 @@ func (game *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 
 		// now send the data to users
 		handMessage := &HandMessage{
-			ClubId:      game.clubID,
-			GameId:      game.gameID,
+			ClubId:      g.config.ClubId,
+			GameId:      g.config.GameId,
 			HandNum:     handState.HandNum,
 			MessageType: HandResultMessage,
 			HandStatus:  handState.CurrentState,
 		}
 
 		// send the hand to the database to store first
-		handResult := game.getHandResult(gameState, handState, nil, true /*db*/)
-		game.saveHandResult(handResult)
+		handResult := g.getHandResult(gameState, handState, nil, true /*db*/)
+		g.saveHandResult(handResult)
 
-		handResult = game.getHandResult(gameState, handState, nil, false /*db*/)
+		handResult = g.getHandResult(gameState, handState, nil, false /*db*/)
 		handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
-		game.broadcastHandMessage(handMessage)
+		g.broadcastHandMessage(handMessage)
 
 		// send a message to game to start new hand
 		gameMessage := &GameMessage{
-			GameId:      game.gameID,
+			GameId:      g.config.GameId,
 			MessageType: GameMoveToNextHand,
 		}
-		go game.SendGameMessage(gameMessage)
+		go g.SendGameMessage(gameMessage)
 		_ = 0
 	}
 }
@@ -522,7 +524,7 @@ func (g *Game) getHandResult(gameState *GameState, h *HandState, evaluate *Holde
 
 	handResult.HandLog = h.getLog()
 
-	handResult.RewardTrackingIds = g.rewardTrackingIds
+	handResult.RewardTrackingIds = g.config.RewardTrackingIds
 	handResult.Turn = h.TurnCard
 	handResult.River = h.RiverCard
 	if h.BoardCards != nil {

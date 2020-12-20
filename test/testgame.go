@@ -24,12 +24,27 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	gameType game.GameType,
 	name string,
 	autoStart bool,
-	players []game.GamePlayer) (*TestGame, *TestPlayer) {
+	players []game.GamePlayer) (*TestGame, *TestPlayer, error) {
 
 	gamePlayers := make(map[uint64]*TestPlayer)
 	gameCode := fmt.Sprintf("000000")
 	maxPlayers := 9
-	serverGame, gameID := game.GameManager.InitializeGame(nil, clubID, 0, gameType, gameCode, name, len(players), maxPlayers, autoStart, false, 5, nil)
+	config := game.GameConfig{
+		ClubId:     clubID,
+		GameType:   gameType,
+		GameCode:   gameCode,
+		MinPlayers: len(players),
+		MaxPlayers: maxPlayers,
+		AutoStart:  autoStart,
+		SmallBlind: gameScript.gameScript.GameConfig.SmallBlind,
+		BigBlind:   gameScript.gameScript.GameConfig.BigBlind,
+		ActionTime: 5,
+	}
+
+	serverGame, gameID, err := game.GameManager.InitializeGame(nil, &config, false)
+	if err != nil {
+		return nil, nil, err
+	}
 	serverGame.SetScriptTest(true)
 
 	for _, playerInfo := range players {
@@ -54,7 +69,7 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 		players:    gamePlayers,
 		observerCh: observerCh,
 		observer:   observer,
-	}, observer
+	}, observer, nil
 }
 
 func (t *TestGame) Start(playerAtSeats []game.PlayerSeat) {

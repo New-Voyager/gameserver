@@ -128,7 +128,7 @@ func handleNewGame(data []byte) {
 	}
 
 	// update table status
-	UpdateTableStatus(gameConfig.GameId, game.TableStatus_TABLE_STATUS_WAITING_TO_BE_STARTED)
+	UpdateTableStatus(gameConfig.GameId, game.TableStatus_WAITING_TO_BE_STARTED)
 }
 
 func handleGameStatus(data []byte) {

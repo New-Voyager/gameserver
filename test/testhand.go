@@ -143,6 +143,7 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.Betting
 				ClubId:      h.gameScript.testGame.clubID,
 				GameId:      h.gameScript.testGame.gameID,
 				HandNum:     h.hand.Num,
+				SeatNo:      action.SeatNo,
 				MessageType: game.HandPlayerActed,
 			}
 			actionType := game.ACTION(game.ACTION_value[action.Action])
