@@ -90,28 +90,12 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 		natsLogger.Error().Msg(fmt.Sprintf("Failed to subscribe to %s", player2HandSubject))
 		return nil, e
 	}
-	/*
-		natsGame.player2GameSub, e = nc.Subscribe(player2GameSubject, natsGame.player2Game)
-		if e != nil {
-			natsLogger.Error().Msg(fmt.Sprintf("Failed to subscribe to %s", player2GameSubject))
-			natsGame.player2HandSub.Unsubscribe()
-			return nil, e
-		}
-	*/
-	gameType := game.GameType(game.GameType_value[config.GameTypeStr])
 
 	if config.ActionTime == 0 {
 		config.ActionTime = 20
 	}
 
-	serverGame, gameID := game.GameManager.InitializeGame(*natsGame, clubID,
-		gameID,
-		gameType,
-		config.GameCode,
-		config.Title,
-		int(config.MinPlayers),
-		int(config.MaxPlayers),
-		config.AutoStart, true, uint32(config.ActionTime), config.RewardTrackingIds)
+	serverGame, gameID := game.GameManager.InitializeGame(*natsGame, config, true)
 	natsGame.serverGame = serverGame
 	return natsGame, nil
 }

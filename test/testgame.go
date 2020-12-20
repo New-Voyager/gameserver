@@ -29,7 +29,17 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	gamePlayers := make(map[uint64]*TestPlayer)
 	gameCode := fmt.Sprintf("000000")
 	maxPlayers := 9
-	serverGame, gameID := game.GameManager.InitializeGame(nil, clubID, 0, gameType, gameCode, name, len(players), maxPlayers, autoStart, false, 5, nil)
+	config := game.GameConfig{
+		ClubId:     clubID,
+		GameType:   gameType,
+		GameCode:   gameCode,
+		MinPlayers: len(players),
+		MaxPlayers: maxPlayers,
+		AutoStart:  autoStart,
+		ActionTime: 5,
+	}
+
+	serverGame, gameID := game.GameManager.InitializeGame(nil, &config, false)
 	serverGame.SetScriptTest(true)
 
 	for _, playerInfo := range players {
