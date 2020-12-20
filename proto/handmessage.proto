@@ -35,18 +35,24 @@ message ActionChange {
 message Flop {
   repeated uint32 board = 1;
   string cardsStr = 2; // string representation of the cards for logging
+  repeated float pots = 3; // pots in the center
+  repeated SeatsInPots seats_pots = 4; // seats that participate in the pots
 }
 
 message Turn {
   repeated uint32 board = 1;
   uint32 turn_card = 2;
   string cardsStr = 3; // string representation of the cards for logging
+  repeated float pots = 4; // pots in the center
+  repeated SeatsInPots seats_pots = 5; // seats that participate in the pots
 }
 
 message River {
   repeated uint32 board = 1;
   uint32 river_card = 2;
   string cardsStr = 3; // string representation of the cards for logging
+  repeated float pots = 4; // pots in the center
+  repeated SeatsInPots seats_pots = 5; // seats that participate in the pots
 }
 
 message SeatCards {
@@ -56,6 +62,8 @@ message SeatCards {
 
 message Showdown {
   repeated SeatCards seat_cards = 1;  // cards of all the active players
+  repeated float pots = 2; // pots in the center
+  repeated SeatsInPots seats_pots = 3; // seats that participate in the pots
 }
 
 message NoMoreActions {
