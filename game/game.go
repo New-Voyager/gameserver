@@ -70,7 +70,7 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, co
 		channelGameLogger.Error().Msgf("Game cannot be configured with small blind and big blind")
 		return nil, fmt.Errorf("Blinds must be set. SmallBlind: %f BigBlind: %f", config.SmallBlind, config.BigBlind)
 	}
-	game := Game{
+	g := Game{
 		manager:         gameManager,
 		messageReceiver: messageReceiver,
 		config:          config,
@@ -78,25 +78,25 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, co
 		testButtonPos:   -1,
 		apiServerUrl:    apiServerUrl,
 	}
-	game.allPlayers = make(map[uint64]*Player)
-	game.chGame = make(chan []byte)
-	game.chHand = make(chan []byte, 1)
-	game.chPlayTimedOut = make(chan timerMsg)
-	game.chResetTimer = make(chan timerMsg)
-	game.chPauseTimer = make(chan bool)
-	game.end = make(chan bool)
-	game.waitingPlayers = make([]uint64, 0)
-	game.players = make(map[uint64]string)
-	game.initialize()
-	return &game, nil
+	g.allPlayers = make(map[uint64]*Player)
+	g.chGame = make(chan []byte)
+	g.chHand = make(chan []byte, 1)
+	g.chPlayTimedOut = make(chan timerMsg)
+	g.chResetTimer = make(chan timerMsg)
+	g.chPauseTimer = make(chan bool)
+	g.end = make(chan bool)
+	g.waitingPlayers = make([]uint64, 0)
+	g.players = make(map[uint64]string)
+	g.initialize()
+	return &g, nil
 }
 
-func (game *Game) SetScriptTest(scriptTest bool) {
-	game.scriptTest = scriptTest
+func (g *Game) SetScriptTest(scriptTest bool) {
+	g.scriptTest = scriptTest
 }
 
-func (game *Game) playersInSeatsCount() int {
-	state, err := game.loadState()
+func (g *Game) playersInSeatsCount() int {
+	state, err := g.loadState()
 	if err != nil {
 		// panic
 		// TODO: FIX THIS CODE
@@ -112,7 +112,7 @@ func (game *Game) playersInSeatsCount() int {
 	return countPlayersInSeats
 }
 
-func (game *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
+func (g *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
 	var currentTimerMsg timerMsg
 	var expirationTime time.Time
 	paused := true
@@ -122,7 +122,7 @@ func (game *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
 			return
 		case <-pause:
 			paused = true
-		case msg := <-game.chResetTimer:
+		case msg := <-g.chResetTimer:
 			// Start the new timer.
 			currentTimerMsg = msg
 			expirationTime = time.Now().Add(msg.allowedTime)
@@ -134,11 +134,11 @@ func (game *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
 					remainingTime = 0
 				}
 				// track remainingActionTime to show the new observer how much time the current player has to act
-				game.remainingActionTime = uint32(remainingTime)
+				g.remainingActionTime = uint32(remainingTime)
 
 				if remainingTime <= 0 {
 					// The player timed out.
-					game.chPlayTimedOut <- currentTimerMsg
+					g.chPlayTimedOut <- currentTimerMsg
 					expirationTime = time.Time{}
 					paused = true
 				}
@@ -148,90 +148,90 @@ func (game *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
 	}
 }
 
-func (game *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool) {
-	channelGameLogger.Info().Msgf("Resetting timer. Current timer seat: %d timer: %d", seatNo, game.config.ActionTime)
-	fmt.Printf("Resetting timer. Current timer seat: %d timer: %d\n", seatNo, game.config.ActionTime)
-	game.timerSeatNo = seatNo
-	game.actionTimeStart = time.Now()
-	game.chResetTimer <- timerMsg{
+func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool) {
+	channelGameLogger.Info().Msgf("Resetting timer. Current timer seat: %d timer: %d", seatNo, g.config.ActionTime)
+	fmt.Printf("Resetting timer. Current timer seat: %d timer: %d\n", seatNo, g.config.ActionTime)
+	g.timerSeatNo = seatNo
+	g.actionTimeStart = time.Now()
+	g.chResetTimer <- timerMsg{
 		seatNo:      seatNo,
 		playerID:    playerID,
-		allowedTime: time.Duration(game.config.ActionTime) * time.Second,
+		allowedTime: time.Duration(g.config.ActionTime) * time.Second,
 		canCheck:    canCheck,
 	}
 }
 
-func (game *Game) runGame() {
+func (g *Game) runGame() {
 	stopTimerLoop := make(chan bool)
 	defer func() {
 		stopTimerLoop <- true
 	}()
-	go game.timerLoop(stopTimerLoop, game.chPauseTimer)
+	go g.timerLoop(stopTimerLoop, g.chPauseTimer)
 
 	ended := false
 	for !ended {
-		if !game.running {
-			started, err := game.startGame()
+		if !g.running {
+			started, err := g.startGame()
 			if err != nil {
 				channelGameLogger.Error().
-					Uint32("club", game.config.ClubId).
-					Str("game", game.config.GameCode).
+					Uint32("club", g.config.ClubId).
+					Str("game", g.config.GameCode).
 					Msg(fmt.Sprintf("Failed to start game: %v", err))
 			} else {
 				if started {
-					game.running = true
+					g.running = true
 				}
 			}
 		}
 		select {
-		case <-game.end:
+		case <-g.end:
 			ended = true
-		case message := <-game.chHand:
+		case message := <-g.chHand:
 			var handMessage HandMessage
 			err := proto.Unmarshal(message, &handMessage)
 			if err == nil {
-				game.handleHandMessage(&handMessage)
+				g.handleHandMessage(&handMessage)
 			}
-		case message := <-game.chGame:
+		case message := <-g.chGame:
 			var gameMessage GameMessage
 			err := proto.Unmarshal(message, &gameMessage)
 			if err == nil {
-				game.handleGameMessage(&gameMessage)
+				g.handleGameMessage(&gameMessage)
 			}
-		case timeoutMsg := <-game.chPlayTimedOut:
-			err := game.handlePlayTimeout(timeoutMsg)
+		case timeoutMsg := <-g.chPlayTimedOut:
+			err := g.handlePlayTimeout(timeoutMsg)
 			if err != nil {
 				channelGameLogger.Error().Msgf("Error while handling player timeout %+v", err)
 			}
 		default:
-			if !game.running {
-				playersInSeats := game.playersInSeatsCount()
+			if !g.running {
+				playersInSeats := g.playersInSeatsCount()
 				channelGameLogger.Trace().
-					Uint32("club", game.config.ClubId).
-					Str("game", game.config.GameCode).
+					Uint32("club", g.config.ClubId).
+					Str("game", g.config.GameCode).
 					Msg(fmt.Sprintf("Waiting for players to join. %d players in the table, and waiting for %d more players",
-						playersInSeats, game.config.MinPlayers-playersInSeats))
+						playersInSeats, g.config.MinPlayers-playersInSeats))
 				time.Sleep(50 * time.Millisecond)
 			}
 			time.Sleep(10 * time.Millisecond)
 		}
 	}
-	game.manager.gameEnded(game)
+	g.manager.gameEnded(g)
 }
 
-func (game *Game) pausePlayTimer(seatNo uint32) {
-	actionResponseTime := time.Now().Sub(game.actionTimeStart)
+func (g *Game) pausePlayTimer(seatNo uint32) {
+	actionResponseTime := time.Now().Sub(g.actionTimeStart)
 
 	fmt.Printf("Pausing timer. Seat responded seat: %d Responded in: %fs \n", seatNo, actionResponseTime.Seconds())
-	game.chPauseTimer <- true
+	g.chPauseTimer <- true
 }
 
-func (game *Game) handlePlayTimeout(timeoutMsg timerMsg) error {
-	gameState, err := game.loadState()
+func (g *Game) handlePlayTimeout(timeoutMsg timerMsg) error {
+	gameState, err := g.loadState()
 	if err != nil {
 		return err
 	}
-	handState, err := game.loadHandState(gameState)
+	handState, err := g.loadHandState(gameState)
 	if err != nil {
 		return err
 	}
@@ -250,40 +250,42 @@ func (game *Game) handlePlayTimeout(timeoutMsg timerMsg) error {
 
 	handMessage := HandMessage{
 		MessageType: HandPlayerActed,
-		GameId:      game.config.GameId,
-		ClubId:      game.config.ClubId,
+		GameId:      g.config.GameId,
+		ClubId:      g.config.ClubId,
 		HandNum:     handState.HandNum,
 		HandStatus:  handState.CurrentState,
 		HandMessage: &HandMessage_PlayerActed{PlayerActed: &handAction},
 	}
-	game.SendHandMessage(&handMessage)
+	g.SendHandMessage(&handMessage)
 	return nil
 }
 
-func (game *Game) initialize() error {
+func (g *Game) initialize() error {
 	playersState := make(map[uint64]*PlayerState)
-	playersInSeats := make([]uint64, game.config.MaxPlayers)
+	playersInSeats := make([]uint64, g.config.MaxPlayers)
 
 	// initialize game state
 	gameState := GameState{
-		ClubId:                game.config.ClubId,
-		GameId:                game.config.GameId,
+		ClubId:                g.config.ClubId,
+		GameId:                g.config.GameId,
 		PlayersInSeats:        playersInSeats,
 		PlayersState:          playersState,
 		UtgStraddleAllowed:    false,
 		ButtonStraddleAllowed: false,
 		Status:                GameStatus_CONFIGURED,
-		GameType:              game.config.GameType,
-		MinPlayers:            uint32(game.config.MinPlayers),
+		GameType:              g.config.GameType,
+		MinPlayers:            uint32(g.config.MinPlayers),
 		HandNum:               0,
 		ButtonPos:             0,
-		SmallBlind:            float32(game.config.SmallBlind),
-		BigBlind:              float32(game.config.BigBlind),
-		MaxSeats:              uint32(game.config.MaxPlayers),
+		SmallBlind:            float32(g.config.SmallBlind),
+		BigBlind:              float32(g.config.BigBlind),
+		MaxSeats:              uint32(g.config.MaxPlayers),
 		TableStatus:           TableStatus_WAITING_TO_BE_STARTED,
-		ActionTime:            uint32(game.config.ActionTime),
+		ActionTime:            uint32(g.config.ActionTime),
+		RakePercentage:        float32(g.config.RakePercentage),
+		RakeCap:               float32(g.config.RakeCap),
 	}
-	err := game.saveState(&gameState)
+	err := g.saveState(&gameState)
 	if err != nil {
 		panic("Could not store game state")
 		//return err
@@ -291,13 +293,13 @@ func (game *Game) initialize() error {
 	return nil
 }
 
-func (game *Game) startGame() (bool, error) {
-	gameState, err := game.loadState()
+func (g *Game) startGame() (bool, error) {
+	gameState, err := g.loadState()
 	if err != nil {
 		return false, err
 	}
 
-	if !game.config.AutoStart && gameState.Status != GameStatus_ACTIVE {
+	if !g.config.AutoStart && gameState.Status != GameStatus_ACTIVE {
 		return false, nil
 	}
 
@@ -313,23 +315,23 @@ func (game *Game) startGame() (bool, error) {
 		// not enough players
 		// set table status as not enough players
 		gameState.TableStatus = TableStatus_NOT_ENOUGH_PLAYERS
-		game.saveState(gameState)
+		g.saveState(gameState)
 
 		// TODO:
 		// broadcast this message to the players
 		// update this message in API server
 		if lastTableState != gameState.TableStatus {
-			game.broadcastTableState()
+			g.broadcastTableState()
 		}
 		return false, nil
 	}
 	gameState.TableStatus = TableStatus_GAME_RUNNING
 
 	channelGameLogger.Info().
-		Uint32("club", game.config.ClubId).
-		Str("game", game.config.GameCode).
+		Uint32("club", g.config.ClubId).
+		Str("game", g.config.GameCode).
 		Msg(fmt.Sprintf("Game started. Good luck every one. Players in the table: %d. Waiting list players: %d",
-			playersInSeats, len(game.waitingPlayers)))
+			playersInSeats, len(g.waitingPlayers)))
 
 	// assign the button pos to the first guy in the list
 	playersInSeat := gameState.PlayersInSeats
@@ -340,24 +342,24 @@ func (game *Game) startGame() (bool, error) {
 		}
 	}
 	gameState.Status = GameStatus_ACTIVE
-	err = game.saveState(gameState)
+	err = g.saveState(gameState)
 	if err != nil {
 		return false, err
 	}
-	game.running = true
+	g.running = true
 
-	gameMessage := GameMessage{MessageType: GameCurrentStatus, GameId: game.config.GameId, PlayerId: 0}
+	gameMessage := GameMessage{MessageType: GameCurrentStatus, GameId: g.config.GameId, PlayerId: 0}
 	gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: gameState.Status, TableStatus: gameState.TableStatus}}
-	game.broadcastGameMessage(&gameMessage)
+	g.broadcastGameMessage(&gameMessage)
 
-	if game.autoDeal {
-		game.dealNewHand()
+	if g.autoDeal {
+		g.dealNewHand()
 	}
 
 	return true, nil
 }
 
-func (game *Game) maskCards(playerCards []byte, gameToken uint64) ([]uint32, uint64) {
+func (g *Game) maskCards(playerCards []byte, gameToken uint64) ([]uint32, uint64) {
 	// playerCards is a map
 	card64 := make([]byte, 8)
 	cards := make([]uint32, len(playerCards))
@@ -380,22 +382,22 @@ func (game *Game) maskCards(playerCards []byte, gameToken uint64) ([]uint32, uin
 	return cards, maskedCards
 }
 
-func (game *Game) dealNewHand() error {
-	gameState, err := game.loadState()
+func (g *Game) dealNewHand() error {
+	gameState, err := g.loadState()
 	if err != nil {
 		return err
 	}
 
 	// remove the old handstate
-	handState1, _ := game.loadHandState(gameState)
+	handState1, _ := g.loadHandState(gameState)
 	if handState1 != nil {
-		game.removeHandState(gameState, handState1)
+		g.removeHandState(gameState, handState1)
 	}
 
 	moveButton := gameState.HandNum > 1
 
-	if game.testButtonPos != -1 {
-		gameState.ButtonPos = uint32(game.testButtonPos)
+	if g.testButtonPos != -1 {
+		gameState.ButtonPos = uint32(g.testButtonPos)
 		moveButton = false
 	}
 
@@ -409,46 +411,57 @@ func (game *Game) dealNewHand() error {
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
 
-	handState.initialize(gameState, game.testDeckToUse, gameState.ButtonPos, moveButton)
+	handState.initialize(gameState, g.testDeckToUse, gameState.ButtonPos, moveButton)
 
-	game.testDeckToUse = nil
-	game.testButtonPos = -1
+	g.testDeckToUse = nil
+	g.testButtonPos = -1
 	gameState.ButtonPos = handState.GetButtonPos()
 
 	// save the game and hand
-	game.saveState(gameState)
-	game.saveHandState(gameState, handState)
+	g.saveState(gameState)
+	g.saveHandState(gameState, handState)
 
 	channelGameLogger.Trace().
-		Uint32("club", game.config.ClubId).
-		Str("game", game.config.GameCode).
+		Uint32("club", g.config.ClubId).
+		Str("game", g.config.GameCode).
 		Uint32("hand", handState.HandNum).
-		Msg(fmt.Sprintf("Table: %s", handState.PrintTable(game.players)))
+		Msg(fmt.Sprintf("Table: %s", handState.PrintTable(g.players)))
 
 	handMessage := HandMessage{
 		MessageType: HandNewHand,
-		GameId:      game.config.GameId,
-		ClubId:      game.config.ClubId,
+		GameId:      g.config.GameId,
+		ClubId:      g.config.ClubId,
 		HandNum:     handState.HandNum,
 		HandStatus:  handState.CurrentState,
 	}
 	playersCards := make(map[uint32]string)
 
+	noCards := 2
+	gameType := gameState.GameType
+	switch gameState.GameType {
+	case GameType_HOLDEM:
+		noCards = 2
+	case GameType_PLO:
+		noCards = 4
+	case GameType_PLO_HILO:
+		noCards = 4
+	}
 	// send a new hand message to all players
 	newHand := NewHand{
 		ButtonPos:      handState.ButtonPos,
 		SbPos:          handState.SmallBlindPos,
 		BbPos:          handState.BigBlindPos,
 		NextActionSeat: handState.NextSeatAction.SeatNo,
-		//PlayerCards:    playersCards,
+		NoCards:        uint32(noCards),
+		GameType:       gameType,
 	}
 	// we dealt hands and setup for preflop, save handstate
 	// if we crash between state: deal and preflop, we will deal the cards again
-	game.saveHandState(gameState, handState)
+	g.saveHandState(gameState, handState)
 
 	//newHand.PlayerCards = playersCards
 	handMessage.HandMessage = &HandMessage_NewHand{NewHand: &newHand}
-	game.broadcastHandMessage(&handMessage)
+	g.broadcastHandMessage(&handMessage)
 
 	// send the cards to each player
 	for seatNo, playerID := range gameState.GetPlayersInSeats() {
@@ -467,19 +480,19 @@ func (game *Game) dealNewHand() error {
 		playerCards := handState.PlayersCards[uint32(seatNo+1)]
 		message := HandDealCards{SeatNo: uint32(seatNo + 1)}
 
-		cards, maskedCards := game.maskCards(playerCards, gameState.PlayersState[playerID].GameTokenInt)
+		cards, maskedCards := g.maskCards(playerCards, gameState.PlayersState[playerID].GameTokenInt)
 		playersCards[uint32(seatNo+1)] = fmt.Sprintf("%d", maskedCards)
 		message.Cards = fmt.Sprintf("%d", maskedCards)
 		message.CardsStr = poker.CardsToString(cards)
 
 		//messageData, _ := proto.Marshal(&message)
-		player := game.allPlayers[playerID]
-		handMessage := HandMessage{MessageType: HandDeal, GameId: game.config.GameId, ClubId: game.config.ClubId, PlayerId: playerID}
+		player := g.allPlayers[playerID]
+		handMessage := HandMessage{MessageType: HandDeal, GameId: g.config.GameId, ClubId: g.config.ClubId, PlayerId: playerID}
 		handMessage.HandMessage = &HandMessage_DealCards{DealCards: &message}
 		b, _ := proto.Marshal(&handMessage)
 
-		if *game.messageReceiver != nil {
-			(*game.messageReceiver).SendHandMessageToPlayer(&handMessage, playerID)
+		if *g.messageReceiver != nil {
+			(*g.messageReceiver).SendHandMessageToPlayer(&handMessage, playerID)
 
 		} else {
 			player.chHand <- b
@@ -488,21 +501,21 @@ func (game *Game) dealNewHand() error {
 
 	// print next action
 	channelGameLogger.Trace().
-		Uint32("club", game.config.ClubId).
-		Str("game", game.config.GameCode).
+		Uint32("club", g.config.ClubId).
+		Str("game", g.config.GameCode).
 		Uint32("hand", handState.HandNum).
-		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, gameState, game.players)))
+		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, gameState, g.players)))
 
-	game.moveToNextAct(gameState, handState)
+	g.moveToNextAct(gameState, handState)
 	return nil
 }
 
-func (game *Game) loadState() (*GameState, error) {
-	gameState, err := game.manager.gameStatePersist.Load(game.config.ClubId, game.config.GameId)
+func (g *Game) loadState() (*GameState, error) {
+	gameState, err := g.manager.gameStatePersist.Load(g.config.ClubId, g.config.GameId)
 	if err != nil {
 		channelGameLogger.Error().
-			Uint32("club", game.config.ClubId).
-			Str("game", game.config.GameCode).
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
 			Msg(fmt.Sprintf("Error loading game state.  Error: %v", err))
 		return nil, err
 	}
@@ -510,93 +523,93 @@ func (game *Game) loadState() (*GameState, error) {
 	return gameState, err
 }
 
-func (game *Game) saveState(gameState *GameState) error {
-	err := game.manager.gameStatePersist.Save(game.config.ClubId, game.config.GameId, gameState)
+func (g *Game) saveState(gameState *GameState) error {
+	err := g.manager.gameStatePersist.Save(g.config.ClubId, g.config.GameId, gameState)
 	return err
 }
 
-func (game *Game) saveHandState(gameState *GameState, handState *HandState) error {
-	err := game.manager.handStatePersist.Save(gameState.GetClubId(),
+func (g *Game) saveHandState(gameState *GameState, handState *HandState) error {
+	err := g.manager.handStatePersist.Save(gameState.GetClubId(),
 		gameState.GetGameId(),
 		handState.HandNum,
 		handState)
 	return err
 }
 
-func (game *Game) removeHandState(gameState *GameState, handState *HandState) error {
+func (g *Game) removeHandState(gameState *GameState, handState *HandState) error {
 	if gameState == nil || handState == nil {
 		return nil
 	}
 
-	err := game.manager.handStatePersist.Remove(gameState.GetClubId(),
+	err := g.manager.handStatePersist.Remove(gameState.GetClubId(),
 		gameState.GetGameId(),
 		handState.HandNum)
 	return err
 }
 
-func (game *Game) loadHandState(gameState *GameState) (*HandState, error) {
-	handState, err := game.manager.handStatePersist.Load(gameState.GetClubId(),
+func (g *Game) loadHandState(gameState *GameState) (*HandState, error) {
+	handState, err := g.manager.handStatePersist.Load(gameState.GetClubId(),
 		gameState.GetGameId(),
 		gameState.GetHandNum())
 	return handState, err
 }
 
-func (game *Game) broadcastHandMessage(message *HandMessage) {
-	message.GameCode = game.config.GameCode
-	if *game.messageReceiver != nil {
-		(*game.messageReceiver).BroadcastHandMessage(message)
+func (g *Game) broadcastHandMessage(message *HandMessage) {
+	message.GameCode = g.config.GameCode
+	if *g.messageReceiver != nil {
+		(*g.messageReceiver).BroadcastHandMessage(message)
 	} else {
 		b, _ := proto.Marshal(message)
-		for _, player := range game.allPlayers {
+		for _, player := range g.allPlayers {
 			player.chHand <- b
 		}
 	}
 }
 
-func (game *Game) broadcastGameMessage(message *GameMessage) {
-	message.GameCode = game.config.GameCode
-	if *game.messageReceiver != nil {
-		(*game.messageReceiver).BroadcastGameMessage(message)
+func (g *Game) broadcastGameMessage(message *GameMessage) {
+	message.GameCode = g.config.GameCode
+	if *g.messageReceiver != nil {
+		(*g.messageReceiver).BroadcastGameMessage(message)
 	} else {
 		b, _ := proto.Marshal(message)
-		for _, player := range game.allPlayers {
+		for _, player := range g.allPlayers {
 			player.chGame <- b
 		}
 	}
 }
 
-func (game *Game) SendGameMessage(message *GameMessage) {
-	message.GameCode = game.config.GameCode
+func (g *Game) SendGameMessage(message *GameMessage) {
+	message.GameCode = g.config.GameCode
 	b, _ := proto.Marshal(message)
-	game.chGame <- b
+	g.chGame <- b
 }
 
-func (game *Game) SendHandMessage(message *HandMessage) {
-	message.GameCode = game.config.GameCode
+func (g *Game) SendHandMessage(message *HandMessage) {
+	message.GameCode = g.config.GameCode
 	b, _ := proto.Marshal(message)
-	game.chHand <- b
+	g.chHand <- b
 }
 
-func (game *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint64) {
-	message.GameCode = game.config.GameCode
-	if *game.messageReceiver != nil {
-		(*game.messageReceiver).SendHandMessageToPlayer(message, playerID)
+func (g *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint64) {
+	message.GameCode = g.config.GameCode
+	if *g.messageReceiver != nil {
+		(*g.messageReceiver).SendHandMessageToPlayer(message, playerID)
 	} else {
-		player := game.allPlayers[playerID]
+		player := g.allPlayers[playerID]
 		b, _ := proto.Marshal(message)
 		player.chHand <- b
 	}
 }
 
-func (game *Game) addPlayer(player *Player) error {
-	game.lock.Lock()
-	defer game.lock.Unlock()
-	game.allPlayers[player.PlayerID] = player
+func (g *Game) addPlayer(player *Player) error {
+	g.lock.Lock()
+	defer g.lock.Unlock()
+	g.allPlayers[player.PlayerID] = player
 	return nil
 }
 
-func (game *Game) getPlayersAtTable() ([]*PlayerAtTableState, error) {
-	gameState, err := game.loadState()
+func (g *Game) getPlayersAtTable() ([]*PlayerAtTableState, error) {
+	gameState, err := g.loadState()
 	if err != nil {
 		return nil, err
 	}
@@ -652,17 +665,17 @@ func anyPendingUpdates(apiServerUrl string, gameID uint64) (bool, error) {
 	return updates.PendingUpdates, nil
 }
 
-func (game *Game) GameEnded() error {
-	gameState, err := game.loadState()
+func (g *Game) GameEnded() error {
+	gameState, err := g.loadState()
 	if err != nil {
 		return err
 	}
 
 	if gameState != nil {
 		// remove the old handstate
-		handState, _ := game.loadHandState(gameState)
+		handState, _ := g.loadHandState(gameState)
 		if handState != nil {
-			game.removeHandState(gameState, handState)
+			g.removeHandState(gameState, handState)
 		}
 	}
 	return nil

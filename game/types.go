@@ -40,8 +40,8 @@ type GameConfig struct {
 	MinPlayers         int      `json:"minPlayers" yaml:"min-players"`
 	MaxPlayers         int      `json:"maxPlayers" yaml:"max-players"`
 	GameLength         int      `json:"gameLength"`
-	RakePercentage     float64  `json:"rakePercentage"`
-	RakeCap            float64  `json:"rakeCap"`
+	RakePercentage     float64  `json:"rakePercentage" yaml:"rake-percentage"`
+	RakeCap            float64  `json:"rakeCap" yaml:"rake-cap"`
 	BuyInMin           float64  `json:"buyInMin" yaml:"min-buyin"`
 	BuyInMax           float64  `json:"buyInMax" yaml:"max-buyin"`
 	ActionTime         int      `json:"actionTime"`

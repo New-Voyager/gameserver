@@ -51,6 +51,7 @@ message HandPlayerState {
   Status status = 1;
   float balance = 2;
   HandStatus round = 3;
+  float playerReceived = 4;
 }
 
 message PlayerBalance {
@@ -221,6 +222,8 @@ message HandState {
   repeated uint32 flop_cards = 45;
   uint32 turn_card = 46;
   uint32 river_card = 47;
+  map <uint64, float> rake_paid = 48;  // rake paid by players 
+  float rake_collected = 49;
 }
 
 message HandWinner {
