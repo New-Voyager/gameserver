@@ -105,6 +105,7 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 		_, maskedCards := g.maskCards(handState.GetPlayersCards()[playerSeatNo],
 			gameState.PlayersState[message.PlayerId].GameTokenInt)
 		currentHandState.PlayerCards = fmt.Sprintf("%d", maskedCards)
+		currentHandState.PlayerSeatNo = playerSeatNo
 	}
 	currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
 	currentHandState.RemainingActionTime = g.remainingActionTime

@@ -134,13 +134,14 @@ message CurrentHandState {
   string cards2Str = 16; // string representation of the cards for logging
   
   string player_cards = 17;  // current player's cards if the player is playing
-  map <uint64, float> players_stack = 18; 
-  uint32 next_seat_to_act = 19;
-  uint32 remaining_action_time = 20;
+  uint32 player_seat_no = 18; // current player's seat no
+  map <uint64, float> players_stack = 19; 
+  uint32 next_seat_to_act = 20;
+  uint32 remaining_action_time = 21;
 
-  NextSeatAction next_seat_action = 21;
-  repeated float pots = 22; // pots in the center
-  float pot_updates = 23;   // pot updated based on the bets
+  NextSeatAction next_seat_action = 22;
+  repeated float pots = 23; // pots in the center
+  float pot_updates = 24;   // pot updated based on the bets
 }
 
 message HandState {
