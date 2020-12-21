@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"time"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"voyager.com/server/poker"
@@ -83,6 +84,7 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 		BigBlindPos:   handState.BigBlindPos,
 		SmallBlind:    handState.SmallBlind,
 		BigBlind:      handState.BigBlind,
+		NoCards:       g.NumCards(gameState.GameType),
 	}
 	currentHandState.PlayersActed = make(map[uint32]*PlayerActRound, 0)
 
@@ -478,6 +480,9 @@ func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 	}
 	handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
 	g.broadcastHandMessage(handMessage)
+
+	// sleep here for some interval to let the users to see the result
+	time.Sleep(5 * time.Second)
 
 	// send a message to game to start new hand
 	gameMessage := &GameMessage{

@@ -142,6 +142,7 @@ message CurrentHandState {
   NextSeatAction next_seat_action = 22;
   repeated float pots = 23; // pots in the center
   float pot_updates = 24;   // pot updated based on the bets
+  uint32 no_cards = 25;     // number of cards dealt to players
 }
 
 message HandState {

@@ -699,11 +699,15 @@ func (h *HandState) prepareNextAction(currentAction *HandAction) *NextSeatAction
 	} else {
 		if playerState.Balance > h.CurrentRaise {
 			actedState := h.PlayersActed[actionSeat-1].State
-			if actedState == PlayerActState_PLAYER_ACT_BB ||
-				actedState == PlayerActState_PLAYER_ACT_STRADDLE {
-				availableActions = append(availableActions, ACTION_CHECK)
-			} else {
+			if actedState == PlayerActState_PLAYER_ACT_NOT_ACTED {
 				availableActions = append(availableActions, ACTION_CALL)
+			} else {
+				if (actedState == PlayerActState_PLAYER_ACT_BB && h.CurrentRaise > h.BigBlind) ||
+					(actedState == PlayerActState_PLAYER_ACT_STRADDLE && h.CurrentRaise > h.Straddle) {
+					availableActions = append(availableActions, ACTION_CALL)
+				} else {
+					availableActions = append(availableActions, ACTION_CHECK)
+				}
 			}
 			nextAction.CallAmount = h.CurrentRaise
 			canRaise = true

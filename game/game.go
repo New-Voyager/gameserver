@@ -382,6 +382,19 @@ func (g *Game) maskCards(playerCards []byte, gameToken uint64) ([]uint32, uint64
 	return cards, maskedCards
 }
 
+func (g *Game) NumCards(gameType GameType) uint32 {
+	noCards := 2
+	switch gameType {
+	case GameType_HOLDEM:
+		noCards = 2
+	case GameType_PLO:
+		noCards = 4
+	case GameType_PLO_HILO:
+		noCards = 4
+	}
+	return uint32(noCards)
+}
+
 func (g *Game) dealNewHand() error {
 	gameState, err := g.loadState()
 	if err != nil {
@@ -436,23 +449,15 @@ func (g *Game) dealNewHand() error {
 	}
 	playersCards := make(map[uint32]string)
 
-	noCards := 2
 	gameType := gameState.GameType
-	switch gameState.GameType {
-	case GameType_HOLDEM:
-		noCards = 2
-	case GameType_PLO:
-		noCards = 4
-	case GameType_PLO_HILO:
-		noCards = 4
-	}
+
 	// send a new hand message to all players
 	newHand := NewHand{
 		ButtonPos:      handState.ButtonPos,
 		SbPos:          handState.SmallBlindPos,
 		BbPos:          handState.BigBlindPos,
 		NextActionSeat: handState.NextSeatAction.SeatNo,
-		NoCards:        uint32(noCards),
+		NoCards:        g.NumCards(gameType),
 		GameType:       gameType,
 	}
 	// we dealt hands and setup for preflop, save handstate
