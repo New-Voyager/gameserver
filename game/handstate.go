@@ -99,6 +99,7 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 	h.Pots = make([]*SeatsInPots, 0)
 	mainPot := initializePot(int(gameState.MaxSeats))
 	h.Pots = append(h.Pots, mainPot)
+	h.RakePaid = make(map[uint64]float32, 0)
 
 	deck.Draw(1)
 	h.DeckIndex++
@@ -766,19 +767,76 @@ func (h *HandState) setWinners(potWinners map[uint32]*PotWinners) {
 	h.PotWinners = potWinners
 	h.CurrentState = HandStatus_RESULT
 
-	// take rake from here
+	// we will always take rake from the main pot for simplicity
+	rakePaid := make(map[uint64]float32, 0)
+	rake := float32(0.0)
+	rakeFromPlayer := float32(0.0)
+	mainPotWinners := potWinners[0]
+	if h.RakePercentage > 0.0 {
+		mainPot := h.Pots[0].Pot
+		rake = float32(int(mainPot * (h.RakePercentage / 100)))
+		if rake > h.RakeCap {
+			rake = h.RakeCap
+		}
 
+		// take rake from main pot winners evenly
+		winnersCount := len(mainPotWinners.HiWinners)
+		if potWinners[0].LowWinners != nil {
+			winnersCount = winnersCount + len(mainPotWinners.LowWinners)
+		}
+
+		rakeFromPlayer = float32(int(rake / float32(winnersCount)))
+		if rakeFromPlayer == 0.0 {
+			rakeFromPlayer = 1.0
+		}
+	}
+
+	if float32(rakeFromPlayer) > 0.0 {
+		totalRakeCollected := float32(0)
+		for _, handWinner := range mainPotWinners.HiWinners {
+			if totalRakeCollected == rake {
+				break
+			}
+			seatNo := handWinner.SeatNo
+			playerID := h.GetPlayersInSeats()[seatNo-1]
+			if _, ok := rakePaid[playerID]; !ok {
+				rakePaid[playerID] = float32(rakeFromPlayer)
+			} else {
+				rakePaid[playerID] += float32(rakeFromPlayer)
+			}
+			totalRakeCollected += rakeFromPlayer
+			handWinner.Amount -= rakeFromPlayer
+		}
+		for _, handWinner := range mainPotWinners.LowWinners {
+			if totalRakeCollected == rake {
+				break
+			}
+			seatNo := handWinner.SeatNo
+			playerID := h.GetPlayersInSeats()[seatNo-1]
+			if _, ok := rakePaid[playerID]; !ok {
+				rakePaid[playerID] = float32(rakeFromPlayer)
+			} else {
+				rakePaid[playerID] += float32(rakeFromPlayer)
+			}
+			totalRakeCollected += rakeFromPlayer
+			handWinner.Amount -= rakeFromPlayer
+		}
+		h.RakePaid = rakePaid
+		h.RakeCollected = totalRakeCollected
+	}
 	// update player balance
 	for _, pot := range potWinners {
 		for _, handWinner := range pot.HiWinners {
 			seatNo := handWinner.SeatNo
 			playerID := h.GetPlayersInSeats()[seatNo-1]
 			h.PlayersState[playerID].Balance += handWinner.Amount
+			h.PlayersState[playerID].PlayerReceived += handWinner.Amount
 		}
 		for _, handWinner := range pot.LowWinners {
 			seatNo := handWinner.SeatNo
 			playerID := h.GetPlayersInSeats()[seatNo-1]
 			h.PlayersState[playerID].Balance += handWinner.Amount
+			h.PlayersState[playerID].PlayerReceived += handWinner.Amount
 		}
 	}
 

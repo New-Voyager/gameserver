@@ -103,6 +103,8 @@ message PlayerInfo {
   HandPlayerBalance balance = 6;
   repeated uint32 hh_cards = 7;     // high hand cards
   uint32 hh_rank = 8;      // high hand rank
+  float received = 9;     // received from the hand
+  float rake_paid = 10;   // rake paid by this player
 }
 
 message HandResult  {
@@ -117,6 +119,7 @@ message HandResult  {
   uint32 turn = 9;
   uint32 river = 10;
   map<uint32, PlayerInfo> players = 11;    // player cards with rank (key: seat_no)
+  float rake_collected = 13;                    // rake collected from the hand
 }
 
 //HandMessage packages the actual message with Hand information (clubid, game_num, hand_num) 
