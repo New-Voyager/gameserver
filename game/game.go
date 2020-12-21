@@ -436,13 +436,24 @@ func (g *Game) dealNewHand() error {
 	}
 	playersCards := make(map[uint32]string)
 
+	noCards := 2
+	gameType := gameState.GameType
+	switch gameState.GameType {
+	case GameType_HOLDEM:
+		noCards = 2
+	case GameType_PLO:
+		noCards = 4
+	case GameType_PLO_HILO:
+		noCards = 4
+	}
 	// send a new hand message to all players
 	newHand := NewHand{
 		ButtonPos:      handState.ButtonPos,
 		SbPos:          handState.SmallBlindPos,
 		BbPos:          handState.BigBlindPos,
 		NextActionSeat: handState.NextSeatAction.SeatNo,
-		//PlayerCards:    playersCards,
+		NoCards:        uint32(noCards),
+		GameType:       gameType,
 	}
 	// we dealt hands and setup for preflop, save handstate
 	// if we crash between state: deal and preflop, we will deal the cards again
