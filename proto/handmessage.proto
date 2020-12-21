@@ -12,6 +12,8 @@ message NewHand {
   uint32 bb_pos = 3;
   uint32 next_action_seat = 4;
   map <uint32, string> player_cards = 5;  // key: seat no, value: encrypted cards
+  GameType game_type = 6;
+  uint32 no_cards = 7;     // number of cards dealt to the players
 }
 
 //HandDealCards message is sent to each player when cards dealt to the player
