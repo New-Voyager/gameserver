@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog/log"
+	"gopkg.in/godo.v2/glob"
 	yaml "gopkg.in/yaml.v2"
 	"voyager.com/server/game"
 )
@@ -99,8 +100,11 @@ func (t *TestDriver) ReportResult() bool {
 }
 
 func RunGameScriptTests(dir string, testName string) {
+
+	pattern := fmt.Sprintf("%s/**/*.yaml", dir)
+	patterns := []string{pattern}
+	files, _, err := glob.Glob(patterns)
 	// runs game scripts and reports results
-	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		fmt.Printf("Failed to get files from dir: %s\n", dir)
 		os.Exit(1)
@@ -117,7 +121,7 @@ func RunGameScriptTests(dir string, testName string) {
 			}
 		}
 		fmt.Printf("----------------------------------------------\n")
-		testDriver.RunGameScript(fmt.Sprintf("%s/%s", dir, file.Name()))
+		testDriver.RunGameScript(file.Path)
 		fmt.Printf("----------------------------------------------\n")
 	}
 

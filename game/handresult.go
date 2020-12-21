@@ -9,17 +9,28 @@ import (
 type HandResultProcessor struct {
 	handState         *HandState
 	gameState         *GameState
-	database          bool
 	rewardTrackingIds []uint32
+	evaluator         HandEvaluator
 }
 
-func NewHandResultProcessor(handState *HandState, gameState *GameState, database bool, rewardTrackingIds []uint32) *HandResultProcessor {
+func NewHandResultProcessor(handState *HandState, gameState *GameState, rewardTrackingIds []uint32) *HandResultProcessor {
+	var evaluator HandEvaluator
+	includeHighHand := gameState.RewardTrackingIds != nil
+	if handState.GameType == GameType_HOLDEM {
+		evaluator = NewHoldemWinnerEvaluate(gameState, handState, includeHighHand)
+	} else if handState.GameType == GameType_PLO {
+		evaluator = NewPloWinnerEvaluate(gameState, handState, includeHighHand)
+	}
 	return &HandResultProcessor{
 		handState:         handState,
 		gameState:         gameState,
-		database:          database,
 		rewardTrackingIds: rewardTrackingIds,
+		evaluator:         evaluator,
 	}
+}
+
+func (hr *HandResultProcessor) getWinners() map[uint32]*PotWinners {
+	return hr.evaluator.GetWinners()
 }
 
 func (hr *HandResultProcessor) getPlayerBalance(playerID uint64) *HandPlayerBalance {
@@ -66,28 +77,35 @@ func (hr *HandResultProcessor) populateCommunityCards(handResult *HandResult) {
 	}
 }
 
-func (hr *HandResultProcessor) getResult() *HandResult {
-	var bestSeatHands map[uint32]*evaluatedCards
-	var highHands map[uint32]*evaluatedCards
+func (hr *HandResultProcessor) getResult(db bool) *HandResult {
+	var bestSeatHands map[uint32]*EvaluatedCards
+	var highHands map[uint32]*EvaluatedCards
+	if hr.handState.PotWinners == nil {
+		hr.evaluator.Evaluate()
+		// update winners in hand state
+		// this is also the method that calcualtes rake, balance etc
+		hr.handState.setWinners(hr.getWinners())
+	}
 
-	if hr.handState.BoardCards != nil {
-		evaluate := NewHoldemWinnerEvaluate(hr.gameState, hr.handState)
-		if hr.gameState.GameType == GameType_HOLDEM {
-			evaluate.evaluate()
-		}
-		// evaluate player's high hands always
-		evaluate.evaluatePlayerHighHand()
-
-		bestSeatHands = evaluate.getEvaluatedCards()
-		highHands = evaluate.getHighhandCards()
+	// we want to evaulate the hands again for the high hand if the remaining player may have the high hand
+	if (hr.handState.BoardCards != nil && hr.gameState.RewardTrackingIds != nil) ||
+		hr.handState.HandCompletedAt == HandStatus_SHOW_DOWN {
+		bestSeatHands = hr.evaluator.GetBestPlayerCards()
+		highHands = hr.evaluator.GetHighHandCards()
 		fmt.Printf("\n\n================================================================\n\n")
 		for seatNo, hand := range bestSeatHands {
-			highHand := highHands[seatNo]
-			fmt.Printf("Seat: %d, Cards:%+v, Str: %s Rank: %d, rankStr: %s, hhHand: %s rank: %d rankStr: %s\n",
-				seatNo,
-				hand.cards,
-				poker.CardsToString(hand.cards), hand.rank, poker.RankString(hand.rank),
-				poker.CardToString(highHand.cards), highHand.rank, poker.RankString((highHand.rank)))
+			if highHand, ok := highHands[seatNo]; ok {
+				fmt.Printf("Seat: %d, Cards:%+v, Str: %s Rank: %d, rankStr: %s, hhHand: %s rank: %d rankStr: %s\n",
+					seatNo,
+					hand.cards,
+					poker.CardsToString(hand.cards), hand.rank, poker.RankString(hand.rank),
+					poker.CardToString(highHand.cards), highHand.rank, poker.RankString((highHand.rank)))
+			} else {
+				fmt.Printf("Seat: %d, Cards:%+v, Str: %s Rank: %d, rankStr: %s\n",
+					seatNo,
+					hand.cards,
+					poker.CardsToString(hand.cards), hand.rank, poker.RankString(hand.rank))
+			}
 		}
 		fmt.Printf("\n\n================================================================\n\n")
 	}
@@ -133,7 +151,7 @@ func (hr *HandResultProcessor) getResult() *HandResult {
 			playerCards[i] = uint32(card)
 		}
 		if !playerFolded {
-			var evaluatedCards *evaluatedCards
+			var evaluatedCards *EvaluatedCards
 			if bestSeatHands != nil {
 				evaluatedCards = bestSeatHands[seatNo]
 				if evaluatedCards != nil {
@@ -150,7 +168,7 @@ func (hr *HandResultProcessor) getResult() *HandResult {
 			if highHands != nil {
 				if highHands[seatNo] != nil {
 					highHandRank = uint32(highHands[seatNo].rank)
-					highHandBestCards = highHands[seatNo].getCards()
+					highHandBestCards = highHands[seatNo].GetCards()
 				}
 			}
 		}
@@ -167,7 +185,7 @@ func (hr *HandResultProcessor) getResult() *HandResult {
 			playerInfo.Received = playerState.PlayerReceived
 		}
 
-		if !playerFolded || hr.database {
+		if !playerFolded || db {
 			// player is active or the result is stored in database
 			playerInfo.Cards = playerCards
 			playerInfo.BestCards = bestCards

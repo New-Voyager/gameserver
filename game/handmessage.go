@@ -329,12 +329,14 @@ func (g *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandSta
 		HandStatus:  handState.CurrentState,
 	}
 
+	handResultProcessor := NewHandResultProcessor(handState, gameState, g.config.RewardTrackingIds)
+
 	// send the hand to the database to store first
-	handResult := g.getHandResult(gameState, handState, nil, true /*db*/)
+	handResult := handResultProcessor.getResult(true /*db*/)
 	g.saveHandResult(handResult)
 
 	// send to all the players
-	handResult = g.getHandResult(gameState, handState, nil, false /*db*/)
+	handResult = handResultProcessor.getResult(false /*db*/)
 	handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
 	g.broadcastHandMessage(handMessage)
 
@@ -457,42 +459,33 @@ func (g *Game) handleNoMoreActions(gameState *GameState, handState *HandState) {
 }
 
 func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) {
-	evaluate := NewHoldemWinnerEvaluate(gameState, handState)
-	if gameState.GameType == GameType_HOLDEM {
-		evaluate.evaluate()
-		handState.HandCompletedAt = HandStatus_SHOW_DOWN
-		handState.setWinners(evaluate.winners)
 
-		// now send the data to users
-		handMessage := &HandMessage{
-			ClubId:      g.config.ClubId,
-			GameId:      g.config.GameId,
-			HandNum:     handState.HandNum,
-			MessageType: HandResultMessage,
-			HandStatus:  handState.CurrentState,
-		}
+	handState.HandCompletedAt = HandStatus_SHOW_DOWN
+	handResultProcessor := NewHandResultProcessor(handState, gameState, g.config.RewardTrackingIds)
+	// send the hand to the database to store first
+	handResult := handResultProcessor.getResult(true /*db*/)
+	g.saveHandResult(handResult)
 
-		// send the hand to the database to store first
-		handResult := g.getHandResult(gameState, handState, nil, true /*db*/)
-		g.saveHandResult(handResult)
-
-		handResult = g.getHandResult(gameState, handState, nil, false /*db*/)
-		handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
-		g.broadcastHandMessage(handMessage)
-
-		// send a message to game to start new hand
-		gameMessage := &GameMessage{
-			GameId:      g.config.GameId,
-			MessageType: GameMoveToNextHand,
-		}
-		go g.SendGameMessage(gameMessage)
-		_ = 0
+	// send to all the players
+	handResult = handResultProcessor.getResult(false /*db*/)
+	// now send the data to users
+	handMessage := &HandMessage{
+		ClubId:      g.config.ClubId,
+		GameId:      g.config.GameId,
+		HandNum:     handState.HandNum,
+		MessageType: HandResultMessage,
+		HandStatus:  handState.CurrentState,
 	}
-}
+	handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
+	g.broadcastHandMessage(handMessage)
 
-func (g *Game) getHandResult(gameState *GameState, h *HandState, evaluate *HoldemWinnerEvaluate, database bool) *HandResult {
-	handResultProcessor := NewHandResultProcessor(h, gameState, database, g.config.RewardTrackingIds)
-	return handResultProcessor.getResult()
+	// send a message to game to start new hand
+	gameMessage := &GameMessage{
+		GameId:      g.config.GameId,
+		MessageType: GameMoveToNextHand,
+	}
+	go g.SendGameMessage(gameMessage)
+	_ = 0
 }
 
 func (g *Game) saveHandResult(result *HandResult) {

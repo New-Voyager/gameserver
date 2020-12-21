@@ -2,7 +2,7 @@ package game
 
 import "voyager.com/server/poker"
 
-type HoldemWinnerEvaluate struct {
+type PloWinnerEvaluate struct {
 	handState           *HandState
 	gameState           *GameState
 	activeSeatBestCombo map[uint32]*EvaluatedCards
@@ -11,8 +11,8 @@ type HoldemWinnerEvaluate struct {
 	includeHighHand     bool
 }
 
-func NewHoldemWinnerEvaluate(gameState *GameState, handState *HandState, includeHighHand bool) *HoldemWinnerEvaluate {
-	return &HoldemWinnerEvaluate{
+func NewPloWinnerEvaluate(gameState *GameState, handState *HandState, includeHighHand bool) *PloWinnerEvaluate {
+	return &PloWinnerEvaluate{
 		handState:           handState,
 		gameState:           gameState,
 		activeSeatBestCombo: make(map[uint32]*EvaluatedCards, gameState.MaxSeats),
@@ -22,7 +22,11 @@ func NewHoldemWinnerEvaluate(gameState *GameState, handState *HandState, include
 	}
 }
 
-func (h *HoldemWinnerEvaluate) Evaluate() {
+func (h *PloWinnerEvaluate) GetWinners() map[uint32]*PotWinners {
+	return h.winners
+}
+
+func (h *PloWinnerEvaluate) Evaluate() {
 	h.evaluatePlayerBestCards()
 	for i := len(h.handState.Pots) - 1; i >= 0; i-- {
 		pot := h.handState.Pots[i]
@@ -36,11 +40,7 @@ func (h *HoldemWinnerEvaluate) Evaluate() {
 	}
 }
 
-func (h *HoldemWinnerEvaluate) GetWinners() map[uint32]*PotWinners {
-	return h.winners
-}
-
-func (h *HoldemWinnerEvaluate) determineHandWinners(pot *SeatsInPots) []*HandWinner {
+func (h *PloWinnerEvaluate) determineHandWinners(pot *SeatsInPots) []*HandWinner {
 	// determine the lowest ranking card first
 	lowestRank := int32(0x7FFFFFFF)
 	for _, seatNo := range pot.Seats {
@@ -91,24 +91,22 @@ func (h *HoldemWinnerEvaluate) determineHandWinners(pot *SeatsInPots) []*HandWin
 	return handWinners
 }
 
-func (h *HoldemWinnerEvaluate) evaluatePlayerBestCards() {
+func (h *PloWinnerEvaluate) evaluatePlayerBestCards() {
 	// determine rank for each active player
 	for seatNoIdx, active := range h.handState.ActiveSeats {
 		if active == 0 {
 			continue
 		}
 		seatCards := h.handState.PlayersCards[uint32(seatNoIdx+1)]
-		allCards := make([]byte, len(h.handState.BoardCards))
-		copy(allCards, h.handState.BoardCards)
-		allCards = append(allCards, seatCards...)
-		cards := poker.FromByteCards(allCards)
-		rank, playerBestCards := poker.Evaluate(cards)
+		playerCardsEval := poker.FromByteCards(seatCards)
+		boardCardsEval := poker.FromByteCards(h.handState.BoardCards)
+		result := poker.EvaluateOmaha(playerCardsEval, boardCardsEval)
 
 		// determine what player cards and board cards used to determine best cards
 		seatCardsInCard := poker.FromByteCards(seatCards)
 		playerCards := make([]poker.Card, 0)
 		boardCards := make([]poker.Card, 0)
-		for _, card := range playerBestCards {
+		for _, card := range result.HiCards {
 			isPlayerCard := false
 			for _, playerCard := range seatCardsInCard {
 				if playerCard == card {
@@ -123,34 +121,33 @@ func (h *HoldemWinnerEvaluate) evaluatePlayerBestCards() {
 			}
 		}
 		h.activeSeatBestCombo[uint32(seatNoIdx+1)] = &EvaluatedCards{
-			rank:        rank,
-			cards:       poker.CardsToByteCards(playerBestCards),
+			rank:        result.HiRank,
+			cards:       poker.CardsToByteCards(result.HiCards),
 			playerCards: poker.CardsToByteCards(playerCards),
 			boardCards:  poker.CardsToByteCards(boardCards),
 		}
 	}
 }
 
-func (h *HoldemWinnerEvaluate) evaluatePlayerHighHand() {
-	boardCards := poker.FromByteCards(h.handState.BoardCards)
+func (h *PloWinnerEvaluate) evaluatePlayerHighHand() {
 	// determine rank for each active player
 	for seatNoIdx, active := range h.handState.ActiveSeats {
 		if active == 0 {
 			continue
 		}
-		playerCards := poker.FromByteCards(h.handState.PlayersCards[uint32(seatNoIdx+1)])
-		highHand := poker.EvaluateHighHand(playerCards, boardCards)
+		seatNo := uint32(seatNoIdx + 1)
+		highHand := h.activeSeatBestCombo[seatNo]
 		h.highHandCombo[uint32(seatNoIdx+1)] = &EvaluatedCards{
-			rank:  highHand.HiRank,
-			cards: poker.CardsToByteCards(highHand.HiCards),
+			rank:  highHand.rank,
+			cards: highHand.cards,
 		}
 	}
 }
 
-func (h *HoldemWinnerEvaluate) GetBestPlayerCards() map[uint32]*EvaluatedCards {
+func (h *PloWinnerEvaluate) GetBestPlayerCards() map[uint32]*EvaluatedCards {
 	return h.activeSeatBestCombo
 }
 
-func (h *HoldemWinnerEvaluate) GetHighHandCards() map[uint32]*EvaluatedCards {
+func (h *PloWinnerEvaluate) GetHighHandCards() map[uint32]*EvaluatedCards {
 	return h.highHandCombo
 }
