@@ -264,6 +264,14 @@ func (g *Game) initialize() error {
 	playersState := make(map[uint64]*PlayerState)
 	playersInSeats := make([]uint64, g.config.MaxPlayers)
 
+	var rewardTrackingIds []uint64
+	if g.config.RewardTrackingIds != nil && len(g.config.RewardTrackingIds) > 0 {
+		rewardTrackingIds = make([]uint64, len(g.config.RewardTrackingIds))
+		for i, id := range g.config.RewardTrackingIds {
+			rewardTrackingIds[i] = uint64(id)
+		}
+	}
+
 	// initialize game state
 	gameState := GameState{
 		ClubId:                g.config.ClubId,
@@ -284,6 +292,7 @@ func (g *Game) initialize() error {
 		ActionTime:            uint32(g.config.ActionTime),
 		RakePercentage:        float32(g.config.RakePercentage),
 		RakeCap:               float32(g.config.RakeCap),
+		RewardTrackingIds:     rewardTrackingIds,
 	}
 	err := g.saveState(&gameState)
 	if err != nil {
