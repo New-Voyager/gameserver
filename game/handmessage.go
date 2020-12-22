@@ -37,7 +37,8 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 	if err != nil {
 		return err
 	}
-	if handState == nil || handState.HandNum == 0 {
+
+	if handState == nil || handState.HandNum == 0 || handState.CurrentState == HandStatus_HAND_CLOSED {
 		currentHandState := CurrentHandState{
 			HandNum: 0,
 		}
@@ -316,7 +317,10 @@ func (g *Game) gotoRiver(gameState *GameState, handState *HandState) {
 
 func (g *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandState) error {
 	// every one folded except one player, send the pot to the player
+	status := handState.CurrentState
 	handState.everyOneFoldedWinners()
+
+	handState.CurrentState = HandStatus_HAND_CLOSED
 	err := g.saveHandState(gameState, handState)
 	if err != nil {
 		return err
@@ -328,7 +332,7 @@ func (g *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandSta
 		GameId:      g.config.GameId,
 		HandNum:     handState.HandNum,
 		MessageType: HandResultMessage,
-		HandStatus:  handState.CurrentState,
+		HandStatus:  status,
 	}
 
 	handResultProcessor := NewHandResultProcessor(handState, gameState, g.config.RewardTrackingIds)
@@ -342,13 +346,16 @@ func (g *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandSta
 	handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
 	g.broadcastHandMessage(handMessage)
 
-	// send a message to game to start new hand
-	gameMessage := &GameMessage{
-		GameId:      g.config.GameId,
-		MessageType: GameMoveToNextHand,
-	}
-	go g.SendGameMessage(gameMessage)
-
+	go func(g *Game) {
+		// wait 5 minutes to show the result
+		// send a message to game to start new hand
+		time.Sleep(5 * time.Second)
+		gameMessage := &GameMessage{
+			GameId:      g.config.GameId,
+			MessageType: GameMoveToNextHand,
+		}
+		g.SendGameMessage(gameMessage)
+	}(g)
 	return nil
 }
 
