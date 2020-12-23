@@ -66,8 +66,8 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 	}
 	currentPot := pots[len(pots)-1]
 	currentBettingRound := handState.RoundBetting[uint32(handState.CurrentState)]
-	handIsInProgress := handState.CurrentState == HandStatus_PREFLOP || handState.CurrentState == HandStatus_FLOP || handState.CurrentState == HandStatus_TURN || handState.CurrentState == HandStatus_RIVER
-	if handIsInProgress {
+	bettingInProgress := handState.CurrentState == HandStatus_PREFLOP || handState.CurrentState == HandStatus_FLOP || handState.CurrentState == HandStatus_TURN || handState.CurrentState == HandStatus_RIVER
+	if bettingInProgress {
 		for _, bet := range currentBettingRound.SeatBet {
 			currentPot = currentPot + bet
 		}
@@ -113,7 +113,7 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 		currentHandState.PlayerSeatNo = playerSeatNo
 	}
 
-	if handIsInProgress {
+	if bettingInProgress {
 		currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
 		currentHandState.RemainingActionTime = g.remainingActionTime
 		currentHandState.NextSeatAction = handState.NextSeatAction
