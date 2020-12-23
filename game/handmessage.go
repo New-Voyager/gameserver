@@ -66,9 +66,11 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 	}
 	currentPot := pots[len(pots)-1]
 	currentBettingRound := handState.RoundBetting[uint32(handState.CurrentState)]
-	seatBets := currentBettingRound.SeatBet
-	for _, bet := range seatBets {
-		currentPot = currentPot + bet
+	bettingInProgress := handState.CurrentState == HandStatus_PREFLOP || handState.CurrentState == HandStatus_FLOP || handState.CurrentState == HandStatus_TURN || handState.CurrentState == HandStatus_RIVER
+	if bettingInProgress {
+		for _, bet := range currentBettingRound.SeatBet {
+			currentPot = currentPot + bet
+		}
 	}
 
 	currentHandState := CurrentHandState{
@@ -110,8 +112,12 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 		currentHandState.PlayerCards = fmt.Sprintf("%d", maskedCards)
 		currentHandState.PlayerSeatNo = playerSeatNo
 	}
-	currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
-	currentHandState.RemainingActionTime = g.remainingActionTime
+
+	if bettingInProgress {
+		currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
+		currentHandState.RemainingActionTime = g.remainingActionTime
+		currentHandState.NextSeatAction = handState.NextSeatAction
+	}
 	currentHandState.PlayersStack = make(map[uint64]float32, 0)
 	playerState := handState.GetPlayersState()
 	for seatNoIdx, playerID := range handState.GetPlayersInSeats() {
@@ -121,7 +127,6 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 		seatNo := seatNoIdx + 1
 		currentHandState.PlayersStack[uint64(seatNo)] = playerState[playerID].Balance
 	}
-	currentHandState.NextSeatAction = handState.NextSeatAction
 
 	handStateMsg := &HandMessage{
 		ClubId:      g.config.ClubId,
