@@ -400,6 +400,10 @@ func (g *Game) NumCards(gameType GameType) uint32 {
 		noCards = 4
 	case GameType_PLO_HILO:
 		noCards = 4
+	case GameType_FIVE_CARD_PLO:
+		noCards = 5
+	case GameType_FIVE_CARD_PLO_HILO:
+		noCards = 5
 	}
 	return uint32(noCards)
 }
@@ -432,6 +436,7 @@ func (g *Game) dealNewHand() error {
 		CurrentState:  HandStatus_DEAL,
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
+	gameType := gameState.GameType
 
 	handState.initialize(gameState, g.testDeckToUse, gameState.ButtonPos, moveButton)
 
@@ -457,8 +462,6 @@ func (g *Game) dealNewHand() error {
 		HandStatus:  handState.CurrentState,
 	}
 	playersCards := make(map[uint32]string)
-
-	gameType := gameState.GameType
 
 	// send a new hand message to all players
 	newHand := NewHand{

@@ -18,7 +18,7 @@ func NewHandResultProcessor(handState *HandState, gameState *GameState, rewardTr
 	includeHighHand := gameState.RewardTrackingIds != nil
 	if handState.GameType == GameType_HOLDEM {
 		evaluator = NewHoldemWinnerEvaluate(gameState, handState, includeHighHand)
-	} else if handState.GameType == GameType_PLO {
+	} else if handState.GameType == GameType_PLO || handState.GameType == GameType_FIVE_CARD_PLO {
 		evaluator = NewPloWinnerEvaluate(gameState, handState, includeHighHand)
 	}
 	return &HandResultProcessor{

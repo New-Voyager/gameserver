@@ -1,6 +1,6 @@
 disabled: false
 game-config:
-  type: PLO
+  type: FIVE_CARD_PLO
   max-players: 3
   min-players: 2
   min-buyin: 60.0
@@ -16,7 +16,7 @@ game-config:
 # players in the game
 players:
   - name: player1
-    id: 1c
+    id: 1
   - name: player2
     id: 2
   - name: player3
@@ -68,11 +68,11 @@ hands:
       river: 4s
       seat-cards:
         - 
-          cards: ["Kh", "Qd", "Jc", "Th"]
+          cards: ["Kh", "Qd", "Jc", "Th", "9s"]
         -
-          cards: ["3s", "7s", "4c", "5c"]
+          cards: ["3s", "7s", "4c", "5c", "8h"]
         -
-          cards: ["9h", "2s", "Ah", "8d"]
+          cards: ["9h", "2s", "Ah", "8d", "Kh"]
    
     # simulate pre-flop action
     preflop-action:

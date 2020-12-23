@@ -36,6 +36,7 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 	// settle players in the seats
 	h.PlayersInSeats = make([]uint64, gameState.MaxSeats)
 	h.NoActiveSeats = 0
+	h.GameType = gameState.GameType
 
 	// update active seats with players who are playing
 	for seatNo, playerID := range gameState.GetPlayersInSeats() {
@@ -291,6 +292,7 @@ func (h *HandState) getBlindPos() (uint32, uint32) {
 
 func (h *HandState) getPlayersCards(deck *poker.Deck) map[uint32][]byte {
 	noOfCards := 2
+
 	switch h.GetGameType() {
 	case GameType_HOLDEM:
 		noOfCards = 2
@@ -298,6 +300,10 @@ func (h *HandState) getPlayersCards(deck *poker.Deck) map[uint32][]byte {
 		noOfCards = 4
 	case GameType_PLO_HILO:
 		noOfCards = 4
+	case GameType_FIVE_CARD_PLO:
+		noOfCards = 5
+	case GameType_FIVE_CARD_PLO_HILO:
+		noOfCards = 5
 	}
 
 	playerCards := make(map[uint32][]byte)
