@@ -350,18 +350,19 @@ func (g *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandSta
 	handResult = handResultProcessor.getResult(false /*db*/)
 	handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
 	g.broadcastHandMessage(handMessage)
-
-	go func(g *Game) {
-		// wait 5 minutes to show the result
-		// send a message to game to start new hand
-		time.Sleep(5 * time.Second)
-		gameMessage := &GameMessage{
-			GameId:      g.config.GameId,
-			MessageType: GameMoveToNextHand,
-		}
-		g.SendGameMessage(gameMessage)
-	}(g)
+	go g.moveToNextHand()
 	return nil
+}
+
+func (g *Game) moveToNextHand() {
+	// wait 5 minutes to show the result
+	// send a message to game to start new hand
+	time.Sleep(5 * time.Second)
+	gameMessage := &GameMessage{
+		GameId:      g.config.GameId,
+		MessageType: GameMoveToNextHand,
+	}
+	g.SendGameMessage(gameMessage)
 }
 
 func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) {
@@ -482,6 +483,14 @@ func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 
 	// send to all the players
 	handResult = handResultProcessor.getResult(false /*db*/)
+
+	// update the player balance
+	for _, player := range handResult.Players {
+		gameState.PlayersState[player.Id].CurrentBalance = player.Balance.After
+	}
+	// save the game state
+	g.saveState(gameState)
+
 	// now send the data to users
 	handMessage := &HandMessage{
 		ClubId:      g.config.ClubId,
@@ -492,17 +501,7 @@ func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 	}
 	handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
 	g.broadcastHandMessage(handMessage)
-
-	// sleep here for some interval to let the users to see the result
-	time.Sleep(5 * time.Second)
-
-	// send a message to game to start new hand
-	gameMessage := &GameMessage{
-		GameId:      g.config.GameId,
-		MessageType: GameMoveToNextHand,
-	}
-	go g.SendGameMessage(gameMessage)
-	_ = 0
+	go g.moveToNextHand()
 }
 
 func (g *Game) saveHandResult(result *HandResult) {
