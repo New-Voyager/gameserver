@@ -111,7 +111,7 @@ hands:
       stacks:
         -
           seat: 1
-          stack: 1026
+          stack: 1006
         -
           seat: 5
           stack: 985
