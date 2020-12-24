@@ -32,7 +32,7 @@ func main() {
 	runServer = flag.Bool("server", true, "runs game server")
 	runBotDriver = flag.Bool("bot", false, "runs bot")
 	runGameScriptTests = flag.Bool("script-tests", false, "runs script tests")
-	gameScriptsDir = flag.String("game-script", "test/game-scripts/plo-hilo", "runs tests with game script files")
+	gameScriptsDir = flag.String("game-script", "test/game-scripts/", "runs tests with game script files")
 	testName = flag.String("testname", "", "runs a specific test")
 
 	flag.Parse()
