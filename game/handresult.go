@@ -19,7 +19,9 @@ func NewHandResultProcessor(handState *HandState, gameState *GameState, rewardTr
 	if handState.GameType == GameType_HOLDEM {
 		evaluator = NewHoldemWinnerEvaluate(gameState, handState, includeHighHand)
 	} else if handState.GameType == GameType_PLO || handState.GameType == GameType_FIVE_CARD_PLO {
-		evaluator = NewPloWinnerEvaluate(gameState, handState, includeHighHand)
+		evaluator = NewPloWinnerEvaluate(gameState, handState, includeHighHand, false)
+	} else if handState.GameType == GameType_PLO_HILO || handState.GameType == GameType_FIVE_CARD_PLO_HILO {
+		evaluator = NewPloWinnerEvaluate(gameState, handState, includeHighHand, true)
 	}
 	return &HandResultProcessor{
 		handState:         handState,

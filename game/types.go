@@ -202,6 +202,7 @@ type PlayerStack struct {
 
 type TestHandResult struct {
 	Winners       []TestHandWinner `yaml:"winners"`
+	LoWinners     []TestHandWinner `yaml:"lo-winners"`
 	ActionEndedAt string           `yaml:"action-ended"`
 	Stacks        []PlayerStack    `yaml:"stacks"`
 }

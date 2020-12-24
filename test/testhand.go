@@ -291,6 +291,26 @@ func (h *TestHand) verifyHandResult(t *TestDriver, handResult *game.HandResult) 
 		}
 	}
 
+	for i, expectedWinner := range h.hand.Result.LoWinners {
+		potWinner := handResult.HandLog.PotWinners[uint32(i)]
+		winners := potWinner.GetLowWinners()
+		if len(winners) != 1 {
+			passed = false
+		}
+		handWinner := winners[0]
+		if handWinner.SeatNo != expectedWinner.Seat {
+			h.addError(fmt.Errorf("Winner seat no didn't match. Expected %d, actual: %d",
+				expectedWinner.Seat, handWinner.SeatNo))
+			passed = false
+		}
+
+		if handWinner.Amount != expectedWinner.Receive {
+			h.addError(fmt.Errorf("Winner winning didn't match. Expected %f, actual: %f",
+				expectedWinner.Receive, handWinner.Amount))
+			passed = false
+		}
+	}
+
 	if h.hand.Result.ActionEndedAt != "" {
 		actualActionEndedAt := game.HandStatus_name[int32(handResult.HandLog.WonAt)]
 		if h.hand.Result.ActionEndedAt != actualActionEndedAt {
