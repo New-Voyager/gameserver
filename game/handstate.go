@@ -635,7 +635,11 @@ func (h *HandState) setupNextRound(state HandStatus) {
 
 	nextAction := &NextSeatAction{SeatNo: actionSeat}
 	nextAction.MinRaiseAmount = h.BigBlind
-	nextAction.MaxRaiseAmount = h.BigBlind
+	if h.GameType == GameType_HOLDEM {
+		nextAction.MaxRaiseAmount = playerState.Balance
+	} else {
+		nextAction.MaxRaiseAmount = playerState.Balance
+	}
 	nextAction.AvailableActions = availableActions
 	availableActions = append(availableActions, ACTION_ALLIN)
 	nextAction.AllInAmount = playerState.Balance
@@ -732,6 +736,13 @@ func (h *HandState) prepareNextAction(currentAction *HandAction) *NextSeatAction
 		}
 		playerID := h.GetPlayersInSeats()[actionSeat-1]
 		betOptions := make([]*BetRaiseOption, 0)
+		nextAction.MinRaiseAmount = h.CurrentRaise * 2
+		if h.GameType == GameType_HOLDEM {
+			nextAction.MaxRaiseAmount = playerState.Balance
+		} else {
+			// handle PLO max raise
+			nextAction.MaxRaiseAmount = playerState.Balance
+		}
 		if canBet {
 			// calculate what the maximum amount the player can bet
 			availableActions = append(availableActions, ACTION_BET)
@@ -740,7 +751,6 @@ func (h *HandState) prepareNextAction(currentAction *HandAction) *NextSeatAction
 
 		if canRaise {
 			// calculate what the maximum amount the player can bet
-			nextAction.MinRaiseAmount = h.CurrentRaise * 2
 			if h.CurrentState == HandStatus_PREFLOP && h.CurrentRaise == h.BigBlind {
 				betOptions = h.betOptions(h.CurrentState, playerID)
 				availableActions = append(availableActions, ACTION_BET)
