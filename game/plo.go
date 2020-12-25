@@ -1,6 +1,10 @@
 package game
 
-import "voyager.com/server/poker"
+import (
+	"fmt"
+
+	"voyager.com/server/poker"
+)
 
 type PloWinnerEvaluate struct {
 	handState           *HandState
@@ -202,6 +206,9 @@ func (h *PloWinnerEvaluate) evaluatePlayerBestCards() {
 				boardCards = append(boardCards, card)
 			}
 		}
+		fmt.Printf("seat: %d lo rank: %d cards: %s player cards: %s board cards: %s\n",
+			seatNo, result.HiRank, poker.CardsToString(result.HiCards),
+			poker.CardsToString(h.handState.PlayersCards[seatNo]), poker.CardsToString(h.handState.BoardCards))
 
 		h.activeSeatBestCombo[seatNo] = &EvaluatedCards{
 			rank:        result.HiRank,
@@ -210,6 +217,11 @@ func (h *PloWinnerEvaluate) evaluatePlayerBestCards() {
 			boardCards:  poker.CardsToByteCards(boardCards),
 		}
 		if result.LowFound {
+			fmt.Printf("seat: %d lo rank: %d cards: %s player cards: %s board cards: %s\n",
+				seatNo, result.LowRank, poker.CardsToString(result.LowCards),
+				poker.CardsToString(h.handState.PlayersCards[seatNo]),
+				poker.CardsToString(h.handState.BoardCards))
+
 			loPlayerCards := make([]poker.Card, 0)
 			loBoardCards := make([]poker.Card, 0)
 			for _, card := range result.LowCards {

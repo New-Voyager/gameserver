@@ -1,4 +1,4 @@
-disabled: false
+disabled: true
 game-config:
   type: FIVE_CARD_PLO_HILO
   max-players: 3
@@ -70,9 +70,9 @@ hands:
         - 
           cards: ["Kh", "Qd", "Jc", "Th", "9s"]
         -
-          cards: ["3s", "7s", "4c", "5c", "8h"]
+          cards: ["3d", "7s", "4c", "5c", "8h"]
         -
-          cards: ["9h", "2s", "Ah", "8d", "Kh"]
+          cards: ["5h", "3s", "Ah", "8d", "Kd"]
    
     # simulate pre-flop action
     preflop-action:
