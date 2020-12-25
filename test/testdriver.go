@@ -126,12 +126,14 @@ func RunGameScriptTests(dir string, testName string) {
 	}
 
 	passed := testDriver.ReportResult()
+	fmt.Printf("Data json: %d base64: %d", game.TotalJsonBytesReceived, game.TotalBase64BytesReceived)
 	if passed {
 		fmt.Printf("All scripts passed\n")
 		os.Exit(0)
 	} else {
 		fmt.Printf("One or more scripts failed\n")
 	}
+
 	// if one or more tests failed, the process will exit with an error code
 	os.Exit(1)
 }

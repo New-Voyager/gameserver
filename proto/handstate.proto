@@ -29,6 +29,11 @@ message HandActionLog {
   repeated HandAction actions = 2; 
 }
 
+message BetRaiseOption {
+  string text = 1;
+  float amount = 2;
+}
+
 message NextSeatAction {
   uint32 seat_no = 1;
   repeated ACTION available_actions = 2;
@@ -40,6 +45,7 @@ message NextSeatAction {
   float minRaiseAmount = 8;      // min bet is the big blind
   float maxRaiseAmount = 9;      // calculated for PLO
   float allInAmount = 10;         // all in amount
+  repeated BetRaiseOption betOptions = 11; // bet/raise options
 }
 
 message HandPlayerState {

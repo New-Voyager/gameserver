@@ -1,6 +1,7 @@
 package game
 
 import (
+	b64 "encoding/base64"
 	"fmt"
 	"time"
 
@@ -14,6 +15,8 @@ NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 **/
 
 var playerLogger = log.With().Str("logger_name", "game::player").Logger()
+var TotalJsonBytesReceived = 0
+var TotalBase64BytesReceived = 0
 
 //
 // Player object is a virtual player who is in a table whether the player
@@ -72,6 +75,11 @@ func NewPlayer(clubID uint32, gameID uint64, name string, playerID uint64, deleg
 
 func (p *Player) handleHandMessage(messageBytes []byte, message HandMessage) {
 	jsonb, _ := protojson.Marshal(&message)
+	base64 := b64.StdEncoding.EncodeToString(messageBytes)
+
+	TotalBase64BytesReceived += len(base64)
+	TotalJsonBytesReceived += len(jsonb)
+
 	playerLogger.Warn().Str("dir", "GH->P").Msg(string(jsonb))
 
 	if message.MessageType == HandDeal {

@@ -9,6 +9,9 @@ import (
 )
 
 var handLogger = log.With().Str("logger_name", "game::hand").Logger()
+var preFlopBets = [3]int{3, 5, 10}     // big blinds
+var postFlopBets = [3]int{30, 50, 100} // % of pot
+var raiseOptions = [3]int{2, 3, 5}     // raise times
 
 func LoadHandState(handStatePersist PersistHandState, clubID uint32, gameID uint64, handNum uint32) (*HandState, error) {
 	handState, err := handStatePersist.Load(clubID, gameID, handNum)
@@ -636,6 +639,8 @@ func (h *HandState) setupNextRound(state HandStatus) {
 	nextAction.AvailableActions = availableActions
 	availableActions = append(availableActions, ACTION_ALLIN)
 	nextAction.AllInAmount = playerState.Balance
+	playerID := h.PlayersInSeats[actionSeat-1]
+	nextAction.BetOptions = h.betOptions(h.CurrentState, playerID)
 
 	h.NextSeatAction = nextAction
 
@@ -725,16 +730,25 @@ func (h *HandState) prepareNextAction(currentAction *HandAction) *NextSeatAction
 		if playerState.Balance <= h.CurrentRaise || h.GameType == GameType_HOLDEM {
 			allInAvailable = true
 		}
-
+		playerID := h.GetPlayersInSeats()[actionSeat-1]
+		betOptions := make([]*BetRaiseOption, 0)
 		if canBet {
 			// calculate what the maximum amount the player can bet
 			availableActions = append(availableActions, ACTION_BET)
+			betOptions = h.betOptions(h.CurrentState, playerID)
 		}
 
 		if canRaise {
-			availableActions = append(availableActions, ACTION_RAISE)
+			// calculate what the maximum amount the player can bet
 			nextAction.MinRaiseAmount = h.CurrentRaise * 2
-			// calculate the maximum amount the player can raise
+			if h.CurrentState == HandStatus_PREFLOP && h.CurrentRaise == h.BigBlind {
+				betOptions = h.betOptions(h.CurrentState, playerID)
+				availableActions = append(availableActions, ACTION_BET)
+			} else {
+				// calculate the maximum amount the player can raise
+				availableActions = append(availableActions, ACTION_RAISE)
+				betOptions = h.raiseOptions(h.CurrentRaise, playerID)
+			}
 		}
 
 		if playerState.Balance < h.CurrentRaise*2 {
@@ -745,6 +759,7 @@ func (h *HandState) prepareNextAction(currentAction *HandAction) *NextSeatAction
 			availableActions = append(availableActions, ACTION_ALLIN)
 			nextAction.AllInAmount = playerState.Balance
 		}
+		nextAction.BetOptions = betOptions
 	}
 
 	nextAction.AvailableActions = availableActions
@@ -874,4 +889,67 @@ func (h *HandState) getLog() *HandLog {
 	handResult.HandEndedAt = h.HandEndedAt
 	handResult.HandEndedAt = uint64(time.Now().Unix())
 	return handResult
+}
+
+func (h *HandState) betOptions(round HandStatus, playerID uint64) []*BetRaiseOption {
+	balance := h.PlayersState[playerID].Balance
+	preFlopBetOptions := preFlopBets
+	postFlopBets := postFlopBets
+
+	options := make([]*BetRaiseOption, 0)
+	if h.GameType == GameType_HOLDEM {
+		if round == HandStatus_PREFLOP {
+			// pre-flop options
+			for _, betOption := range preFlopBetOptions {
+				betAmount := float32(int64(float32(betOption) * h.BigBlind))
+				if betAmount < balance {
+					option := &BetRaiseOption{
+						Text:   fmt.Sprintf("%dBB", betOption),
+						Amount: betAmount,
+					}
+					options = append(options, option)
+				}
+			}
+			options = append(options, &BetRaiseOption{Text: "All-In", Amount: balance})
+		} else if round >= HandStatus_FLOP {
+			totalPot := float32(0.0)
+			for _, pot := range h.Pots {
+				totalPot += pot.Pot
+			}
+			// post-flop options
+			for _, betOption := range postFlopBets {
+				betAmount := float32(int64(float32(betOption)*totalPot) / 100.0)
+				if betAmount > h.BigBlind && betAmount < balance {
+					option := &BetRaiseOption{
+						Text:   fmt.Sprintf("%d%%", betOption),
+						Amount: float32(betAmount),
+					}
+					options = append(options, option)
+				}
+			}
+			options = append(options, &BetRaiseOption{Text: "All-In", Amount: balance})
+		}
+	} else {
+		// PLO
+	}
+	return options
+}
+
+func (h *HandState) raiseOptions(prevBet float32, playerID uint64) []*BetRaiseOption {
+	balance := h.PlayersState[playerID].Balance
+	options := make([]*BetRaiseOption, 0)
+	if h.GameType == GameType_HOLDEM {
+		for _, betOption := range raiseOptions {
+			betAmount := float32(int64(float32(betOption) * h.CurrentRaise))
+			if betAmount < balance {
+				option := &BetRaiseOption{
+					Text:   fmt.Sprintf("%dx", betOption),
+					Amount: betAmount,
+				}
+				options = append(options, option)
+			}
+		}
+		options = append(options, &BetRaiseOption{Text: "All-In", Amount: balance})
+	}
+	return options
 }

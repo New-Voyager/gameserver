@@ -28,11 +28,11 @@ take-seat:
       player: 1
       buy-in: 100
     -
-      seat: 5 
+      seat: 2
       player: 2
       buy-in: 100
     -
-      seat: 8 
+      seat: 3 
       player: 3
       buy-in: 100
 
@@ -46,15 +46,15 @@ take-seat:
           player: 1
           stack: 100
         -
-          seat: 5 
+          seat: 2 
           player: 2
           stack: 100
         -
-          seat: 8 
+          seat: 3 
           player: 3
           stack: 100
 
-  # deal the following hands in the table
+# deal the following hands in the table
 hands:
   -
     num: 1
@@ -66,8 +66,8 @@ hands:
       seat-cards:
         # seat cards in the order players are sitting 
         # seat 1 gets Kh Qd
-        # seat 5 gets 3s 7s
-        # seat 8 gets 9h 2s
+        # seat 2 gets 3s 7s
+        # seat 3 gets 9h 2s
         - 
           cards: ["Kh", "Qd"]
         -
@@ -77,16 +77,16 @@ hands:
       # here the game engine sends the cards to the players
       verify:
         button: 1
-        sb: 5
-        bb: 8
+        sb: 2
+        bb: 3
         next-action-pos: 1
         state: PREFLOP
         dealt-cards:
           -
-            seat-no: 5
+            seat-no: 2
             cards: ["Kh", "Qd"]
           -
-            seat-no: 8
+            seat-no: 3
             cards: ["3s", "7s"]
           -
             seat-no: 1
@@ -96,19 +96,19 @@ hands:
     preflop-action:
       seat-actions:
         - 1, CALL, 2
-        - 5, CALL, 2
-        - 8, CHECK
+        - 2, CALL, 2
+        - 3, CHECK
       verify:
         state: FLOP
         board: ["Ac", "Ad", "2c"]
 
     flop-action:
       seat-actions:
-        - 5, CHECK
-        - 8, BET, 2
+        - 2, CHECK
+        - 3, BET, 2
         - 1, CALL, 2
-        - 5, RAISE, 4
-        - 8, FOLD
+        - 2, RAISE, 4
+        - 3, FOLD
         - 1, CALL, 4
       verify:
         state: TURN
@@ -116,36 +116,37 @@ hands:
 
     turn-action:
       seat-actions:
-        - 5, CHECK
+        - 2, CHECK
         - 1, BET, 10
-        - 5, CALL, 10
+        - 2, CALL, 10
       verify:
         state: RIVER
         board: ["Ac", "Ad", "2c", "Td", "4s"]
 
     river-action:
       seat-actions:
-        - 5, BET, 10
-        - 1, FOLD
+        - 2, BET, 10
+        - 1, CALL, 10
       verify:
         state: RESULT
 
     result:
       winners:
         -
-          seat: 5
-          receive: 46.0
-      action-ended: RIVER
+          seat: 1
+          receive: 56.0
+          rank: Two Pair
+      action-ended: SHOW_DOWN
       
       # balance indicates the player balance after the hand
       # bb player won a chip
       stacks:
         -
           seat: 1
-          stack: 84
+          stack: 130
         -
-          seat: 5
-          stack: 120
+          seat: 2
+          stack: 74
         -
-          seat: 8
+          seat: 3
           stack: 96
