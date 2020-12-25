@@ -1,9 +1,11 @@
 # prev bet: 4.0
 # player1: raise 30  -> raise 26
-# player2: call 30
+# player2: call 30   -> called a raise 26
 # player3: goes all in 50 -> raise 20
 # player1: options fold, call 20
-disabled: false
+# player2: can go only call in for 50 (cannot raise)
+
+disabled: true
 game-config:
   type: HOLDEM
   max-players: 9
@@ -103,5 +105,5 @@ hands:
         - 1, RAISE, 35
         - 2, CALL, 35
         - 3, ALLIN
-        - 1, ALLIN 
-        - 2, FOLD
+        - 1, CALL, 50 
+        - 2, CALL, 50

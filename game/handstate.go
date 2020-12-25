@@ -239,6 +239,8 @@ func (h *HandState) actionChanged(seatChangedAction uint32, state PlayerActState
 	h.PlayersActed[seatChangedAction-1].Amount = amount
 	if amount > h.CurrentRaise {
 		h.PlayersActed[seatChangedAction-1].RaiseAmount = amount - h.CurrentRaise
+	} else {
+		h.PlayersActed[seatChangedAction-1].RaiseAmount = h.CurrentRaiseDiff
 	}
 }
 
@@ -423,6 +425,7 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		diff := h.CurrentRaise - playerBetSoFar
 		h.PlayersActed[action.SeatNo-1].State = PlayerActState_PLAYER_ACT_CALL
 		h.PlayersActed[action.SeatNo-1].Amount = action.Amount
+		h.PlayersActed[action.SeatNo-1].RaiseAmount = h.CurrentRaiseDiff
 
 		// does the player enough money ??
 		if playerBalance < diff {
@@ -703,20 +706,20 @@ func (h *HandState) prepareNextAction(currentAction *HandAction) *NextSeatAction
 		canBet = true
 	} else {
 		if playerState.Balance > h.CurrentRaise {
-			actedState := h.PlayersActed[actionSeat-1].State
-			if actedState == PlayerActState_PLAYER_ACT_NOT_ACTED {
+			actedState := h.PlayersActed[actionSeat-1]
+			if actedState.State == PlayerActState_PLAYER_ACT_NOT_ACTED {
 				availableActions = append(availableActions, ACTION_CALL)
 			} else {
-				if (actedState == PlayerActState_PLAYER_ACT_BB && h.CurrentRaise > h.BigBlind) ||
-					(actedState == PlayerActState_PLAYER_ACT_STRADDLE && h.CurrentRaise > h.Straddle) {
+				if (actedState.State == PlayerActState_PLAYER_ACT_BB && h.CurrentRaise > h.BigBlind) ||
+					(actedState.State == PlayerActState_PLAYER_ACT_STRADDLE && h.CurrentRaise > h.Straddle) {
 					availableActions = append(availableActions, ACTION_CALL)
-				} else {
+				} else if actedState.Amount == h.CurrentRaise {
 					availableActions = append(availableActions, ACTION_CHECK)
 				}
 			}
 			nextAction.CallAmount = h.CurrentRaise
 			canRaise = true
-			if actedState == PlayerActState_PLAYER_ACT_RAISE {
+			if actedState.State == PlayerActState_PLAYER_ACT_RAISE || actedState.State == PlayerActState_PLAYER_ACT_CALL {
 				if h.CurrentRaiseDiff < h.PlayersActed[actionSeat-1].GetRaiseAmount() {
 					canRaise = false
 					availableActions = append(availableActions, ACTION_CALL)
