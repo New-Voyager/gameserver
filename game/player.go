@@ -74,7 +74,10 @@ func NewPlayer(clubID uint32, gameID uint64, name string, playerID uint64, deleg
 }
 
 func (p *Player) handleHandMessage(messageBytes []byte, message HandMessage) {
-	jsonb, _ := protojson.Marshal(&message)
+	marshaller := protojson.MarshalOptions{
+		EmitUnpopulated: true,
+	}
+	jsonb, _ := marshaller.Marshal(&message)
 	base64 := b64.StdEncoding.EncodeToString(messageBytes)
 
 	TotalBase64BytesReceived += len(base64)
@@ -122,7 +125,10 @@ func (p *Player) onCardsDealt(messageBytes []byte, message HandMessage) error {
 }
 
 func (p *Player) onPlayerNewHand(messageBytes []byte, message HandMessage) error {
-	jsonb, err := protojson.Marshal(&message)
+	marshaller := protojson.MarshalOptions{
+		EmitUnpopulated: true,
+	}
+	jsonb, err := marshaller.Marshal(&message)
 	if err != nil {
 		return err
 	}

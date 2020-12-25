@@ -29,6 +29,7 @@ compile-proto2:
 	protoc -I=./proto --go_out=./game ./proto/handstate.proto
 	protoc -I=./proto --go_out=./game ./proto/gamemessage.proto
 	protoc -I=./proto --go_out=./game ./proto/handmessage.proto
+	ls game/*.pb.go | xargs -n1 -IX bash -c 'sed s/,omitempty// X > X.tmp && mv X{.tmp,}'
 
 .PHONY: install-protoc
 install-protoc:
