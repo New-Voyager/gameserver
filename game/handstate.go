@@ -727,12 +727,12 @@ func (h *HandState) prepareNextAction(currentAction *HandAction) *NextSeatAction
 			}
 		}
 	}
+	// then the caller call, raise, or go all in
+	if playerState.Balance <= h.CurrentRaise || h.GameType == GameType_HOLDEM {
+		allInAvailable = true
+	}
 
 	if canBet || canRaise {
-		// then the caller call, raise, or go all in
-		if playerState.Balance <= h.CurrentRaise || h.GameType == GameType_HOLDEM {
-			allInAvailable = true
-		}
 		playerID := h.GetPlayersInSeats()[actionSeat-1]
 		betOptions := make([]*BetRaiseOption, 0)
 		nextAction.MinRaiseAmount = h.CurrentRaise * 2
@@ -764,13 +764,12 @@ func (h *HandState) prepareNextAction(currentAction *HandAction) *NextSeatAction
 			// the player can go all in
 			allInAvailable = true
 		}
-		if allInAvailable {
-			availableActions = append(availableActions, ACTION_ALLIN)
-			nextAction.AllInAmount = playerState.Balance
-		}
 		nextAction.BetOptions = betOptions
 	}
-
+	if allInAvailable {
+		availableActions = append(availableActions, ACTION_ALLIN)
+		nextAction.AllInAmount = playerState.Balance
+	}
 	nextAction.AvailableActions = availableActions
 
 	return nextAction
