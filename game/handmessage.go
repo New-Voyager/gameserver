@@ -187,6 +187,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	seatNo := message.GetPlayerActed().GetSeatNo()
 	playerID := handState.PlayersInSeats[seatNo-1]
 
+	message.GetPlayerActed().Amount = handState.PlayersActed[seatNo-1].Amount
 	message.GetPlayerActed().Stack = handState.PlayersState[playerID].Balance
 	// broadcast this message to all the players
 	g.broadcastHandMessage(message)

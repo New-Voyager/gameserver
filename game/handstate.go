@@ -235,22 +235,11 @@ func (h *HandState) resetPlayerActions() {
 }
 
 func (h *HandState) actionChanged(seatChangedAction uint32, state PlayerActState, amount float32) {
-
-	/*
-		for seatNo := range h.GetPlayersInSeats() {
-			state := h.PlayersActed[seatNo].State
-			if state == PlayerActState_PLAYER_ACT_EMPTY_SEAT ||
-				state == PlayerActState_PLAYER_ACT_FOLDED ||
-				state == PlayerActState_PLAYER_ACT_ALL_IN ||
-				seatNo == int(seatChangedAction-1) {
-				continue
-			}
-			// this player has to act again
-			//h.PlayersActed[seatNo] = PlayerActRound_PLAYER_ACT_NOT_ACTED
-		}*/
-
 	h.PlayersActed[seatChangedAction-1].State = state
 	h.PlayersActed[seatChangedAction-1].Amount = amount
+	if amount > h.CurrentRaise {
+		h.PlayersActed[seatChangedAction-1].RaiseAmount = amount - h.CurrentRaise
+	}
 }
 
 func (h *HandState) hasEveryOneActed() bool {
@@ -456,6 +445,8 @@ func (h *HandState) actionReceived(action *HandAction) error {
 
 		if amount > h.CurrentRaise {
 			h.actionChanged(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, amount)
+			h.CurrentRaiseDiff = amount - h.CurrentRaise
+			h.CurrentRaise = amount
 		}
 	} else if action.Action == ACTION_RAISE ||
 		action.Action == ACTION_BET {
@@ -482,10 +473,10 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		}
 
 		if action.Amount > h.CurrentRaise {
-			h.CurrentRaise = action.Amount
-
 			// reset player action
 			h.actionChanged(action.SeatNo, state, action.Amount)
+			h.CurrentRaiseDiff = action.Amount - h.CurrentRaise
+			h.CurrentRaise = action.Amount
 			h.ActionCompleteAtSeat = action.SeatNo
 		}
 
@@ -496,7 +487,6 @@ func (h *HandState) actionReceived(action *HandAction) error {
 			// player is all in
 			action.Action = ACTION_ALLIN
 			h.actionChanged(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, action.Amount)
-			//h.PlayersActed[action.SeatNo-1] = PlayerActRound_PLAYER_ACT_ALL_IN
 			h.AllInPlayers[action.SeatNo-1] = 1
 			playerState.Balance = 0
 		} else {
@@ -726,6 +716,12 @@ func (h *HandState) prepareNextAction(currentAction *HandAction) *NextSeatAction
 			}
 			nextAction.CallAmount = h.CurrentRaise
 			canRaise = true
+			if actedState == PlayerActState_PLAYER_ACT_RAISE {
+				if h.CurrentRaiseDiff < h.PlayersActed[actionSeat-1].GetRaiseAmount() {
+					canRaise = false
+					availableActions = append(availableActions, ACTION_CALL)
+				}
+			}
 		}
 	}
 
