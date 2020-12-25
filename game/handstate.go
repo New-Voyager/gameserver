@@ -202,7 +202,7 @@ func (h *HandState) setupPreflob() {
 	bigBlind := h.BigBlind
 	h.PlayersState[h.PlayersInSeats[h.BigBlindPos-1]].Balance -= bigBlind
 	bettingRound.SeatBet[h.BigBlindPos-1] = bigBlind
-	h.actionChanged(h.BigBlindPos, PlayerActState_PLAYER_ACT_BB, bigBlind)
+	h.acted(h.BigBlindPos, PlayerActState_PLAYER_ACT_BB, bigBlind)
 
 	// big blind is the last one to act
 	h.PlayersActed[h.BigBlindPos-1] = &PlayerActRound{State: PlayerActState_PLAYER_ACT_BB, Amount: bigBlind}
@@ -234,7 +234,7 @@ func (h *HandState) resetPlayerActions() {
 	}
 }
 
-func (h *HandState) actionChanged(seatChangedAction uint32, state PlayerActState, amount float32) {
+func (h *HandState) acted(seatChangedAction uint32, state PlayerActState, amount float32) {
 	h.PlayersActed[seatChangedAction-1].State = state
 	h.PlayersActed[seatChangedAction-1].Amount = amount
 	if amount > h.CurrentRaise {
@@ -431,7 +431,7 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		if playerBalance < diff {
 			// he is going all in, crazy
 			action.Action = ACTION_ALLIN
-			h.actionChanged(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, action.Amount)
+			h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, action.Amount)
 			//h.PlayersActed[action.SeatNo-1].State = PlayerActState_PLAYER_ACT_ALL_IN
 			h.PlayersActed[action.SeatNo-1].Amount = action.Amount
 			h.AllInPlayers[action.SeatNo-1] = 1
@@ -446,8 +446,9 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		bettingRound.SeatBet[action.SeatNo-1] = amount
 		playerState.Balance = 0
 
+		h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, amount)
+
 		if amount > h.CurrentRaise {
-			h.actionChanged(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, amount)
 			h.CurrentRaiseDiff = amount - h.CurrentRaise
 			h.CurrentRaise = amount
 		}
@@ -477,7 +478,7 @@ func (h *HandState) actionReceived(action *HandAction) error {
 
 		if action.Amount > h.CurrentRaise {
 			// reset player action
-			h.actionChanged(action.SeatNo, state, action.Amount)
+			h.acted(action.SeatNo, state, action.Amount)
 			h.CurrentRaiseDiff = action.Amount - h.CurrentRaise
 			h.CurrentRaise = action.Amount
 			h.ActionCompleteAtSeat = action.SeatNo
@@ -489,7 +490,7 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		if diff == playerState.Balance {
 			// player is all in
 			action.Action = ACTION_ALLIN
-			h.actionChanged(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, action.Amount)
+			h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, action.Amount)
 			h.AllInPlayers[action.SeatNo-1] = 1
 			playerState.Balance = 0
 		} else {

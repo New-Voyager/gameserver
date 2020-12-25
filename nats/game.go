@@ -217,7 +217,11 @@ func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 
 func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 	message.PlayerId = 0
-	data, _ := protojson.Marshal(message)
+
+	marshaller := protojson.MarshalOptions{
+		EmitUnpopulated: true,
+	}
+	data, _ := marshaller.Marshal(message)
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", message.MessageType).
 		Str("subject", n.hand2PlayerAllSubject).
 		Msg(fmt.Sprintf("H->A: %s", string(data)))
