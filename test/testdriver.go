@@ -71,6 +71,8 @@ func (t *TestDriver) RunGameScript(filename string) error {
 
 	e := testGameScript.run(t)
 	if e != nil {
+		testGameScript.result.Passed = false
+		testGameScript.result.addError(e)
 		return e
 	}
 	return nil

@@ -3,6 +3,7 @@ package test
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -138,6 +139,45 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.Betting
 		for _, action := range bettingRound.Actions {
 			player := h.gameScript.playerFromSeat(action.SeatNo)
 
+			if action.VerifyAction != nil {
+				// verify available action here
+				nextSeatAction := player.yourAction.GetSeatAction()
+				actionsStr := convertActions(nextSeatAction.AvailableActions)
+				if !IsEqual(actionsStr, action.VerifyAction.Actions) {
+					return fmt.Errorf("Actions does not match. Expected: %+v Actual: %+v", action.VerifyAction.Actions, actionsStr)
+				}
+
+				if nextSeatAction.CallAmount != action.VerifyAction.CallAmount {
+					return fmt.Errorf("Call amount does not match. Expected: %+v Actual: %+v", action.VerifyAction.CallAmount, nextSeatAction.CallAmount)
+				}
+
+				if nextSeatAction.AllInAmount != action.VerifyAction.AllInAmount {
+					return fmt.Errorf("All in amount does not match. Expected: %+v Actual: %+v", action.VerifyAction.AllInAmount, nextSeatAction.AllInAmount)
+				}
+
+				if nextSeatAction.MinRaiseAmount != action.VerifyAction.MinRaiseAmount {
+					return fmt.Errorf("Min raise amount does not match. Expected: %+v Actual: %+v", action.VerifyAction.MinRaiseAmount, nextSeatAction.MinRaiseAmount)
+				}
+
+				if nextSeatAction.MaxRaiseAmount != action.VerifyAction.MaxRaiseAmount {
+					return fmt.Errorf("Max raise amount does not match. Expected: %+v Actual: %+v", action.VerifyAction.MaxRaiseAmount, nextSeatAction.MaxRaiseAmount)
+				}
+
+				// verify bet options
+				if action.VerifyAction.BetAmounts != nil {
+					if len(action.VerifyAction.BetAmounts) != len(nextSeatAction.BetOptions) {
+						return fmt.Errorf("Bet options do not match. Expected: %+v Actual: %+v", action.VerifyAction.BetAmounts, nextSeatAction.BetOptions)
+					}
+					for i, _ := range nextSeatAction.BetOptions {
+						if action.VerifyAction.BetAmounts[i].Text != nextSeatAction.BetOptions[i].Text {
+							return fmt.Errorf("Bet options do not match. Expected: %+v Actual: %+v", action.VerifyAction.BetAmounts, nextSeatAction.BetOptions)
+						}
+						if action.VerifyAction.BetAmounts[i].Amount != nextSeatAction.BetOptions[i].Amount {
+							return fmt.Errorf("Bet options do not match. Expected: %+v Actual: %+v", action.VerifyAction.BetAmounts, nextSeatAction.BetOptions)
+						}
+					}
+				}
+			}
 			// send handmessage
 			message := game.HandMessage{
 				ClubId:      h.gameScript.testGame.clubID,
@@ -150,7 +190,6 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.Betting
 			handAction := game.HandAction{SeatNo: action.SeatNo, Action: actionType, Amount: action.Amount}
 			message.HandMessage = &game.HandMessage_PlayerActed{PlayerActed: &handAction}
 			player.player.HandProtoMessageFromAdapter(&message)
-
 			h.gameScript.waitForObserver()
 		}
 	}
@@ -173,6 +212,29 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.Betting
 		return err
 	}
 	return nil
+}
+
+func convertActions(actions []game.ACTION) []string {
+	actionsStr := make([]string, len(actions))
+	for i, action := range actions {
+		actionsStr[i] = action.String()
+	}
+	return actionsStr
+}
+
+func IsEqual(a1 []string, a2 []string) bool {
+	sort.Strings(a1)
+	sort.Strings(a2)
+	if len(a1) == len(a2) {
+		for i, v := range a1 {
+			if v != a2[i] {
+				return false
+			}
+		}
+	} else {
+		return false
+	}
+	return true
 }
 
 func (h *TestHand) preflopActions(t *TestDriver) error {
@@ -203,8 +265,11 @@ func (h *TestHand) dealHand(t *TestDriver) error {
 	// new hand
 	h.gameScript.waitForObserver()
 
-	// next action
-	h.gameScript.waitForObserver()
+	for _, player := range h.gameScript.testGame.players {
+		_ = player
+		// wait for dealing to complete for each player
+		h.gameScript.waitForObserver()
+	}
 
 	// verify current hand player position and cards dealt
 	actual := h.gameScript.observer.currentHand.GetNewHand()

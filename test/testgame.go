@@ -39,11 +39,11 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 		AutoStart:  autoStart,
 		SmallBlind: gameScript.gameScript.GameConfig.SmallBlind,
 		BigBlind:   gameScript.gameScript.GameConfig.BigBlind,
-		ActionTime: 5,
+		ActionTime: 300,
 	}
 	_ = config
 	if gameScript.gameScript.GameConfig.ActionTime == 0 {
-		gameScript.gameScript.GameConfig.ActionTime = 5
+		gameScript.gameScript.GameConfig.ActionTime = 300
 	}
 	gameScript.gameScript.GameConfig.GameCode = "000000"
 	gameScript.gameScript.GameConfig.ClubId = clubID
@@ -54,17 +54,18 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	}
 	serverGame.SetScriptTest(true)
 
+	observerCh := make(chan []byte)
+	// add test driver as an observer/player
+	gameScriptPlayer := game.GamePlayer{ID: 0xFFFFFFFF, Name: "GameScript"}
+	observer := NewTestPlayerAsObserver(gameScriptPlayer, observerCh)
+
 	for _, playerInfo := range players {
-		testPlayer := NewTestPlayer(playerInfo)
+		testPlayer := NewTestPlayer(playerInfo, observer)
 		player := game.NewPlayer(clubID, gameID, playerInfo.Name, playerInfo.ID, testPlayer)
 		testPlayer.setPlayer(player)
 		gamePlayers[playerInfo.ID] = testPlayer
 	}
 
-	observerCh := make(chan []byte)
-	// add test driver as an observer/player
-	gameScriptPlayer := game.GamePlayer{ID: 0xFFFFFFFF, Name: "GameScript"}
-	observer := NewTestPlayerAsObserver(gameScriptPlayer, observerCh)
 	player := game.NewPlayer(clubID, gameID, gameScriptPlayer.Name, gameScriptPlayer.ID, observer)
 	observer.setPlayer(player)
 	gamePlayers[gameScriptPlayer.ID] = observer
