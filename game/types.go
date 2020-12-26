@@ -146,9 +146,10 @@ type HandSetup struct {
 		action: FOLD
 */
 type TestHandAction struct {
-	SeatNo uint32  `yaml:"seat"`
-	Action string  `yaml:"action"`
-	Amount float32 `yaml:"amount"`
+	SeatNo       uint32        `yaml:"seat"`
+	Action       string        `yaml:"action"`
+	Amount       float32       `yaml:"amount"`
+	VerifyAction *VerifyAction `yaml:"verify-action"`
 }
 
 type Pot struct {
@@ -233,4 +234,18 @@ type PlayerAtTable struct {
 
 type PokerTable struct {
 	Players []PlayerAtTable `yaml:"players"`
+}
+
+type BetAmount struct {
+	Text   string  `yaml:"text"`
+	Amount float32 `yaml:"amount"`
+}
+
+type VerifyAction struct {
+	Actions        []string    `yaml:"actions"`
+	CallAmount     float32     `yaml:"call-amount"`
+	AllInAmount    float32     `yaml:"all-in-amount"`
+	MinRaiseAmount float32     `yaml:"min-raise-amount"`
+	MaxRaiseAmount float32     `yaml:"max-raise-amount"`
+	BetAmounts     []BetAmount `yaml:"bet-amounts"`
 }

@@ -26,6 +26,8 @@ type TestPlayer struct {
 	lastGameMessage *game.GameMessage
 	actionChange    *game.HandMessage
 	noMoreActions   *game.HandMessage
+	yourAction      *game.HandMessage
+
 	// current hand message
 	currentHand *game.HandMessage
 
@@ -38,15 +40,15 @@ type TestPlayer struct {
 	river    *game.River
 	showdown *game.Showdown
 
-	// preserve last received message
-
+	observer *TestPlayer
 	// preserve last received table state
 	lastTableState *game.GameTableStateMessage
 }
 
-func NewTestPlayer(playerInfo game.GamePlayer) *TestPlayer {
+func NewTestPlayer(playerInfo game.GamePlayer, observer *TestPlayer) *TestPlayer {
 	return &TestPlayer{
 		playerInfo: playerInfo,
+		observer:   observer,
 	}
 }
 
@@ -111,9 +113,13 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 	t.lastHandMessage = handMessage
 
 	logged := false
+	if handMessage.MessageType == game.HandNextAction {
+		t.actionChange = handMessage
+	}
+
 	if t.testObserver {
 		if handMessage.MessageType == game.HandPlayerAction ||
-			handMessage.MessageType == game.HandNextAction ||
+			// handMessage.MessageType == game.HandNextAction ||
 			handMessage.MessageType == game.HandNewHand ||
 			handMessage.MessageType == game.HandResultMessage ||
 			handMessage.MessageType == game.HandFlop ||
@@ -141,10 +147,6 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 			}
 			// save next action information
 			// used for pot validation
-			if handMessage.MessageType == game.HandNextAction {
-				t.actionChange = handMessage
-			}
-
 			if handMessage.MessageType == game.HandNoMoreActions {
 				t.noMoreActions = handMessage
 			}
@@ -152,6 +154,19 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 			logged = true
 			// signal the observer to consume this message
 			t.observerCh <- messageBytes
+		}
+	} else {
+		if handMessage.MessageType == game.HandPlayerAction {
+			t.yourAction = handMessage
+			// tell observer to consume
+			if t.observer != nil {
+				t.observer.observerCh <- messageBytes
+			}
+		} else if handMessage.MessageType == game.HandDeal {
+			// tell observer to consume
+			if t.observer != nil {
+				t.observer.observerCh <- messageBytes
+			}
 		}
 	}
 

@@ -236,11 +236,16 @@ func (h *HandState) resetPlayerActions() {
 
 func (h *HandState) acted(seatChangedAction uint32, state PlayerActState, amount float32) {
 	h.PlayersActed[seatChangedAction-1].State = state
-	h.PlayersActed[seatChangedAction-1].Amount = amount
-	if amount > h.CurrentRaise {
-		h.PlayersActed[seatChangedAction-1].RaiseAmount = amount - h.CurrentRaise
+	if state == PlayerActState_PLAYER_ACT_FOLDED {
+		h.ActiveSeats[seatChangedAction-1] = 0
+		h.NoActiveSeats--
 	} else {
-		h.PlayersActed[seatChangedAction-1].RaiseAmount = h.CurrentRaiseDiff
+		h.PlayersActed[seatChangedAction-1].Amount = amount
+		if amount > h.CurrentRaise {
+			h.PlayersActed[seatChangedAction-1].RaiseAmount = amount - h.CurrentRaise
+		} else {
+			h.PlayersActed[seatChangedAction-1].RaiseAmount = h.CurrentRaiseDiff
+		}
 	}
 }
 
@@ -362,6 +367,10 @@ func (h *HandState) getNextActivePlayer(seatNo uint32) uint32 {
 			}
 		}
 
+		if h.ActiveSeats[seatNo-1] == 0 {
+			continue
+		}
+
 		nextSeat = seatNo
 		break
 	}
@@ -408,27 +417,22 @@ func (h *HandState) actionReceived(action *HandAction) error {
 	playerBalance := playerState.GetBalance()
 	bettingRound := h.RoundBetting[uint32(h.CurrentState)]
 	playerBetSoFar := bettingRound.SeatBet[action.SeatNo-1]
-
+	diff := float32(0)
 	// valid actions
 	if action.Action == ACTION_FOLD {
-		h.ActiveSeats[action.SeatNo-1] = 0
-		h.NoActiveSeats--
-
 		// track what round player folded the hand
-		playerState.Status = HandPlayerState_FOLDED
-		h.PlayersActed[action.SeatNo-1].State = PlayerActState_PLAYER_ACT_FOLDED
+		h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_FOLDED, playerBetSoFar)
 	} else if action.Action == ACTION_CHECK {
 		h.PlayersActed[action.SeatNo-1].State = PlayerActState_PLAYER_ACT_CHECK
 	} else if action.Action == ACTION_CALL {
+		diff = h.CurrentRaise - playerBetSoFar
 		// action call
-		// if this player has an equity in this pot, just call subtract the amount
-		diff := h.CurrentRaise - playerBetSoFar
-		h.PlayersActed[action.SeatNo-1].State = PlayerActState_PLAYER_ACT_CALL
-		h.PlayersActed[action.SeatNo-1].Amount = action.Amount
-		h.PlayersActed[action.SeatNo-1].RaiseAmount = h.CurrentRaiseDiff
-
-		// does the player enough money ??
-		if playerBalance < diff {
+		if action.Amount < h.CurrentRaise {
+			// fold this player
+			playerState.Status = HandPlayerState_FOLDED
+			h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_FOLDED, playerBetSoFar)
+		} else if action.Amount == playerBalance {
+			// the player is all in
 			// he is going all in, crazy
 			action.Action = ACTION_ALLIN
 			h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, action.Amount)
@@ -436,6 +440,9 @@ func (h *HandState) actionReceived(action *HandAction) error {
 			h.PlayersActed[action.SeatNo-1].Amount = action.Amount
 			h.AllInPlayers[action.SeatNo-1] = 1
 			diff = playerBalance
+		} else {
+			// if this player has an equity in this pot, just call subtract the amount
+			h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_CALL, action.Amount)
 		}
 		playerBetSoFar += diff
 		playerState.Balance -= diff
@@ -445,7 +452,7 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		amount := playerState.Balance + playerBetSoFar
 		bettingRound.SeatBet[action.SeatNo-1] = amount
 		playerState.Balance = 0
-
+		action.Amount = amount
 		h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, amount)
 
 		if amount > h.CurrentRaise {
@@ -485,7 +492,7 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		}
 
 		// how much this user already had in the betting round
-		diff := action.Amount - playerBetSoFar
+		diff = action.Amount - playerBetSoFar
 
 		if diff == playerState.Balance {
 			// player is all in
@@ -498,10 +505,16 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		}
 
 		bettingRound.SeatBet[action.SeatNo-1] = action.Amount
+	} else if action.Action == ACTION_SB ||
+		action.Action == ACTION_BB ||
+		action.Action == ACTION_STRADDLE {
+		bettingRound.SeatBet[action.SeatNo-1] = action.Amount
+		diff = action.Amount
 	}
+
 	// add the action to the log
 	log.Actions = append(log.Actions, action)
-	log.Pot = log.Pot + action.Amount
+	log.Pot = log.Pot + diff
 
 	// check whether everyone has acted in this ROUND
 	// or everyone except folded in this hand
@@ -708,15 +721,14 @@ func (h *HandState) prepareNextAction(currentAction *HandAction) *NextSeatAction
 	} else {
 		if playerState.Balance > h.CurrentRaise {
 			actedState := h.PlayersActed[actionSeat-1]
-			if actedState.State == PlayerActState_PLAYER_ACT_NOT_ACTED {
+
+			if (actedState.State == PlayerActState_PLAYER_ACT_BB && h.CurrentRaise > h.BigBlind) ||
+				(actedState.State == PlayerActState_PLAYER_ACT_STRADDLE && h.CurrentRaise > h.Straddle) {
 				availableActions = append(availableActions, ACTION_CALL)
+			} else if actedState.Amount == h.CurrentRaise {
+				availableActions = append(availableActions, ACTION_CHECK)
 			} else {
-				if (actedState.State == PlayerActState_PLAYER_ACT_BB && h.CurrentRaise > h.BigBlind) ||
-					(actedState.State == PlayerActState_PLAYER_ACT_STRADDLE && h.CurrentRaise > h.Straddle) {
-					availableActions = append(availableActions, ACTION_CALL)
-				} else if actedState.Amount == h.CurrentRaise {
-					availableActions = append(availableActions, ACTION_CHECK)
-				}
+				availableActions = append(availableActions, ACTION_CALL)
 			}
 			nextAction.CallAmount = h.CurrentRaise
 			canRaise = true

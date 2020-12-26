@@ -189,7 +189,13 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 
 	playerAction := handState.PlayersActed[seatNo-1]
 	stack := handState.PlayersState[playerID].Balance
-	message.GetPlayerActed().Amount = playerAction.Amount
+	if playerAction.State != PlayerActState_PLAYER_ACT_FOLDED {
+		message.GetPlayerActed().Amount = playerAction.Amount
+	} else {
+		// the game folded this guy's hand
+		message.GetPlayerActed().Action = ACTION_FOLD
+		message.GetPlayerActed().Amount = 0
+	}
 	message.GetPlayerActed().Stack = stack
 	// broadcast this message to all the players
 	g.broadcastHandMessage(message)
@@ -401,6 +407,8 @@ func (g *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 				GameId:      g.config.GameId,
 				HandNum:     handState.HandNum,
 				MessageType: HandPlayerAction,
+				HandStatus:  handState.CurrentState,
+				SeatNo:      handState.NextSeatAction.SeatNo,
 			}
 			var canCheck bool
 			for _, action := range handState.NextSeatAction.AvailableActions {
