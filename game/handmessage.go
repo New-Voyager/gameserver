@@ -379,6 +379,9 @@ func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) {
 		return
 	}
 
+	// remove folded players from the pots
+	handState.removeFoldedPlayersFromPots()
+
 	if handState.LastState == HandStatus_PREFLOP && handState.CurrentState == HandStatus_FLOP {
 		g.gotoFlop(gameState, handState)
 	} else if handState.LastState == HandStatus_FLOP && handState.CurrentState == HandStatus_TURN {
@@ -485,6 +488,7 @@ func (g *Game) handleNoMoreActions(gameState *GameState, handState *HandState) {
 }
 
 func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) {
+	handState.removeEmptyPots()
 
 	handState.HandCompletedAt = HandStatus_SHOW_DOWN
 	handResultProcessor := NewHandResultProcessor(handState, gameState, g.config.RewardTrackingIds)

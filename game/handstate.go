@@ -63,6 +63,7 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 	h.RakePercentage = gameState.RakePercentage
 	h.RakeCap = gameState.RakeCap
 	h.ButtonPos = buttonPos
+	h.PlayersActed = make([]*PlayerActRound, h.MaxSeats)
 
 	// if the players don't have money less than the blinds
 	// don't let them play
@@ -228,6 +229,10 @@ func (h *HandState) resetPlayerActions() {
 			}
 			continue
 		}
+		// if player is all in, then don't reset
+		if h.PlayersActed[seatNo].GetState() == PlayerActState_PLAYER_ACT_ALL_IN {
+			continue
+		}
 		h.PlayersActed[seatNo] = &PlayerActRound{
 			State: PlayerActState_PLAYER_ACT_NOT_ACTED,
 		}
@@ -371,6 +376,11 @@ func (h *HandState) getNextActivePlayer(seatNo uint32) uint32 {
 			continue
 		}
 
+		// skip the all-in player
+		if h.PlayersActed[seatNo-1].GetState() == PlayerActState_PLAYER_ACT_ALL_IN {
+			continue
+		}
+
 		nextSeat = seatNo
 		break
 	}
@@ -452,6 +462,7 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		h.AllInPlayers[action.SeatNo-1] = 1
 		amount := playerState.Balance + playerBetSoFar
 		bettingRound.SeatBet[action.SeatNo-1] = amount
+		diff = playerBalance
 		playerState.Balance = 0
 		action.Amount = amount
 		h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, amount)
@@ -631,6 +642,31 @@ func (h *HandState) settleRound() {
 	}
 }
 
+func (h *HandState) removeFoldedPlayersFromPots() {
+	for _, pot := range h.Pots {
+		updateSeats := make([]uint32, 0)
+		for _, seat := range pot.Seats {
+			if h.PlayersActed[seat-1].GetState() == PlayerActState_PLAYER_ACT_FOLDED {
+				// skip this player
+			} else {
+				updateSeats = append(updateSeats, seat)
+			}
+		}
+		pot.Seats = updateSeats
+	}
+}
+
+func (h *HandState) removeEmptyPots() {
+	pots := make([]*SeatsInPots, 0)
+	for _, pot := range h.Pots {
+		if len(pot.Seats) == 0 || pot.Pot == 0 {
+			continue
+		}
+		pots = append(pots, pot)
+	}
+	h.Pots = pots
+}
+
 func (h *HandState) setupNextRound(state HandStatus) {
 	h.CurrentState = state
 	actionSeat := h.getNextActivePlayer(h.ButtonPos)
@@ -641,6 +677,8 @@ func (h *HandState) setupNextRound(state HandStatus) {
 	}
 	h.resetPlayerActions()
 	h.CurrentRaise = 0
+	h.CurrentRaiseDiff = 0
+	h.BetBeforeRaise = 0
 	h.NextSeatAction = h.prepareNextAction(actionSeat, false)
 
 	// track whether the player is active in this round or not
@@ -700,6 +738,12 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 	allInAvailable := false
 	canRaise := false
 	canBet := false
+
+	// then the caller call, raise, or go all in
+	if playerState.Balance <= h.CurrentRaise || h.GameType == GameType_HOLDEM {
+		allInAvailable = true
+	}
+
 	if h.CurrentRaise == 0.0 {
 		// then the caller can check
 		availableActions = append(availableActions, ACTION_CHECK)
@@ -720,17 +764,18 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 			}
 			nextAction.CallAmount = h.CurrentRaise
 			canRaise = true
-			if actedState.State == PlayerActState_PLAYER_ACT_RAISE || actedState.State == PlayerActState_PLAYER_ACT_CALL {
-				if h.CurrentRaiseDiff < h.PlayersActed[actionSeat-1].GetRaiseAmount() {
-					canRaise = false
-					availableActions = append(availableActions, ACTION_CALL)
-				}
-			}
 		}
 	}
-	// then the caller call, raise, or go all in
-	if playerState.Balance <= h.CurrentRaise || h.GameType == GameType_HOLDEM {
-		allInAvailable = true
+
+	playerPrevAction := h.PlayersActed[actionSeat-1]
+	if playerPrevAction.GetState() == PlayerActState_PLAYER_ACT_CALL ||
+		playerPrevAction.GetState() == PlayerActState_PLAYER_ACT_BET ||
+		playerPrevAction.GetState() == PlayerActState_PLAYER_ACT_RAISE {
+		if playerPrevAction.RaiseAmount > h.CurrentRaiseDiff {
+			// this player cannot raise
+			canRaise = false
+			allInAvailable = false
+		}
 	}
 
 	if canBet || canRaise {
@@ -761,14 +806,20 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 				betOptions = h.betOptions(actionSeat, h.CurrentState, playerID)
 				availableActions = append(availableActions, ACTION_BET)
 			} else {
-				// calculate the maximum amount the player can raise
-				availableActions = append(availableActions, ACTION_RAISE)
-				betOptions = h.raiseOptions(actionSeat, nextAction.MinRaiseAmount, playerID)
+				if playerState.Balance > nextAction.MinRaiseAmount {
+					// calculate the maximum amount the player can raise
+					availableActions = append(availableActions, ACTION_RAISE)
+					betOptions = h.raiseOptions(actionSeat, nextAction.MinRaiseAmount, playerID)
+				} else {
+					// this player can go only all-in to raise
+					nextAction.MinRaiseAmount = 0
+					nextAction.MaxRaiseAmount = 0
+				}
 			}
 		}
 
-		if playerState.Balance < h.CurrentRaise*2 {
-			// the player can go all in
+		if h.GameType == GameType_HOLDEM || playerState.Balance < nextAction.MinRaiseAmount {
+			// the player can go all in no limit holdem
 			allInAvailable = true
 		}
 		nextAction.BetOptions = betOptions

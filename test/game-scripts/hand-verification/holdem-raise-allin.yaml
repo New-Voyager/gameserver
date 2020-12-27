@@ -1,0 +1,298 @@
+# In this test, four players are in the table.
+
+# btn: 1, sb: 2, bb: 3
+# FLOP  (player 2 check, player 3 check, player 4 check)
+# 1. player 1 raises
+# 2. player 2 calls the raise 
+# 3. player 3 goes all in, which is not a full raise
+# 4. player 4 folds
+# 5. player 1 options are [call, fold]
+# 6. player 2 option are [call, fold]
+
+# TURN (player 2 check)
+# 1. player 1 options [CHECK, BET, FOLD]
+#    player 1 bets 
+# 2. player 2 options [CALL, RAISE, FOLD]
+#    player 2 calls 
+# RIVER
+# 1. player 1 options [CHECK, BET, FOLD]
+#    player 1 bets
+# 2. player 2 options [CHECK, RAISE, FOLD]
+#    player 2 raises
+# 3. player 1 options [CALL, RAISE, FOLD]
+#    player 1 calls
+# Result:
+#    player 2 and 3 splits the main pot
+#    player 2 wins the side pot 
+disabled: false
+game-config:
+  type: HOLDEM
+  max-players: 4
+  min-players: 3
+  min-buyin: 60.0
+  max-buyin: 300.0
+  auto-start: false
+  auto-approve: true
+  title: 3 players playing
+  sb: 1.0
+  bb: 2.0
+
+# players in the game
+players:
+  - name: player1
+    id: 1
+  - name: player2
+    id: 2
+  - name: player3
+    id: 3
+  - name: player4
+    id: 4
+
+take-seat:
+  button-pos: 1
+  seats:
+    -
+      seat: 1 
+      player: 1
+      buy-in: 100
+    -
+      seat: 2 
+      player: 2
+      buy-in: 100
+    -
+      seat: 3 
+      player: 3
+      buy-in: 25
+    -
+      seat: 4 
+      player: 4
+      buy-in: 100
+
+
+  # wait for one second delay for the game to settle
+  wait: 1
+
+  # verify the table/player configuration is correct
+  verify:
+    table:
+      players:
+        -
+          seat: 1 
+          player: 1
+          stack: 100
+        -
+          seat: 2 
+          player: 2
+          stack: 100
+        -
+          seat: 3 
+          player: 3
+          stack: 25
+        -
+          seat: 4 
+          player: 4
+          stack: 100
+
+# deal the following hands in the table
+hands:
+  -
+    num: 1
+    setup:
+      button-pos: 1
+      flop: ["Ac", "Ad", "2c"]
+      turn: 3d
+      river: 4s
+      seat-cards:
+        - cards: ["4s", "5c"]   # seat 2
+        - cards: ["9h", "5s"]   # seat 3
+        - cards: ["Qh", "Ks"]   # seat 4
+        - cards: ["Ah", "Qd"]   # seat 1
+
+      verify:
+        button: 1
+        sb: 2
+        bb: 3
+        next-action-pos: 4
+        state: PREFLOP
+   
+    # simulate pre-flop action
+    preflop-action:
+      seat-actions:
+        - 4, CALL, 2
+        - 1, CALL, 2
+        - 2, CALL, 2
+        - 3, CHECK
+      verify:
+        state: FLOP
+        board: ["Ac", "Ad", "2c"]
+
+    flop-action:
+      actions:
+        - 
+          seat: 2
+          action: CHECK
+        - 
+          seat: 3
+          action: CHECK
+        - 
+          seat: 4
+          action: CHECK
+        -
+          seat: 1
+          action: BET
+          amount: 20            # raise is 20
+          verify-action:
+            actions: ["CHECK", "FOLD", "ALLIN", "BET"]
+            all-in-amount: 98
+            min-raise-amount: 2
+            max-raise-amount: 98
+            bet-amounts:
+              - text: 50%
+                amount: 4
+              - text: 100%
+                amount: 8
+              - text: All-In
+                amount: 98          
+        - 
+          seat: 2
+          action: CALL
+          amount: 20
+          verify-action:
+            actions: ["CALL", "FOLD", "ALLIN", "RAISE"]
+            call-amount: 20
+            all-in-amount: 98
+            min-raise-amount: 40
+            max-raise-amount: 98
+            bet-amounts:
+              - text: 2x
+                amount: 80
+              - text: All-In
+                amount: 98          
+        - 
+          seat: 3
+          action: ALLIN
+          amount: 23
+          verify-action:
+            actions: ["CALL", "ALLIN", "FOLD"]
+            call-amount: 20
+            all-in-amount: 23
+        - 
+          seat: 4
+          action: FOLD
+          amount: 0
+          verify-action:                          # this player hasn't acted, so he can raise
+            actions: ["CALL", "ALLIN", "FOLD", "RAISE"]
+            call-amount: 23
+            min-raise-amount: 26
+            max-raise-amount: 98
+            all-in-amount: 98
+        -
+          seat: 1
+          action: CALL
+          amount: 23
+          verify-action:
+            actions: ["CALL", "FOLD"]
+            call-amount: 23
+
+        -
+          seat: 2
+          action: CALL
+          amount: 23
+          verify-action:
+            actions: ["CALL", "FOLD"]
+            call-amount: 23
+      verify:
+        state: TURN
+
+    turn-action:
+      actions:
+        - 
+          seat: 2
+          action: CHECK
+          verify-action:
+            actions: ["CHECK", "FOLD", "ALLIN", "BET"]
+            all-in-amount: 75
+            min-raise-amount: 2
+            max-raise-amount: 75
+            bet-amounts:
+              - text: 30%
+                amount: 23
+              - text: 50%
+                amount: 38
+              - text: All-In
+                amount: 75
+        -
+          seat: 1
+          action: BET
+          amount: 20            # raise is 20
+          verify-action:
+            actions: ["CHECK", "FOLD", "ALLIN", "BET"]
+            all-in-amount: 75
+            min-raise-amount: 2
+            max-raise-amount: 75
+            bet-amounts:
+              - text: 30%
+                amount: 23
+              - text: 50%
+                amount: 38
+              - text: All-In
+                amount: 75
+        - 
+          seat: 2
+          action: CALL
+          amount: 20
+          verify-action:
+            actions: ["CALL", "FOLD", "ALLIN", "RAISE"]
+            call-amount: 20
+            all-in-amount: 75
+            min-raise-amount: 40
+            max-raise-amount: 75
+            bet-amounts:
+              - text: All-In
+                amount: 75
+          # verify pots here
+      verify:
+        state: RIVER
+        pots:
+          - seats: [1,2,3]
+            pot: 77
+          - seats: [1,2]
+            pot: 40
+
+    river-action:
+      actions:
+        - 
+          seat: 2
+          action: CHECK
+          verify-action:
+            actions: ["CHECK", "FOLD", "ALLIN", "BET"]
+            all-in-amount: 55
+            min-raise-amount: 2
+            max-raise-amount: 55
+            bet-amounts:
+              - text: 30%
+                amount: 35
+              - text: All-In
+                amount: 55
+        -
+          seat: 1
+          action: ALLIN
+          verify-action:
+            actions: ["CHECK", "FOLD", "ALLIN", "BET"]
+            all-in-amount: 55
+            min-raise-amount: 2
+            max-raise-amount: 55
+            bet-amounts:
+              - text: 30%
+                amount: 35
+              - text: All-In
+                amount: 55
+        - 
+          seat: 2
+          action: ALLIN
+          amount: 20
+          verify-action:
+            actions: ["FOLD", "ALLIN"]
+            all-in-amount: 55
+      verify:
+        state: SHOWDOWN
