@@ -1,4 +1,4 @@
-disabled: true
+disabled: false
 game-config:
   type: HOLDEM
   max-players: 9
@@ -20,11 +20,6 @@ players:
   - name: player3
     id: 3
 
-# after the table is initialized
-# the players will sit in the table
-# test driver will validate the sitting process worked correctly
-# after players sat on the table, the seat numbers will be used by the game
-# the player ids are only used for settling balances at the end in the database
 take-seat:
   button-pos: 1
   seats:

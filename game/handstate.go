@@ -669,16 +669,20 @@ func (h *HandState) removeEmptyPots() {
 
 func (h *HandState) setupNextRound(state HandStatus) {
 	h.CurrentState = state
+	h.resetPlayerActions()
+	h.CurrentRaise = 0
+	h.CurrentRaiseDiff = 0
+	h.BetBeforeRaise = 0
 	actionSeat := h.getNextActivePlayer(h.ButtonPos)
+	if actionSeat == 0 {
+		// every one is all in
+		return
+	}
 	playerState := h.getPlayerFromSeat(actionSeat)
 	if playerState == nil {
 		// something wrong
 		panic("Something went wrong. player id cannot be null")
 	}
-	h.resetPlayerActions()
-	h.CurrentRaise = 0
-	h.CurrentRaiseDiff = 0
-	h.BetBeforeRaise = 0
 	h.NextSeatAction = h.prepareNextAction(actionSeat, false)
 
 	// track whether the player is active in this round or not
