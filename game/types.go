@@ -111,6 +111,12 @@ type AssignSeat struct {
      bb: 8
      next-action: 1
      state: PREFLOP
+	 pots:
+		- seats: 1,2,3
+	      pot: 77
+		- seats: 1,2
+		  pot: 40
+
 */
 
 type HandSetupVerfication struct {

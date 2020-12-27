@@ -218,6 +218,19 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	return nil
 }
 
+func (g *Game) getPots(handState *HandState) ([]float32, []*SeatsInPots) {
+	pots := make([]float32, 0)
+	seatsInPots := make([]*SeatsInPots, 0)
+	for _, pot := range handState.Pots {
+		if pot.Pot == 0 {
+			continue
+		}
+		pots = append(pots, pot.Pot)
+		seatsInPots = append(seatsInPots, pot)
+	}
+	return pots, seatsInPots
+}
+
 func (g *Game) gotoFlop(gameState *GameState, handState *HandState) {
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
@@ -239,13 +252,10 @@ func (g *Game) gotoFlop(gameState *GameState, handState *HandState) {
 
 	handState.setupFlop(boardCards)
 	g.saveHandState(gameState, handState)
-	pots := make([]float32, 0)
-	for _, pot := range handState.Pots {
-		pots = append(pots, pot.Pot)
-	}
+	pots, seatsInPots := g.getPots(handState)
 
 	cardsStr := poker.CardsToString(boardCards)
-	flopMessage := &Flop{Board: boardCards, CardsStr: cardsStr, Pots: pots, SeatsPots: handState.Pots}
+	flopMessage := &Flop{Board: boardCards, CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots}
 	handMessage := &HandMessage{ClubId: g.config.ClubId,
 		GameId:      g.config.GameId,
 		HandNum:     handState.HandNum,
@@ -277,11 +287,8 @@ func (g *Game) gotoTurn(gameState *GameState, handState *HandState) {
 	for i, card := range handState.BoardCards {
 		boardCards[i] = uint32(card)
 	}
-	pots := make([]float32, 0)
-	for _, pot := range handState.Pots {
-		pots = append(pots, pot.Pot)
-	}
-	turnMessage := &Turn{Board: boardCards, TurnCard: uint32(handState.TurnCard), CardsStr: cardsStr, Pots: pots, SeatsPots: handState.Pots}
+	pots, seatsInPots := g.getPots(handState)
+	turnMessage := &Turn{Board: boardCards, TurnCard: uint32(handState.TurnCard), CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots}
 	handMessage := &HandMessage{ClubId: g.config.ClubId,
 		GameId:      g.config.GameId,
 		HandNum:     handState.HandNum,
@@ -314,11 +321,8 @@ func (g *Game) gotoRiver(gameState *GameState, handState *HandState) {
 	for i, card := range handState.BoardCards {
 		boardCards[i] = uint32(card)
 	}
-	pots := make([]float32, 0)
-	for _, pot := range handState.Pots {
-		pots = append(pots, pot.Pot)
-	}
-	riverMessage := &River{Board: boardCards, RiverCard: uint32(handState.RiverCard), CardsStr: cardsStr, Pots: pots, SeatsPots: handState.Pots}
+	pots, seatsInPots := g.getPots(handState)
+	riverMessage := &River{Board: boardCards, RiverCard: uint32(handState.RiverCard), CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots}
 	handMessage := &HandMessage{ClubId: g.config.ClubId,
 		GameId:      g.config.GameId,
 		HandNum:     handState.HandNum,
@@ -378,6 +382,9 @@ func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) {
 	if handState.LastState == HandStatus_DEAL {
 		return
 	}
+
+	// remove folded players from the pots
+	handState.removeFoldedPlayersFromPots()
 
 	if handState.LastState == HandStatus_PREFLOP && handState.CurrentState == HandStatus_FLOP {
 		g.gotoFlop(gameState, handState)
@@ -455,9 +462,11 @@ func (g *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 
 func (g *Game) handleNoMoreActions(gameState *GameState, handState *HandState) {
 
+	_, seatsInPots := g.getPots(handState)
+
 	// broadcast the players no more actions
 	handMessage := &NoMoreActions{
-		Pots: handState.Pots,
+		Pots: seatsInPots,
 	}
 	message := &HandMessage{
 		ClubId:      g.config.ClubId,
@@ -485,6 +494,7 @@ func (g *Game) handleNoMoreActions(gameState *GameState, handState *HandState) {
 }
 
 func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) {
+	handState.removeEmptyPots()
 
 	handState.HandCompletedAt = HandStatus_SHOW_DOWN
 	handResultProcessor := NewHandResultProcessor(handState, gameState, g.config.RewardTrackingIds)

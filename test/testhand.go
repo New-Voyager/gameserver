@@ -467,6 +467,18 @@ func (h *TestHand) verifyBettingRound(t *TestDriver, verify *game.VerifyBettingR
 
 		// get pot information from the observer
 		gamePots := h.gameScript.observer.actionChange.GetActionChange().SeatsPots
+
+		switch verify.State {
+		case "FLOP":
+			gamePots = h.gameScript.observer.flop.SeatsPots
+		case "TURN":
+			gamePots = h.gameScript.observer.turn.SeatsPots
+		case "RIVER":
+			gamePots = h.gameScript.observer.river.SeatsPots
+		case "SHOWDOWN":
+			gamePots = h.gameScript.observer.showdown.GetSeatsPots()
+		}
+
 		if h.gameScript.observer.noMoreActions != nil {
 			gamePots = h.gameScript.observer.noMoreActions.GetNoMoreActions().Pots
 		}

@@ -36,10 +36,13 @@ func (h *HandState) lowestBet(seatBets []float32) float32 {
 		if h.ActiveSeats[seatNo] == 0 {
 			continue
 		}
+
 		if lowestBet == 0 {
-			lowestBet = bet
-		} else if bet < lowestBet {
-			lowestBet = bet
+			if bet < lowestBet {
+				lowestBet = bet
+			} else {
+				lowestBet = bet
+			}
 		}
 	}
 	// if 0, every one checked or no more bets remaining
@@ -50,11 +53,19 @@ func (h *HandState) addChipsToPot(seatBets []float32, handEnded bool) {
 	currentPotIndex := len(h.Pots) - 1
 	currentPot := h.Pots[currentPotIndex]
 	lowestBet := h.lowestBet(seatBets)
+	allInPlayers := false
 	for seatNoIdx, bet := range seatBets {
 		if h.PlayersInSeats[seatNoIdx] == 0 || seatBets[seatNoIdx] == 0.0 {
 			// empty seat
 			continue
 		}
+
+		// player has a bet here
+		// is he all in?
+		if h.PlayersActed[seatNoIdx].GetState() == PlayerActState_PLAYER_ACT_ALL_IN {
+			allInPlayers = true
+		}
+
 		seatNo := seatNoIdx + 1
 		if bet < lowestBet {
 			// the player folded
@@ -82,6 +93,11 @@ func (h *HandState) addChipsToPot(seatBets []float32, handEnded bool) {
 		}
 		if anyRemainingBets > 1 {
 			// add a new pot and calculate next pot
+			newPot := initializePot(len(seatBets))
+			h.Pots = append(h.Pots, newPot)
+			h.addChipsToPot(seatBets, handEnded)
+		} else if allInPlayers && anyRemainingBets != 1 {
+			// add a new pot
 			newPot := initializePot(len(seatBets))
 			h.Pots = append(h.Pots, newPot)
 			h.addChipsToPot(seatBets, handEnded)
