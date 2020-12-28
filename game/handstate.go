@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -537,7 +538,9 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		if action.Action == ACTION_BB {
 			straddleAvailable = true
 		}
-		h.NextSeatAction = h.prepareNextAction(actionSeat, straddleAvailable)
+		if action.Action != ACTION_SB {
+			h.NextSeatAction = h.prepareNextAction(actionSeat, straddleAvailable)
+		}
 	}
 	return nil
 }
@@ -711,20 +714,50 @@ func (h *HandState) setupRiver(riverCard uint32) {
 	h.BoardCards = append(h.BoardCards, uint8(riverCard))
 }
 
-func (h *HandState) calcPloPotBet(callAmount float32) float32 {
+func (h *HandState) adjustToBringIn(amount float32) float32 {
+	if h.BringIn != 0 {
+		// make call amount multiples of bring-in
+		if int64(amount)%int64(h.BringIn) > 0 {
+			amount = float32(float32(int64(amount/h.BringIn+1.0)) * h.BringIn)
+			amount = float32(math.Floor(float64(amount)))
+		}
+	}
+	return amount
+}
+
+func (h *HandState) calcPloPotBet(callAmount float32, preFlop bool) float32 {
+
 	bettingRound := h.RoundBetting[uint32(h.CurrentState)]
-	totalPot := float32(0.0)
+	firstAction := true
+	if preFlop {
+		for _, bet := range bettingRound.SeatBet {
+			if bet > h.BigBlind {
+				firstAction = false
+				break
+			}
+		}
+	}
+
+	totalPot := callAmount
+	if !firstAction {
+		totalPot = callAmount * 2.0
+	}
 	for _, pot := range h.Pots {
 		totalPot += pot.Pot
 	}
 
 	for _, bet := range bettingRound.SeatBet {
-		if bet != 0 && bet < h.BringIn {
+		// if there is no call or bet, then consider the blinds as bring-in bets
+		if firstAction && bet != 0 && bet < h.BringIn {
 			bet = h.BringIn
 		}
 		totalPot += bet
 	}
-	totalPot += callAmount
+
+	if h.BringIn != 0 {
+		// make call amount multiples of bring-in
+		totalPot = h.adjustToBringIn(totalPot)
+	}
 	return totalPot
 }
 
@@ -823,8 +856,9 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 		if h.GameType == GameType_HOLDEM {
 			nextAction.MaxRaiseAmount = bettingRound.SeatBet[actionSeat-1] + playerState.Balance
 		} else {
+			preFlop := h.CurrentState == HandStatus_PREFLOP
 			// handle PLO max raise
-			ploPot := h.calcPloPotBet(nextAction.CallAmount)
+			ploPot := h.calcPloPotBet(nextAction.CallAmount, preFlop)
 			nextAction.MaxRaiseAmount = ploPot
 		}
 
@@ -1034,7 +1068,8 @@ func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64,
 	} else {
 		// PLO
 		if round == HandStatus_PREFLOP {
-			ploPot := h.calcPloPotBet(callAmount)
+			preFlop := h.CurrentState == HandStatus_PREFLOP
+			ploPot := h.calcPloPotBet(callAmount, preFlop)
 			// pre-flop options
 			for _, betOption := range ploPreFlopBets {
 				bet := h.BigBlind
@@ -1042,14 +1077,54 @@ func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64,
 					bet = h.BringIn
 				}
 
-				betAmount := float32(int64(float32(betOption) * h.BringIn))
+				betAmount := float32(int64(float32(betOption) * bet))
 				if betAmount > ploPot {
 					betAmount = ploPot
 				}
+				betAmount = h.adjustToBringIn(betAmount)
 
 				if betAmount < balance {
 					option := &BetRaiseOption{
 						Text:   fmt.Sprintf("%dBB", betOption),
+						Amount: betAmount,
+					}
+					options = append(options, option)
+				}
+			}
+			if ploPot > allIn {
+				options = append(options, &BetRaiseOption{Text: "All-In", Amount: allIn})
+			} else {
+				options = append(options, &BetRaiseOption{Text: "Pot", Amount: ploPot})
+			}
+		} else {
+			preFlop := h.CurrentState == HandStatus_PREFLOP
+			// post flop
+			ploPot := h.calcPloPotBet(callAmount, preFlop)
+			// pre-flop options
+			for _, betOption := range postFlopBets {
+				// skip 100%
+				if betOption == 100 {
+					continue
+				}
+				bet := h.BigBlind
+				if bet < h.BringIn {
+					bet = h.BringIn
+				}
+
+				betAmount := float32(int64(float32(betOption)*ploPot) / 100.0)
+				if betAmount > ploPot {
+					betAmount = ploPot
+				}
+
+				if h.BringIn != 0.0 && betAmount < h.BringIn {
+					// skip this option
+					continue
+				}
+				betAmount = h.adjustToBringIn(betAmount)
+
+				if betAmount < balance {
+					option := &BetRaiseOption{
+						Text:   fmt.Sprintf("%d%%", betOption),
 						Amount: betAmount,
 					}
 					options = append(options, option)

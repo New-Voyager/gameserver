@@ -137,12 +137,12 @@ hands:
             actions: ["CALL", "FOLD", "BET"]
             call-amount: 5
             min-raise-amount: 10
-            max-raise-amount: 20
+            max-raise-amount: 25
             bet-amounts:
               - text: 2BB
                 amount: 10
               - text: Pot
-                amount: 20
+                amount: 25
 
       # verify preflop-action result
       # since both players folded, the round ended with a hand result
@@ -170,46 +170,38 @@ hands:
         - 
           seat: 3
           action: BET
-          amount: 2
+          amount: 5
           verify-action:
-            actions: ["CHECK", "FOLD", "ALLIN", "BET"]
-            all-in-amount: 98
-            min-raise-amount: 2
-            max-raise-amount: 98
+            actions: ["CHECK", "FOLD", "BET"]
+            min-raise-amount: 5
+            max-raise-amount: 15
             bet-amounts:
               - text: 50%
-                amount: 3
-              - text: 100%
-                amount: 6
-              - text: All-In
-                amount: 98          
+                amount: 10
+              - text: Pot
+                amount: 15          
 
         -
           seat: 1
           action: CALL
-          amount: 2
+          amount: 5
           verify-action:
-            actions: ["CALL", "FOLD", "ALLIN", "RAISE"]
-            call-amount: 2
-            all-in-amount: 98
-            min-raise-amount: 4
-            max-raise-amount: 98
+            actions: ["CALL", "FOLD", "RAISE"]
+            call-amount: 5
+            min-raise-amount: 10
+            max-raise-amount: 30
             bet-amounts:
               - text: 2x
-                amount: 8
-              - text: 3x
-                amount: 12
-              - text: 5x
-                amount: 20
-              - text: All-In
-                amount: 98          
+                amount: 10
+              - text: Pot
+                amount: 30
 
         - 
           seat: 2
           action: RAISE
           amount: 4
           verify-action:
-            actions: ["CALL", "FOLD", "ALLIN", "RAISE"]
+            actions: ["CALL", "FOLD", "RAISE"]
             call-amount: 2
             all-in-amount: 98
             min-raise-amount: 4
