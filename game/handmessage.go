@@ -200,20 +200,30 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	// broadcast this message to all the players
 	g.broadcastHandMessage(message)
 
-	// if only one player is remaining in the hand, we have a winner
-	if handState.NoActiveSeats == 1 {
-		g.sendWinnerBeforeShowdown(gameState, handState)
-		// result of the hand is sent
-
-		// wait for the animation to complete before we send the next hand
-		// if it is not auto deal, we return from here
-		if !g.autoDeal {
-			return nil
+	go func(g *Game) {
+		time.Sleep(1 * time.Second)
+		gameState, err := g.loadState()
+		if err != nil {
+			return
 		}
-	} else {
-		// if the current player is where the action ends, move to the next round
-		g.moveToNextAct(gameState, handState)
-	}
+		handState, err := g.loadHandState(gameState)
+		if err != nil {
+			return
+		} // if only one player is remaining in the hand, we have a winner
+		if handState.NoActiveSeats == 1 {
+			g.sendWinnerBeforeShowdown(gameState, handState)
+			// result of the hand is sent
+
+			// wait for the animation to complete before we send the next hand
+			// if it is not auto deal, we return from here
+			//if !g.autoDeal {
+			//	return nil
+			//}
+		} else {
+			// if the current player is where the action ends, move to the next round
+			g.moveToNextAct(gameState, handState)
+		}
+	}(g)
 
 	return nil
 }
