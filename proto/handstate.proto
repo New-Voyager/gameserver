@@ -235,6 +235,7 @@ message HandState {
   float rake_collected = 49;
   float current_raise_diff = 50;     // current raise diff
   float bet_before_raise = 51;       // bet before the raise
+  float bring_in = 52;    // bring in chips
 }
 
 message HandWinner {

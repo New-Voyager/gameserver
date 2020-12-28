@@ -9,9 +9,10 @@ import (
 )
 
 var handLogger = log.With().Str("logger_name", "game::hand").Logger()
-var preFlopBets = [3]int{3, 5, 10}     // big blinds
-var postFlopBets = [3]int{30, 50, 100} // % of pot
-var raiseOptions = [3]int{2, 3, 5}     // raise times
+var preFlopBets = []int{3, 5, 10}     // big blinds
+var postFlopBets = []int{30, 50, 100} // % of pot
+var raiseOptions = []int{2, 3, 5}     // raise times
+var ploPreFlopBets = []int{2}         // big blinds
 
 func LoadHandState(handStatePersist PersistHandState, clubID uint32, gameID uint64, handNum uint32) (*HandState, error) {
 	handState, err := handStatePersist.Load(clubID, gameID, handNum)
@@ -64,6 +65,7 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 	h.RakeCap = gameState.RakeCap
 	h.ButtonPos = buttonPos
 	h.PlayersActed = make([]*PlayerActRound, h.MaxSeats)
+	h.BringIn = gameState.BringIn
 
 	// if the players don't have money less than the blinds
 	// don't let them play
@@ -436,7 +438,6 @@ func (h *HandState) actionReceived(action *HandAction) error {
 	} else if action.Action == ACTION_CHECK {
 		h.PlayersActed[action.SeatNo-1].State = PlayerActState_PLAYER_ACT_CHECK
 	} else if action.Action == ACTION_CALL {
-		diff = h.CurrentRaise - playerBetSoFar
 		// action call
 		if action.Amount < h.CurrentRaise {
 			// fold this player
@@ -444,19 +445,16 @@ func (h *HandState) actionReceived(action *HandAction) error {
 			h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_FOLDED, playerBetSoFar)
 		} else if action.Amount == playerBalance {
 			// the player is all in
-			// he is going all in, crazy
 			action.Action = ACTION_ALLIN
 			h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, action.Amount)
-			//h.PlayersActed[action.SeatNo-1].State = PlayerActState_PLAYER_ACT_ALL_IN
-			h.PlayersActed[action.SeatNo-1].Amount = action.Amount
 			h.AllInPlayers[action.SeatNo-1] = 1
 			diff = playerBalance
 		} else {
 			// if this player has an equity in this pot, just call subtract the amount
 			h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_CALL, action.Amount)
 		}
-		playerBetSoFar += diff
-		playerState.Balance -= diff
+		playerBetSoFar += (action.Amount - playerBetSoFar)
+		playerState.Balance -= action.Amount
 		bettingRound.SeatBet[action.SeatNo-1] = playerBetSoFar
 	} else if action.Action == ACTION_ALLIN {
 		h.AllInPlayers[action.SeatNo-1] = 1
@@ -466,12 +464,6 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		playerState.Balance = 0
 		action.Amount = amount
 		h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, amount)
-
-		if amount > h.CurrentRaise {
-			h.BetBeforeRaise = h.CurrentRaise
-			h.CurrentRaiseDiff = amount - h.CurrentRaise
-			h.CurrentRaise = amount
-		}
 	} else if action.Action == ACTION_RAISE ||
 		action.Action == ACTION_BET {
 		// TODO: we need to handle raise and determine next min raise
@@ -497,9 +489,6 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		if action.Amount > h.CurrentRaise {
 			// reset player action
 			h.acted(action.SeatNo, state, action.Amount)
-			h.BetBeforeRaise = h.CurrentRaise
-			h.CurrentRaiseDiff = action.Amount - h.CurrentRaise
-			h.CurrentRaise = action.Amount
 			h.ActionCompleteAtSeat = action.SeatNo
 		}
 
@@ -524,6 +513,12 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		diff = action.Amount
 	}
 
+	if action.Amount > h.CurrentRaise {
+		h.BetBeforeRaise = h.CurrentRaise
+		h.CurrentRaiseDiff = action.Amount - h.CurrentRaise
+		h.CurrentRaise = action.Amount
+		h.ActionCompleteAtSeat = action.SeatNo
+	}
 	// add the action to the log
 	log.Actions = append(log.Actions, action)
 	log.Pot = log.Pot + diff
@@ -716,6 +711,23 @@ func (h *HandState) setupRiver(riverCard uint32) {
 	h.BoardCards = append(h.BoardCards, uint8(riverCard))
 }
 
+func (h *HandState) calcPloPotBet(callAmount float32) float32 {
+	bettingRound := h.RoundBetting[uint32(h.CurrentState)]
+	totalPot := float32(0.0)
+	for _, pot := range h.Pots {
+		totalPot += pot.Pot
+	}
+
+	for _, bet := range bettingRound.SeatBet {
+		if bet != 0 && bet < h.BringIn {
+			bet = h.BringIn
+		}
+		totalPot += bet
+	}
+	totalPot += callAmount
+	return totalPot
+}
+
 func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool) *NextSeatAction {
 	// compute next action
 	bettingRound := h.RoundBetting[uint32(h.CurrentState)]
@@ -767,7 +779,14 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 				availableActions = append(availableActions, ACTION_CALL)
 			}
 			nextAction.CallAmount = h.CurrentRaise
+
 			canRaise = true
+			// if the call amount is less than bring in amount, use bring in amount
+			if nextAction.CallAmount <= h.BringIn {
+				nextAction.CallAmount = h.BringIn
+				canBet = true
+				canRaise = false
+			}
 		}
 	}
 
@@ -785,29 +804,40 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 	if canBet || canRaise {
 		playerID := h.GetPlayersInSeats()[actionSeat-1]
 		betOptions := make([]*BetRaiseOption, 0)
-		nextAction.MinRaiseAmount = h.CurrentRaise * 2
-		if nextAction.MinRaiseAmount == 0 {
-			nextAction.MinRaiseAmount = h.BigBlind
-		}
 		if h.CurrentRaiseDiff > 0 {
 			nextAction.MinRaiseAmount = (h.CurrentRaiseDiff * 2) + h.BetBeforeRaise
 		}
+		// at preflop, the min raise should be twice than the bringin amount
+		if h.BringIn > 0.0 {
+			if h.CurrentState == HandStatus_PREFLOP && nextAction.MinRaiseAmount < 2.0*h.BringIn {
+				nextAction.MinRaiseAmount = 2.0 * h.BringIn
+			} else {
+				nextAction.MinRaiseAmount = h.BringIn
+			}
+		}
+
+		if nextAction.MinRaiseAmount == 0 {
+			nextAction.MinRaiseAmount = nextAction.CallAmount * 2
+		}
+
 		if h.GameType == GameType_HOLDEM {
 			nextAction.MaxRaiseAmount = bettingRound.SeatBet[actionSeat-1] + playerState.Balance
 		} else {
 			// handle PLO max raise
-			nextAction.MaxRaiseAmount = playerState.Balance
+			ploPot := h.calcPloPotBet(nextAction.CallAmount)
+			nextAction.MaxRaiseAmount = ploPot
 		}
+
 		if canBet {
 			// calculate what the maximum amount the player can bet
 			availableActions = append(availableActions, ACTION_BET)
-			betOptions = h.betOptions(actionSeat, h.CurrentState, playerID)
+			betOptions = h.betOptions(actionSeat, h.CurrentState, playerID, nextAction.CallAmount)
 		}
 
 		if canRaise {
 			// calculate what the maximum amount the player can bet
 			if h.CurrentState == HandStatus_PREFLOP && h.CurrentRaise == h.BigBlind {
-				betOptions = h.betOptions(actionSeat, h.CurrentState, playerID)
+				betOptions = h.betOptions(actionSeat, h.CurrentState, playerID, nextAction.CallAmount)
 				availableActions = append(availableActions, ACTION_BET)
 			} else {
 				if playerState.Balance > nextAction.MinRaiseAmount {
@@ -961,7 +991,7 @@ func (h *HandState) getLog() *HandLog {
 	return handResult
 }
 
-func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64) []*BetRaiseOption {
+func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64, callAmount float32) []*BetRaiseOption {
 	balance := h.PlayersState[playerID].Balance
 	preFlopBetOptions := preFlopBets
 	postFlopBets := postFlopBets
@@ -1003,6 +1033,34 @@ func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64)
 		}
 	} else {
 		// PLO
+		if round == HandStatus_PREFLOP {
+			ploPot := h.calcPloPotBet(callAmount)
+			// pre-flop options
+			for _, betOption := range ploPreFlopBets {
+				bet := h.BigBlind
+				if bet < h.BringIn {
+					bet = h.BringIn
+				}
+
+				betAmount := float32(int64(float32(betOption) * h.BringIn))
+				if betAmount > ploPot {
+					betAmount = ploPot
+				}
+
+				if betAmount < balance {
+					option := &BetRaiseOption{
+						Text:   fmt.Sprintf("%dBB", betOption),
+						Amount: betAmount,
+					}
+					options = append(options, option)
+				}
+			}
+			if ploPot > allIn {
+				options = append(options, &BetRaiseOption{Text: "All-In", Amount: allIn})
+			} else {
+				options = append(options, &BetRaiseOption{Text: "Pot", Amount: ploPot})
+			}
+		}
 	}
 	return options
 }

@@ -293,6 +293,7 @@ func (g *Game) initialize() error {
 		RakePercentage:        float32(g.config.RakePercentage),
 		RakeCap:               float32(g.config.RakeCap),
 		RewardTrackingIds:     rewardTrackingIds,
+		BringIn:               float32(g.config.BringIn),
 	}
 	err := g.saveState(&gameState)
 	if err != nil {
