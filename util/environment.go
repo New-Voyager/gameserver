@@ -11,58 +11,36 @@ import (
 var environmentLogger = log.With().Str("logger_name", "util::environment").Logger()
 
 type gameServerEnvironment struct {
-	NatsHost       string
-	NatsClientPort string
-	PersistMethod  string
-	RedisHost      string
-	RedisPort      string
-	RedisPW        string
-	RedisDB        string
-	APIServerUrl   string
-	PlayTimeout    string
+	NatsURL       string
+	PersistMethod string
+	RedisHost     string
+	RedisPort     string
+	RedisPW       string
+	RedisDB       string
+	APIServerUrl  string
+	PlayTimeout   string
 }
 
 // GameServerEnvironment is a helper object for accessing environment variables.
 var GameServerEnvironment = &gameServerEnvironment{
-	NatsHost:       "NATS_HOST",
-	NatsClientPort: "NATS_CLIENT_PORT",
-	PersistMethod:  "PERSIST_METHOD",
-	RedisHost:      "REDIS_HOST",
-	RedisPort:      "REDIS_PORT",
-	RedisPW:        "REDIS_PW",
-	RedisDB:        "REDIS_DB",
-	APIServerUrl:   "API_SERVER_URL",
-	PlayTimeout:    "PLAY_TIMEOUT",
+	NatsURL:       "NATS_URL",
+	PersistMethod: "PERSIST_METHOD",
+	RedisHost:     "REDIS_HOST",
+	RedisPort:     "REDIS_PORT",
+	RedisPW:       "REDIS_PW",
+	RedisDB:       "REDIS_DB",
+	APIServerUrl:  "API_SERVER_URL",
+	PlayTimeout:   "PLAY_TIMEOUT",
 }
 
-func (g *gameServerEnvironment) GetNatsHost() string {
-	host := os.Getenv(g.NatsHost)
+func (g *gameServerEnvironment) GetNatsURL() string {
+	host := os.Getenv(g.NatsURL)
 	if host == "" {
-		msg := fmt.Sprintf("%s is not defined", g.NatsHost)
+		msg := fmt.Sprintf("%s is not defined", g.NatsURL)
 		environmentLogger.Error().Msg(msg)
 		panic(msg)
 	}
 	return host
-}
-
-func (g *gameServerEnvironment) GetNatsClientPort() int {
-	portStr := os.Getenv(g.NatsClientPort)
-	if portStr == "" {
-		msg := fmt.Sprintf("%s is not defined", g.NatsClientPort)
-		environmentLogger.Error().Msg(msg)
-		panic(msg)
-	}
-	portNum, err := strconv.Atoi(portStr)
-	if err != nil {
-		msg := fmt.Sprintf("Invalid NATS client port %s", portStr)
-		environmentLogger.Error().Msg(msg)
-		panic(msg)
-	}
-	return portNum
-}
-
-func (g *gameServerEnvironment) GetNatsClientConnURL() string {
-	return fmt.Sprintf("nats://%s:%d", g.GetNatsHost(), g.GetNatsClientPort())
 }
 
 func (g *gameServerEnvironment) GetPersistMethod() string {

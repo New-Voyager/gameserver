@@ -5,8 +5,7 @@ DEFAULT_DOCKER_NET := game
 DO_REGISTRY := registry.digitalocean.com/voyager
 GCP_REGISTRY := gcr.io/${GCP_PROJECT_ID}
 
-DEV_NATS_HOST := localhost
-DEV_NATS_CLIENT_PORT := 4222
+DEV_NATS_URL := nats://localhost:4222
 DEV_REDIS_HOST := localhost
 DEV_REDIS_PORT := 6379
 DEV_REDIS_DB := 0
@@ -48,16 +47,14 @@ build2: compile-proto2
 	go build
 
 .PHONY: test
-test: export NATS_HOST=$(DEV_NATS_HOST)
-test: export NATS_CLIENT_PORT=$(DEV_NATS_CLIENT_PORT)
+test: export NATS_URL=$(DEV_NATS_URL)
 test: export PERSIST_METHOD=memory
 test: build
 	go test voyager.com/server/poker
 	go test voyager.com/server/game
 
 .PHONY: script-test
-script-test: export NATS_HOST=$(DEV_NATS_HOST)
-script-test: export NATS_CLIENT_PORT=$(DEV_NATS_CLIENT_PORT)
+script-test: export NATS_URL=$(DEV_NATS_URL)
 script-test: export PERSIST_METHOD=redis
 script-test: export REDIS_HOST=$(DEV_REDIS_HOST)
 script-test: export REDIS_PORT=$(DEV_REDIS_PORT)
@@ -84,8 +81,7 @@ run-redis: create-network
 	docker run -d --name redis --network $(DEFAULT_DOCKER_NET) -p 6379:6379 redis:$(REDIS_VERSION)
 
 .PHONY: run-server
-run-server: export NATS_HOST=$(DEV_NATS_HOST)
-run-server: export NATS_CLIENT_PORT=$(DEV_NATS_CLIENT_PORT)
+run-server: export NATS_URL=$(DEV_NATS_URL)
 run-server: export PERSIST_METHOD=redis
 run-server: export REDIS_HOST=$(DEV_REDIS_HOST)
 run-server: export REDIS_PORT=$(DEV_REDIS_PORT)
@@ -95,8 +91,7 @@ run-server:
 	go run ./main.go --server
 
 .PHONY: run-bot
-run-bot: export NATS_HOST=$(DEV_NATS_HOST)
-run-bot: export NATS_CLIENT_PORT=$(DEV_NATS_CLIENT_PORT)
+run-bot: export NATS_URL=$(DEV_NATS_URL)
 run-bot: export PERSIST_METHOD=redis
 run-bot: export REDIS_HOST=$(DEV_REDIS_HOST)
 run-bot: export REDIS_PORT=$(DEV_REDIS_PORT)
@@ -109,8 +104,7 @@ docker-test: create-network run-nats run-redis
 	docker run -t --rm \
 		--name gameserver \
 		--network $(DEFAULT_DOCKER_NET) \
-		-e NATS_HOST=nats \
-		-e NATS_CLIENT_PORT=4222 \
+		-e NATS_URL=nats://nats:4222 \
 		-e REDIS_HOST=redis \
 		-e REDIS_PORT=6379 \
 		-e REDIS_DB=0 \

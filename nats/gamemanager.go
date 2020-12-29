@@ -10,7 +10,7 @@ import (
 	"voyager.com/server/util"
 )
 
-var NatsURL = util.GameServerEnvironment.GetNatsClientConnURL()
+var NatsURL = util.GameServerEnvironment.GetNatsURL()
 
 // This game manager is similar to game.GameManager.
 // However, this game manager active NatsGame objects.
