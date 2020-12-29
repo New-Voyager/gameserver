@@ -480,6 +480,7 @@ func (g *Game) dealNewHand() error {
 	//newHand.PlayerCards = playersCards
 	handMessage.HandMessage = &HandMessage_NewHand{NewHand: &newHand}
 	g.broadcastHandMessage(&handMessage)
+	time.Sleep(3 * time.Second)
 
 	// send the cards to each player
 	for seatNo, playerID := range gameState.GetPlayersInSeats() {
@@ -515,6 +516,7 @@ func (g *Game) dealNewHand() error {
 		} else {
 			player.chHand <- b
 		}
+		time.Sleep(1 * time.Second)
 	}
 
 	// print next action
