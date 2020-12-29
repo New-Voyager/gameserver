@@ -52,6 +52,7 @@ type GameConfig struct {
 	AutoStart          bool     `yaml:"auto-start"`
 	AutoApprove        bool     `yaml:"auto-approve"`
 	RewardTrackingIds  []uint32 `json:"rewardTrackingIds"`
+	BringIn            float64  `json:"bringIn" yaml:"bring-in"`
 }
 
 type GamePlayer struct {

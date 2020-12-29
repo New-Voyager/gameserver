@@ -89,7 +89,9 @@ func (g *Game) onPendingUpdatesDone(message *GameMessage) error {
 
 func (g *Game) onMoveToNextHand(message *GameMessage) error {
 
-	time.Sleep(3 * time.Second)
+	if !RunningTests {
+		time.Sleep(3 * time.Second)
+	}
 
 	// if this game is used by script test, don't look for pending updates
 	if g.scriptTest {
