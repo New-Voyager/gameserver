@@ -9,8 +9,7 @@ services:
     tty: true
     restart: always
     environment:
-      NATS_HOST: nats
-      NATS_CLIENT_PORT: 4222
+      NATS_URL: nats://nats:4222
       PERSIST_METHOD: redis
       REDIS_HOST: redis
       REDIS_PORT: 6379

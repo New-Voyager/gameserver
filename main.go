@@ -54,7 +54,7 @@ func main() {
 
 func runWithNats() {
 	fmt.Printf("Running the server with NATS\n")
-	natsURL := util.GameServerEnvironment.GetNatsClientConnURL()
+	natsURL := util.GameServerEnvironment.GetNatsURL()
 	fmt.Printf("NATS URL: %s\n", natsURL)
 
 	nc, err := natsgo.Connect(natsURL)
@@ -88,7 +88,7 @@ func runWithNats() {
 }
 
 func runBot() {
-	natsURL := util.GameServerEnvironment.GetNatsClientConnURL()
+	natsURL := util.GameServerEnvironment.GetNatsURL()
 	fmt.Printf("NATS URL: %s\n", natsURL)
 	botDriver, err := bot.NewDriverBot(natsURL)
 	if err != nil {
