@@ -102,7 +102,7 @@ func (t *TestDriver) ReportResult() bool {
 }
 
 func RunGameScriptTests(dir string, testName string) {
-
+	game.RunningTests = true
 	pattern := fmt.Sprintf("%s/**/*.yaml", dir)
 	patterns := []string{pattern}
 	files, _, err := glob.Glob(patterns)

@@ -20,6 +20,8 @@ NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 
 var channelGameLogger = log.With().Str("logger_name", "game::game").Logger()
 
+var RunningTests bool
+
 type GameMessageReceiver interface {
 	BroadcastGameMessage(message *GameMessage)
 	BroadcastHandMessage(message *HandMessage)
@@ -480,7 +482,9 @@ func (g *Game) dealNewHand() error {
 	//newHand.PlayerCards = playersCards
 	handMessage.HandMessage = &HandMessage_NewHand{NewHand: &newHand}
 	g.broadcastHandMessage(&handMessage)
-	time.Sleep(3 * time.Second)
+	if !RunningTests {
+		time.Sleep(3 * time.Second)
+	}
 
 	// send the cards to each player
 	for seatNo, playerID := range gameState.GetPlayersInSeats() {
@@ -516,7 +520,9 @@ func (g *Game) dealNewHand() error {
 		} else {
 			player.chHand <- b
 		}
-		time.Sleep(1 * time.Second)
+		if !RunningTests {
+			time.Sleep(1 * time.Second)
+		}
 	}
 
 	// print next action

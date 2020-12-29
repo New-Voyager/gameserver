@@ -201,7 +201,9 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	g.broadcastHandMessage(message)
 
 	go func(g *Game) {
-		time.Sleep(1 * time.Second)
+		if !RunningTests {
+			time.Sleep(1 * time.Second)
+		}
 		gameState, err := g.loadState()
 		if err != nil {
 			return
@@ -378,9 +380,11 @@ func (g *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandSta
 }
 
 func (g *Game) moveToNextHand() {
-	// wait 5 minutes to show the result
+	// wait 5 seconds to show the result
 	// send a message to game to start new hand
-	time.Sleep(5 * time.Second)
+	if !RunningTests {
+		time.Sleep(5 * time.Second)
+	}
 	gameMessage := &GameMessage{
 		GameId:      g.config.GameId,
 		MessageType: GameMoveToNextHand,

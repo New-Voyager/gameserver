@@ -11,6 +11,8 @@ game-config:
   sb: 1.0
   bb: 2.0
   bring-in: 5.0
+  rake-percentage: 5.0
+  rake-cap: 5.0
 
 # players in the game
 players:
@@ -192,48 +194,39 @@ hands:
             max-raise-amount: 30
             bet-amounts:
               - text: 2x
-                amount: 10
+                amount: 20
               - text: Pot
                 amount: 30
 
         - 
           seat: 2
           action: RAISE
-          amount: 4
+          amount: 35
           verify-action:
             actions: ["CALL", "FOLD", "RAISE"]
-            call-amount: 2
-            all-in-amount: 98
-            min-raise-amount: 4
-            max-raise-amount: 98
+            call-amount: 5
+            min-raise-amount: 10
+            max-raise-amount: 35
             bet-amounts:
               - text: 2x
-                amount: 8
-              - text: 3x
-                amount: 12
-              - text: 5x
                 amount: 20
-              - text: All-In
-                amount: 98
+              - text: 3x
+                amount: 30
+              - text: Pot
+                amount: 35
 
         - 
           seat: 3
           action: FOLD
           verify-action:
-            actions: ["CALL", "FOLD", "ALLIN", "RAISE"]
-            call-amount: 4
-            all-in-amount: 98
-            min-raise-amount: 6
-            max-raise-amount: 98
+            actions: ["CALL", "FOLD", "RAISE"]
+            call-amount: 35
+            all-in-amount: 95
+            min-raise-amount: 65
+            max-raise-amount: 95
             bet-amounts:
-              - text: 2x
-                amount: 12
-              - text: 3x
-                amount: 18
-              - text: 5x
-                amount: 30
               - text: All-In
-                amount: 98
+                amount: 95
 
         -
           seat: 1
@@ -245,7 +238,7 @@ hands:
       winners:
         -
           seat: 2
-          receive: 14.0
+          receive: 57.0
       action-ended: FLOP
       
       # balance indicates the player balance after the hand
@@ -253,10 +246,10 @@ hands:
       stacks:
         -
           seat: 1
-          stack: 96
+          stack: 90
         -
-          seat: 5
-          stack: 108
+          seat: 2
+          stack: 117
         -
-          seat: 8
-          stack: 96
+          seat: 3
+          stack: 90
