@@ -47,6 +47,7 @@ type NatsGame struct {
 	clubID                 uint32
 	gameID                 uint64
 	chEndGame              chan bool
+	chManageGame           chan []byte
 	player2GameSubject     string
 	player2HandSubject     string
 	hand2PlayerAllSubject  string
@@ -72,10 +73,11 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 
 	// we need to use the API to get the game configuration
 	natsGame := &NatsGame{
-		clubID:    clubID,
-		gameID:    gameID,
-		chEndGame: make(chan bool),
-		nc:        nc,
+		clubID:       clubID,
+		gameID:       gameID,
+		chEndGame:    make(chan bool),
+		chManageGame: make(chan []byte),
+		nc:           nc,
 		//		player2GameSubject:     player2GameSubject,
 		game2AllPlayersSubject: game2AllPlayersSubject,
 		player2HandSubject:     player2HandSubject,
@@ -241,9 +243,15 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID uint64) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Game->Player: %s", message.MessageType))
-	subject := fmt.Sprintf("game.%s.player.%d", n.gameCode, playerID)
-	data, _ := protojson.Marshal(message)
-	n.nc.Publish(subject, data)
+
+	if playerID == 0 {
+		data, _ := protojson.Marshal(message)
+		n.chManageGame <- data
+	} else {
+		subject := fmt.Sprintf("game.%s.player.%d", n.gameCode, playerID)
+		data, _ := protojson.Marshal(message)
+		n.nc.Publish(subject, data)
+	}
 }
 
 func (n *NatsGame) gameEnded() error {
@@ -261,4 +269,21 @@ func (n *NatsGame) gameEnded() error {
 
 	n.serverGame.GameEnded()
 	return nil
+}
+
+func (n *NatsGame) getHandLog() []byte {
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+		Msg(fmt.Sprintf("Bot->Game: Get HAND LOG: %d", n.gameID))
+	// build a game message and send to the game
+	var message game.GameMessage
+
+	message.ClubId = 0
+	message.GameId = n.gameID
+	message.MessageType = game.GetHandLog
+
+	n.serverGame.SendGameMessage(&message)
+	resp := <-n.chManageGame
+	var gameMessage game.GameMessage
+	protojson.Unmarshal(resp, &gameMessage)
+	return gameMessage.GetHandLog()
 }

@@ -126,3 +126,15 @@ func (gm *GameManager) SetupDeck(setupDeck SetupDeck) {
 		poker.NewCard(setupDeck.River))
 	natsGame.setupDeck(deck.GetBytes(), setupDeck.ButtonPos)
 }
+
+func (gm *GameManager) GetCurrentHandLog(gameID uint64) string {
+	// first check whether the game is hosted by this game server
+	gameIDStr := fmt.Sprintf("%d", gameID)
+	var natsGame *NatsGame
+	var ok bool
+	if natsGame, ok = gm.activeGames[gameIDStr]; !ok {
+		return fmt.Sprintf("\\{\"error\": \"Cannot find game\"\\}")
+	}
+	handLog := natsGame.getHandLog()
+	return string(handLog)
+}

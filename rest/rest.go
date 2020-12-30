@@ -76,6 +76,7 @@ func RunRestServer(gameManager *nats.GameManager) {
 	r.POST("/player-update", playerUpdate)
 	r.POST("/game-update-status", gameUpdateStatus)
 	r.POST("/pending-updates", gamePendingUpdates)
+	r.POST("/current-hand-log", gameCurrentHandLog)
 
 	r.POST("/start-timer", startTimer)
 	r.POST("/cancel-timer", cancelTimer)
@@ -222,4 +223,18 @@ func cancelTimer(c *gin.Context) {
 	restLogger.Info().Msgf("cancel-timer game id: %s player id: %s purpose: %s", gameID, playerID, purpose)
 
 	timeoutController.CancelTimer(gameID, playerID, purpose)
+}
+
+func gameCurrentHandLog(c *gin.Context) {
+	gameIDStr := c.Query("game-id")
+	if gameIDStr == "" {
+		c.String(400, "Failed to read game-id param from pending-updates endpoint")
+	}
+
+	gameID, err := strconv.ParseUint(gameIDStr, 10, 64)
+	if err != nil {
+		c.String(400, "Failed to parse game-id [%s] from pending-updates endpoint.", gameIDStr)
+	}
+	log := natsGameManager.GetCurrentHandLog(gameID)
+	c.JSON(http.StatusOK, log)
 }

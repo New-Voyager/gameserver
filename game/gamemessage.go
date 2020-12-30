@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -47,6 +48,9 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 
 	case GamePendingUpdatesDone:
 		g.onPendingUpdatesDone(message)
+
+	case GetHandLog:
+		g.onGetHandLog(message)
 	}
 }
 
@@ -66,6 +70,24 @@ func processPendingUpdates(apiServerUrl string, gameID uint64) {
 	if resp.StatusCode != 200 {
 		channelGameLogger.Fatal().Uint64("game", gameID).Msg(fmt.Sprintf("Failed to process pending updates. Error: %d", resp.StatusCode))
 	}
+}
+
+func (g *Game) onGetHandLog(message *GameMessage) error {
+	gameState, err := g.loadState()
+	gameMessage := &GameMessage{
+		GameId:      g.config.GameId,
+		MessageType: GetHandLog,
+	}
+	if err != nil || gameState.HandNum == 0 {
+		go g.SendGameMessage(gameMessage)
+	}
+
+	handState, err := g.loadHandState(gameState)
+	handLog := handState.getLog()
+	logData, err := json.Marshal(handLog)
+	gameMessage.GameMessage = &GameMessage_HandLog{HandLog: logData}
+	go g.SendGameMessage(gameMessage)
+	return nil
 }
 
 func (g *Game) onPendingUpdatesDone(message *GameMessage) error {
