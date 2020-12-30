@@ -7,7 +7,6 @@ import (
 
 	natsgo "github.com/nats-io/nats.go"
 
-	"voyager.com/server/bot"
 	"voyager.com/server/game"
 	"voyager.com/server/nats"
 	"voyager.com/server/rest"
@@ -21,7 +20,6 @@ import (
 )
 
 var runServer *bool
-var runBotDriver *bool
 var runGameScriptTests *bool
 var gameScriptsDir *string
 var testName *string
@@ -30,7 +28,6 @@ var mainLogger = log.With().Str("logger_name", "nats::main").Logger()
 func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	runServer = flag.Bool("server", true, "runs game server")
-	runBotDriver = flag.Bool("bot", false, "runs bot")
 	runGameScriptTests = flag.Bool("script-tests", false, "runs script tests")
 	gameScriptsDir = flag.String("game-script", "test/game-scripts", "runs tests with game script files")
 	testName = flag.String("testname", "", "runs a specific test")
@@ -45,11 +42,7 @@ func main() {
 		return
 	}
 
-	if *runBotDriver {
-		runBot()
-	} else if *runServer {
-		runWithNats()
-	}
+	runWithNats()
 }
 
 func runWithNats() {
@@ -84,19 +77,6 @@ func runWithNats() {
 
 	// run rest server
 	go rest.RunRestServer(natsGameManager)
-	select {}
-}
-
-func runBot() {
-	natsURL := util.GameServerEnvironment.GetNatsURL()
-	fmt.Printf("NATS URL: %s\n", natsURL)
-	botDriver, err := bot.NewDriverBot(natsURL)
-	if err != nil {
-		fmt.Printf("Error when subscribing to NATS")
-		return
-	}
-	botDriver.RunGameScript("test/game-scripts/two-pots.yaml")
-	_ = botDriver
 	select {}
 }
 

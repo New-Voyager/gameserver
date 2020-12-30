@@ -86,14 +86,6 @@ run-server: export API_SERVER_URL=$(DEV_API_SERVER_URL)
 run-server:
 	go run ./main.go --server
 
-.PHONY: run-bot
-run-bot: export PERSIST_METHOD=redis
-run-bot: export REDIS_HOST=$(DEV_REDIS_HOST)
-run-bot: export REDIS_PORT=$(DEV_REDIS_PORT)
-run-bot: export REDIS_DB=$(DEV_REDIS_DB)
-run-bot:
-	go run ./main.go --bot
-
 .PHONY: docker-test
 docker-test: create-network run-nats run-redis
 	docker run -t --rm \

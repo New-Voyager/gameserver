@@ -10,7 +10,7 @@ import (
 	"voyager.com/server/util"
 )
 
-var NatsURL = util.GameServerEnvironment.GetNatsURL()
+var NatsURL string
 
 // This game manager is similar to game.GameManager.
 // However, this game manager active NatsGame objects.
@@ -30,6 +30,7 @@ const (
 )
 
 func NewGameManager(nc *natsgo.Conn) (*GameManager, error) {
+	NatsURL = util.GameServerEnvironment.GetNatsURL()
 	// let us try to connect to nats server
 	nc, err := natsgo.Connect(NatsURL)
 	if err != nil {

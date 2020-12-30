@@ -4,14 +4,25 @@ import (
 	"fmt"
 
 	jsoniter "github.com/json-iterator/go"
+	"voyager.com/server/game"
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/rs/zerolog/log"
-	"voyager.com/server/bot"
+)
+
+const BotDriverToGame = "driverbot.game"
+const GameToBotDriver = "game.driverpot"
+const botPlayerID = 0xFFFFFFFF
+
+// bot driver messages to game
+const (
+	BotDriverInitializeGame = "B2GInitializeGame"
+	BotDriverStartGame      = "B2GStartGame"
+	BotDriverSetupDeck      = "B2GSetupDeck"
 )
 
 type PlayerCard struct {
-	Cards  []string `json:"cards"`
+	Cards []string `json:"cards"`
 }
 
 type SetupDeck struct {
@@ -42,17 +53,31 @@ type NatsDriverBotListener struct {
 	gameManager *GameManager
 }
 
+// game to bot driver messages
+const (
+	GameInitialized = "G2BGameInitialized"
+)
+
+type DriverBotMessage struct {
+	BotId       string           `json:"bot-id"`
+	MessageType string           `json:"message-type"`
+	GameConfig  *game.GameConfig `json:"game-config"`
+	ClubId      uint32           `json:"club-id"`
+	GameId      uint64           `json:"game-id"`
+	GameCode    string           `json:"game-code"`
+}
+
 var natsTestDriverLogger = log.With().Str("logger_name", "nats::game").Logger()
 
 func NewNatsDriverBotListener(nc *natsgo.Conn, gameManager *GameManager) (*NatsDriverBotListener, error) {
 	natsTestDriver := &NatsDriverBotListener{
-		stopped: make(chan bool),
+		stopped:     make(chan bool),
 		gameManager: gameManager,
-		nc:      nc,
+		nc:          nc,
 	}
 
-	natsTestDriverLogger.Info().Msg(fmt.Sprintf("Listenting nats subject: %s for bot messages", bot.BotDriverToGame))
-	nc.Subscribe(bot.BotDriverToGame, natsTestDriver.listenForMessages)
+	natsTestDriverLogger.Info().Msg(fmt.Sprintf("Listenting nats subject: %s for bot messages", BotDriverToGame))
+	nc.Subscribe(BotDriverToGame, natsTestDriver.listenForMessages)
 	return natsTestDriver, nil
 }
 
@@ -69,9 +94,9 @@ func (n *NatsDriverBotListener) listenForMessages(msg *natsgo.Msg) {
 	log.Info().Msg(fmt.Sprintf("Message type: %s Game code:- %s", messageType, gameCode))
 
 	switch messageType {
-	case bot.BotDriverInitializeGame:
+	case BotDriverInitializeGame:
 		// unmarshal message
-		var botDriverMessage bot.DriverBotMessage
+		var botDriverMessage DriverBotMessage
 		err := jsoniter.Unmarshal(msg.Data, &botDriverMessage)
 		if err != nil {
 			// log the error
@@ -80,7 +105,7 @@ func (n *NatsDriverBotListener) listenForMessages(msg *natsgo.Msg) {
 		}
 
 		n.initializeGame(&botDriverMessage)
-	case bot.BotDriverSetupDeck:
+	case BotDriverSetupDeck:
 		var setupDeck SetupDeck
 		err := jsoniter.Unmarshal(msg.Data, &setupDeck)
 		if err != nil {
@@ -94,7 +119,7 @@ func (n *NatsDriverBotListener) listenForMessages(msg *natsgo.Msg) {
 
 }
 
-func (n *NatsDriverBotListener) initializeGame(botDriverMessage *bot.DriverBotMessage) {
+func (n *NatsDriverBotListener) initializeGame(botDriverMessage *DriverBotMessage) {
 	gameConfig := botDriverMessage.GameConfig
 	clubID := uint32(1)
 	gameID := uint64(1)
@@ -108,14 +133,14 @@ func (n *NatsDriverBotListener) initializeGame(botDriverMessage *bot.DriverBotMe
 	}
 
 	// respond to the driver bot with the game num
-	response := &bot.DriverBotMessage{
+	response := &DriverBotMessage{
 		ClubId:      clubID,
 		BotId:       botDriverMessage.BotId,
 		GameId:      gameID,
-		MessageType: bot.GameInitialized,
+		MessageType: GameInitialized,
 	}
 	data, _ := jsoniter.Marshal(response)
-	err = n.nc.Publish(bot.GameToBotDriver, data)
+	err = n.nc.Publish(GameToBotDriver, data)
 	if err != nil {
 		natsTestDriverLogger.Error().Msg(fmt.Sprintf("Failed to deliver message to driver bot"))
 		return
