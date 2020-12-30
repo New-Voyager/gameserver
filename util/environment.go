@@ -1,17 +1,21 @@
 package util
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 )
 
 var environmentLogger = log.With().Str("logger_name", "util::environment").Logger()
+var natsUrl string
 
 type gameServerEnvironment struct {
-	NatsURL       string
 	PersistMethod string
 	RedisHost     string
 	RedisPort     string
@@ -23,7 +27,6 @@ type gameServerEnvironment struct {
 
 // GameServerEnvironment is a helper object for accessing environment variables.
 var GameServerEnvironment = &gameServerEnvironment{
-	NatsURL:       "NATS_URL",
 	PersistMethod: "PERSIST_METHOD",
 	RedisHost:     "REDIS_HOST",
 	RedisPort:     "REDIS_PORT",
@@ -34,13 +37,31 @@ var GameServerEnvironment = &gameServerEnvironment{
 }
 
 func (g *gameServerEnvironment) GetNatsURL() string {
-	host := os.Getenv(g.NatsURL)
-	if host == "" {
-		msg := fmt.Sprintf("%s is not defined", g.NatsURL)
-		environmentLogger.Error().Msg(msg)
-		panic(msg)
+	if natsUrl == "" {
+		// get from the API server
+		type Url struct {
+			Urls string `json:"urls"`
+		}
+
+		url := fmt.Sprintf("%s/nats-urls", g.GetApiServerUrl())
+		response, err := http.Get(url)
+		if err != nil {
+			panic("Failed to get NATS urls")
+		}
+		defer response.Body.Close()
+		data, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			panic("Failed to get NATS urls")
+		}
+		body := string(data)
+		if strings.Contains(body, "errors") {
+			panic("Failed to get NATS urls")
+		}
+		var urls Url
+		json.Unmarshal(data, &urls)
+		natsUrl = urls.Urls
 	}
-	return host
+	return natsUrl
 }
 
 func (g *gameServerEnvironment) GetPersistMethod() string {
