@@ -127,14 +127,21 @@ func (gm *GameManager) SetupDeck(setupDeck SetupDeck) {
 	natsGame.setupDeck(deck.GetBytes(), setupDeck.ButtonPos)
 }
 
-func (gm *GameManager) GetCurrentHandLog(gameID uint64) string {
+func (gm *GameManager) GetCurrentHandLog(gameID uint64, gameCode string) *map[string]interface{} {
 	// first check whether the game is hosted by this game server
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	var natsGame *NatsGame
 	var ok bool
 	if natsGame, ok = gm.activeGames[gameIDStr]; !ok {
-		return fmt.Sprintf("\\{\"error\": \"Cannot find game\"\\}")
+		// lookup using game code
+		gameIDStr, ok = gm.gameCodes[gameCode]
+		if !ok {
+			var errors map[string]interface{}
+			errors["errors"] = fmt.Sprintf("Cannot find game %d", gameID)
+			return &errors
+		}
+		natsGame = gm.activeGames[gameIDStr]
 	}
 	handLog := natsGame.getHandLog()
-	return string(handLog)
+	return handLog
 }

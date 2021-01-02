@@ -389,7 +389,7 @@ func (g *Game) moveToNextHand() {
 		GameId:      g.config.GameId,
 		MessageType: GameMoveToNextHand,
 	}
-	g.SendGameMessage(gameMessage)
+	g.SendGameMessageToChannel(gameMessage)
 }
 
 func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) {

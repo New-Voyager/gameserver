@@ -1,6 +1,7 @@
 package nats
 
 import (
+	"encoding/json"
 	"fmt"
 
 	natsgo "github.com/nats-io/nats.go"
@@ -119,7 +120,7 @@ func (n *NatsGame) gameStatusChanged(gameID uint64, newStatus game.GameStatus) {
 	message.MessageType = game.GameStatusChanged
 	message.GameMessage = &game.GameMessage_StatusChange{StatusChange: &game.GameStatusChangeMessage{NewStatus: newStatus}}
 
-	n.serverGame.SendGameMessage(&message)
+	n.serverGame.SendGameMessageToChannel(&message)
 }
 
 // message sent from apiserver to game
@@ -141,7 +142,7 @@ func (n *NatsGame) playerUpdate(gameID uint64, update *PlayerUpdate) {
 
 	message.GameMessage = &game.GameMessage_PlayerUpdate{PlayerUpdate: &playerUpdate}
 
-	go n.serverGame.SendGameMessage(&message)
+	go n.serverGame.SendGameMessageToChannel(&message)
 }
 
 func (n *NatsGame) pendingUpdatesDone() {
@@ -150,7 +151,7 @@ func (n *NatsGame) pendingUpdatesDone() {
 	var message game.GameMessage
 	message.GameId = n.gameID
 	message.MessageType = game.GamePendingUpdatesDone
-	go n.serverGame.SendGameMessage(&message)
+	go n.serverGame.SendGameMessageToChannel(&message)
 }
 
 // message sent from bot to game
@@ -170,7 +171,7 @@ func (n *NatsGame) setupDeck(deck []byte, buttonPos uint32) {
 	message.MessageType = game.GameSetupNextHand
 	message.GameMessage = &game.GameMessage_NextHand{NextHand: nextHand}
 
-	n.serverGame.SendGameMessage(&message)
+	n.serverGame.SendGameMessageToChannel(&message)
 }
 
 // messages sent from player to game
@@ -186,7 +187,7 @@ func (n *NatsGame) player2Game(msg *natsgo.Msg) {
 		return
 	}
 
-	n.serverGame.SendGameMessage(&message)
+	n.serverGame.SendGameMessageToChannel(&message)
 }
 
 // messages sent from player to game hand
@@ -271,7 +272,7 @@ func (n *NatsGame) gameEnded() error {
 	return nil
 }
 
-func (n *NatsGame) getHandLog() []byte {
+func (n *NatsGame) getHandLog() *map[string]interface{} {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Bot->Game: Get HAND LOG: %d", n.gameID))
 	// build a game message and send to the game
@@ -281,9 +282,14 @@ func (n *NatsGame) getHandLog() []byte {
 	message.GameId = n.gameID
 	message.MessageType = game.GetHandLog
 
-	n.serverGame.SendGameMessage(&message)
+	n.serverGame.SendGameMessageToChannel(&message)
 	resp := <-n.chManageGame
 	var gameMessage game.GameMessage
 	protojson.Unmarshal(resp, &gameMessage)
-	return gameMessage.GetHandLog()
+	handStateBytes := gameMessage.GetHandLog()
+	var data map[string]interface{}
+	if handStateBytes != nil {
+		json.Unmarshal(handStateBytes, &data)
+	}
+	return &data
 }

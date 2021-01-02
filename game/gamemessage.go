@@ -77,16 +77,15 @@ func (g *Game) onGetHandLog(message *GameMessage) error {
 	gameMessage := &GameMessage{
 		GameId:      g.config.GameId,
 		MessageType: GetHandLog,
+		PlayerId:    message.PlayerId,
 	}
 	if err != nil || gameState.HandNum == 0 {
-		go g.SendGameMessage(gameMessage)
+		go g.sendGameMessageToReceiver(gameMessage)
 	}
-
 	handState, err := g.loadHandState(gameState)
-	handLog := handState.getLog()
-	logData, err := json.Marshal(handLog)
+	logData, err := json.Marshal(handState)
 	gameMessage.GameMessage = &GameMessage_HandLog{HandLog: logData}
-	go g.SendGameMessage(gameMessage)
+	go g.sendGameMessageToReceiver(gameMessage)
 	return nil
 }
 
@@ -104,7 +103,7 @@ func (g *Game) onPendingUpdatesDone(message *GameMessage) error {
 			GameId:      g.config.GameId,
 			MessageType: GameDealHand,
 		}
-		go g.SendGameMessage(gameMessage)
+		go g.SendGameMessageToChannel(gameMessage)
 	}
 	return nil
 }
@@ -138,7 +137,7 @@ func (g *Game) onMoveToNextHand(message *GameMessage) error {
 			GameId:      g.config.GameId,
 			MessageType: GameDealHand,
 		}
-		go g.SendGameMessage(gameMessage)
+		go g.SendGameMessageToChannel(gameMessage)
 	}
 
 	return nil
