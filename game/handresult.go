@@ -132,11 +132,14 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 		if playerID == 0 {
 			continue
 		}
+		playerState, _ := hr.handState.GetPlayersState()[playerID]
 
 		// determine whether the player has folded
 		playerFolded := false
 		if hr.handState.ActiveSeats[seatNoIdx] == 0 {
 			playerFolded = true
+		} else {
+			playerState.Round = hr.handState.HandCompletedAt
 		}
 
 		seatNo := uint32(seatNoIdx + 1)
@@ -175,7 +178,6 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 			}
 		}
 
-		playerState, _ := hr.handState.GetPlayersState()[playerID]
 		playerInfo := &PlayerInfo{
 			Id:          playerID,
 			PlayedUntil: playerState.Round,
