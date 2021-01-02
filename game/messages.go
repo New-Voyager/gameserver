@@ -22,6 +22,7 @@ const (
 	GameStart           string = "START_GAME"
 	GameTableState      string = "TABLE_STATE"
 	PlayerUpdate        string = "PLAYER_UPDATE"
+	GetHandLog          string = "GET_HAND_LOG"
 
 	// These messages are used by the test driver
 	GameSetupNextHand string = "SETUP_NEXT_HAND"

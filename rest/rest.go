@@ -69,13 +69,11 @@ func RunRestServer(gameManager *nats.GameManager) {
 	r := gin.Default()
 	//r.Use(JSONAppErrorReporter())
 
-	r.GET("/someJSON", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "hey", "status": http.StatusOK})
-	})
 	r.POST("/new-game", newGame)
 	r.POST("/player-update", playerUpdate)
 	r.POST("/game-update-status", gameUpdateStatus)
 	r.POST("/pending-updates", gamePendingUpdates)
+	r.GET("/current-hand-log", gameCurrentHandLog)
 
 	r.POST("/start-timer", startTimer)
 	r.POST("/cancel-timer", cancelTimer)
@@ -222,4 +220,22 @@ func cancelTimer(c *gin.Context) {
 	restLogger.Info().Msgf("cancel-timer game id: %s player id: %s purpose: %s", gameID, playerID, purpose)
 
 	timeoutController.CancelTimer(gameID, playerID, purpose)
+}
+
+func gameCurrentHandLog(c *gin.Context) {
+	gameIDStr := c.Query("game-id")
+	gameCode := c.Query("game-code")
+	if gameIDStr == "" {
+		if gameCode == "" {
+			c.String(400, "Either game code or game id should be specified (e.g /current-hand-log?game-code=<>")
+			return
+		}
+	}
+
+	gameID, err := strconv.ParseUint(gameIDStr, 10, 64)
+	if err != nil {
+		c.String(400, "Failed to parse game-id [%s] from pending-updates endpoint.", gameIDStr)
+	}
+	log := natsGameManager.GetCurrentHandLog(gameID, gameCode)
+	c.JSON(http.StatusOK, log)
 }

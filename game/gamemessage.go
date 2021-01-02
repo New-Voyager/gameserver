@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -47,6 +48,9 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 
 	case GamePendingUpdatesDone:
 		g.onPendingUpdatesDone(message)
+
+	case GetHandLog:
+		g.onGetHandLog(message)
 	}
 }
 
@@ -68,6 +72,23 @@ func processPendingUpdates(apiServerUrl string, gameID uint64) {
 	}
 }
 
+func (g *Game) onGetHandLog(message *GameMessage) error {
+	gameState, err := g.loadState()
+	gameMessage := &GameMessage{
+		GameId:      g.config.GameId,
+		MessageType: GetHandLog,
+		PlayerId:    message.PlayerId,
+	}
+	if err != nil || gameState.HandNum == 0 {
+		go g.sendGameMessageToReceiver(gameMessage)
+	}
+	handState, err := g.loadHandState(gameState)
+	logData, err := json.Marshal(handState)
+	gameMessage.GameMessage = &GameMessage_HandLog{HandLog: logData}
+	go g.sendGameMessageToReceiver(gameMessage)
+	return nil
+}
+
 func (g *Game) onPendingUpdatesDone(message *GameMessage) error {
 	g.inProcessPendingUpdates = false
 	// move to next hand
@@ -82,7 +103,7 @@ func (g *Game) onPendingUpdatesDone(message *GameMessage) error {
 			GameId:      g.config.GameId,
 			MessageType: GameDealHand,
 		}
-		go g.SendGameMessage(gameMessage)
+		go g.SendGameMessageToChannel(gameMessage)
 	}
 	return nil
 }
@@ -116,7 +137,7 @@ func (g *Game) onMoveToNextHand(message *GameMessage) error {
 			GameId:      g.config.GameId,
 			MessageType: GameDealHand,
 		}
-		go g.SendGameMessage(gameMessage)
+		go g.SendGameMessageToChannel(gameMessage)
 	}
 
 	return nil

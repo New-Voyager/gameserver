@@ -1,6 +1,7 @@
 package nats
 
 import (
+	"encoding/json"
 	"fmt"
 
 	natsgo "github.com/nats-io/nats.go"
@@ -47,6 +48,7 @@ type NatsGame struct {
 	clubID                 uint32
 	gameID                 uint64
 	chEndGame              chan bool
+	chManageGame           chan []byte
 	player2GameSubject     string
 	player2HandSubject     string
 	hand2PlayerAllSubject  string
@@ -72,10 +74,11 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 
 	// we need to use the API to get the game configuration
 	natsGame := &NatsGame{
-		clubID:    clubID,
-		gameID:    gameID,
-		chEndGame: make(chan bool),
-		nc:        nc,
+		clubID:       clubID,
+		gameID:       gameID,
+		chEndGame:    make(chan bool),
+		chManageGame: make(chan []byte),
+		nc:           nc,
 		//		player2GameSubject:     player2GameSubject,
 		game2AllPlayersSubject: game2AllPlayersSubject,
 		player2HandSubject:     player2HandSubject,
@@ -117,7 +120,7 @@ func (n *NatsGame) gameStatusChanged(gameID uint64, newStatus game.GameStatus) {
 	message.MessageType = game.GameStatusChanged
 	message.GameMessage = &game.GameMessage_StatusChange{StatusChange: &game.GameStatusChangeMessage{NewStatus: newStatus}}
 
-	n.serverGame.SendGameMessage(&message)
+	n.serverGame.SendGameMessageToChannel(&message)
 }
 
 // message sent from apiserver to game
@@ -139,7 +142,7 @@ func (n *NatsGame) playerUpdate(gameID uint64, update *PlayerUpdate) {
 
 	message.GameMessage = &game.GameMessage_PlayerUpdate{PlayerUpdate: &playerUpdate}
 
-	go n.serverGame.SendGameMessage(&message)
+	go n.serverGame.SendGameMessageToChannel(&message)
 }
 
 func (n *NatsGame) pendingUpdatesDone() {
@@ -148,7 +151,7 @@ func (n *NatsGame) pendingUpdatesDone() {
 	var message game.GameMessage
 	message.GameId = n.gameID
 	message.MessageType = game.GamePendingUpdatesDone
-	go n.serverGame.SendGameMessage(&message)
+	go n.serverGame.SendGameMessageToChannel(&message)
 }
 
 // message sent from bot to game
@@ -168,7 +171,7 @@ func (n *NatsGame) setupDeck(deck []byte, buttonPos uint32) {
 	message.MessageType = game.GameSetupNextHand
 	message.GameMessage = &game.GameMessage_NextHand{NextHand: nextHand}
 
-	n.serverGame.SendGameMessage(&message)
+	n.serverGame.SendGameMessageToChannel(&message)
 }
 
 // messages sent from player to game
@@ -184,7 +187,7 @@ func (n *NatsGame) player2Game(msg *natsgo.Msg) {
 		return
 	}
 
-	n.serverGame.SendGameMessage(&message)
+	n.serverGame.SendGameMessageToChannel(&message)
 }
 
 // messages sent from player to game hand
@@ -241,9 +244,15 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID uint64) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Game->Player: %s", message.MessageType))
-	subject := fmt.Sprintf("game.%s.player.%d", n.gameCode, playerID)
-	data, _ := protojson.Marshal(message)
-	n.nc.Publish(subject, data)
+
+	if playerID == 0 {
+		data, _ := protojson.Marshal(message)
+		n.chManageGame <- data
+	} else {
+		subject := fmt.Sprintf("game.%s.player.%d", n.gameCode, playerID)
+		data, _ := protojson.Marshal(message)
+		n.nc.Publish(subject, data)
+	}
 }
 
 func (n *NatsGame) gameEnded() error {
@@ -261,4 +270,26 @@ func (n *NatsGame) gameEnded() error {
 
 	n.serverGame.GameEnded()
 	return nil
+}
+
+func (n *NatsGame) getHandLog() *map[string]interface{} {
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+		Msg(fmt.Sprintf("Bot->Game: Get HAND LOG: %d", n.gameID))
+	// build a game message and send to the game
+	var message game.GameMessage
+
+	message.ClubId = 0
+	message.GameId = n.gameID
+	message.MessageType = game.GetHandLog
+
+	n.serverGame.SendGameMessageToChannel(&message)
+	resp := <-n.chManageGame
+	var gameMessage game.GameMessage
+	protojson.Unmarshal(resp, &gameMessage)
+	handStateBytes := gameMessage.GetHandLog()
+	var data map[string]interface{}
+	if handStateBytes != nil {
+		json.Unmarshal(handStateBytes, &data)
+	}
+	return &data
 }

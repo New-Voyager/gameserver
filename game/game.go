@@ -604,10 +604,16 @@ func (g *Game) broadcastGameMessage(message *GameMessage) {
 	}
 }
 
-func (g *Game) SendGameMessage(message *GameMessage) {
-	message.GameCode = g.config.GameCode
+func (g *Game) SendGameMessageToChannel(message *GameMessage) {
 	b, _ := proto.Marshal(message)
 	g.chGame <- b
+}
+
+func (g *Game) sendGameMessageToReceiver(message *GameMessage) {
+	message.GameCode = g.config.GameCode
+	if *g.messageReceiver != nil {
+		(*g.messageReceiver).SendGameMessageToPlayer(message, message.PlayerId)
+	}
 }
 
 func (g *Game) SendHandMessage(message *HandMessage) {
