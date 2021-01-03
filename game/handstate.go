@@ -620,7 +620,7 @@ func (h *HandState) settleRound() {
 				maxBetPos = seatIdx
 			}
 		}
-		if maxBetPos > 0 {
+		if maxBet != 0 && secondMaxBet != 0 && maxBetPos > 0 {
 			playerID := h.PlayersInSeats[maxBetPos]
 			h.PlayersState[playerID].Balance = maxBet - secondMaxBet
 		}
