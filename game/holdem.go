@@ -103,7 +103,7 @@ func (h *HoldemWinnerEvaluate) determineHandWinners(pot *SeatsInPots) []*HandWin
 func (h *HoldemWinnerEvaluate) evaluatePlayerBestCards() {
 	// determine rank for each active player
 	for seatNoIdx, active := range h.handState.ActiveSeats {
-		if active == 0 {
+		if active == 0 || h.handState.PlayersInSeats[seatNoIdx] == 0 {
 			continue
 		}
 		seatCards := h.handState.PlayersCards[uint32(seatNoIdx+1)]

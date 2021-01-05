@@ -499,9 +499,11 @@ func (g *Game) dealNewHand() error {
 			continue
 		}
 
-		// if the player is in break
+		// if the player is in break or the player has no balance
 		playerState := handState.PlayersState[playerID]
-		if playerState.Status == HandPlayerState_SAT_OUT {
+		if playerState.Status == HandPlayerState_SAT_OUT || playerState.Balance < handState.BigBlind {
+			handState.PlayersInSeats[seatNo-1] = 0
+			handState.ActiveSeats[seatNo-1] = 0
 			continue
 		}
 
@@ -537,6 +539,7 @@ func (g *Game) dealNewHand() error {
 		Str("game", g.config.GameCode).
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, gameState, g.players)))
+	g.saveHandState(gameState, handState)
 
 	g.moveToNextAct(gameState, handState)
 	return nil

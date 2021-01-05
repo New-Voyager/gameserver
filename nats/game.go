@@ -130,6 +130,7 @@ func (n *NatsGame) playerUpdate(gameID uint64, update *PlayerUpdate) {
 			gameID, update.PlayerId, game.PlayerStatus_name[int32(update.Status)]))
 	var message game.GameMessage
 	message.GameId = gameID
+	message.GameCode = n.gameCode
 	message.MessageType = game.PlayerUpdate
 	playerUpdate := game.GamePlayerUpdate{
 		PlayerId:  update.PlayerId,
@@ -150,6 +151,7 @@ func (n *NatsGame) pendingUpdatesDone() {
 		Msg(fmt.Sprintf("APIServer->Game: Pending updates done. GameID: %d", n.gameID))
 	var message game.GameMessage
 	message.GameId = n.gameID
+	message.GameCode = n.gameCode
 	message.MessageType = game.GamePendingUpdatesDone
 	go n.serverGame.SendGameMessageToChannel(&message)
 }
@@ -168,6 +170,7 @@ func (n *NatsGame) setupDeck(deck []byte, buttonPos uint32) {
 
 	message.ClubId = 0
 	message.GameId = n.gameID
+	message.GameCode = n.gameCode
 	message.MessageType = game.GameSetupNextHand
 	message.GameMessage = &game.GameMessage_NextHand{NextHand: nextHand}
 
@@ -280,6 +283,7 @@ func (n *NatsGame) getHandLog() *map[string]interface{} {
 
 	message.ClubId = 0
 	message.GameId = n.gameID
+	message.GameCode = n.gameCode
 	message.MessageType = game.GetHandLog
 
 	n.serverGame.SendGameMessageToChannel(&message)

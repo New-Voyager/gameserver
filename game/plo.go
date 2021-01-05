@@ -258,7 +258,7 @@ func (h *PloWinnerEvaluate) evaluatePlayerBestCards() {
 func (h *PloWinnerEvaluate) evaluatePlayerHighHand() {
 	// determine rank for each active player
 	for seatNoIdx, active := range h.handState.ActiveSeats {
-		if active == 0 {
+		if active == 0 || h.handState.PlayersInSeats[seatNoIdx] == 0 {
 			continue
 		}
 		seatNo := uint32(seatNoIdx + 1)

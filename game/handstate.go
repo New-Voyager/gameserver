@@ -44,7 +44,8 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 	h.GameType = gameState.GameType
 
 	// update active seats with players who are playing
-	for seatNo, playerID := range gameState.GetPlayersInSeats() {
+	for seatNoIdx, playerID := range gameState.GetPlayersInSeats() {
+		h.PlayersInSeats[seatNoIdx] = 0
 		if playerID != 0 {
 			// get player state
 			state := gameState.PlayersState[playerID]
@@ -54,7 +55,7 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 			if state.Status == PlayerStatus_IN_BREAK || state.CurrentBalance == 0 {
 				continue
 			}
-			h.PlayersInSeats[seatNo] = playerID
+			h.PlayersInSeats[seatNoIdx] = playerID
 			h.NoActiveSeats++
 		}
 	}
@@ -96,7 +97,7 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 			&PlayerBalance{SeatNo: uint32(seatNo + 1), PlayerId: player, Balance: state.CurrentBalance})
 	}
 
-	if deck == nil {
+	if deck == nil || deck.Empty() {
 		deck = poker.NewDeck(nil).Shuffle()
 	}
 
