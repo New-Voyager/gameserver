@@ -1,4 +1,4 @@
-disabled: false
+disabled: true
 game-config:
   type: PLO
   max-players: 9

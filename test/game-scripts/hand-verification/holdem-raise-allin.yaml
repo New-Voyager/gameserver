@@ -24,7 +24,7 @@
 # Result:
 #    player 2 and 3 splits the main pot
 #    player 2 wins the side pot 
-disabled: false
+disabled: true
 game-config:
   type: HOLDEM
   max-players: 4

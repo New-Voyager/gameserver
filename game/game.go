@@ -505,7 +505,7 @@ func (g *Game) dealNewHand() error {
 
 		// if the player is in break or the player has no balance
 		playerState := handState.PlayersState[playerID]
-		if playerState.Status == HandPlayerState_SAT_OUT || playerState.Balance < handState.BigBlind {
+		if playerState.Status == HandPlayerState_SAT_OUT {
 			handState.PlayersInSeats[seatNo] = 0
 			handState.ActiveSeats[seatNo] = 0
 			continue
