@@ -90,6 +90,7 @@ func (h *HoldemWinnerEvaluate) determineHandWinners(pot *SeatsInPots) []*HandWin
 			WinningCards:    evaluatedCards.GetCards(),
 			WinningCardsStr: s,
 			RankStr:         rankStr,
+			Rank:            uint32(evaluatedCards.rank),
 			BoardCards:      evaluatedCards.GetBoardCards(),
 			PlayerCards:     evaluatedCards.GetPlayerCards(),
 		}
