@@ -94,7 +94,7 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 	var playerSeatNo uint32
 	for seatNo, pid := range handState.GetPlayersInSeats() {
 		if pid == message.PlayerId {
-			playerSeatNo = uint32(seatNo + 1)
+			playerSeatNo = uint32(seatNo)
 			break
 		}
 	}
@@ -103,7 +103,7 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 		if action.State == PlayerActState_PLAYER_ACT_EMPTY_SEAT {
 			continue
 		}
-		currentHandState.PlayersActed[uint32(seatNo+1)] = action
+		currentHandState.PlayersActed[uint32(seatNo)] = action
 	}
 
 	if playerSeatNo != 0 {
@@ -120,11 +120,10 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 	}
 	currentHandState.PlayersStack = make(map[uint64]float32, 0)
 	playerState := handState.GetPlayersState()
-	for seatNoIdx, playerID := range handState.GetPlayersInSeats() {
+	for seatNo, playerID := range handState.GetPlayersInSeats() {
 		if playerID == 0 {
 			continue
 		}
-		seatNo := seatNoIdx + 1
 		currentHandState.PlayersStack[uint64(seatNo)] = playerState[playerID].Balance
 	}
 
@@ -216,9 +215,9 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 
 	// Send player's current stack to be updated in the UI
 	seatNo := message.GetPlayerActed().GetSeatNo()
-	playerID := handState.PlayersInSeats[seatNo-1]
+	playerID := handState.PlayersInSeats[seatNo]
 
-	playerAction := handState.PlayersActed[seatNo-1]
+	playerAction := handState.PlayersActed[seatNo]
 	stack := handState.PlayersState[playerID].Balance
 	if playerAction.State != PlayerActState_PLAYER_ACT_FOLDED {
 		message.GetPlayerActed().Amount = playerAction.Amount
@@ -471,7 +470,7 @@ func (g *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 				}
 			}
 			nextSeatMessage.HandMessage = &HandMessage_SeatAction{SeatAction: handState.NextSeatAction}
-			playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo-1]
+			playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
 			g.sendHandMessageToPlayer(nextSeatMessage, playerID)
 			g.resetTimer(handState.NextSeatAction.SeatNo, playerID, canCheck)
 
