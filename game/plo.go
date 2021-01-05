@@ -112,6 +112,7 @@ func (h *PloWinnerEvaluate) determineHandWinners(pot *SeatsInPots, potAmount flo
 				WinningCards:    evaluatedCards.GetCards(),
 				WinningCardsStr: s,
 				RankStr:         rankStr,
+				Rank:            uint32(evaluatedCards.rank),
 				BoardCards:      evaluatedCards.GetBoardCards(),
 				PlayerCards:     evaluatedCards.GetPlayerCards(),
 			}
@@ -145,6 +146,9 @@ func (h *PloWinnerEvaluate) determineLoHandWinners(pot *SeatsInPots, potAmount f
 			noOfWinners++
 		}
 	}
+	if lowestRank == 0x7FFFFFFF {
+		lowestRank = 0
+	}
 
 	splitChips := potAmount / float32(noOfWinners)
 	handWinners := make([]*HandWinner, noOfWinners)
@@ -162,6 +166,7 @@ func (h *PloWinnerEvaluate) determineLoHandWinners(pot *SeatsInPots, potAmount f
 				Amount:          splitChips,
 				WinningCards:    evaluatedCards.GetLoCards(),
 				WinningCardsStr: s,
+				Rank:            uint32(lowestRank),
 				BoardCards:      evaluatedCards.GetLoBoardCards(),
 				PlayerCards:     evaluatedCards.GetLoPlayerCards(),
 				LoCard:          true,
@@ -181,6 +186,9 @@ func (h *PloWinnerEvaluate) evaluatePlayerBestCards() {
 		}
 		seatNo := uint32(seatNoIdx + 1)
 		seatCards := h.handState.PlayersCards[seatNo]
+		if seatCards == nil {
+			continue
+		}
 		playerCardsEval := poker.FromByteCards(seatCards)
 		boardCardsEval := poker.FromByteCards(h.handState.BoardCards)
 		result := poker.EvaluateOmaha(playerCardsEval, boardCardsEval)

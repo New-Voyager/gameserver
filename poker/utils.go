@@ -49,6 +49,10 @@ func genCombinations(n, r int) <-chan []int {
 //extracted from an slice of integers
 func combinations(iterable []Card, r int) chan []Card {
 
+	length := len(iterable)
+	if length < r {
+		panic("Invalid arguments")
+	}
 	ch := make(chan []Card)
 
 	go func() {

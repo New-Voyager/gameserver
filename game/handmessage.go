@@ -165,6 +165,37 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		return err
 	}
 
+	// if the hand number does not match, ignore the message
+	if message.HandNum != handState.HandNum {
+		channelGameLogger.Error().
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
+			Uint32("player", message.SeatNo).
+			Str("message", message.MessageType).
+			Msg(fmt.Sprintf("Invalid hand number: %d current hand number: %d", message.HandNum, handState.HandNum))
+		return fmt.Errorf("Invalid hand number: %d current hand number: %d", message.HandNum, handState.HandNum)
+	}
+
+	if handState.NextSeatAction == nil {
+		channelGameLogger.Error().
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
+			Uint32("player", message.SeatNo).
+			Str("message", message.MessageType).
+			Msg(fmt.Sprintf("Invalid action. There is no next action"))
+		return fmt.Errorf("Invalid action. There is no next action")
+	}
+
+	if handState.CurrentState == HandStatus_SHOW_DOWN {
+		channelGameLogger.Error().
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
+			Uint32("player", message.SeatNo).
+			Str("message", message.MessageType).
+			Msg(fmt.Sprintf("Invalid action. There is no next action"))
+		return fmt.Errorf("Invalid action. There is no next action")
+	}
+
 	if handState.NextSeatAction != nil && handState.NextSeatAction.SeatNo != message.GetPlayerActed().GetSeatNo() {
 		// Unexpected seat acted.
 		// This can happen when a player made a last-second action and the timeout was triggered
@@ -196,6 +227,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		message.GetPlayerActed().Action = ACTION_FOLD
 		message.GetPlayerActed().Amount = 0
 	}
+	message.HandNum = handState.HandNum
 	message.GetPlayerActed().Stack = stack
 	// broadcast this message to all the players
 	g.broadcastHandMessage(message)

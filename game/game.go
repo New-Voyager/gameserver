@@ -493,6 +493,12 @@ func (g *Game) dealNewHand() error {
 			continue
 		}
 
+		// if the player balance is 0, then don't deal card to him
+		if _, ok := handState.PlayersState[playerID]; !ok {
+			handState.ActiveSeats[seatNo-1] = 0
+			continue
+		}
+
 		// if the player is in break
 		playerState := handState.PlayersState[playerID]
 		if playerState.Status == HandPlayerState_SAT_OUT {
