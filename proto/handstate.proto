@@ -102,6 +102,9 @@ message PlayerActRound {
   PlayerActState  state = 1;
   float amount = 2;
   float raiseAmount = 3;
+
+  // tracks what bet index this action applies to 
+  uint32 acted_bet_index = 4;
 }
 
 // message tracks number of players in this pot and the amount in the pot
@@ -117,6 +120,10 @@ message SeatBetting {
 message RoundState {
   SeatBetting betting = 1;
   map<uint32, float> player_balance = 2;
+
+  // bet_index is incremented anytime a player increase the wager.
+  // then this index is used to determine whether a player has already acted for this bet_index (PlayerActed)
+  uint32 bet_index = 3;
 }
 
 message CurrentHandState {

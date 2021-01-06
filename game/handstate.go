@@ -31,18 +31,22 @@ func (h *HandState) initializeBettingRound() {
 	h.RoundState[uint32(HandStatus_PREFLOP)] = &RoundState{
 		PlayerBalance: make(map[uint32]float32, 0),
 		Betting:       &SeatBetting{SeatBet: make([]float32, maxSeats)},
+		BetIndex:      1,
 	}
 	h.RoundState[uint32(HandStatus_FLOP)] = &RoundState{
 		PlayerBalance: make(map[uint32]float32, 0),
 		Betting:       &SeatBetting{SeatBet: make([]float32, maxSeats)},
+		BetIndex:      1,
 	}
 	h.RoundState[uint32(HandStatus_TURN)] = &RoundState{
 		PlayerBalance: make(map[uint32]float32, 0),
 		Betting:       &SeatBetting{SeatBet: make([]float32, maxSeats)},
+		BetIndex:      1,
 	}
 	h.RoundState[uint32(HandStatus_RIVER)] = &RoundState{
 		PlayerBalance: make(map[uint32]float32, 0),
 		Betting:       &SeatBetting{SeatBet: make([]float32, maxSeats)},
+		BetIndex:      1,
 	}
 
 	// setup player acted tracking
@@ -254,7 +258,9 @@ func (h *HandState) resetPlayerActions() {
 }
 
 func (h *HandState) acted(seatChangedAction uint32, state PlayerActState, amount float32) {
+	bettingState := h.RoundState[uint32(h.CurrentState)]
 	h.PlayersActed[seatChangedAction].State = state
+	h.PlayersActed[seatChangedAction].ActedBetIndex = bettingState.BetIndex
 	if state == PlayerActState_PLAYER_ACT_FOLDED {
 		h.ActiveSeats[seatChangedAction] = 0
 		h.NoActiveSeats--
@@ -444,6 +450,18 @@ func (h *HandState) actionReceived(action *HandAction) error {
 	if action.Action == ACTION_BB {
 		straddleAvailable = true
 	}
+	amount := action.Amount
+	if action.Action == ACTION_ALLIN {
+		amount = bettingState.PlayerBalance[action.SeatNo] + playerBetSoFar
+	}
+
+	if amount > h.CurrentRaise {
+		if action.Action != ACTION_BB &&
+			action.Action != ACTION_SB &&
+			action.Action != ACTION_STRADDLE {
+			bettingState.BetIndex++
+		}
+	}
 
 	// if player has less than the blinds, then this player will go all-in
 	if action.Action == ACTION_BB || action.Action == ACTION_SB {
@@ -602,23 +620,17 @@ func (h *HandState) isAllActivePlayersAllIn() bool {
 		if playerID == 0 {
 			continue
 		}
-		noActivePlayers++
+		if h.PlayersActed[seatNo].State != PlayerActState_PLAYER_ACT_FOLDED {
+			noActivePlayers++
+		}
+
 		if h.AllInPlayers[seatNo] == 0 {
 			allIn = false
 		} else {
 			noAllInPlayers++
 		}
 	}
-	if allIn {
-		return allIn
-	}
-
-	// if all players all-in, but one player is remaining, then there will no more actions
-	if noActivePlayers == noAllInPlayers+1 {
-		return true
-	}
-
-	return false
+	return allIn
 }
 
 func (h *HandState) settleRound() {

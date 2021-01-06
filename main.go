@@ -29,7 +29,7 @@ func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	runServer = flag.Bool("server", true, "runs game server")
 	runGameScriptTests = flag.Bool("script-tests", false, "runs script tests")
-	gameScriptsDir = flag.String("game-script", "test/game-scripts", "runs tests with game script files")
+	gameScriptsDir = flag.String("game-script", "test/game-scripts/test", "runs tests with game script files")
 	testName = flag.String("testname", "", "runs a specific test")
 
 	flag.Parse()

@@ -114,7 +114,7 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 		currentHandState.PlayerSeatNo = playerSeatNo
 	}
 
-	if bettingInProgress {
+	if bettingInProgress && handState.NextSeatAction != nil {
 		currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
 		currentHandState.RemainingActionTime = g.remainingActionTime
 		currentHandState.NextSeatAction = handState.NextSeatAction
