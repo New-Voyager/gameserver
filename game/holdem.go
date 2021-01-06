@@ -102,11 +102,11 @@ func (h *HoldemWinnerEvaluate) determineHandWinners(pot *SeatsInPots) []*HandWin
 
 func (h *HoldemWinnerEvaluate) evaluatePlayerBestCards() {
 	// determine rank for each active player
-	for seatNoIdx, active := range h.handState.ActiveSeats {
-		if active == 0 || h.handState.PlayersInSeats[seatNoIdx] == 0 {
+	for seatNo, active := range h.handState.ActiveSeats {
+		if active == 0 || h.handState.PlayersInSeats[seatNo] == 0 {
 			continue
 		}
-		seatCards := h.handState.PlayersCards[uint32(seatNoIdx+1)]
+		seatCards := h.handState.PlayersCards[uint32(seatNo)]
 		allCards := make([]byte, len(h.handState.BoardCards))
 		copy(allCards, h.handState.BoardCards)
 		allCards = append(allCards, seatCards...)
@@ -131,7 +131,7 @@ func (h *HoldemWinnerEvaluate) evaluatePlayerBestCards() {
 				boardCards = append(boardCards, card)
 			}
 		}
-		h.activeSeatBestCombo[uint32(seatNoIdx+1)] = &EvaluatedCards{
+		h.activeSeatBestCombo[uint32(seatNo)] = &EvaluatedCards{
 			rank:        rank,
 			cards:       poker.CardsToByteCards(playerBestCards),
 			playerCards: poker.CardsToByteCards(playerCards),
@@ -143,13 +143,13 @@ func (h *HoldemWinnerEvaluate) evaluatePlayerBestCards() {
 func (h *HoldemWinnerEvaluate) evaluatePlayerHighHand() {
 	boardCards := poker.FromByteCards(h.handState.BoardCards)
 	// determine rank for each active player
-	for seatNoIdx, active := range h.handState.ActiveSeats {
+	for seatNo, active := range h.handState.ActiveSeats {
 		if active == 0 {
 			continue
 		}
-		playerCards := poker.FromByteCards(h.handState.PlayersCards[uint32(seatNoIdx+1)])
+		playerCards := poker.FromByteCards(h.handState.PlayersCards[uint32(seatNo)])
 		highHand := poker.EvaluateHighHand(playerCards, boardCards)
-		h.highHandCombo[uint32(seatNoIdx+1)] = &EvaluatedCards{
+		h.highHandCombo[uint32(seatNo)] = &EvaluatedCards{
 			rank:  highHand.HiRank,
 			cards: poker.CardsToByteCards(highHand.HiCards),
 		}

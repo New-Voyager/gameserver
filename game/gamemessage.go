@@ -150,7 +150,7 @@ func (g *Game) onPlayerTakeSeat(message *GameMessage) error {
 	}
 	gameSit := message.GetTakeSeat()
 
-	if gameSit.SeatNo <= 0 || gameSit.SeatNo > gameState.MaxSeats {
+	if gameSit.SeatNo < 1 || gameSit.SeatNo > gameState.MaxSeats {
 		channelGameLogger.Error().
 			Uint32("club", g.config.ClubId).
 			Str("game", g.config.GameCode).
@@ -160,7 +160,7 @@ func (g *Game) onPlayerTakeSeat(message *GameMessage) error {
 	}
 
 	playersInSeat := gameState.PlayersInSeats
-	if playersInSeat[gameSit.SeatNo-1] != 0 {
+	if playersInSeat[gameSit.SeatNo] != 0 {
 		// there is already a player in the seat
 		channelGameLogger.Error().
 			Uint32("club", g.config.ClubId).
@@ -177,7 +177,7 @@ func (g *Game) onPlayerTakeSeat(message *GameMessage) error {
 		Str("message", "GameSitMessage").
 		Msg(fmt.Sprintf("Player %d took %d seat, buy-in: %f", gameSit.PlayerId, gameSit.SeatNo, gameSit.BuyIn))
 
-	gameState.PlayersInSeats[gameSit.SeatNo-1] = gameSit.PlayerId
+	gameState.PlayersInSeats[gameSit.SeatNo] = gameSit.PlayerId
 	// TODO: Need to work on the buy-in and sitting
 	// This is a bigger work item. A multiple players will be auto-seated
 	// If the buy-in needs to approved by the club manager, we need to wait for the approval
@@ -331,19 +331,18 @@ func (g *Game) onPlayerUpdate(message *GameMessage) error {
 		}
 
 		// check to see if the player switched seat
-		for seatNoIdx, playerID := range gameState.PlayersInSeats {
-			seatNo := seatNoIdx + 1
+		for seatNo, playerID := range gameState.PlayersInSeats {
 			if playerID == playerUpdate.PlayerId &&
 				uint32(seatNo) != playerUpdate.SeatNo {
 				// this player switch seat
 				channelGameLogger.Error().Msgf("Player %d switched seat from %d to %d", playerID, seatNo, playerUpdate.SeatNo)
-				gameState.PlayersInSeats[seatNoIdx] = 0
+				gameState.PlayersInSeats[seatNo] = 0
 				break
 			}
 		}
 
 		// buyin/reload/sitting in the table
-		gameState.PlayersInSeats[playerUpdate.SeatNo-1] = playerUpdate.PlayerId
+		gameState.PlayersInSeats[playerUpdate.SeatNo] = playerUpdate.PlayerId
 		var tokenInt uint64
 		if playerUpdate.GameToken != "" {
 			// pad here 000000

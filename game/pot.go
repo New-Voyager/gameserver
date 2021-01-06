@@ -25,7 +25,7 @@ func (s *SeatsInPots) add(seatNo uint32, amount float32) {
 }
 
 func (h *HandState) lowestBet(seatBets []float32) float32 {
-	lowestBet := float32(0.0)
+	lowestBet := float32(-1.0)
 	for seatNo, bet := range seatBets {
 		if h.PlayersInSeats[seatNo] == 0 {
 			// empty seat
@@ -33,17 +33,21 @@ func (h *HandState) lowestBet(seatBets []float32) float32 {
 		}
 
 		// also eliminate the player who is not active any longer
-		if h.ActiveSeats[seatNo] == 0 {
+		if h.ActiveSeats[seatNo] == 0 || bet == 0 {
 			continue
 		}
 
-		if lowestBet == 0 {
-			if bet < lowestBet {
-				lowestBet = bet
-			} else {
-				lowestBet = bet
-			}
+		if lowestBet == -1 {
+			lowestBet = bet
+			continue
 		}
+		if bet < lowestBet {
+			lowestBet = bet
+		}
+	}
+
+	if lowestBet == -1.0 {
+		lowestBet = 0
 	}
 	// if 0, every one checked or no more bets remaining
 	return lowestBet
@@ -54,32 +58,35 @@ func (h *HandState) addChipsToPot(seatBets []float32, handEnded bool) {
 	currentPot := h.Pots[currentPotIndex]
 	lowestBet := h.lowestBet(seatBets)
 	allInPlayers := false
-	for seatNoIdx, bet := range seatBets {
-		if h.PlayersInSeats[seatNoIdx] == 0 || seatBets[seatNoIdx] == 0.0 {
+	for seatNo, bet := range seatBets {
+		if h.PlayersInSeats[seatNo] == 0 || seatBets[seatNo] == 0.0 {
 			// empty seat
 			continue
 		}
 
 		// player has a bet here
 		// is he all in?
-		if h.PlayersActed[seatNoIdx].GetState() == PlayerActState_PLAYER_ACT_ALL_IN {
+		if h.PlayersActed[seatNo].GetState() == PlayerActState_PLAYER_ACT_ALL_IN {
 			allInPlayers = true
 		}
 
-		seatNo := seatNoIdx + 1
 		if bet < lowestBet {
 			// the player folded
 			currentPot.add(uint32(seatNo), bet)
-			seatBets[seatNoIdx] = 0
+			seatBets[seatNo] = 0
 		} else {
 			currentPot.add(uint32(seatNo), lowestBet)
-			seatBets[seatNoIdx] = bet - lowestBet
+			seatBets[seatNo] = bet - lowestBet
 		}
 	}
 
 	if handEnded {
 		// put all remaining bets in the pot
 		for seatNo, bet := range seatBets {
+			if seatNo == 0 {
+				continue
+			}
+
 			if bet > 0.0 {
 				currentPot.add(uint32(seatNo), bet)
 			}

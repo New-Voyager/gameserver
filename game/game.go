@@ -264,7 +264,7 @@ func (g *Game) handlePlayTimeout(timeoutMsg timerMsg) error {
 
 func (g *Game) initialize() error {
 	playersState := make(map[uint64]*PlayerState)
-	playersInSeats := make([]uint64, g.config.MaxPlayers)
+	playersInSeats := make([]uint64, g.config.MaxPlayers+1) // seat 0: dealer
 
 	var rewardTrackingIds []uint64
 	if g.config.RewardTrackingIds != nil && len(g.config.RewardTrackingIds) > 0 {
@@ -347,9 +347,13 @@ func (g *Game) startGame() (bool, error) {
 
 	// assign the button pos to the first guy in the list
 	playersInSeat := gameState.PlayersInSeats
-	for seatNoIdx, playerID := range playersInSeat {
+	for seatNo, playerID := range playersInSeat {
+		// skip seat no 0
+		if seatNo == 0 {
+			continue
+		}
 		if playerID != 0 {
-			gameState.ButtonPos = uint32(seatNoIdx + 1)
+			gameState.ButtonPos = uint32(seatNo)
 			break
 		}
 	}
@@ -495,21 +499,21 @@ func (g *Game) dealNewHand() error {
 
 		// if the player balance is 0, then don't deal card to him
 		if _, ok := handState.PlayersState[playerID]; !ok {
-			handState.ActiveSeats[seatNo-1] = 0
+			handState.ActiveSeats[seatNo] = 0
 			continue
 		}
 
 		// if the player is in break or the player has no balance
 		playerState := handState.PlayersState[playerID]
-		if playerState.Status == HandPlayerState_SAT_OUT || playerState.Balance < handState.BigBlind {
-			handState.PlayersInSeats[seatNo-1] = 0
-			handState.ActiveSeats[seatNo-1] = 0
+		if playerState.Status == HandPlayerState_SAT_OUT {
+			handState.PlayersInSeats[seatNo] = 0
+			handState.ActiveSeats[seatNo] = 0
 			continue
 		}
 
 		// seatNo is the key, cards are value
-		playerCards := handState.PlayersCards[uint32(seatNo+1)]
-		message := HandDealCards{SeatNo: uint32(seatNo + 1)}
+		playerCards := handState.PlayersCards[uint32(seatNo)]
+		message := HandDealCards{SeatNo: uint32(seatNo)}
 
 		cards, maskedCards := g.maskCards(playerCards, gameState.PlayersState[playerID].GameTokenInt)
 		playersCards[uint32(seatNo+1)] = fmt.Sprintf("%d", maskedCards)

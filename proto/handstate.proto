@@ -114,6 +114,11 @@ message SeatBetting {
   repeated float seat_bet  = 1;
 }
 
+message RoundState {
+  SeatBetting betting = 1;
+  map<uint32, float> player_balance = 2;
+}
+
 message CurrentHandState {
   uint64 game_id = 1;
 
@@ -191,7 +196,9 @@ message HandState {
   repeated SeatsInPots pots = 18;
 
   // key is HandStatus
-  map <uint32, SeatBetting> round_betting = 20;
+  //map <uint32, SeatBetting> round_betting = 20;
+  map <uint32, RoundState> round_state = 20;
+  
 
   // key is seat no
   map <uint32, bytes> players_cards = 21;

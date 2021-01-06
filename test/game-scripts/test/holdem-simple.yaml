@@ -4,12 +4,12 @@ game-config:
   max-players: 9
   min-players: 3
   min-buyin: 60.0
-  max-buyin: 300.0
+  max-buyin: 100.0
   auto-start: false
   auto-approve: true
   title: 3 players playing
-  sb: 1.0
-  bb: 2.0
+  sb: 1
+  bb: 2
 
 # players in the game
 players:
@@ -34,7 +34,7 @@ take-seat:
     -
       seat: 3 
       player: 3
-      buy-in: 100
+      buy-in: 1       # big blind position has less than big blind
 
   # wait for one second delay for the game to settle
   wait: 1
@@ -54,7 +54,7 @@ take-seat:
         -
           seat: 3 
           player: 3
-          stack: 100
+          stack: 1
 
 # deal the following hands in the table
 hands:
@@ -138,30 +138,32 @@ hands:
                 amount: 20
               - text: All-In
                 amount: 100
-        -
-          seat: 3
-          action: CHECK
-          verify-action:
-            actions: ["CHECK", "FOLD", "ALLIN", "BET"]
-            all-in-amount: 100
-            min-raise-amount: 4
-            max-raise-amount: 100
-            bet-amounts:
-              - text: 3BB
-                amount: 6
-              - text: 5BB
-                amount: 10
-              - text: 10BB
-                amount: 20
-              - text: All-In
-                amount: 100
-
+      # seat 3 does not get an option
+      
       # verify preflop-action result
       # since both players folded, the round ended with a hand result
       verify:
         state: FLOP
         board: ["Ac", "Ad", "2c"]
+        pots:
+          -
+            pot: 3.0
+            seats: [1, 2, 3]
+          -
+            pot: 2.0
+            seats: [1, 2]
+        stacks:
+          -
+            seat: 1
+            stack: 98
+          -
+            seat: 2
+            stack: 98
+          -
+            seat: 8
+            stack: 0
 
+      # verify we have two pots
     flop-action:
       actions:
         -
@@ -173,14 +175,12 @@ hands:
             min-raise-amount: 2
             max-raise-amount: 98
             bet-amounts:
-              - text: 50%
-                amount: 3
               - text: 100%
-                amount: 6
+                amount: 5
               - text: All-In
                 amount: 98          
-        - 
-          seat: 3
+        -
+          seat: 1
           action: BET
           amount: 2
           verify-action:
@@ -189,94 +189,34 @@ hands:
             min-raise-amount: 2
             max-raise-amount: 98
             bet-amounts:
-              - text: 50%
-                amount: 3
               - text: 100%
-                amount: 6
+                amount: 5
               - text: All-In
                 amount: 98          
-
         -
-          seat: 1
-          action: CALL
-          amount: 2
-          verify-action:
-            actions: ["CALL", "FOLD", "ALLIN", "RAISE"]
-            call-amount: 2
-            all-in-amount: 98
-            min-raise-amount: 4
-            max-raise-amount: 98
-            bet-amounts:
-              - text: 2x
-                amount: 8
-              - text: 3x
-                amount: 12
-              - text: 5x
-                amount: 20
-              - text: All-In
-                amount: 98          
-
-        - 
           seat: 2
-          action: RAISE
-          amount: 4
-          verify-action:
-            actions: ["CALL", "FOLD", "ALLIN", "RAISE"]
-            call-amount: 2
-            all-in-amount: 98
-            min-raise-amount: 4
-            max-raise-amount: 98
-            bet-amounts:
-              - text: 2x
-                amount: 8
-              - text: 3x
-                amount: 12
-              - text: 5x
-                amount: 20
-              - text: All-In
-                amount: 98
-
-        - 
-          seat: 3
           action: FOLD
-          verify-action:
-            actions: ["CALL", "FOLD", "ALLIN", "RAISE"]
-            call-amount: 4
-            all-in-amount: 98
-            min-raise-amount: 6
-            max-raise-amount: 98
-            bet-amounts:
-              - text: 2x
-                amount: 12
-              - text: 3x
-                amount: 18
-              - text: 5x
-                amount: 30
-              - text: All-In
-                amount: 98
 
-        -
-          seat: 1
-          action: FOLD
       verify:
-        state: RESULT
+        no-more-actions: true
+        state: TURN
 
     result:
       winners:
         -
-          seat: 2
-          receive: 14.0
-      action-ended: FLOP
+          seat: 1
+          receive: 3.0
+      action-ended: SHOW_DOWN
       
       # balance indicates the player balance after the hand
       # bb player won a chip
       stacks:
         -
           seat: 1
-          stack: 96
+          stack: 103
         -
-          seat: 5
-          stack: 108
+          seat: 2
+          stack: 98
         -
-          seat: 8
-          stack: 96
+          seat: 3
+          stack: 0

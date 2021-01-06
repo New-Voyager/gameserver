@@ -1,13 +1,13 @@
 disabled: true
 game-config:
   type: HOLDEM
-  max-players: 9
+  max-players: 4
   min-players: 3
   min-buyin: 60.0
   max-buyin: 300.0
   auto-start: false
   auto-approve: true
-  title: 3 players playing
+  title: 4 players playing
   sb: 1.0
   bb: 2.0
 

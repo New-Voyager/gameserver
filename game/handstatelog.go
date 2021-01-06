@@ -12,6 +12,10 @@ func (h *HandState) PrintTable(players map[uint64]string) string {
 	b.Grow(32)
 	fmt.Fprintf(&b, "Game ID: %d Hand Num: %d, Seats: [", h.GameId, h.HandNum)
 	for seatNo, playerID := range h.GetPlayersInSeats() {
+		if seatNo == 0 {
+			// dealer seat
+			continue
+		}
 		seatNo++
 		if playerID == 0 {
 			// empty seat
@@ -40,7 +44,7 @@ func (h *HandState) PrintTable(players map[uint64]string) string {
 func (n *NextSeatAction) PrettyPrint(h *HandState, gameState *GameState, players map[uint64]string) string {
 	seatNo := n.SeatNo
 	playerState := h.getPlayerFromSeat(seatNo)
-	playerID := gameState.GetPlayersInSeats()[seatNo-1]
+	playerID := gameState.GetPlayersInSeats()[seatNo]
 	player, _ := players[playerID]
 	var b strings.Builder
 	b.Grow(32)
@@ -112,7 +116,7 @@ func (a *HandAction) Print(h *HandState, gameState *GameState, players map[uint6
 
 	seatNo := a.SeatNo
 	//playerState := h.getPlayerFromSeat(seatNo)
-	playerID := gameState.GetPlayersInSeats()[seatNo-1]
+	playerID := gameState.GetPlayersInSeats()[seatNo]
 	player, _ := players[playerID]
 
 	if a.Action == ACTION_FOLD {

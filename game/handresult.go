@@ -126,7 +126,7 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 	handResult.Players = make(map[uint32]*PlayerInfo, 0)
 
 	// populate players section
-	for seatNoIdx, playerID := range hr.handState.GetPlayersInSeats() {
+	for seatNo, playerID := range hr.handState.GetPlayersInSeats() {
 
 		// no player in the seat
 		if playerID == 0 {
@@ -136,13 +136,11 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 
 		// determine whether the player has folded
 		playerFolded := false
-		if hr.handState.ActiveSeats[seatNoIdx] == 0 {
+		if hr.handState.ActiveSeats[seatNo] == 0 {
 			playerFolded = true
 		} else {
 			playerState.Round = hr.handState.HandCompletedAt
 		}
-
-		seatNo := uint32(seatNoIdx + 1)
 
 		// calculate high rank only the player hasn't folded
 		rank := uint32(0xFFFFFFFF)
@@ -150,7 +148,7 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 		var bestCards []uint32
 		var highHandBestCards []uint32
 
-		cards := hr.handState.PlayersCards[seatNo]
+		cards := hr.handState.PlayersCards[uint32(seatNo)]
 		playerCards := make([]uint32, len(cards))
 		for i, card := range cards {
 			playerCards[i] = uint32(card)
@@ -158,7 +156,7 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 		if !playerFolded {
 			var evaluatedCards *EvaluatedCards
 			if bestSeatHands != nil {
-				evaluatedCards = bestSeatHands[seatNo]
+				evaluatedCards = bestSeatHands[uint32(seatNo)]
 				if evaluatedCards != nil {
 					rank = uint32(evaluatedCards.rank)
 				}
@@ -171,9 +169,9 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 				}
 			}
 			if highHands != nil {
-				if highHands[seatNo] != nil {
-					highHandRank = uint32(highHands[seatNo].rank)
-					highHandBestCards = highHands[seatNo].GetCards()
+				if highHands[uint32(seatNo)] != nil {
+					highHandRank = uint32(highHands[uint32(seatNo)].rank)
+					highHandBestCards = highHands[uint32(seatNo)].GetCards()
 				}
 			}
 		}
@@ -202,7 +200,7 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 			playerInfo.RakePaid = rakePaid
 		}
 		handResult.RakeCollected = hr.handState.RakeCollected
-		handResult.Players[seatNo] = playerInfo
+		handResult.Players[uint32(seatNo)] = playerInfo
 	}
 
 	return handResult

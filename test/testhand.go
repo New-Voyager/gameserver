@@ -336,43 +336,56 @@ func (h *TestHand) setup(t *TestDriver) error {
 
 func (h *TestHand) verifyHandResult(t *TestDriver, handResult *game.HandResult) error {
 	passed := true
-	for i, expectedWinner := range h.hand.Result.Winners {
-		potWinner := handResult.HandLog.PotWinners[uint32(i)]
-		winners := potWinner.GetHiWinners()
-		if len(winners) != 1 {
-			passed = false
-		}
-		handWinner := winners[0]
-		if handWinner.SeatNo != expectedWinner.Seat {
-			h.addError(fmt.Errorf("Winner seat no didn't match. Expected %d, actual: %d",
-				expectedWinner.Seat, handWinner.SeatNo))
-			passed = false
-		}
 
-		if handWinner.Amount != expectedWinner.Receive {
-			h.addError(fmt.Errorf("Winner winning didn't match. Expected %f, actual: %f",
-				expectedWinner.Receive, handWinner.Amount))
+	if h.hand.Result.Winners != nil {
+		pot := 0
+		potWinner := handResult.HandLog.PotWinners[uint32(pot)]
+		hiWinners := potWinner.GetHiWinners()
+		if len(hiWinners) != len(h.hand.Result.Winners) {
 			passed = false
+		}
+		if passed {
+			for i, expectedWinner := range h.hand.Result.Winners {
+				handWinner := hiWinners[i]
+				if handWinner.SeatNo != expectedWinner.Seat {
+					h.addError(fmt.Errorf("Winner seat no didn't match. Expected %d, actual: %d",
+						expectedWinner.Seat, handWinner.SeatNo))
+					passed = false
+				}
+
+				if handWinner.Amount != expectedWinner.Receive {
+					h.addError(fmt.Errorf("Winner winning didn't match. Expected %f, actual: %f",
+						expectedWinner.Receive, handWinner.Amount))
+					passed = false
+				}
+			}
 		}
 	}
 
-	for i, expectedWinner := range h.hand.Result.LoWinners {
-		potWinner := handResult.HandLog.PotWinners[uint32(i)]
-		winners := potWinner.GetLowWinners()
-		if len(winners) != 1 {
-			passed = false
-		}
-		handWinner := winners[0]
-		if handWinner.SeatNo != expectedWinner.Seat {
-			h.addError(fmt.Errorf("Winner seat no didn't match. Expected %d, actual: %d",
-				expectedWinner.Seat, handWinner.SeatNo))
+	if h.hand.Result.LoWinners != nil {
+		pot := 0
+		potWinner := handResult.HandLog.PotWinners[uint32(pot)]
+		loWinners := potWinner.GetLowWinners()
+
+		if len(loWinners) != len(h.hand.Result.LoWinners) {
 			passed = false
 		}
 
-		if handWinner.Amount != expectedWinner.Receive {
-			h.addError(fmt.Errorf("Winner winning didn't match. Expected %f, actual: %f",
-				expectedWinner.Receive, handWinner.Amount))
-			passed = false
+		if passed {
+			for i, expectedWinner := range h.hand.Result.LoWinners {
+				handWinner := loWinners[i]
+				if handWinner.SeatNo != expectedWinner.Seat {
+					h.addError(fmt.Errorf("Winner seat no didn't match. Expected %d, actual: %d",
+						expectedWinner.Seat, handWinner.SeatNo))
+					passed = false
+				}
+
+				if handWinner.Amount != expectedWinner.Receive {
+					h.addError(fmt.Errorf("Winner winning didn't match. Expected %f, actual: %f",
+						expectedWinner.Receive, handWinner.Amount))
+					passed = false
+				}
+			}
 		}
 	}
 
@@ -512,6 +525,35 @@ func (h *TestHand) verifyBettingRound(t *TestDriver, verify *game.VerifyBettingR
 						e := fmt.Errorf("Pot [%d] seat %d is not in the pot", i, seatNo)
 						h.gameScript.result.addError(e)
 					}
+				}
+			}
+		}
+	}
+
+	if verify.Stacks != nil {
+		var stacks map[uint32]float32
+		switch verify.State {
+		case "FLOP":
+			stacks = h.gameScript.observer.flop.PlayerBalance
+		case "TURN":
+			stacks = h.gameScript.observer.turn.PlayerBalance
+		case "RIVER":
+			stacks = h.gameScript.observer.river.PlayerBalance
+		case "SHOWDOWN":
+			stacks = h.gameScript.observer.showdown.PlayerBalance
+		}
+
+		for _, stack := range verify.Stacks {
+			if playerStack, ok := stacks[stack.Seat]; ok {
+				if playerStack != stack.Stack {
+					e := fmt.Errorf("Player at seatNo [%d] stack did not match. Expected: %f Actual %f found at state: %s",
+						stack.Seat, stack.Stack, playerStack, verify.State)
+					h.gameScript.result.addError(e)
+				}
+			} else {
+				if stack.Stack != 0 {
+					e := fmt.Errorf("Player at seatNo [%d] stack is not found at state: %s", stack.Seat, verify.State)
+					h.gameScript.result.addError(e)
 				}
 			}
 		}

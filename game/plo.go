@@ -94,30 +94,39 @@ func (h *PloWinnerEvaluate) determineHandWinners(pot *SeatsInPots, potAmount flo
 			noOfWinners++
 		}
 	}
-	splitChips := potAmount / float32(noOfWinners)
 	handWinners := make([]*HandWinner, noOfWinners)
 	i := 0
+	splitChips := int(potAmount / float32(noOfWinners))
+	remainingWinners := noOfWinners
+	remainingAmount := potAmount
 	for _, seatNo := range pot.Seats {
 		if _, ok := h.activeSeatBestCombo[seatNo]; !ok {
 			continue
 		}
-
-		if h.activeSeatBestCombo[seatNo].rank == lowestRank {
-			evaluatedCards := h.activeSeatBestCombo[seatNo]
-			rankStr := poker.RankString(evaluatedCards.rank)
-			s := poker.CardsToString(evaluatedCards.cards)
-			handWinners[i] = &HandWinner{
-				SeatNo:          seatNo,
-				Amount:          splitChips,
-				WinningCards:    evaluatedCards.GetCards(),
-				WinningCardsStr: s,
-				RankStr:         rankStr,
-				Rank:            uint32(evaluatedCards.rank),
-				BoardCards:      evaluatedCards.GetBoardCards(),
-				PlayerCards:     evaluatedCards.GetPlayerCards(),
-			}
-			i++
+		if h.activeSeatBestCombo[seatNo].rank != lowestRank {
+			continue
 		}
+		remainingWinners--
+		chipsAward := float32(splitChips)
+		if remainingWinners == 0 {
+			chipsAward = remainingAmount
+		}
+		remainingAmount = remainingAmount - chipsAward
+
+		evaluatedCards := h.activeSeatBestCombo[seatNo]
+		rankStr := poker.RankString(evaluatedCards.rank)
+		s := poker.CardsToString(evaluatedCards.cards)
+		handWinners[i] = &HandWinner{
+			SeatNo:          seatNo,
+			Amount:          chipsAward,
+			WinningCards:    evaluatedCards.GetCards(),
+			WinningCardsStr: s,
+			RankStr:         rankStr,
+			Rank:            uint32(evaluatedCards.rank),
+			BoardCards:      evaluatedCards.GetBoardCards(),
+			PlayerCards:     evaluatedCards.GetPlayerCards(),
+		}
+		i++
 	}
 
 	return handWinners
@@ -150,29 +159,40 @@ func (h *PloWinnerEvaluate) determineLoHandWinners(pot *SeatsInPots, potAmount f
 		lowestRank = 0
 	}
 
-	splitChips := potAmount / float32(noOfWinners)
 	handWinners := make([]*HandWinner, noOfWinners)
+	splitChips := int(potAmount / float32(noOfWinners))
+	remainingWinners := noOfWinners
+	remainingAmount := potAmount
+
 	i := 0
 	for _, seatNo := range pot.Seats {
 		if _, ok := h.activeSeatBestCombo[seatNo]; !ok {
 			continue
 		}
-
-		if h.activeSeatBestCombo[seatNo].loRank == lowestRank {
-			evaluatedCards := h.activeSeatBestCombo[seatNo]
-			s := poker.CardsToString(evaluatedCards.cards)
-			handWinners[i] = &HandWinner{
-				SeatNo:          seatNo,
-				Amount:          splitChips,
-				WinningCards:    evaluatedCards.GetLoCards(),
-				WinningCardsStr: s,
-				Rank:            uint32(lowestRank),
-				BoardCards:      evaluatedCards.GetLoBoardCards(),
-				PlayerCards:     evaluatedCards.GetLoPlayerCards(),
-				LoCard:          true,
-			}
-			i++
+		if h.activeSeatBestCombo[seatNo].loRank != lowestRank {
+			continue
 		}
+
+		remainingWinners--
+		chipsAward := float32(splitChips)
+		if remainingWinners == 0 {
+			chipsAward = remainingAmount
+		}
+		remainingAmount = remainingAmount - chipsAward
+
+		evaluatedCards := h.activeSeatBestCombo[seatNo]
+		s := poker.CardsToString(evaluatedCards.cards)
+		handWinners[i] = &HandWinner{
+			SeatNo:          seatNo,
+			Amount:          chipsAward,
+			WinningCards:    evaluatedCards.GetLoCards(),
+			WinningCardsStr: s,
+			Rank:            uint32(lowestRank),
+			BoardCards:      evaluatedCards.GetLoBoardCards(),
+			PlayerCards:     evaluatedCards.GetLoPlayerCards(),
+			LoCard:          true,
+		}
+		i++
 	}
 
 	return handWinners
@@ -180,12 +200,11 @@ func (h *PloWinnerEvaluate) determineLoHandWinners(pot *SeatsInPots, potAmount f
 
 func (h *PloWinnerEvaluate) evaluatePlayerBestCards() {
 	// determine rank for each active player
-	for seatNoIdx, active := range h.handState.ActiveSeats {
+	for seatNo, active := range h.handState.ActiveSeats {
 		if active == 0 {
 			continue
 		}
-		seatNo := uint32(seatNoIdx + 1)
-		seatCards := h.handState.PlayersCards[seatNo]
+		seatCards := h.handState.PlayersCards[uint32(seatNo)]
 		if seatCards == nil {
 			continue
 		}
@@ -194,7 +213,7 @@ func (h *PloWinnerEvaluate) evaluatePlayerBestCards() {
 		result := poker.EvaluateOmaha(playerCardsEval, boardCardsEval)
 
 		// save the result to calculate low winners
-		h.playerResult[seatNo] = result
+		h.playerResult[uint32(seatNo)] = result
 
 		// determine what player cards and board cards used to determine best cards
 		seatCardsInCard := poker.FromByteCards(seatCards)
@@ -216,9 +235,9 @@ func (h *PloWinnerEvaluate) evaluatePlayerBestCards() {
 		}
 		fmt.Printf("seat: %d lo rank: %d cards: %s player cards: %s board cards: %s\n",
 			seatNo, result.HiRank, poker.CardsToString(result.HiCards),
-			poker.CardsToString(h.handState.PlayersCards[seatNo]), poker.CardsToString(h.handState.BoardCards))
+			poker.CardsToString(h.handState.PlayersCards[uint32(seatNo)]), poker.CardsToString(h.handState.BoardCards))
 
-		h.activeSeatBestCombo[seatNo] = &EvaluatedCards{
+		h.activeSeatBestCombo[uint32(seatNo)] = &EvaluatedCards{
 			rank:        result.HiRank,
 			cards:       poker.CardsToByteCards(result.HiCards),
 			playerCards: poker.CardsToByteCards(playerCards),
@@ -227,7 +246,7 @@ func (h *PloWinnerEvaluate) evaluatePlayerBestCards() {
 		if result.LowFound {
 			fmt.Printf("seat: %d lo rank: %d cards: %s player cards: %s board cards: %s\n",
 				seatNo, result.LowRank, poker.CardsToString(result.LowCards),
-				poker.CardsToString(h.handState.PlayersCards[seatNo]),
+				poker.CardsToString(h.handState.PlayersCards[uint32(seatNo)]),
 				poker.CardsToString(h.handState.BoardCards))
 
 			loPlayerCards := make([]poker.Card, 0)
@@ -247,23 +266,22 @@ func (h *PloWinnerEvaluate) evaluatePlayerBestCards() {
 				}
 			}
 			// lo cards
-			h.activeSeatBestCombo[seatNo].loBoardCards = poker.CardsToByteCards(loBoardCards)
-			h.activeSeatBestCombo[seatNo].loPlayerCards = poker.CardsToByteCards(loPlayerCards)
-			h.activeSeatBestCombo[seatNo].loRank = result.LowRank
-			h.activeSeatBestCombo[seatNo].locards = poker.CardsToByteCards(result.LowCards)
+			h.activeSeatBestCombo[uint32(seatNo)].loBoardCards = poker.CardsToByteCards(loBoardCards)
+			h.activeSeatBestCombo[uint32(seatNo)].loPlayerCards = poker.CardsToByteCards(loPlayerCards)
+			h.activeSeatBestCombo[uint32(seatNo)].loRank = result.LowRank
+			h.activeSeatBestCombo[uint32(seatNo)].locards = poker.CardsToByteCards(result.LowCards)
 		}
 	}
 }
 
 func (h *PloWinnerEvaluate) evaluatePlayerHighHand() {
 	// determine rank for each active player
-	for seatNoIdx, active := range h.handState.ActiveSeats {
-		if active == 0 || h.handState.PlayersInSeats[seatNoIdx] == 0 {
+	for seatNo, active := range h.handState.ActiveSeats {
+		if active == 0 || h.handState.PlayersInSeats[seatNo] == 0 {
 			continue
 		}
-		seatNo := uint32(seatNoIdx + 1)
-		highHand := h.activeSeatBestCombo[seatNo]
-		h.highHandCombo[uint32(seatNoIdx+1)] = &EvaluatedCards{
+		highHand := h.activeSeatBestCombo[uint32(seatNo)]
+		h.highHandCombo[uint32(seatNo)] = &EvaluatedCards{
 			rank:  highHand.rank,
 			cards: highHand.cards,
 		}
