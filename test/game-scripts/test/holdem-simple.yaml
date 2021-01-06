@@ -152,6 +152,16 @@ hands:
           -
             pot: 2.0
             seats: [1, 2]
+        stacks:
+          -
+            seat: 1
+            stack: 98
+          -
+            seat: 2
+            stack: 98
+          -
+            seat: 8
+            stack: 0
 
       # verify we have two pots
     flop-action:
@@ -162,7 +172,6 @@ hands:
           verify-action:
             actions: ["CHECK", "FOLD", "ALLIN", "BET"]
             all-in-amount: 98
-            call-amount: 2
             min-raise-amount: 2
             max-raise-amount: 98
             bet-amounts:
@@ -175,10 +184,9 @@ hands:
           action: BET
           amount: 2
           verify-action:
-            actions: ["CHECK", "FOLD", "ALLIN", "BET`"]
-            call-amount: 2
+            actions: ["CHECK", "FOLD", "ALLIN", "BET"]
             all-in-amount: 98
-            min-raise-amount: 4
+            min-raise-amount: 2
             max-raise-amount: 98
             bet-amounts:
               - text: 100%
@@ -190,24 +198,25 @@ hands:
           action: FOLD
 
       verify:
-        state: RESULT
+        no-more-actions: true
+        state: TURN
 
     result:
       winners:
         -
-          seat: 2
-          receive: 14.0
-      action-ended: FLOP
+          seat: 1
+          receive: 3.0
+      action-ended: SHOW_DOWN
       
       # balance indicates the player balance after the hand
       # bb player won a chip
       stacks:
         -
           seat: 1
-          stack: 96
+          stack: 103
         -
-          seat: 5
-          stack: 108
+          seat: 2
+          stack: 98
         -
-          seat: 8
-          stack: 96
+          seat: 3
+          stack: 0

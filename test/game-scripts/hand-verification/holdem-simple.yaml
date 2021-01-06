@@ -143,7 +143,6 @@ hands:
           action: CHECK
           verify-action:
             actions: ["CHECK", "FOLD", "ALLIN", "BET"]
-            call-amount: 2
             all-in-amount: 100
             min-raise-amount: 4
             max-raise-amount: 100

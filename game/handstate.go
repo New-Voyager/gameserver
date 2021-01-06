@@ -26,11 +26,24 @@ func LoadHandState(handStatePersist PersistHandState, clubID uint32, gameID uint
 
 func (h *HandState) initializeBettingRound() {
 	maxSeats := h.MaxSeats + 1 // dealer seat
-	h.RoundBetting = make(map[uint32]*SeatBetting)
-	h.RoundBetting[uint32(HandStatus_PREFLOP)] = &SeatBetting{SeatBet: make([]float32, maxSeats)}
-	h.RoundBetting[uint32(HandStatus_FLOP)] = &SeatBetting{SeatBet: make([]float32, maxSeats)}
-	h.RoundBetting[uint32(HandStatus_TURN)] = &SeatBetting{SeatBet: make([]float32, maxSeats)}
-	h.RoundBetting[uint32(HandStatus_RIVER)] = &SeatBetting{SeatBet: make([]float32, maxSeats)}
+	h.RoundState = make(map[uint32]*RoundState)
+	//h.RoundBetting = make(map[uint32]*SeatBetting)
+	h.RoundState[uint32(HandStatus_PREFLOP)] = &RoundState{
+		PlayerBalance: make(map[uint32]float32, 0),
+		Betting:       &SeatBetting{SeatBet: make([]float32, maxSeats)},
+	}
+	h.RoundState[uint32(HandStatus_FLOP)] = &RoundState{
+		PlayerBalance: make(map[uint32]float32, 0),
+		Betting:       &SeatBetting{SeatBet: make([]float32, maxSeats)},
+	}
+	h.RoundState[uint32(HandStatus_TURN)] = &RoundState{
+		PlayerBalance: make(map[uint32]float32, 0),
+		Betting:       &SeatBetting{SeatBet: make([]float32, maxSeats)},
+	}
+	h.RoundState[uint32(HandStatus_RIVER)] = &RoundState{
+		PlayerBalance: make(map[uint32]float32, 0),
+		Betting:       &SeatBetting{SeatBet: make([]float32, maxSeats)},
+	}
 
 	// setup player acted tracking
 	h.PlayersActed = make([]*PlayerActRound, maxSeats) // seat 0 is dealer
@@ -171,6 +184,18 @@ func (h *HandState) copyPlayersState(gameState *GameState) map[uint64]*HandPlaye
 	return handPlayerState
 }
 
+func (h *HandState) setupRound(state HandStatus) {
+	h.RoundState[uint32(state)].PlayerBalance = make(map[uint32]float32, 0)
+	roundState := h.RoundState[uint32(state)]
+	for seatNo, playerID := range h.PlayersInSeats {
+		if seatNo == 0 || playerID == 0 {
+			continue
+		}
+		state := h.PlayersState[playerID]
+		roundState.PlayerBalance[uint32(seatNo)] = state.Balance
+	}
+}
+
 func (h *HandState) setupPreflob() {
 	h.CurrentState = HandStatus_PREFLOP
 
@@ -182,6 +207,7 @@ func (h *HandState) setupPreflob() {
 	h.CurrentRaise = 0
 	// initialize all-in players list
 	h.AllInPlayers = make([]uint32, h.MaxSeats+1) // seat 0 is dealer
+	h.setupRound(HandStatus_PREFLOP)
 
 	h.actionReceived(&HandAction{
 		SeatNo: h.SmallBlindPos,
@@ -195,25 +221,6 @@ func (h *HandState) setupPreflob() {
 	})
 
 	h.ActionCompleteAtSeat = h.BigBlindPos
-	if h.SmallBlindPos != 0 {
-		// small blind equity
-		amount := h.SmallBlind
-		if h.PlayersState[h.PlayersInSeats[h.SmallBlindPos]].Balance < h.SmallBlind {
-			amount = h.PlayersState[h.PlayersInSeats[h.SmallBlindPos]].Balance
-			h.PlayersState[h.PlayersInSeats[h.SmallBlindPos]].Balance = 0
-		} else {
-			h.PlayersState[h.PlayersInSeats[h.SmallBlindPos]].Balance -= amount
-		}
-	}
-
-	// big blind equity
-	amount := h.BigBlind
-	if h.PlayersState[h.PlayersInSeats[h.BigBlindPos]].Balance < amount {
-		// this player went all-in
-		h.PlayersState[h.PlayersInSeats[h.BigBlindPos]].Balance = 0
-	} else {
-		h.PlayersState[h.PlayersInSeats[h.BigBlindPos]].Balance -= amount
-	}
 
 	// track whether the player is active in this round or not
 	for seatNo := 1; seatNo <= int(h.GetMaxSeats()); seatNo++ {
@@ -414,8 +421,6 @@ func (h *HandState) actionReceived(action *HandAction) error {
 			Msg(fmt.Sprintf("Invalid seat %d. PlayerID is 0", action.SeatNo))
 	}
 
-	playerState := h.GetPlayersState()[playerID]
-
 	var log *HandActionLog
 	switch h.CurrentState {
 	case HandStatus_PREFLOP:
@@ -428,8 +433,9 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		log = h.RiverActions
 	}
 	h.LastState = h.CurrentState
-	playerBalance := playerState.GetBalance()
-	bettingRound := h.RoundBetting[uint32(h.CurrentState)]
+	bettingState := h.RoundState[uint32(h.CurrentState)]
+	bettingRound := bettingState.Betting
+	playerBalance := bettingState.PlayerBalance[action.SeatNo]
 	playerBetSoFar := bettingRound.SeatBet[action.SeatNo]
 	diff := float32(0)
 
@@ -459,7 +465,6 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		// action call
 		if action.Amount < h.CurrentRaise {
 			// fold this player
-			playerState.Status = HandPlayerState_FOLDED
 			h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_FOLDED, playerBetSoFar)
 		} else if action.Amount == playerBalance {
 			// the player is all in
@@ -471,16 +476,16 @@ func (h *HandState) actionReceived(action *HandAction) error {
 			// if this player has an equity in this pot, just call subtract the amount
 			h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_CALL, action.Amount)
 		}
-		additionalBet := (action.Amount - playerBetSoFar)
-		playerState.Balance -= additionalBet
-		playerBetSoFar += additionalBet
+		diff = (action.Amount - playerBetSoFar)
+		//bettingState.PlayerBalance[action.SeatNo] -= additionalBet
+		playerBetSoFar += diff
 		bettingRound.SeatBet[action.SeatNo] = playerBetSoFar
 	} else if action.Action == ACTION_ALLIN {
 		h.AllInPlayers[action.SeatNo] = 1
-		amount := playerState.Balance + playerBetSoFar
+		amount := bettingState.PlayerBalance[action.SeatNo] + playerBetSoFar
 		bettingRound.SeatBet[action.SeatNo] = amount
 		diff = playerBalance
-		playerState.Balance = 0
+		//bettingState.PlayerBalance[action.SeatNo] = 0
 		action.Amount = amount
 		h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, amount)
 	} else if action.Action == ACTION_RAISE ||
@@ -502,7 +507,7 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		if action.Action == ACTION_ALLIN {
 			state = PlayerActState_PLAYER_ACT_ALL_IN
 			// player is all in
-			action.Amount = playerBetSoFar + playerState.Balance
+			action.Amount = playerBetSoFar + bettingState.PlayerBalance[action.SeatNo]
 		}
 
 		if action.Amount > h.CurrentRaise {
@@ -514,15 +519,16 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		// how much this user already had in the betting round
 		diff = action.Amount - playerBetSoFar
 
-		if diff == playerState.Balance {
+		if diff == bettingState.PlayerBalance[action.SeatNo] {
 			// player is all in
 			action.Action = ACTION_ALLIN
 			h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, action.Amount)
 			h.AllInPlayers[action.SeatNo] = 1
-			playerState.Balance = 0
-		} else {
-			playerState.Balance -= diff
+			bettingState.PlayerBalance[action.SeatNo] = 0
 		}
+		//else {
+		//	bettingState.PlayerBalance[action.SeatNo] -= diff
+		//}
 
 		bettingRound.SeatBet[action.SeatNo] = action.Amount
 	} else if action.Action == ACTION_SB ||
@@ -548,6 +554,7 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		h.CurrentRaise = action.Amount
 		h.ActionCompleteAtSeat = action.SeatNo
 	}
+	bettingState.PlayerBalance[action.SeatNo] = bettingState.PlayerBalance[action.SeatNo] - diff
 	// add the action to the log
 	log.Actions = append(log.Actions, action)
 	log.Pot = log.Pot + diff
@@ -589,21 +596,44 @@ func (h *HandState) getPlayerFromSeat(seatNo uint32) *HandPlayerState {
 
 func (h *HandState) isAllActivePlayersAllIn() bool {
 	allIn := true
+	noAllInPlayers := 0
+	noActivePlayers := 0
 	for seatNo, playerID := range h.ActiveSeats {
 		if playerID == 0 {
 			continue
 		}
+		noActivePlayers++
 		if h.AllInPlayers[seatNo] == 0 {
 			allIn = false
-			break
+		} else {
+			noAllInPlayers++
 		}
 	}
-	return allIn
+	if allIn {
+		return allIn
+	}
+
+	// if all players all-in, but one player is remaining, then there will no more actions
+	if noActivePlayers == noAllInPlayers+1 {
+		return true
+	}
+
+	return false
 }
 
 func (h *HandState) settleRound() {
 	// before we go to next stage, settle pots
-	currentBettingRound := h.RoundBetting[uint32(h.CurrentState)]
+	bettingState := h.RoundState[uint32(h.CurrentState)]
+	currentBettingRound := bettingState.Betting
+
+	// update player state
+	for seatNo, bet := range currentBettingRound.SeatBet {
+		playerID := h.PlayersInSeats[seatNo]
+		if playerID == 0 {
+			continue
+		}
+		h.PlayersState[playerID].Balance -= bet
+	}
 
 	// if only one player is active, then this hand is concluded
 	handEnded := false
@@ -646,7 +676,7 @@ func (h *HandState) settleRound() {
 		}
 		if maxBet != 0 && secondMaxBet != 0 && maxBetPos > 0 {
 			playerID := h.PlayersInSeats[maxBetPos]
-			h.PlayersState[playerID].Balance = maxBet - secondMaxBet
+			h.PlayersState[playerID].Balance += (maxBet - secondMaxBet)
 		}
 	}
 
@@ -700,6 +730,7 @@ func (h *HandState) setupNextRound(state HandStatus) {
 	h.CurrentRaise = 0
 	h.CurrentRaiseDiff = 0
 	h.BetBeforeRaise = 0
+	h.setupRound(state)
 	actionSeat := h.getNextActivePlayer(h.ButtonPos)
 	if actionSeat == 0 {
 		// every one is all in
@@ -755,8 +786,8 @@ func (h *HandState) adjustToBringIn(amount float32) float32 {
 }
 
 func (h *HandState) calcPloPotBet(callAmount float32, preFlop bool) float32 {
-
-	bettingRound := h.RoundBetting[uint32(h.CurrentState)]
+	roundState := h.RoundState[uint32(h.CurrentState)]
+	bettingRound := roundState.Betting
 	firstAction := false
 	if preFlop {
 		firstAction = true
@@ -793,13 +824,10 @@ func (h *HandState) calcPloPotBet(callAmount float32, preFlop bool) float32 {
 
 func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool) *NextSeatAction {
 	// compute next action
-	bettingRound := h.RoundBetting[uint32(h.CurrentState)]
+	bettingState := h.RoundState[uint32(h.CurrentState)]
+	bettingRound := bettingState.Betting
 
-	playerState := h.getPlayerFromSeat(actionSeat)
-	if playerState == nil {
-		// something wrong
-		panic("Something went wrong. player id cannot be null")
-	}
+	playerBalance := bettingState.PlayerBalance[actionSeat]
 	nextAction := &NextSeatAction{SeatNo: actionSeat}
 	availableActions := make([]ACTION, 0)
 	availableActions = append(availableActions, ACTION_FOLD)
@@ -807,7 +835,7 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 		if straddleAvailable {
 			// the player can straddle, if he has enough money
 			straddleAmount := 2.0 * h.BigBlind
-			if playerState.Balance >= straddleAmount {
+			if playerBalance >= straddleAmount {
 				availableActions = append(availableActions, ACTION_STRADDLE)
 				nextAction.StraddleAmount = h.BigBlind * 2.0
 			}
@@ -819,7 +847,7 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 	canBet := false
 
 	// then the caller call, raise, or go all in
-	if playerState.Balance <= h.CurrentRaise || h.GameType == GameType_HOLDEM {
+	if playerBalance <= h.CurrentRaise || h.GameType == GameType_HOLDEM {
 		allInAvailable = true
 	}
 
@@ -830,7 +858,7 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 		// the player can bet
 		canBet = true
 	} else {
-		if playerState.Balance > h.CurrentRaise {
+		if playerBalance > h.CurrentRaise {
 			actedState := h.PlayersActed[actionSeat]
 
 			if (actedState.State == PlayerActState_PLAYER_ACT_BB && h.CurrentRaise > h.BigBlind) ||
@@ -870,7 +898,7 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 		}
 	}
 
-	allIn := bettingRound.SeatBet[actionSeat] + playerState.Balance
+	allIn := bettingRound.SeatBet[actionSeat] + playerBalance
 	if canBet || canRaise {
 		playerID := h.GetPlayersInSeats()[actionSeat]
 		betOptions := make([]*BetRaiseOption, 0)
@@ -890,7 +918,7 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 		nextAction.MinRaiseAmount = h.adjustToBringIn(nextAction.MinRaiseAmount)
 
 		if h.GameType == GameType_HOLDEM {
-			nextAction.MaxRaiseAmount = bettingRound.SeatBet[actionSeat] + playerState.Balance
+			nextAction.MaxRaiseAmount = bettingRound.SeatBet[actionSeat] + playerBalance
 		} else {
 			preFlop := h.CurrentState == HandStatus_PREFLOP
 			// handle PLO max raise
@@ -929,7 +957,7 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 			}
 		}
 
-		if h.GameType == GameType_HOLDEM || playerState.Balance < nextAction.MinRaiseAmount {
+		if h.GameType == GameType_HOLDEM || playerBalance < nextAction.MinRaiseAmount {
 			// the player can go all in no limit holdem
 			allInAvailable = true
 		}
@@ -1073,10 +1101,11 @@ func (h *HandState) getLog() *HandLog {
 }
 
 func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64, callAmount float32) []*BetRaiseOption {
-	balance := h.PlayersState[playerID].Balance
 	preFlopBetOptions := preFlopBets
 	postFlopBets := postFlopBets
-	bettingRound := h.RoundBetting[uint32(h.CurrentState)]
+	roundState := h.RoundState[uint32(h.CurrentState)]
+	bettingRound := roundState.Betting
+	balance := roundState.PlayerBalance[seatNo]
 	allIn := bettingRound.SeatBet[seatNo] + balance
 
 	options := make([]*BetRaiseOption, 0)
@@ -1188,8 +1217,9 @@ func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64,
 }
 
 func (h *HandState) raiseOptions(seatNo uint32, minRaiseAmount float32, maxRaiseAmount float32, playerID uint64) []*BetRaiseOption {
-	balance := h.PlayersState[playerID].Balance
-	bettingRound := h.RoundBetting[uint32(h.CurrentState)]
+	roundState := h.RoundState[uint32(h.CurrentState)]
+	balance := roundState.PlayerBalance[seatNo]
+	bettingRound := roundState.Betting
 	allIn := bettingRound.SeatBet[seatNo] + balance
 
 	options := make([]*BetRaiseOption, 0)

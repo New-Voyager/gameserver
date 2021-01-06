@@ -37,9 +37,11 @@ func (h *HandState) lowestBet(seatBets []float32) float32 {
 			continue
 		}
 
-		if bet < lowestBet {
+		if lowestBet == -1 {
 			lowestBet = bet
-		} else {
+			continue
+		}
+		if bet < lowestBet {
 			lowestBet = bet
 		}
 	}

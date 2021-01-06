@@ -65,7 +65,8 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 		pots = append(pots, pot.Pot)
 	}
 	currentPot := pots[len(pots)-1]
-	currentBettingRound := handState.RoundBetting[uint32(handState.CurrentState)]
+	currentRoundState := handState.RoundState[uint32(handState.CurrentState)]
+	currentBettingRound := currentRoundState.Betting
 	bettingInProgress := handState.CurrentState == HandStatus_PREFLOP || handState.CurrentState == HandStatus_FLOP || handState.CurrentState == HandStatus_TURN || handState.CurrentState == HandStatus_RIVER
 	if bettingInProgress {
 		for _, bet := range currentBettingRound.SeatBet {
@@ -215,10 +216,17 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 
 	// Send player's current stack to be updated in the UI
 	seatNo := message.GetPlayerActed().GetSeatNo()
-	playerID := handState.PlayersInSeats[seatNo]
-
+	var stack float32
+	if bettingState, ok := handState.RoundState[uint32(handState.CurrentState)]; ok {
+		stack = bettingState.PlayerBalance[seatNo]
+	} else {
+		// get it from playerState
+		playerID := handState.PlayersInSeats[seatNo]
+		if playerID != 0 {
+			stack = handState.PlayersState[playerID].Balance
+		}
+	}
 	playerAction := handState.PlayersActed[seatNo]
-	stack := handState.PlayersState[playerID].Balance
 	if playerAction.State != PlayerActState_PLAYER_ACT_FOLDED {
 		message.GetPlayerActed().Amount = playerAction.Amount
 	} else {
@@ -296,9 +304,18 @@ func (g *Game) gotoFlop(gameState *GameState, handState *HandState) {
 	handState.setupFlop(boardCards)
 	g.saveHandState(gameState, handState)
 	pots, seatsInPots := g.getPots(handState)
+	balance := make(map[uint32]float32, 0)
+	for seatNo, playerID := range handState.PlayersInSeats {
+		if seatNo == 0 {
+			continue
+		}
+		if playerState, ok := handState.PlayersState[playerID]; ok {
+			balance[uint32(seatNo)] = playerState.Balance
+		}
+	}
 
 	cardsStr := poker.CardsToString(boardCards)
-	flopMessage := &Flop{Board: boardCards, CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots}
+	flopMessage := &Flop{Board: boardCards, CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots, PlayerBalance: balance}
 	handMessage := &HandMessage{ClubId: g.config.ClubId,
 		GameId:      g.config.GameId,
 		HandNum:     handState.HandNum,
@@ -315,13 +332,6 @@ func (g *Game) gotoTurn(gameState *GameState, handState *HandState) {
 		Str("game", g.config.GameCode).
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
-	// send turn card to the board
-	/*
-		deck := poker.NewDeckFromBytes(handState.Deck, int(handState.DeckIndex))
-		deck.Draw(1)
-		handState.DeckIndex++
-		turn := uint32(deck.Draw(1)[0].GetByte())
-	*/
 	handState.setupTurn(handState.TurnCard)
 	g.saveHandState(gameState, handState)
 
@@ -331,7 +341,18 @@ func (g *Game) gotoTurn(gameState *GameState, handState *HandState) {
 		boardCards[i] = uint32(card)
 	}
 	pots, seatsInPots := g.getPots(handState)
-	turnMessage := &Turn{Board: boardCards, TurnCard: uint32(handState.TurnCard), CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots}
+
+	balance := make(map[uint32]float32, 0)
+	for seatNo, playerID := range handState.PlayersInSeats {
+		if seatNo == 0 {
+			continue
+		}
+		if playerState, ok := handState.PlayersState[playerID]; ok {
+			balance[uint32(seatNo)] = playerState.Balance
+		}
+	}
+	turnMessage := &Turn{Board: boardCards, TurnCard: uint32(handState.TurnCard),
+		CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots, PlayerBalance: balance}
 	handMessage := &HandMessage{ClubId: g.config.ClubId,
 		GameId:      g.config.GameId,
 		HandNum:     handState.HandNum,
@@ -348,14 +369,6 @@ func (g *Game) gotoRiver(gameState *GameState, handState *HandState) {
 		Str("game", g.config.GameCode).
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
-	// send river card to the board
-	/*
-		deck := poker.NewDeckFromBytes(handState.Deck, int(handState.DeckIndex))
-		deck.Draw(1)
-		handState.DeckIndex++
-		river := uint32(deck.Draw(1)[0].GetByte())
-	*/
-
 	handState.setupRiver(handState.RiverCard)
 	g.saveHandState(gameState, handState)
 
@@ -365,7 +378,18 @@ func (g *Game) gotoRiver(gameState *GameState, handState *HandState) {
 		boardCards[i] = uint32(card)
 	}
 	pots, seatsInPots := g.getPots(handState)
-	riverMessage := &River{Board: boardCards, RiverCard: uint32(handState.RiverCard), CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots}
+
+	balance := make(map[uint32]float32, 0)
+	for seatNo, playerID := range handState.PlayersInSeats {
+		if seatNo == 0 {
+			continue
+		}
+		if playerState, ok := handState.PlayersState[playerID]; ok {
+			balance[uint32(seatNo)] = playerState.Balance
+		}
+	}
+	riverMessage := &River{Board: boardCards, RiverCard: uint32(handState.RiverCard),
+		CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots, PlayerBalance: balance}
 	handMessage := &HandMessage{ClubId: g.config.ClubId,
 		GameId:      g.config.GameId,
 		HandNum:     handState.HandNum,
@@ -479,7 +503,8 @@ func (g *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 				pots = append(pots, pot.Pot)
 			}
 			currentPot := pots[len(pots)-1]
-			currentBettingRound := handState.RoundBetting[uint32(handState.CurrentState)]
+			roundState := handState.RoundState[uint32(handState.CurrentState)]
+			currentBettingRound := roundState.Betting
 			seatBets := currentBettingRound.SeatBet
 			for _, bet := range seatBets {
 				currentPot = currentPot + bet

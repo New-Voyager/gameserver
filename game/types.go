@@ -165,10 +165,11 @@ type Pot struct {
 }
 
 type VerifyBettingRound struct {
-	State        string   `yaml:"state"`
-	Board        []string `yaml:"board"`
-	Pots         []Pot    `yaml:"pots"`
-	NoMoreAction bool     `yaml:"no-more-action"`
+	State        string        `yaml:"state"`
+	Board        []string      `yaml:"board"`
+	Pots         []Pot         `yaml:"pots"`
+	NoMoreAction bool          `yaml:"no-more-action"`
+	Stacks       []PlayerStack `yaml:"stacks"`
 }
 
 type BettingRound struct {
