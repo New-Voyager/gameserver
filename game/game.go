@@ -487,9 +487,10 @@ func (g *Game) dealNewHand() error {
 	handMessage.HandMessage = &HandMessage_NewHand{NewHand: &newHand}
 	g.broadcastHandMessage(&handMessage)
 	if !RunningTests {
-		time.Sleep(3 * time.Second)
+		time.Sleep(2 * time.Second)
 	}
-
+	activePlayers := uint32(len(gameState.GetPlayersInSeats()))
+	cardAnimationTime := time.Duration(activePlayers * 250 * newHand.NoCards)
 	// send the cards to each player
 	for seatNo, playerID := range gameState.GetPlayersInSeats() {
 		if playerID == 0 {
@@ -532,9 +533,9 @@ func (g *Game) dealNewHand() error {
 		} else {
 			player.chHand <- b
 		}
-		if !RunningTests {
-			time.Sleep(1 * time.Second)
-		}
+	}
+	if !RunningTests {
+		time.Sleep(cardAnimationTime * time.Millisecond)
 	}
 
 	// print next action
