@@ -52,6 +52,7 @@ type Game struct {
 	scriptTest              bool
 	inProcessPendingUpdates bool
 	config                  *GameConfig
+	delays                  Delays
 	lock                    sync.Mutex
 	timerSeatNo             uint32
 }
@@ -63,7 +64,7 @@ type timerMsg struct {
 	allowedTime time.Duration
 }
 
-func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, config *GameConfig, autoDeal bool,
+func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, config *GameConfig, delays Delays, autoDeal bool,
 	gameStatePersist PersistGameState,
 	handStatePersist PersistHandState,
 	apiServerUrl string) (*Game, error) {
@@ -76,6 +77,7 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, co
 		manager:         gameManager,
 		messageReceiver: messageReceiver,
 		config:          config,
+		delays:          delays,
 		autoDeal:        autoDeal,
 		testButtonPos:   -1,
 		apiServerUrl:    apiServerUrl,
@@ -487,10 +489,10 @@ func (g *Game) dealNewHand() error {
 	handMessage.HandMessage = &HandMessage_NewHand{NewHand: &newHand}
 	g.broadcastHandMessage(&handMessage)
 	if !RunningTests {
-		time.Sleep(2 * time.Second)
+		time.Sleep(time.Duration(g.delays.BeforeDeal) * time.Millisecond)
 	}
 	activePlayers := uint32(len(gameState.GetPlayersInSeats()))
-	cardAnimationTime := time.Duration(activePlayers * 250 * newHand.NoCards)
+	cardAnimationTime := time.Duration(activePlayers * g.delays.DealSingleCard * newHand.NoCards)
 	// send the cards to each player
 	for seatNo, playerID := range gameState.GetPlayersInSeats() {
 		if playerID == 0 {
@@ -678,7 +680,7 @@ func (g *Game) getPlayersAtTable() ([]*PlayerAtTableState, error) {
 	return ret, nil
 }
 
-func anyPendingUpdates(apiServerUrl string, gameID uint64) (bool, error) {
+func anyPendingUpdates(apiServerUrl string, gameID uint64, retryDelay uint32) (bool, error) {
 	type pendingUpdates struct {
 		PendingUpdates bool
 	}
@@ -688,8 +690,8 @@ func anyPendingUpdates(apiServerUrl string, gameID uint64) (bool, error) {
 	for retry {
 		resp, err := http.Get(url)
 		if resp == nil {
-			channelGameLogger.Error().Msgf("Connection to API server is lost. Waiting for 5 seconds before retrying")
-			time.Sleep(5 * time.Second)
+			channelGameLogger.Error().Msgf("Connection to API server is lost. Waiting for %.3f seconds before retrying", float32(retryDelay)/1000)
+			time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 			continue
 		}
 		defer resp.Body.Close()
