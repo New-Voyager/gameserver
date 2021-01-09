@@ -241,7 +241,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 
 	go func(g *Game) {
 		if !RunningTests {
-			time.Sleep(1 * time.Second)
+			time.Sleep(time.Duration(g.delays.PlayerActed) * time.Millisecond)
 		}
 		gameState, err := g.loadState()
 		if err != nil {
@@ -325,7 +325,7 @@ func (g *Game) gotoFlop(gameState *GameState, handState *HandState) {
 	g.broadcastHandMessage(handMessage)
 	g.saveHandState(gameState, handState)
 	if RunningTests {
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(time.Duration(g.delays.GoToFlop) * time.Millisecond)
 	}
 }
 
@@ -365,7 +365,7 @@ func (g *Game) gotoTurn(gameState *GameState, handState *HandState) {
 	g.broadcastHandMessage(handMessage)
 	g.saveHandState(gameState, handState)
 	if RunningTests {
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(time.Duration(g.delays.GoToTurn) * time.Millisecond)
 	}
 }
 
@@ -405,7 +405,7 @@ func (g *Game) gotoRiver(gameState *GameState, handState *HandState) {
 	g.broadcastHandMessage(handMessage)
 	g.saveHandState(gameState, handState)
 	if RunningTests {
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(time.Duration(g.delays.GoToRiver) * time.Millisecond)
 	}
 }
 
@@ -447,7 +447,7 @@ func (g *Game) moveToNextHand() {
 	// wait 5 seconds to show the result
 	// send a message to game to start new hand
 	if !RunningTests {
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Duration(g.delays.MoveToNextHand) * time.Millisecond)
 	}
 	gameMessage := &GameMessage{
 		GameId:      g.config.GameId,

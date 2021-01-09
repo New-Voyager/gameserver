@@ -7,14 +7,16 @@ import (
 type Manager struct {
 	gameCount        uint64
 	apiServerUrl     string
+	delays           Delays
 	gameStatePersist PersistGameState
 	handStatePersist PersistHandState
 	activeGames      map[string]*Game
 }
 
-func NewGameManager(apiServerUrl string, gamePersist PersistGameState, handPersist PersistHandState) *Manager {
+func NewGameManager(apiServerUrl string, gamePersist PersistGameState, handPersist PersistHandState, delays Delays) *Manager {
 	return &Manager{
 		apiServerUrl:     apiServerUrl,
+		delays:           delays,
 		gameStatePersist: gamePersist,
 		handStatePersist: handPersist,
 		activeGames:      make(map[string]*Game),
@@ -31,6 +33,7 @@ func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver, config *G
 	game, err := NewPokerGame(gm,
 		&messageReceiver,
 		config,
+		gm.delays,
 		autoDeal,
 		gm.gameStatePersist,
 		gm.handStatePersist,

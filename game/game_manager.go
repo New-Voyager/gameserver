@@ -8,7 +8,7 @@ import (
 
 var GameManager *Manager
 
-func CreateGameManager(apiServerUrl string) *Manager {
+func CreateGameManager(apiServerUrl string, delays Delays) *Manager {
 	if GameManager != nil {
 		return GameManager
 	}
@@ -27,6 +27,6 @@ func CreateGameManager(apiServerUrl string) *Manager {
 		gamePersist = NewMemoryGameStateTracker()
 		handPersist = NewMemoryHandStateTracker()
 	}
-	GameManager = NewGameManager(apiServerUrl, gamePersist, handPersist)
+	GameManager = NewGameManager(apiServerUrl, gamePersist, handPersist, delays)
 	return GameManager
 }

@@ -22,6 +22,7 @@ import (
 var runServer *bool
 var runGameScriptTests *bool
 var gameScriptsDir *string
+var delayConfigFile *string
 var testName *string
 var mainLogger = log.With().Str("logger_name", "nats::main").Logger()
 
@@ -30,12 +31,17 @@ func main() {
 	runServer = flag.Bool("server", true, "runs game server")
 	runGameScriptTests = flag.Bool("script-tests", false, "runs script tests")
 	gameScriptsDir = flag.String("game-script", "test/game-scripts/test", "runs tests with game script files")
+	delayConfigFile = flag.String("delays", "delays.yaml", "YAML file containing pause times")
 	testName = flag.String("testname", "", "runs a specific test")
 
 	flag.Parse()
 
+	delays, err := game.ParseDelayConfig(*delayConfigFile)
+	if err != nil {
+		mainLogger.Panic().Msg(err.Error())
+	}
 	// create game manager
-	game.CreateGameManager(util.GameServerEnvironment.GetApiServerUrl())
+	game.CreateGameManager(util.GameServerEnvironment.GetApiServerUrl(), delays)
 
 	if *runGameScriptTests {
 		testScripts()

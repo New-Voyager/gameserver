@@ -111,7 +111,7 @@ func (g *Game) onPendingUpdatesDone(message *GameMessage) error {
 func (g *Game) onMoveToNextHand(message *GameMessage) error {
 
 	if !RunningTests {
-		time.Sleep(3 * time.Second)
+		time.Sleep(time.Duration(g.delays.OnMoveToNextHand) * time.Millisecond)
 	}
 
 	// if this game is used by script test, don't look for pending updates
@@ -128,7 +128,7 @@ func (g *Game) onMoveToNextHand(message *GameMessage) error {
 	// if there are no pending updates, deal next hand
 
 	// check any pending updates
-	pendingUpdates, _ := anyPendingUpdates(g.apiServerUrl, g.config.GameId)
+	pendingUpdates, _ := anyPendingUpdates(g.apiServerUrl, g.config.GameId, g.delays.PendingUpdatesRetry)
 	if pendingUpdates {
 		g.inProcessPendingUpdates = true
 		go processPendingUpdates(g.apiServerUrl, g.config.GameId)
