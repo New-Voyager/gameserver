@@ -495,6 +495,18 @@ func (g *Game) dealNewHand() error {
 	if !RunningTests {
 		time.Sleep(time.Duration(g.delays.BeforeDeal) * time.Millisecond)
 	}
+
+	// indicate the clients card distribution began
+	handMessage = HandMessage{
+		MessageType: HandDealStarted,
+		GameId:      g.config.GameId,
+		ClubId:      g.config.ClubId,
+		GameCode:    g.config.GameCode,
+		HandNum:     handState.HandNum,
+		HandStatus:  handState.CurrentState,
+	}
+	g.broadcastHandMessage(&handMessage)
+
 	activePlayers := uint32(len(gameState.GetPlayersInSeats()))
 	cardAnimationTime := time.Duration(activePlayers * g.delays.DealSingleCard * newHand.NoCards)
 	// send the cards to each player

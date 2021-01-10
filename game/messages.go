@@ -52,4 +52,5 @@ const (
 	HandPlayerActed      string = "PLAYER_ACTED"
 	HandNoMoreActions    string = "NO_MORE_ACTIONS"
 	HandQueryCurrentHand string = "QUERY_CURRENT_HAND"
+	HandDealStarted      string = "DEAL_STARTED" // used for animations
 )
