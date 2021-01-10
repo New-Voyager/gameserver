@@ -480,6 +480,10 @@ func (g *Game) dealNewHand() error {
 		NextActionSeat: handState.NextSeatAction.SeatNo,
 		NoCards:        g.NumCards(gameType),
 		GameType:       gameType,
+		SmallBlind:     handState.SmallBlind,
+		BigBlind:       handState.BigBlind,
+		BringIn:        handState.BringIn,
+		Straddle:       handState.Straddle,
 	}
 	// we dealt hands and setup for preflop, save handstate
 	// if we crash between state: deal and preflop, we will deal the cards again
