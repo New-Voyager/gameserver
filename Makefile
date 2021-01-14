@@ -115,32 +115,47 @@ fmt:
 	cd poker && go fmt
 
 .PHONY: publish
-publish: export REGISTRY=${GCP_REGISTRY}
-publish:  publish-common
+publish: do-publish
 
 .PHONY: do-publish
 do-publish: export REGISTRY=${DO_REGISTRY}
-do-publish: publish-common
+do-publish: publish-gameserver
 
-.PHONY: publish-common
-publish-common:
-	# publish redis and curl so that we don't have to pull from the docker hub
-	# curl image is used in helm chart
+.PHONY: do-publish-all
+do-publish-all: export REGISTRY=${DO_REGISTRY}
+do-publish-all: publish-all
+
+.PHONY: gcp-publish
+gcp-publish: export REGISTRY=${GCP_REGISTRY}
+gcp-publish: publish-gameserver
+
+.PHONY: gcp-publish-all
+gcp-publish-all: export REGISTRY=${GCP_REGISTRY}
+gcp-publish-all: publish-all
+
+.PHONY: publish-all
+publish-all: publish-gameserver publish-nats publish-3rdparty
+
+.PHONY: publish-gameserver
+publish-gameserver:
+	docker tag game-server ${REGISTRY}/game-server:$(BUILD_NO)
+	docker tag game-server ${REGISTRY}/game-server:latest
+	docker push ${REGISTRY}/game-server:$(BUILD_NO)
+	docker push ${REGISTRY}/game-server:latest
+
+.PHONY: publish-nats
+publish-nats:
+	docker tag nats-server ${REGISTRY}/nats-server:$(BUILD_NO)
+	docker tag nats-server ${REGISTRY}/nats-server:latest
+	docker push ${REGISTRY}/nats-server:$(BUILD_NO)
+	docker push ${REGISTRY}/nats-server:latest
+
+.PHONY: publish-3rdparty
+publish-3rdparty:
+	# publish 3rd-party images so that we don't have to pull from the docker hub
 	docker pull redis:${REDIS_VERSION}
 	docker tag redis:${REDIS_VERSION} ${REGISTRY}/redis:${REDIS_VERSION}
 	docker push ${REGISTRY}/redis:${REDIS_VERSION}
 	docker pull curlimages/curl:7.72.0
 	docker tag curlimages/curl:7.72.0 ${REGISTRY}/curlimages/curl:7.72.0
 	docker push ${REGISTRY}/curlimages/curl:7.72.0
-
-	# publish nats
-	docker tag nats-server ${REGISTRY}/nats-server:$(BUILD_NO)
-	docker tag nats-server ${REGISTRY}/nats-server:latest
-	docker push ${REGISTRY}/nats-server:$(BUILD_NO)
-	docker push ${REGISTRY}/nats-server:latest
-
-	# publish gameserver
-	docker tag game-server ${REGISTRY}/game-server:$(BUILD_NO)
-	docker tag game-server ${REGISTRY}/game-server:latest
-	docker push ${REGISTRY}/game-server:$(BUILD_NO)
-	docker push ${REGISTRY}/game-server:latest
