@@ -222,6 +222,23 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		return err
 	}
 
+	ackMsg := &HandMessage{
+		ClubId:      g.config.ClubId,
+		GameId:      g.config.GameId,
+		PlayerId:    message.GetPlayerId(),
+		HandNum:     handState.HandNum,
+		MessageType: HandMsgAck,
+		HandStatus:  handState.CurrentState,
+		SeatNo:      message.GetPlayerActed().GetSeatNo(),
+		HandMessage: &HandMessage_MsgAck{
+			MsgAck: &MsgAcknowledgement{
+				MessageId:   message.GetMessageId(),
+				MessageType: message.GetMessageType(),
+			},
+		},
+	}
+	g.sendHandMessageToPlayer(ackMsg, message.GetPlayerId())
+
 	// Send player's current stack to be updated in the UI
 	seatNo := message.GetPlayerActed().GetSeatNo()
 	var stack float32

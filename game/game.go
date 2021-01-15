@@ -660,6 +660,12 @@ func (g *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint64) {
 		(*g.messageReceiver).SendHandMessageToPlayer(message, playerID)
 	} else {
 		player := g.allPlayers[playerID]
+		if player == nil {
+			if message.GetMessageType() == HandMsgAck {
+				// Not sure why this causes player to be null, but ignore it for now.
+				return
+			}
+		}
 		b, _ := proto.Marshal(message)
 		player.chHand <- b
 	}
