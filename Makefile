@@ -10,7 +10,13 @@ DEV_REDIS_PORT := 6379
 DEV_REDIS_DB := 0
 DEV_API_SERVER_URL := http://localhost:9501
 
+NATS_VERSION := 2.1.7-alpine3.11
 REDIS_VERSION := 6.0.9
+
+.PHONY: pull
+pull:
+	docker pull nats:${NATS_VERSION}
+	docker pull redis:${REDIS_VERSION}
 
 .PHONY: compile-proto
 compile-proto: install-protoc
@@ -61,7 +67,7 @@ script-test: run-redis
 
 .PHONY: docker-build
 docker-build: compile-proto
-	docker-compose build
+	docker build . -t game-server
 
 .PHONY: create-network
 create-network:
@@ -69,12 +75,10 @@ create-network:
 
 .PHONY: run-nats
 run-nats: create-network
-	docker rm -f nats || true
-	docker run -d --name nats --network $(DEFAULT_DOCKER_NET) -p 4222:4222 -p 9222:9222 -p 8222:8222 nats-server
+	docker run -d --name nats --network $(DEFAULT_DOCKER_NET) -p 4222:4222 -p 9222:9222 -p 8222:8222 nats:$(NATS_VERSION)
 
 .PHONY: run-redis
 run-redis: create-network
-	docker rm -f redis || true
 	docker run -d --name redis --network $(DEFAULT_DOCKER_NET) -p 6379:6379 redis:$(REDIS_VERSION)
 
 .PHONY: run-server
@@ -98,14 +102,8 @@ docker-test: create-network run-nats run-redis
 
 .PHONY: stop
 stop:
-	docker rm -f nats || true
-	docker rm -f redis || true
 	docker rm -f game-server || true
 	docker network rm $(DEFAULT_DOCKER_NET) || true
-
-.PHONY: up
-up:
-	docker-compose -f docker-compose.yaml up
 
 .PHONY: fmt
 fmt:
@@ -138,7 +136,7 @@ gcp-publish-all: export REGISTRY=${GCP_REGISTRY}
 gcp-publish-all: publish-all
 
 .PHONY: publish-all
-publish-all: publish-gameserver publish-nats publish-3rdparty
+publish-all: publish-gameserver publish-3rdparty
 
 .PHONY: publish-gameserver
 publish-gameserver:
@@ -147,19 +145,15 @@ publish-gameserver:
 	docker push ${REGISTRY}/game-server:$(BUILD_NO)
 	docker push ${REGISTRY}/game-server:latest
 
-.PHONY: publish-nats
-publish-nats:
-	docker tag nats-server ${REGISTRY}/nats-server:$(BUILD_NO)
-	docker tag nats-server ${REGISTRY}/nats-server:latest
-	docker push ${REGISTRY}/nats-server:$(BUILD_NO)
-	docker push ${REGISTRY}/nats-server:latest
-
 .PHONY: publish-3rdparty
 publish-3rdparty:
 	# publish 3rd-party images so that we don't have to pull from the docker hub
 	docker pull redis:${REDIS_VERSION}
 	docker tag redis:${REDIS_VERSION} ${REGISTRY}/redis:${REDIS_VERSION}
 	docker push ${REGISTRY}/redis:${REDIS_VERSION}
+	docker pull nats:${NATS_VERSION}
+	docker tag nats:${NATS_VERSION} ${REGISTRY}/nats:${NATS_VERSION}
+	docker push ${REGISTRY}/nats:${NATS_VERSION}
 	docker pull curlimages/curl:7.72.0
 	docker tag curlimages/curl:7.72.0 ${REGISTRY}/curlimages/curl:7.72.0
 	docker push ${REGISTRY}/curlimages/curl:7.72.0
