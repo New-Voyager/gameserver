@@ -117,13 +117,17 @@ fmt:
 .PHONY: publish
 publish: do-publish
 
+.PHONY: do-login
+do-login:
+	docker login --username 69bf6de23225d8abd358d7c5c2dac07d64a7f6c0bd97d5a5a974847269f99455 --password 69bf6de23225d8abd358d7c5c2dac07d64a7f6c0bd97d5a5a974847269f99455 registry.digitalocean.com
+
 .PHONY: do-publish
 do-publish: export REGISTRY=${DO_REGISTRY}
-do-publish: publish-gameserver
+do-publish: do-login publish-gameserver
 
 .PHONY: do-publish-all
 do-publish-all: export REGISTRY=${DO_REGISTRY}
-do-publish-all: publish-all
+do-publish-all: do-login publish-all
 
 .PHONY: gcp-publish
 gcp-publish: export REGISTRY=${GCP_REGISTRY}

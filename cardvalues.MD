@@ -50,3 +50,26 @@
 193, C1: A♠
 194, C2: A❤
 196, C4: A♦
+
+8, 2
+24,3
+40,4
+56,5
+72,6
+104,8
+120,9
+136,10
+152,J
+
+Bot: do I have a pair? Bet or Raise max of my cardValueBet
+
+// card value
+(x-8)/16+2 = cardValue
+myCardValueBet = cardValue*bigBlind
+
+raise: (cardValue*bigBlind)
+if callAmount < myCardValueBet {
+  
+} 
+
+call: ((cardValue*bigBlind) + pot)

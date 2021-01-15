@@ -543,8 +543,15 @@ func (g *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 			roundState := handState.RoundState[uint32(handState.CurrentState)]
 			currentBettingRound := roundState.Betting
 			seatBets := currentBettingRound.SeatBet
+			bettingRoundBets := float32(0)
 			for _, bet := range seatBets {
-				currentPot = currentPot + bet
+				bettingRoundBets = bettingRoundBets + bet
+			}
+
+			if bettingRoundBets != 0 {
+				currentPot = currentPot + bettingRoundBets
+			} else {
+				currentPot = 0
 			}
 
 			// action moves to the next player
