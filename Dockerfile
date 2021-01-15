@@ -1,3 +1,5 @@
+# syntax = docker/dockerfile:1.2
+
 FROM golang:1.13.10-alpine3.11 AS builder
 
 RUN wget https://github.com/eradman/entr/archive/4.6.tar.gz -O entr.tar.gz && \
@@ -11,7 +13,7 @@ WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download
 ADD . /build/
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o game-server .
+RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o game-server .
 
 FROM alpine:latest
 COPY --from=builder /usr/local/bin/entr /usr/local/bin/entr
