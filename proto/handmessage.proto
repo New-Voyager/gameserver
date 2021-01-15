@@ -132,6 +132,11 @@ message HandResult  {
   float rake_collected = 13;                    // rake collected from the hand
 }
 
+message MsgAcknowledgement {
+  uint32 message_id = 1;
+  string message_type = 2;
+}
+
 //HandMessage packages the actual message with Hand information (clubid, game_num, hand_num) 
 message HandMessage {
   string version = 1;
@@ -142,20 +147,22 @@ message HandMessage {
   uint32 seat_no = 6;       // if this message is targeted to a specific player
   string message_type = 7;
   uint64 player_id = 8;
-  string game_token = 9;    // game token assigned to a player for this game
-  HandStatus hand_status = 10;
+  uint32 message_id = 9;
+  string game_token = 10;    // game token assigned to a player for this game
+  HandStatus hand_status = 11;
   oneof hand_message {
-    NextSeatAction  seat_action = 11;
-    HandDealCards deal_cards = 12;
-    NewHand new_hand = 13;
-    HandAction player_acted = 14;
-    ActionChange action_change = 15;
-    HandResult hand_result = 16;
-    Flop flop = 17;
-    Turn turn = 18;
-    River river = 19;
-    Showdown showdown = 20;
-    NoMoreActions no_more_actions = 21;
-    CurrentHandState current_hand_state = 22;
+    NextSeatAction  seat_action = 12;
+    HandDealCards deal_cards = 13;
+    NewHand new_hand = 14;
+    HandAction player_acted = 15;
+    ActionChange action_change = 16;
+    HandResult hand_result = 17;
+    Flop flop = 18;
+    Turn turn = 19;
+    River river = 20;
+    Showdown showdown = 21;
+    NoMoreActions no_more_actions = 22;
+    CurrentHandState current_hand_state = 23;
+    MsgAcknowledgement msg_ack = 24;
   }
 }
