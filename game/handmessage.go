@@ -66,19 +66,24 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 		pots = append(pots, pot.Pot)
 	}
 	currentPot := pots[len(pots)-1]
-	bettingInProgress := false
-	if handState.CurrentState >= HandStatus_PREFLOP {
-		currentRoundState := handState.RoundState[uint32(handState.CurrentState)]
-		if currentRoundState == nil {
-			b, _ := json.Marshal(handState)
-			channelGameLogger.Error().Msgf("currentRoundState is nil. handState: %s", string(b))
+	bettingInProgress := handState.CurrentState == HandStatus_PREFLOP || handState.CurrentState == HandStatus_FLOP || handState.CurrentState == HandStatus_TURN || handState.CurrentState == HandStatus_RIVER
+	if bettingInProgress {
+		currentRoundState, ok := handState.RoundState[uint32(handState.CurrentState)]
+		if !ok {
+			b, err := json.Marshal(handState)
+			if err != nil {
+				if handState != nil {
+					channelGameLogger.Error().Msgf("Unable to find current round state. handState.CurrentState: %d handState.RoundState: %+v", handState.CurrentState, handState.RoundState)
+				} else {
+					channelGameLogger.Error().Msg(err.Error())
+				}
+			} else {
+				channelGameLogger.Error().Msgf("Unable to find current round state. handState: %s", string(b))
+			}
 		}
 		currentBettingRound := currentRoundState.Betting
-		bettingInProgress = handState.CurrentState == HandStatus_PREFLOP || handState.CurrentState == HandStatus_FLOP || handState.CurrentState == HandStatus_TURN || handState.CurrentState == HandStatus_RIVER
-		if bettingInProgress {
-			for _, bet := range currentBettingRound.SeatBet {
-				currentPot = currentPot + bet
-			}
+		for _, bet := range currentBettingRound.SeatBet {
+			currentPot = currentPot + bet
 		}
 	}
 
