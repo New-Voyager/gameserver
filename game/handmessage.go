@@ -2,6 +2,7 @@ package game
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -68,6 +69,10 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 	bettingInProgress := false
 	if handState.CurrentState >= HandStatus_PREFLOP {
 		currentRoundState := handState.RoundState[uint32(handState.CurrentState)]
+		if currentRoundState == nil {
+			b, _ := json.Marshal(handState)
+			channelGameLogger.Error().Msgf("currentRoundState is nil. handState: %s", string(b))
+		}
 		currentBettingRound := currentRoundState.Betting
 		bettingInProgress = handState.CurrentState == HandStatus_PREFLOP || handState.CurrentState == HandStatus_FLOP || handState.CurrentState == HandStatus_TURN || handState.CurrentState == HandStatus_RIVER
 		if bettingInProgress {
