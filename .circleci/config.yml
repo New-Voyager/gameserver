@@ -12,6 +12,9 @@ jobs:
       - setup_remote_docker:
           version: 19.03.13
       - run:
+          name: Remove unsupported mount clause from Dockerfile
+          command: sed -i -E 's|--mount=type=[^ ]+||' Dockerfile && cat Dockerfile
+      - run:
           name: Build images
           command: make docker-build
       - run:
