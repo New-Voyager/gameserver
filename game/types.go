@@ -257,3 +257,26 @@ type VerifyAction struct {
 	MaxRaiseAmount float32     `yaml:"max-raise-amount"`
 	BetAmounts     []BetAmount `yaml:"bet-amounts"`
 }
+
+type HighHandResult struct {
+	GameCode         string   `json:"gameCode"`
+	HandNum          int      `json:"handNum"`
+	RewardTrackingID int      `json:"rewardTrackingId"`
+	AssociatedGames  []string `json:"associatedGames"`
+	Winners          []struct {
+		GameCode    string `json:"gameCode"`
+		PlayerID    string `json:"playerId"`
+		PlayerUUID  string `json:"playerUuid"`
+		PlayerName  string `json:"playerName"`
+		BoardCards  []int  `json:"boardCards"`
+		PlayerCards []int  `json:"playerCards"`
+		HhCards     []int  `json:"hhCards"`
+	} `json:"winners"`
+}
+
+type SaveHandResult struct {
+	GameCode string          `json:"gameCode"`
+	HandNum  int             `json:"handNum"`
+	Success  bool            `json:"success"`
+	HighHand *HighHandResult `json:"highHand"`
+}
