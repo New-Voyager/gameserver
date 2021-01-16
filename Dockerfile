@@ -6,9 +6,11 @@ RUN wget https://github.com/eradman/entr/archive/4.6.tar.gz -O entr.tar.gz && \
     apk add --no-cache build-base gcc && \
     ./configure && make install && \
     find /usr/local/bin/entr
-RUN mkdir /build 
+RUN mkdir /build
+WORKDIR /build
+COPY go.mod go.sum ./
+RUN go mod download
 ADD . /build/
-WORKDIR /build 
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o game-server .
 
 FROM alpine:latest
