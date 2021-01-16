@@ -9,15 +9,16 @@ import (
 )
 
 type Delays struct {
-	BeforeDeal          uint32 `yaml:"beforeDeal"`
-	DealSingleCard      uint32 `yaml:"dealSingleCard"`
-	PlayerActed         uint32 `yaml:"playerActed"`
-	GoToFlop            uint32 `yaml:"goToFlop"`
-	GoToTurn            uint32 `yaml:"goToTurn"`
-	GoToRiver           uint32 `yaml:"goToRiver"`
-	PendingUpdatesRetry uint32 `yaml:"pendingUpdatesRetry"`
-	OnMoveToNextHand    uint32 `yaml:"onMoveToNextHand"`
-	MoveToNextHand      uint32 `yaml:"moveToNextHand"`
+	BeforeDeal           uint32 `yaml:"beforeDeal"`
+	DealSingleCard       uint32 `yaml:"dealSingleCard"`
+	PlayerActed          uint32 `yaml:"playerActed"`
+	GoToFlop             uint32 `yaml:"goToFlop"`
+	GoToTurn             uint32 `yaml:"goToTurn"`
+	GoToRiver            uint32 `yaml:"goToRiver"`
+	PendingUpdatesRetry  uint32 `yaml:"pendingUpdatesRetry"`
+	OnMoveToNextHand     uint32 `yaml:"onMoveToNextHand"`
+	MoveToNextHand       uint32 `yaml:"moveToNextHand"`
+	GlobalBroadcastDelay uint32 `yaml:"globalBroadcastDelay"`
 }
 
 func ParseDelayConfig(delaysFile string) (Delays, error) {
