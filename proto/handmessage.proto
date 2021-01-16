@@ -92,11 +92,19 @@ message HandLog {
   uint64 hand_ended_at = 11;
 }
 
-message HighHand {
+message HighHandWinner {
   uint64 player_id = 1;
-  uint32 hh_rank = 2;
-  repeated uint32 cards = 3;
-  repeated uint32 player_cards = 4;
+  string player_name = 2;
+  uint32 hh_rank = 3;
+  repeated uint32 hh_cards = 4;
+  repeated uint32 player_cards = 5;
+  uint32 seat_no = 6;
+}
+
+message HighHand {
+  string gameCode = 1;
+  uint32 hand_num = 2;
+  repeated HighHandWinner winners = 3;
 }
 
 message HandPlayerBalance {
@@ -129,7 +137,8 @@ message HandResult  {
   uint32 turn = 9;
   uint32 river = 10;
   map<uint32, PlayerInfo> players = 11;    // player cards with rank (key: seat_no)
-  float rake_collected = 13;                    // rake collected from the hand
+  float rake_collected = 13;               // rake collected from the hand
+  HighHand high_hand = 14;
 }
 
 message MsgAcknowledgement {
@@ -164,5 +173,6 @@ message HandMessage {
     NoMoreActions no_more_actions = 22;
     CurrentHandState current_hand_state = 23;
     MsgAcknowledgement msg_ack = 24;
+    HighHand high_hand = 25;      // announce high hand
   }
 }

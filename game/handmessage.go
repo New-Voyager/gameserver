@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"strconv"
 	"time"
 
 	"google.golang.org/protobuf/encoding/protojson"
@@ -444,7 +446,6 @@ func (g *Game) gotoRiver(gameState *GameState, handState *HandState) {
 
 func (g *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandState) error {
 	// every one folded except one player, send the pot to the player
-	status := handState.CurrentState
 	handState.everyOneFoldedWinners()
 
 	handState.CurrentState = HandStatus_HAND_CLOSED
@@ -453,25 +454,16 @@ func (g *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandSta
 		return err
 	}
 
-	// now send the data to users
-	handMessage := &HandMessage{
-		ClubId:      g.config.ClubId,
-		GameId:      g.config.GameId,
-		HandNum:     handState.HandNum,
-		MessageType: HandResultMessage,
-		HandStatus:  status,
-	}
-
 	handResultProcessor := NewHandResultProcessor(handState, gameState, g.config.RewardTrackingIds)
 
 	// send the hand to the database to store first
 	handResult := handResultProcessor.getResult(true /*db*/)
-	g.saveHandResult(handResult)
+	saveResult, err := g.saveHandResult(handResult)
 
 	// send to all the players
 	handResult = handResultProcessor.getResult(false /*db*/)
-	handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
-	g.broadcastHandMessage(handMessage)
+	g.sendResult(handState, saveResult, handResult)
+
 	go g.moveToNextHand()
 	return nil
 }
@@ -487,6 +479,63 @@ func (g *Game) moveToNextHand() {
 		MessageType: GameMoveToNextHand,
 	}
 	g.SendGameMessageToChannel(gameMessage)
+}
+
+func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, handResult *HandResult) {
+
+	// now send the data to users
+	handMessage := &HandMessage{
+		ClubId:      g.config.ClubId,
+		GameId:      g.config.GameId,
+		HandNum:     handState.HandNum,
+		MessageType: HandResultMessage,
+		HandStatus:  handState.CurrentState,
+	}
+
+	if saveResult != nil {
+		if saveResult.HighHand != nil {
+			// a player in this game hit a high hand
+			handResult.HighHand = &HighHand{}
+			handResult.HighHand.GameCode = saveResult.GameCode
+			handResult.HighHand.HandNum = uint32(saveResult.HandNum)
+			handResult.HighHand.Winners = make([]*HighHandWinner, 0)
+
+			for _, winner := range saveResult.HighHand.Winners {
+				playerSeatNo := 0
+
+				winningPlayer, _ := strconv.ParseInt(winner.GameCode, 10, 64)
+				// get seat no
+				for seatNo, playerID := range handState.ActiveSeats {
+					if int64(playerID) == winningPlayer {
+						playerSeatNo = seatNo
+					}
+				}
+				playerCards := make([]uint32, len(winner.PlayerCards))
+				for i, card := range winner.PlayerCards {
+					playerCards[i] = uint32(card)
+				}
+				hhCards := make([]uint32, len(winner.HhCards))
+				for i, card := range winner.HhCards {
+					hhCards[i] = uint32(card)
+				}
+
+				handResult.HighHand.Winners = append(handResult.HighHand.Winners, &HighHandWinner{
+					PlayerId:    uint64(winningPlayer),
+					PlayerName:  winner.PlayerName,
+					PlayerCards: playerCards,
+					HhCards:     hhCards,
+					SeatNo:      uint32(playerSeatNo),
+				})
+			}
+
+			if len(saveResult.HighHand.AssociatedGames) > 1 {
+				// announce the high hand to other games
+				//go announceHighHand(saveResult, handResult.HighHand.Winners)
+			}
+		}
+	}
+	handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
+	g.broadcastHandMessage(handMessage)
 }
 
 func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) {
@@ -619,7 +668,7 @@ func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 	handResultProcessor := NewHandResultProcessor(handState, gameState, g.config.RewardTrackingIds)
 	// send the hand to the database to store first
 	handResult := handResultProcessor.getResult(true /*db*/)
-	g.saveHandResult(handResult)
+	saveResult, _ := g.saveHandResult(handResult)
 
 	// send to all the players
 	handResult = handResultProcessor.getResult(false /*db*/)
@@ -630,21 +679,11 @@ func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 	}
 	// save the game state
 	g.saveState(gameState)
-
-	// now send the data to users
-	handMessage := &HandMessage{
-		ClubId:      g.config.ClubId,
-		GameId:      g.config.GameId,
-		HandNum:     handState.HandNum,
-		MessageType: HandResultMessage,
-		HandStatus:  handState.CurrentState,
-	}
-	handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
-	g.broadcastHandMessage(handMessage)
+	g.sendResult(handState, saveResult, handResult)
 	go g.moveToNextHand()
 }
 
-func (g *Game) saveHandResult(result *HandResult) {
+func (g *Game) saveHandResult(result *HandResult) (*SaveHandResult, error) {
 	// call the API server to save the hand result
 	var m protojson.MarshalOptions
 	m.EmitUnpopulated = true
@@ -655,8 +694,24 @@ func (g *Game) saveHandResult(result *HandResult) {
 	resp, _ := http.Post(url, "application/json", bytes.NewBuffer(data))
 	// if the api server returns nil, do nothing
 	if resp == nil {
-		return
+		return nil, fmt.Errorf("Saving hand failed")
 	}
 	defer resp.Body.Close()
-	fmt.Printf("Posted successfully")
+
+	if resp.StatusCode == http.StatusOK {
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			channelGameLogger.Error().Msgf("Failed to read save result for hand num: %d", result.HandNum)
+		}
+		bodyString := string(bodyBytes)
+		fmt.Printf(bodyString)
+		fmt.Printf("\n")
+		fmt.Printf("Posted successfully")
+
+		var saveResult SaveHandResult
+		json.Unmarshal(bodyBytes, &saveResult)
+		return &saveResult, nil
+	} else {
+		return nil, fmt.Errorf("faile to save hand")
+	}
 }
