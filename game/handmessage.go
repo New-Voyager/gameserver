@@ -357,7 +357,7 @@ func (g *Game) gotoFlop(gameState *GameState, handState *HandState) {
 	handMessage.HandMessage = &HandMessage_Flop{Flop: flopMessage}
 	g.broadcastHandMessage(handMessage)
 	g.saveHandState(gameState, handState)
-	if RunningTests {
+	if !RunningTests {
 		time.Sleep(time.Duration(g.delays.GoToFlop) * time.Millisecond)
 	}
 }
@@ -397,7 +397,7 @@ func (g *Game) gotoTurn(gameState *GameState, handState *HandState) {
 	handMessage.HandMessage = &HandMessage_Turn{Turn: turnMessage}
 	g.broadcastHandMessage(handMessage)
 	g.saveHandState(gameState, handState)
-	if RunningTests {
+	if !RunningTests {
 		time.Sleep(time.Duration(g.delays.GoToTurn) * time.Millisecond)
 	}
 }
@@ -437,7 +437,7 @@ func (g *Game) gotoRiver(gameState *GameState, handState *HandState) {
 	handMessage.HandMessage = &HandMessage_River{River: riverMessage}
 	g.broadcastHandMessage(handMessage)
 	g.saveHandState(gameState, handState)
-	if RunningTests {
+	if !RunningTests {
 		time.Sleep(time.Duration(g.delays.GoToRiver) * time.Millisecond)
 	}
 }
