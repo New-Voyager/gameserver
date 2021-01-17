@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"voyager.com/server/poker"
 )
@@ -38,13 +39,13 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 	gameState, err := g.loadState()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Unable to load game state")
 	}
 
 	// get hand state
 	handState, err := g.loadHandState(gameState)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Unable to load hand state")
 	}
 
 	if handState == nil || handState.HandNum == 0 || handState.CurrentState == HandStatus_HAND_CLOSED {
@@ -77,17 +78,12 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 	bettingInProgress := handState.CurrentState == HandStatus_PREFLOP || handState.CurrentState == HandStatus_FLOP || handState.CurrentState == HandStatus_TURN || handState.CurrentState == HandStatus_RIVER
 	if bettingInProgress {
 		currentRoundState, ok := handState.RoundState[uint32(handState.CurrentState)]
-		if !ok {
+		if !ok || currentRoundState == nil {
 			b, err := json.Marshal(handState)
 			if err != nil {
-				if handState != nil {
-					channelGameLogger.Error().Msgf("Unable to find current round state. handState.CurrentState: %d handState.RoundState: %+v", handState.CurrentState, handState.RoundState)
-				} else {
-					channelGameLogger.Error().Msg(err.Error())
-				}
-			} else {
-				channelGameLogger.Error().Msgf("Unable to find current round state. handState: %s", string(b))
+				return fmt.Errorf("Unable to find current round state. currentRoundState: %+v. handState.CurrentState: %d handState.RoundState: %+v", currentRoundState, handState.CurrentState, handState.RoundState)
 			}
+			return fmt.Errorf("Unable to find current round state. handState: %s", string(b))
 		}
 		currentBettingRound := currentRoundState.Betting
 		for _, bet := range currentBettingRound.SeatBet {
