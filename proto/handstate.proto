@@ -98,6 +98,21 @@ enum PlayerActState {
   // bet/raise/call/bb/straddle
 }
 
+message HighHandWinner {
+  uint64 player_id = 1;
+  string player_name = 2;
+  uint32 hh_rank = 3;
+  repeated uint32 hh_cards = 4;
+  repeated uint32 player_cards = 5;
+  uint32 seat_no = 6;
+}
+
+message HighHand {
+  string gameCode = 1;
+  uint32 hand_num = 2;
+  repeated HighHandWinner winners = 3;
+}
+
 message PlayerActRound {
   PlayerActState  state = 1;
   float amount = 2;

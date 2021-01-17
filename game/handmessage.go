@@ -503,11 +503,12 @@ func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, hand
 			for _, winner := range saveResult.HighHand.Winners {
 				playerSeatNo := 0
 
-				winningPlayer, _ := strconv.ParseInt(winner.GameCode, 10, 64)
+				winningPlayer, _ := strconv.ParseInt(winner.PlayerID, 10, 64)
 				// get seat no
 				for seatNo, playerID := range handState.ActiveSeats {
 					if int64(playerID) == winningPlayer {
 						playerSeatNo = seatNo
+						break
 					}
 				}
 				playerCards := make([]uint32, len(winner.PlayerCards))
@@ -528,14 +529,29 @@ func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, hand
 				})
 			}
 
-			if len(saveResult.HighHand.AssociatedGames) > 1 {
+			if len(saveResult.HighHand.AssociatedGames) >= 1 {
 				// announce the high hand to other games
-				//go announceHighHand(saveResult, handResult.HighHand.Winners)
+				go g.announceHighHand(saveResult, handResult.HighHand)
 			}
 		}
 	}
 	handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
 	g.broadcastHandMessage(handMessage)
+}
+
+func (g *Game) announceHighHand(saveResult *SaveHandResult, highHand *HighHand) {
+
+	for _, gameCode := range saveResult.HighHand.AssociatedGames {
+		gameMessage := &GameMessage{
+			GameCode:    gameCode,
+			MessageType: HighHandMsg,
+		}
+		gameMessage.GameMessage = &GameMessage_HighHand{
+			HighHand: highHand,
+		}
+		g.broadcastGameMessage(gameMessage)
+	}
+
 }
 
 func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) {
