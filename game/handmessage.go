@@ -23,9 +23,15 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 
 	switch message.MessageType {
 	case HandPlayerActed:
-		g.onPlayerActed(message)
+		err := g.onPlayerActed(message)
+		if err != nil {
+			channelGameLogger.Error().Msgf("Error while processing %s message. Error: %s", HandPlayerActed, err.Error())
+		}
 	case HandQueryCurrentHand:
-		g.onQueryCurrentHand(message)
+		err := g.onQueryCurrentHand(message)
+		if err != nil {
+			channelGameLogger.Error().Msgf("Error while processing %s message. Error: %s", HandQueryCurrentHand, err.Error())
+		}
 	}
 }
 
