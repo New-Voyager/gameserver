@@ -35,6 +35,9 @@ const (
 	// API Server
 	GamePendingUpdatesStarted string = "GamePendingUpdatesStarted"
 	GamePendingUpdatesDone    string = "GamePendingUpdatesDone"
+
+	// announcements
+	HighHandMsg string = "HIGH_HAND"
 )
 
 // Hand messages
