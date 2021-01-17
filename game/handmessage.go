@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"voyager.com/server/poker"
 )
@@ -23,22 +24,28 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 
 	switch message.MessageType {
 	case HandPlayerActed:
-		g.onPlayerActed(message)
+		err := g.onPlayerActed(message)
+		if err != nil {
+			channelGameLogger.Error().Msgf("Error while processing %s message. Error: %s", HandPlayerActed, err.Error())
+		}
 	case HandQueryCurrentHand:
-		g.onQueryCurrentHand(message)
+		err := g.onQueryCurrentHand(message)
+		if err != nil {
+			channelGameLogger.Error().Msgf("Error while processing %s message. Error: %s", HandQueryCurrentHand, err.Error())
+		}
 	}
 }
 
 func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 	gameState, err := g.loadState()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Unable to load game state")
 	}
 
 	// get hand state
 	handState, err := g.loadHandState(gameState)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Unable to load hand state")
 	}
 
 	if handState == nil || handState.HandNum == 0 || handState.CurrentState == HandStatus_HAND_CLOSED {
@@ -71,17 +78,12 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 	bettingInProgress := handState.CurrentState == HandStatus_PREFLOP || handState.CurrentState == HandStatus_FLOP || handState.CurrentState == HandStatus_TURN || handState.CurrentState == HandStatus_RIVER
 	if bettingInProgress {
 		currentRoundState, ok := handState.RoundState[uint32(handState.CurrentState)]
-		if !ok {
+		if !ok || currentRoundState == nil {
 			b, err := json.Marshal(handState)
 			if err != nil {
-				if handState != nil {
-					channelGameLogger.Error().Msgf("Unable to find current round state. handState.CurrentState: %d handState.RoundState: %+v", handState.CurrentState, handState.RoundState)
-				} else {
-					channelGameLogger.Error().Msg(err.Error())
-				}
-			} else {
-				channelGameLogger.Error().Msgf("Unable to find current round state. handState: %s", string(b))
+				return fmt.Errorf("Unable to find current round state. currentRoundState: %+v. handState.CurrentState: %d handState.RoundState: %+v", currentRoundState, handState.CurrentState, handState.RoundState)
 			}
+			return fmt.Errorf("Unable to find current round state. handState: %s", string(b))
 		}
 		currentBettingRound := currentRoundState.Betting
 		for _, bet := range currentBettingRound.SeatBet {
@@ -171,52 +173,47 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 
 	gameState, err := g.loadState()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Unable to load game state")
 	}
 
 	// get hand state
 	handState, err := g.loadHandState(gameState)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Unable to load hand state")
 	}
 
 	// if the hand number does not match, ignore the message
 	if message.HandNum != handState.HandNum {
+		errMsg := fmt.Sprintf("Invalid hand number: %d current hand number: %d", message.HandNum, handState.HandNum)
 		channelGameLogger.Error().
 			Uint32("club", g.config.ClubId).
 			Str("game", g.config.GameCode).
 			Uint32("player", message.SeatNo).
 			Str("message", message.MessageType).
-			Msg(fmt.Sprintf("Invalid hand number: %d current hand number: %d", message.HandNum, handState.HandNum))
-		return fmt.Errorf("Invalid hand number: %d current hand number: %d", message.HandNum, handState.HandNum)
+			Msg(errMsg)
+		return fmt.Errorf(errMsg)
 	}
 
 	if handState.NextSeatAction == nil {
+		errMsg := "Invalid action. There is no next action"
 		channelGameLogger.Error().
 			Uint32("club", g.config.ClubId).
 			Str("game", g.config.GameCode).
 			Uint32("player", message.SeatNo).
 			Str("message", message.MessageType).
-			Msg(fmt.Sprintf("Invalid action. There is no next action"))
-		return fmt.Errorf("Invalid action. There is no next action")
+			Msg(errMsg)
+		return fmt.Errorf(errMsg)
 	}
 
 	if handState.CurrentState == HandStatus_SHOW_DOWN {
+		errMsg := "Invalid action. Hand is in show-down state"
 		channelGameLogger.Error().
 			Uint32("club", g.config.ClubId).
 			Str("game", g.config.GameCode).
 			Uint32("player", message.SeatNo).
 			Str("message", message.MessageType).
-			Msg(fmt.Sprintf("Invalid action. There is no next action"))
-		return fmt.Errorf("Invalid action. There is no next action")
-	}
-
-	if handState.NextSeatAction != nil && handState.NextSeatAction.SeatNo != message.GetPlayerActed().GetSeatNo() {
-		// Unexpected seat acted.
-		// This can happen when a player made a last-second action and the timeout was triggered
-		// at the same time. We get two actions in that case - one last-minute action from the player,
-		// and the other default action from the timeout handler. Discard the second action.
-		return nil
+			Msg(errMsg)
+		return fmt.Errorf(errMsg)
 	}
 
 	err = handState.actionReceived(message.GetPlayerActed())
