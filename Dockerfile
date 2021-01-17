@@ -9,11 +9,9 @@ RUN wget https://github.com/eradman/entr/archive/4.6.tar.gz -O entr.tar.gz && \
     ./configure && make install && \
     find /usr/local/bin/entr
 RUN mkdir /build
-WORKDIR /build
-COPY go.mod go.sum ./
-RUN go mod download
 ADD . /build/
-RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o game-server .
+WORKDIR /build
+RUN --mount=type=cache,target=/go --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o game-server .
 
 FROM alpine:latest
 COPY --from=builder /usr/local/bin/entr /usr/local/bin/entr

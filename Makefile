@@ -13,6 +13,8 @@ DEV_API_SERVER_URL := http://localhost:9501
 NATS_VERSION := 2.1.7-alpine3.11
 REDIS_VERSION := 6.0.9
 
+DOCKER_BUILDKIT ?= 1
+
 .PHONY: pull
 pull:
 	docker pull nats:$(NATS_VERSION)
@@ -67,7 +69,7 @@ script-test: run-redis
 
 .PHONY: docker-build
 docker-build: compile-proto
-	docker build . -t game-server
+	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t game-server
 
 .PHONY: create-network
 create-network:
