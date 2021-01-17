@@ -408,23 +408,42 @@ func (h *HandState) getNextActivePlayer(seatNo uint32) uint32 {
 func (h *HandState) actionReceived(action *HandAction) error {
 	if h.NextSeatAction != nil {
 		if action.SeatNo != h.NextSeatAction.SeatNo {
+			// Unexpected seat acted.
+			// One scenario this can happen is when a player made a last-second action and the timeout
+			// was triggered at the same time. We get two actions in that case - one last-minute action
+			// from the player, and the other default action created by the timeout handler on behalf
+			// of the player. We are discarding whichever action that came last in that case.
+			errMsg := fmt.Sprintf("Invalid seat %d made action. Ignored. The next valid action seat is: %d",
+				action.SeatNo, h.NextSeatAction.SeatNo)
 			handLogger.Error().
 				Uint64("game", h.GetGameId()).
 				Uint32("hand", h.GetHandNum()).
-				Msg(fmt.Sprintf("Invalid seat %d made action. Ignored. The next valid action seat is: %d",
-					action.SeatNo, h.NextSeatAction.SeatNo))
+				Msg(errMsg)
+			return fmt.Errorf(errMsg)
 		}
 	}
 
 	// get player ID from the seat
-	playerID := h.GetPlayersInSeats()[action.SeatNo]
+	playerIds := h.GetPlayersInSeats()
+	if len(playerIds) < int(action.SeatNo) {
+		errMsg := fmt.Sprintf("Unable to find player ID for the action seat %d. PlayerIds: %v", action.SeatNo, playerIds)
+		handLogger.Error().
+			Uint64("game", h.GetGameId()).
+			Uint32("hand", h.GetHandNum()).
+			Uint32("seat", action.SeatNo).
+			Msg(errMsg)
+		return fmt.Errorf(errMsg)
+	}
+	playerID := playerIds[action.SeatNo]
 	if playerID == 0 {
+		errMsg := fmt.Sprintf("Invalid seat %d. PlayerID is 0", action.SeatNo)
 		// something wrong
 		handLogger.Error().
 			Uint64("game", h.GetGameId()).
 			Uint32("hand", h.GetHandNum()).
 			Uint32("seat", action.SeatNo).
-			Msg(fmt.Sprintf("Invalid seat %d. PlayerID is 0", action.SeatNo))
+			Msg(errMsg)
+		return fmt.Errorf(errMsg)
 	}
 
 	var log *HandActionLog

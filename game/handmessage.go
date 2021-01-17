@@ -173,52 +173,47 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 
 	gameState, err := g.loadState()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Unable to load game state")
 	}
 
 	// get hand state
 	handState, err := g.loadHandState(gameState)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Unable to load hand state")
 	}
 
 	// if the hand number does not match, ignore the message
 	if message.HandNum != handState.HandNum {
+		errMsg := fmt.Sprintf("Invalid hand number: %d current hand number: %d", message.HandNum, handState.HandNum)
 		channelGameLogger.Error().
 			Uint32("club", g.config.ClubId).
 			Str("game", g.config.GameCode).
 			Uint32("player", message.SeatNo).
 			Str("message", message.MessageType).
-			Msg(fmt.Sprintf("Invalid hand number: %d current hand number: %d", message.HandNum, handState.HandNum))
-		return fmt.Errorf("Invalid hand number: %d current hand number: %d", message.HandNum, handState.HandNum)
+			Msg(errMsg)
+		return fmt.Errorf(errMsg)
 	}
 
 	if handState.NextSeatAction == nil {
+		errMsg := "Invalid action. There is no next action"
 		channelGameLogger.Error().
 			Uint32("club", g.config.ClubId).
 			Str("game", g.config.GameCode).
 			Uint32("player", message.SeatNo).
 			Str("message", message.MessageType).
-			Msg(fmt.Sprintf("Invalid action. There is no next action"))
-		return fmt.Errorf("Invalid action. There is no next action")
+			Msg(errMsg)
+		return fmt.Errorf(errMsg)
 	}
 
 	if handState.CurrentState == HandStatus_SHOW_DOWN {
+		errMsg := "Invalid action. Hand is in show-down state"
 		channelGameLogger.Error().
 			Uint32("club", g.config.ClubId).
 			Str("game", g.config.GameCode).
 			Uint32("player", message.SeatNo).
 			Str("message", message.MessageType).
-			Msg(fmt.Sprintf("Invalid action. There is no next action"))
-		return fmt.Errorf("Invalid action. There is no next action")
-	}
-
-	if handState.NextSeatAction != nil && handState.NextSeatAction.SeatNo != message.GetPlayerActed().GetSeatNo() {
-		// Unexpected seat acted.
-		// This can happen when a player made a last-second action and the timeout was triggered
-		// at the same time. We get two actions in that case - one last-minute action from the player,
-		// and the other default action from the timeout handler. Discard the second action.
-		return nil
+			Msg(errMsg)
+		return fmt.Errorf(errMsg)
 	}
 
 	err = handState.actionReceived(message.GetPlayerActed())
