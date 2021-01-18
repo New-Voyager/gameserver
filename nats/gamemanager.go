@@ -115,16 +115,21 @@ func (gm *GameManager) SetupDeck(setupDeck SetupDeck) {
 
 	// send the message to the game to setup deck for next hand
 
-	playerCards := make([]poker.CardsInAscii, 0)
-	for _, cards := range setupDeck.PlayerCards {
-		playerCards = append(playerCards, cards.Cards)
+	if setupDeck.PlayerCards != nil {
+		playerCards := make([]poker.CardsInAscii, 0)
+		for _, cards := range setupDeck.PlayerCards {
+			playerCards = append(playerCards, cards.Cards)
+		}
+		// arrange deck
+		deck := poker.DeckFromScript(playerCards,
+			setupDeck.Flop,
+			poker.NewCard(setupDeck.Turn),
+			poker.NewCard(setupDeck.River))
+		natsGame.setupDeck(deck.GetBytes(), setupDeck.ButtonPos)
+	} else {
+		deck := poker.NewDeck(nil)
+		natsGame.setupDeck(deck.GetBytes(), setupDeck.ButtonPos)
 	}
-	// arrange deck
-	deck := poker.DeckFromScript(playerCards,
-		setupDeck.Flop,
-		poker.NewCard(setupDeck.Turn),
-		poker.NewCard(setupDeck.River))
-	natsGame.setupDeck(deck.GetBytes(), setupDeck.ButtonPos)
 }
 
 func (gm *GameManager) GetCurrentHandLog(gameID uint64, gameCode string) *map[string]interface{} {
