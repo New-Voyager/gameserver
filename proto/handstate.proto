@@ -66,6 +66,11 @@ message PlayerBalance {
   float balance = 3;
 }
 
+message PlayerMsgAckState {
+  uint32 last_player_message_acknowledged = 1;
+  uint32 last_server_message_acknowledged = 2;
+}
+
 enum HandStatus {
   DEAL = 0;
   PREFLOP = 1;
@@ -177,6 +182,9 @@ message CurrentHandState {
   repeated float pots = 23; // pots in the center
   float pot_updates = 24;   // pot updated based on the bets
   uint32 no_cards = 25;     // number of cards dealt to players
+
+  // Last hand message from this player that was acknowedged by the server.
+  uint32 last_message_id = 26;
 }
 
 message HandState {
@@ -265,6 +273,9 @@ message HandState {
   float current_raise_diff = 50;     // current raise diff
   float bet_before_raise = 51;       // bet before the raise
   float bring_in = 52;    // bring in chips
+
+  // key is player id
+  map <uint64, PlayerMsgAckState> msg_ack_state = 53;
 }
 
 message HandWinner {

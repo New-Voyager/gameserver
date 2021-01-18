@@ -145,6 +145,9 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 		currentHandState.PlayersStack[uint64(seatNo)] = playerState[playerID].Balance
 	}
 
+	// Last message from this player that the server has acknowledged.
+	currentHandState.LastMessageId = g.getLastAcknowledgedMsgID(handState, message.PlayerId)
+
 	handStateMsg := &HandMessage{
 		ClubId:      g.config.ClubId,
 		GameId:      g.config.GameId,
@@ -159,16 +162,26 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 
 func (g *Game) onPlayerActed(message *HandMessage) error {
 
+	messageSeatNo := message.GetPlayerActed().GetSeatNo()
+	if messageSeatNo == 0 {
+		errMsg := fmt.Sprintf("Invalid seat number [%d] for player ID %d. Ignoring the action message.", messageSeatNo, message.PlayerId)
+		channelGameLogger.Error().
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
+			Msgf(errMsg)
+		return fmt.Errorf(errMsg)
+	}
+
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
-		Uint32("player", message.SeatNo).
+		Uint32("player", messageSeatNo).
 		Str("message", message.MessageType).
 		Msg(fmt.Sprintf("%v", message))
 
-	if message.SeatNo == g.timerSeatNo {
+	if messageSeatNo == g.timerSeatNo {
 		// pause play timer
-		g.pausePlayTimer(message.SeatNo)
+		g.pausePlayTimer(messageSeatNo)
 	}
 
 	gameState, err := g.loadState()
@@ -182,13 +195,36 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		return errors.Wrap(err, "Unable to load hand state")
 	}
 
+	if !message.IsSystemGenerated {
+		if message.MessageId == 0 {
+			errMsg := fmt.Sprintf("Invalid message ID [0] for player ID %d Seat %d. Ignoring the action message.", message.PlayerId, messageSeatNo)
+			channelGameLogger.Error().
+				Uint32("club", g.config.ClubId).
+				Str("game", g.config.GameCode).
+				Msgf(errMsg)
+			return fmt.Errorf(errMsg)
+		}
+
+		lastAcknowledgedMsgID := g.getLastAcknowledgedMsgID(handState, message.PlayerId)
+		if message.MessageId <= lastAcknowledgedMsgID {
+			// Maybe the previous acknowledgement got lost and the player is retrying the action.
+			// Don't process the action again. Just resend the acknowledgement.
+			channelGameLogger.Info().
+				Uint32("club", g.config.ClubId).
+				Str("game", g.config.GameCode).
+				Msgf("Reacknowledging action message ID %d for player ID %d Seat %d. Will not process the action again.", message.MessageId, message.PlayerId, messageSeatNo)
+			g.acknowledgeMsg(message)
+			return nil
+		}
+	}
+
 	// if the hand number does not match, ignore the message
 	if message.HandNum != handState.HandNum {
 		errMsg := fmt.Sprintf("Invalid hand number: %d current hand number: %d", message.HandNum, handState.HandNum)
 		channelGameLogger.Error().
 			Uint32("club", g.config.ClubId).
 			Str("game", g.config.GameCode).
-			Uint32("player", message.SeatNo).
+			Uint32("player", messageSeatNo).
 			Str("message", message.MessageType).
 			Msg(errMsg)
 		return fmt.Errorf(errMsg)
@@ -199,7 +235,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		channelGameLogger.Error().
 			Uint32("club", g.config.ClubId).
 			Str("game", g.config.GameCode).
-			Uint32("player", message.SeatNo).
+			Uint32("player", messageSeatNo).
 			Str("message", message.MessageType).
 			Msg(errMsg)
 		return fmt.Errorf(errMsg)
@@ -210,7 +246,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		channelGameLogger.Error().
 			Uint32("club", g.config.ClubId).
 			Str("game", g.config.GameCode).
-			Uint32("player", message.SeatNo).
+			Uint32("player", messageSeatNo).
 			Str("message", message.MessageType).
 			Msg(errMsg)
 		return fmt.Errorf(errMsg)
@@ -221,30 +257,21 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		return err
 	}
 
+	if !message.IsSystemGenerated {
+		g.setLastAcknowledgedMsgID(handState, message.PlayerId, message.MessageId)
+	}
+
 	err = g.saveHandState(gameState, handState)
 	if err != nil {
 		return err
 	}
 
-	ackMsg := &HandMessage{
-		ClubId:      g.config.ClubId,
-		GameId:      g.config.GameId,
-		PlayerId:    message.GetPlayerId(),
-		HandNum:     handState.HandNum,
-		MessageType: HandMsgAck,
-		HandStatus:  handState.CurrentState,
-		SeatNo:      message.GetPlayerActed().GetSeatNo(),
-		HandMessage: &HandMessage_MsgAck{
-			MsgAck: &MsgAcknowledgement{
-				MessageId:   message.GetMessageId(),
-				MessageType: message.GetMessageType(),
-			},
-		},
+	if !message.IsSystemGenerated {
+		g.acknowledgeMsg(message)
 	}
-	g.sendHandMessageToPlayer(ackMsg, message.GetPlayerId())
 
 	// Send player's current stack to be updated in the UI
-	seatNo := message.GetPlayerActed().GetSeatNo()
+	seatNo := messageSeatNo
 	var stack float32
 	if bettingState, ok := handState.RoundState[uint32(handState.CurrentState)]; ok {
 		stack = bettingState.PlayerBalance[seatNo]
@@ -269,6 +296,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	message.HandNum = handState.HandNum
 	message.GetPlayerActed().Stack = stack
 	// broadcast this message to all the players
+	message.MessageId = 0
 	g.broadcastHandMessage(message)
 
 	go func(g *Game) {
@@ -299,6 +327,45 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	}(g)
 
 	return nil
+}
+
+func (g *Game) getLastAcknowledgedMsgID(handState *HandState, playerID uint64) uint32 {
+	msgState, exists := handState.MsgAckState[playerID]
+	if exists {
+		return msgState.LastPlayerMessageAcknowledged
+	}
+	return 0
+}
+
+func (g *Game) setLastAcknowledgedMsgID(handState *HandState, playerID uint64, msgID uint32) {
+	msgState, exists := handState.MsgAckState[playerID]
+	if exists {
+		msgState.LastPlayerMessageAcknowledged = msgID
+	} else {
+		handState.MsgAckState[playerID] = &PlayerMsgAckState{
+			LastPlayerMessageAcknowledged: msgID,
+			LastServerMessageAcknowledged: 0,
+		}
+	}
+}
+
+func (g *Game) acknowledgeMsg(message *HandMessage) {
+	ack := &HandMessage{
+		ClubId:      message.GetClubId(),
+		GameId:      message.GetGameId(),
+		PlayerId:    message.GetPlayerId(),
+		HandNum:     message.GetHandNum(),
+		MessageType: HandMsgAck,
+		HandStatus:  message.GetHandStatus(),
+		SeatNo:      message.GetPlayerActed().GetSeatNo(),
+		HandMessage: &HandMessage_MsgAck{
+			MsgAck: &MsgAcknowledgement{
+				MessageId:   message.GetMessageId(),
+				MessageType: message.GetMessageType(),
+			},
+		},
+	}
+	g.sendHandMessageToPlayer(ack, message.GetPlayerId())
 }
 
 func (g *Game) getPots(handState *HandState) ([]float32, []*SeatsInPots) {

@@ -253,12 +253,13 @@ func (g *Game) handlePlayTimeout(timeoutMsg timerMsg) error {
 	}
 
 	handMessage := HandMessage{
-		MessageType: HandPlayerActed,
-		GameId:      g.config.GameId,
-		ClubId:      g.config.ClubId,
-		HandNum:     handState.HandNum,
-		HandStatus:  handState.CurrentState,
-		HandMessage: &HandMessage_PlayerActed{PlayerActed: &handAction},
+		MessageType:       HandPlayerActed,
+		GameId:            g.config.GameId,
+		ClubId:            g.config.ClubId,
+		HandNum:           handState.HandNum,
+		HandStatus:        handState.CurrentState,
+		HandMessage:       &HandMessage_PlayerActed{PlayerActed: &handAction},
+		IsSystemGenerated: true,
 	}
 	g.SendHandMessage(&handMessage)
 	return nil
