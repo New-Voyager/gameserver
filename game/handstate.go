@@ -114,10 +114,6 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 			&PlayerBalance{SeatNo: uint32(seatNo + 1), PlayerId: player, Balance: state.CurrentBalance})
 	}
 
-	if deck == nil || deck.Empty() {
-		deck = poker.NewDeck(nil).Shuffle()
-	}
-
 	h.Deck = deck.GetBytes()
 	h.PlayersCards = h.getPlayersCards(deck)
 

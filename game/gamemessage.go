@@ -233,6 +233,7 @@ func (g *Game) onNextHandSetup(message *GameMessage) error {
 	g.saveState(gameState)
 
 	g.testButtonPos = int32(setupNextHand.ButtonPos)
+	g.testDeckToUse = nil
 	if setupNextHand.Deck != nil {
 		g.testDeckToUse = poker.DeckFromBytes(setupNextHand.Deck)
 	}

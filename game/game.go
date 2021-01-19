@@ -447,7 +447,12 @@ func (g *Game) dealNewHand() error {
 	}
 	gameType := gameState.GameType
 
-	handState.initialize(gameState, g.testDeckToUse, gameState.ButtonPos, moveButton)
+	deck := g.testDeckToUse
+	if deck == nil || deck.Empty() {
+		deck = poker.NewDeck(nil).Shuffle()
+	}
+
+	handState.initialize(gameState, deck, gameState.ButtonPos, moveButton)
 
 	g.testDeckToUse = nil
 	g.testButtonPos = -1

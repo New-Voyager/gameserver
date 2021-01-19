@@ -127,8 +127,8 @@ func (gm *GameManager) SetupDeck(setupDeck SetupDeck) {
 			poker.NewCard(setupDeck.River))
 		natsGame.setupDeck(deck.GetBytes(), setupDeck.ButtonPos)
 	} else {
-		deck := poker.NewDeck(nil)
-		natsGame.setupDeck(deck.GetBytes(), setupDeck.ButtonPos)
+		//deck := poker.NewDeck(nil)
+		natsGame.setupDeck(nil, setupDeck.ButtonPos)
 	}
 }
 
