@@ -615,9 +615,13 @@ func (g *Game) loadHandState(gameState *GameState) (*HandState, error) {
 func (g *Game) broadcastHandMessage(message *HandMessage) {
 	message.GameCode = g.config.GameCode
 	if *g.messageReceiver != nil {
-		time.Sleep(time.Duration(g.delays.GlobalBroadcastDelay) * time.Millisecond)
+		if !RunningTests {
+			time.Sleep(time.Duration(g.delays.GlobalBroadcastDelay) * time.Millisecond)
+		}
 		(*g.messageReceiver).BroadcastHandMessage(message)
-		time.Sleep(time.Duration(g.delays.GlobalBroadcastDelay) * time.Millisecond)
+		if !RunningTests {
+			time.Sleep(time.Duration(g.delays.GlobalBroadcastDelay) * time.Millisecond)
+		}
 	} else {
 		b, _ := proto.Marshal(message)
 		for _, player := range g.allPlayers {
