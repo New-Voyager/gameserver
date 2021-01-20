@@ -161,5 +161,4 @@ message HandMessage {
     MsgAcknowledgement msg_ack = 24;
     HighHand high_hand = 25;      // announce high hand
   }
-  bool is_system_generated = 26;
 }

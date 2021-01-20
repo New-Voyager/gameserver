@@ -195,7 +195,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		return errors.Wrap(err, "Unable to load hand state")
 	}
 
-	if !message.IsSystemGenerated {
+	if !message.GetPlayerActed().GetTimedOut() {
 		if message.MessageId == 0 {
 			errMsg := fmt.Sprintf("Invalid message ID [0] for player ID %d Seat %d. Ignoring the action message.", message.PlayerId, messageSeatNo)
 			channelGameLogger.Error().
@@ -257,7 +257,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		return err
 	}
 
-	if !message.IsSystemGenerated {
+	if !message.GetPlayerActed().GetTimedOut() {
 		g.setLastAcknowledgedMsgID(handState, message.PlayerId, message.MessageId)
 	}
 
@@ -266,7 +266,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		return err
 	}
 
-	if !message.IsSystemGenerated {
+	if !message.GetPlayerActed().GetTimedOut() {
 		g.acknowledgeMsg(message)
 	}
 
