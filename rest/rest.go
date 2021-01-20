@@ -74,6 +74,7 @@ func RunRestServer(gameManager *nats.GameManager) {
 	r.POST("/game-update-status", gameUpdateStatus)
 	r.POST("/pending-updates", gamePendingUpdates)
 	r.GET("/current-hand-log", gameCurrentHandLog)
+	r.POST("/table-update", tableUpdate)
 
 	r.POST("/start-timer", startTimer)
 	r.POST("/cancel-timer", cancelTimer)
@@ -238,4 +239,18 @@ func gameCurrentHandLog(c *gin.Context) {
 	}
 	log := natsGameManager.GetCurrentHandLog(gameID, gameCode)
 	c.JSON(http.StatusOK, log)
+}
+
+func tableUpdate(c *gin.Context) {
+	var tableUpdate nats.TableUpdate
+	var err error
+
+	err = c.BindJSON(&tableUpdate)
+	if err != nil {
+		restLogger.Error().Msg(fmt.Sprintf("Failed to read table update message. Error: %s", err.Error()))
+		return
+	}
+
+	log.Info().Uint64("gameId", tableUpdate.GameId).Msg(fmt.Sprintf("Type: %s", tableUpdate.Type))
+	natsGameManager.TableUpdate(tableUpdate.GameId, &tableUpdate)
 }

@@ -22,6 +22,7 @@ const (
 	GameStart           string = "START_GAME"
 	GameTableState      string = "TABLE_STATE"
 	PlayerUpdate        string = "PLAYER_UPDATE"
+	GameTableUpdate     string = "TABLE_UPDATE"
 	GetHandLog          string = "GET_HAND_LOG"
 
 	// These messages are used by the test driver
@@ -35,6 +36,9 @@ const (
 	// API Server
 	GamePendingUpdatesStarted string = "GamePendingUpdatesStarted"
 	GamePendingUpdatesDone    string = "GamePendingUpdatesDone"
+
+	// announcements
+	HighHandMsg string = "HIGH_HAND"
 )
 
 // Hand messages

@@ -431,7 +431,7 @@ func (g *Game) dealNewHand() error {
 
 	moveButton := gameState.HandNum > 1
 
-	if g.testButtonPos != -1 {
+	if g.testButtonPos > 0 {
 		gameState.ButtonPos = uint32(g.testButtonPos)
 		moveButton = false
 	}

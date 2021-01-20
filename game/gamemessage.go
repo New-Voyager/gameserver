@@ -229,7 +229,9 @@ func (g *Game) onNextHandSetup(message *GameMessage) error {
 	if err != nil {
 		return err
 	}
-	gameState.ButtonPos = setupNextHand.ButtonPos
+	if setupNextHand.ButtonPos != 0 {
+		gameState.ButtonPos = setupNextHand.ButtonPos
+	}
 	g.saveState(gameState)
 
 	g.testButtonPos = int32(setupNextHand.ButtonPos)
@@ -332,7 +334,6 @@ func (g *Game) onPlayerUpdate(message *GameMessage) error {
 			channelGameLogger.Error().Msg(fmt.Sprintf("Player update: SeatNo cannot be empty. %+v", playerUpdate))
 			return fmt.Errorf("SeatNo cannot be empty")
 		}
-
 		// check to see if the player switched seat
 		for seatNo, playerID := range gameState.PlayersInSeats {
 			if playerID == playerUpdate.PlayerId &&
@@ -340,6 +341,7 @@ func (g *Game) onPlayerUpdate(message *GameMessage) error {
 				// this player switch seat
 				channelGameLogger.Error().Msgf("Player %d switched seat from %d to %d", playerID, seatNo, playerUpdate.SeatNo)
 				gameState.PlayersInSeats[seatNo] = 0
+				message.GetPlayerUpdate().OldSeat = uint32(seatNo)
 				break
 			}
 		}
