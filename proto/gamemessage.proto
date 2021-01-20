@@ -61,7 +61,6 @@ message GameQueryTableStateMessage {
   uint64 player_id = 1;     // the player asked for this
 }
 
-
 message GameMessage {
   string version = 1;
   uint32 club_id = 2;
@@ -81,7 +80,8 @@ message GameMessage {
     GameStartMessage start_game = 15;
     GameQueryTableStateMessage query_table_state = 16;
     GamePlayerUpdate player_update = 17;
-    TableUpdate table_update = 18;
-    bytes hand_log = 19;
+    bytes hand_log = 18;
+    HighHand high_hand = 19;
+    TableUpdate table_update = 20;
   }
 }

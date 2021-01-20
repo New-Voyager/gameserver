@@ -213,13 +213,17 @@ func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 	// let send this to all players
 	data, _ := protojson.Marshal(message)
 
-	if message.MessageType == game.GameCurrentStatus {
+	if message.GameCode != n.gameCode {
+		// TODO: send to the other games
+	} else if message.GameCode == n.gameCode {
 		fmt.Printf("%s\n", string(data))
-		// update table status
-		UpdateTableStatus(message.GameId, message.GetStatus().GetTableStatus())
+		if message.MessageType == game.GameCurrentStatus {
+			// update table status
+			UpdateTableStatus(message.GameId, message.GetStatus().GetTableStatus())
+		}
+		n.nc.Publish(n.game2AllPlayersSubject, data)
 	}
 
-	n.nc.Publish(n.game2AllPlayersSubject, data)
 }
 
 func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
