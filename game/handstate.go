@@ -114,11 +114,6 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 			&PlayerBalance{SeatNo: uint32(seatNo + 1), PlayerId: player, Balance: state.CurrentBalance})
 	}
 
-	h.MsgAckState = make(map[uint64]*PlayerMsgAckState)
-	// A map becomes nil after proto martial and unmarshal unless it has at least one key.
-	// Add a dummy key.
-	h.MsgAckState[0] = nil
-
 	if deck == nil || deck.Empty() {
 		deck = poker.NewDeck(nil).Shuffle()
 	}

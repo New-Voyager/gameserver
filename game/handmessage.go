@@ -145,9 +145,6 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 		currentHandState.PlayersStack[uint64(seatNo)] = playerState[playerID].Balance
 	}
 
-	// Last message from this player that the server has acknowledged.
-	currentHandState.LastMessageId = g.getLastAcknowledgedMsgID(handState, message.PlayerId)
-
 	handStateMsg := &HandMessage{
 		ClubId:      g.config.ClubId,
 		GameId:      g.config.GameId,
@@ -204,18 +201,6 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 				Msgf(errMsg)
 			return fmt.Errorf(errMsg)
 		}
-
-		lastAcknowledgedMsgID := g.getLastAcknowledgedMsgID(handState, message.PlayerId)
-		if message.MessageId <= lastAcknowledgedMsgID {
-			// Maybe the previous acknowledgement got lost and the player is retrying the action.
-			// Don't process the action again. Just resend the acknowledgement.
-			channelGameLogger.Info().
-				Uint32("club", g.config.ClubId).
-				Str("game", g.config.GameCode).
-				Msgf("Reacknowledging action message ID %d for player ID %d Seat %d. Will not process the action again.", message.MessageId, message.PlayerId, messageSeatNo)
-			g.acknowledgeMsg(message)
-			return nil
-		}
 	}
 
 	// if the hand number does not match, ignore the message
@@ -227,6 +212,11 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 			Uint32("player", messageSeatNo).
 			Str("message", message.MessageType).
 			Msg(errMsg)
+
+		// This can happen if the action was already processed, but the client is retrying
+		// because the acnowledgement got lost in the network. Just acknowledge so that
+		// the client stops retrying.
+		g.acknowledgeMsg(message)
 		return fmt.Errorf(errMsg)
 	}
 
@@ -238,6 +228,11 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 			Uint32("player", messageSeatNo).
 			Str("message", message.MessageType).
 			Msg(errMsg)
+
+		// This can happen if the action was already processed, but the client is retrying
+		// because the acnowledgement got lost in the network. Just acknowledge so that
+		// the client stops retrying.
+		g.acknowledgeMsg(message)
 		return fmt.Errorf(errMsg)
 	}
 
@@ -249,20 +244,24 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 			Uint32("player", messageSeatNo).
 			Str("message", message.MessageType).
 			Msg(errMsg)
+
+		// This can happen if the action was already processed, but the client is retrying
+		// because the acnowledgement got lost in the network. Just acknowledge so that
+		// the client stops retrying.
+		g.acknowledgeMsg(message)
 		return fmt.Errorf(errMsg)
 	}
 
 	err = handState.actionReceived(message.GetPlayerActed())
 	if err != nil {
+		// This is not retryable. Just acknowledge, so that the client stops retrying and force the timeout.
+		g.acknowledgeMsg(message)
 		return err
-	}
-
-	if !message.GetPlayerActed().GetTimedOut() {
-		g.setLastAcknowledgedMsgID(handState, message.PlayerId, message.MessageId)
 	}
 
 	err = g.saveHandState(gameState, handState)
 	if err != nil {
+		// This is retryable (redis connection temporarily down?). Don't acknowledge and force the client to resend.
 		return err
 	}
 
@@ -327,26 +326,6 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	}(g)
 
 	return nil
-}
-
-func (g *Game) getLastAcknowledgedMsgID(handState *HandState, playerID uint64) uint32 {
-	msgState, exists := handState.MsgAckState[playerID]
-	if exists {
-		return msgState.LastPlayerMessageAcknowledged
-	}
-	return 0
-}
-
-func (g *Game) setLastAcknowledgedMsgID(handState *HandState, playerID uint64, msgID uint32) {
-	msgState, exists := handState.MsgAckState[playerID]
-	if exists {
-		msgState.LastPlayerMessageAcknowledged = msgID
-	} else {
-		handState.MsgAckState[playerID] = &PlayerMsgAckState{
-			LastPlayerMessageAcknowledged: msgID,
-			LastServerMessageAcknowledged: 0,
-		}
-	}
 }
 
 func (g *Game) acknowledgeMsg(message *HandMessage) {
