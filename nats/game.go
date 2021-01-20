@@ -139,6 +139,7 @@ func (n *NatsGame) playerUpdate(gameID uint64, update *PlayerUpdate) {
 		Stack:     float32(update.Stack),
 		BuyIn:     float32(update.BuyIn),
 		GameToken: update.GameToken,
+		NewUpdate: game.NewUpdate(update.NewUpdate),
 	}
 
 	message.GameMessage = &game.GameMessage_PlayerUpdate{PlayerUpdate: &playerUpdate}
@@ -296,4 +297,27 @@ func (n *NatsGame) getHandLog() *map[string]interface{} {
 		json.Unmarshal(handStateBytes, &data)
 	}
 	return &data
+}
+
+const (
+	tableUpdateOpenSeat = "OpenSeat"
+)
+
+func (n *NatsGame) tableUpdate(gameID uint64, update *TableUpdate) {
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+		Msg(fmt.Sprintf("APIServer->Game: Table update. GameID: %d, Type: %s",
+			gameID, update.Type))
+	var message game.GameMessage
+	message.GameId = gameID
+	message.GameCode = n.gameCode
+	message.MessageType = game.GameTableUpdate
+	tableUpdate := game.TableUpdate{}
+	if update.Type == tableUpdateOpenSeat {
+		tableUpdate.SeatChangeTime = update.RemainingTime
+		tableUpdate.Type = update.Type
+	}
+	message.GameMessage = &game.GameMessage_TableUpdate{TableUpdate: &tableUpdate}
+
+	// send the message to the players
+	go n.BroadcastGameMessage(&message)
 }

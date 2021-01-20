@@ -150,3 +150,13 @@ func (gm *GameManager) GetCurrentHandLog(gameID uint64, gameCode string) *map[st
 	handLog := natsGame.getHandLog()
 	return handLog
 }
+
+// TableUpdate used for sending table updates to the players
+func (gm *GameManager) TableUpdate(gameID uint64, tableUpdate *TableUpdate) {
+	gameIDStr := fmt.Sprintf("%d", gameID)
+	if game, ok := gm.activeGames[gameIDStr]; ok {
+		game.tableUpdate(gameID, tableUpdate)
+	} else {
+		natsLogger.Error().Uint64("gameId", gameID).Msg(fmt.Sprintf("GameID: %d does not exist", gameID))
+	}
+}

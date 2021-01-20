@@ -40,6 +40,14 @@ type PlayerUpdate struct {
 	Status    game.PlayerStatus `json:"status"`
 	BuyIn     float64           `json:"buyIn"`
 	GameToken string            `json:"gameToken"`
+	NewUpdate uint32            `json:"newUpdate"`
+}
+
+type TableUpdate struct {
+	GameId        uint64 `json:"gameId"`
+	SeatNo        uint64 `json:"seatNo"`
+	Type          string `json:"type"`
+	RemainingTime uint32 `json:"remainingTime"`
 }
 
 // RegisterGameServer registers game server with the API server

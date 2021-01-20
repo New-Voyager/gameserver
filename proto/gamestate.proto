@@ -78,6 +78,12 @@ message GamePlayerUpdate {
   NewUpdate new_update = 8;
 }
 
+message TableUpdate {
+  uint32 seat_no = 1;
+  string type = 2;
+  uint32 seat_change_time = 3;
+}
+
 message GameState {
 
   uint32 club_id = 1;

@@ -81,6 +81,7 @@ message GameMessage {
     GameStartMessage start_game = 15;
     GameQueryTableStateMessage query_table_state = 16;
     GamePlayerUpdate player_update = 17;
-    bytes hand_log = 18;
+    TableUpdate table_update = 18;
+    bytes hand_log = 19;
   }
 }
