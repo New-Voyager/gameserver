@@ -67,6 +67,7 @@ enum NewUpdate {
 //    Player buying/reloading chips
 //    Player taking a break
 //    Player leaving the game
+//    Player moving to a new seat
 message GamePlayerUpdate {
   uint64 player_id = 1;
   uint32 seat_no = 2;
@@ -76,6 +77,7 @@ message GamePlayerUpdate {
   PlayerStatus status = 6;
   float reload_chips = 7;
   NewUpdate new_update = 8;
+  uint32 old_seat = 9;
 }
 
 message TableUpdate {
