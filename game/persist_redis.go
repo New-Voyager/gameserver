@@ -42,7 +42,7 @@ func (r *RedisGameStateTracker) Load(clubID uint32, gameID uint64) (*GameState, 
 	key := fmt.Sprintf("%d", gameID)
 	gameStateBytes, err := r.rdclient.Get(context.Background(), key).Result()
 	if err == redis.Nil {
-		return nil, fmt.Errorf(fmt.Sprintf("Game state for Club: %d, Game: %d is not found", clubID, gameID))
+		return nil, fmt.Errorf("Game state for Club: %d, Game: %d is not found", clubID, gameID)
 	} else if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (r *RedisHandStateTracker) Load(clubID uint32, gameID uint64, handID uint32
 	key := fmt.Sprintf("%d|%d", gameID, handID)
 	handStateBytes, err := r.rdclient.Get(context.Background(), key).Result()
 	if err == redis.Nil {
-		return nil, fmt.Errorf(fmt.Sprintf("Hand state for Club: %d, Game: %d, Hand: %d is not found", clubID, gameID, handID))
+		return nil, fmt.Errorf("Hand state for Club: %d, Game: %d, Hand: %d is not found", clubID, gameID, handID)
 	} else if err != nil {
 		return nil, err
 	}
