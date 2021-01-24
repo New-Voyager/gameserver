@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -266,6 +267,26 @@ func (g *Game) handlePlayTimeout(timeoutMsg timerMsg) error {
 }
 
 func (g *Game) initialize() error {
+	for {
+		_, err := g.loadState()
+		if err == nil {
+			break
+		}
+		if strings.Contains(err.Error(), "not found") {
+			// No existing state. New game.
+			channelGameLogger.Info().Msgf("Starting a new game state for club %d game %d.", g.config.ClubId, g.config.GameId)
+			g.startNewGameState()
+		} else {
+			// Redis error?
+			channelGameLogger.Error().Msgf("Error while loading game state for club %d game %d. Error: %s", g.config.ClubId, g.config.GameId, err.Error())
+			time.Sleep(2 * time.Second)
+		}
+	}
+
+	return nil
+}
+
+func (g *Game) startNewGameState() error {
 	playersState := make(map[uint64]*PlayerState)
 	playersInSeats := make([]uint64, g.config.MaxPlayers+1) // seat 0: dealer
 
