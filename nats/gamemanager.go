@@ -46,6 +46,7 @@ func NewGameManager(nc *natsgo.Conn) (*GameManager, error) {
 }
 
 func (gm *GameManager) NewGame(clubID uint32, gameID uint64, config *game.GameConfig) (*NatsGame, error) {
+	natsLogger.Info().Msgf("New game club %d game %d code %s", clubID, gameID, config.GameCode)
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	game, err := newNatsGame(gm.nc, clubID, gameID, config)
 	if err != nil {
