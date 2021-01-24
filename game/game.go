@@ -49,6 +49,7 @@ type Game struct {
 	autoDeal                bool
 	testDeckToUse           *poker.Deck
 	testButtonPos           int32
+	pauseBeforeNextHand     uint32
 	scriptTest              bool
 	inProcessPendingUpdates bool
 	config                  *GameConfig
@@ -489,6 +490,7 @@ func (g *Game) dealNewHand() error {
 		BigBlind:       handState.BigBlind,
 		BringIn:        handState.BringIn,
 		Straddle:       handState.Straddle,
+		Pause:          g.pauseBeforeNextHand,
 	}
 	// we dealt hands and setup for preflop, save handstate
 	// if we crash between state: deal and preflop, we will deal the cards again
@@ -499,6 +501,15 @@ func (g *Game) dealNewHand() error {
 	g.broadcastHandMessage(&handMessage)
 	if !RunningTests {
 		time.Sleep(time.Duration(g.delays.BeforeDeal) * time.Millisecond)
+	}
+
+	if g.pauseBeforeNextHand != 0 {
+		channelGameLogger.Info().
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
+			Uint32("hand", handState.HandNum).
+			Msg(fmt.Sprintf("PAUSING the game %d seconds", g.pauseBeforeNextHand))
+		time.Sleep(time.Duration(g.pauseBeforeNextHand) * time.Second)
 	}
 
 	// indicate the clients card distribution began

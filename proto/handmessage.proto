@@ -18,6 +18,7 @@ message NewHand {
   float big_blind = 9;
   float bring_in = 10;
   float straddle = 11;
+  uint32 pause = 12;      // the hand will pause for specified seconds
 }
 
 //HandDealCards message is sent to each player when cards dealt to the player
