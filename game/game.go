@@ -361,40 +361,52 @@ func (g *Game) startGame() (bool, error) {
 		}
 		return false, nil
 	}
-	gameState.TableStatus = TableStatus_GAME_RUNNING
 
-	channelGameLogger.Info().
-		Uint32("club", g.config.ClubId).
-		Str("game", g.config.GameCode).
-		Msg(fmt.Sprintf("Game started. Good luck every one. Players in the table: %d. Waiting list players: %d",
-			playersInSeats, len(g.waitingPlayers)))
+	if gameState.TableStatus != TableStatus_GAME_RUNNING {
+		gameState.TableStatus = TableStatus_GAME_RUNNING
 
-	// assign the button pos to the first guy in the list
-	playersInSeat := gameState.PlayersInSeats
-	for seatNo, playerID := range playersInSeat {
-		// skip seat no 0
-		if seatNo == 0 {
-			continue
+		channelGameLogger.Info().
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
+			Msg(fmt.Sprintf("Game started. Good luck every one. Players in the table: %d. Waiting list players: %d",
+				playersInSeats, len(g.waitingPlayers)))
+
+		// assign the button pos to the first guy in the list
+		playersInSeat := gameState.PlayersInSeats
+		for seatNo, playerID := range playersInSeat {
+			// skip seat no 0
+			if seatNo == 0 {
+				continue
+			}
+			if playerID != 0 {
+				gameState.ButtonPos = uint32(seatNo)
+				break
+			}
 		}
-		if playerID != 0 {
-			gameState.ButtonPos = uint32(seatNo)
-			break
-		}
-	}
-	gameState.Status = GameStatus_ACTIVE
-	err = g.saveState(gameState)
-	if err != nil {
-		return false, err
-	}
-	g.running = true
+		gameState.Status = GameStatus_ACTIVE
 
-	gameMessage := GameMessage{MessageType: GameCurrentStatus, GameId: g.config.GameId, PlayerId: 0}
-	gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: gameState.Status, TableStatus: gameState.TableStatus}}
-	g.broadcastGameMessage(&gameMessage)
+		gameMessage := GameMessage{MessageType: GameCurrentStatus, GameId: g.config.GameId, PlayerId: 0}
+		gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: gameState.Status, TableStatus: gameState.TableStatus}}
+		g.broadcastGameMessage(&gameMessage)
+
+		err = g.saveState(gameState)
+		if err != nil {
+			return false, err
+		}
+	} else {
+		// Retarting crashed game.
+	}
 
 	if g.autoDeal {
-		g.dealNewHand()
+		handState, _ := g.loadHandState(gameState)
+		if handState == nil {
+			g.dealNewHand()
+		} else {
+			// Restarting crashed game.
+		}
 	}
+
+	g.running = true
 
 	return true, nil
 }
