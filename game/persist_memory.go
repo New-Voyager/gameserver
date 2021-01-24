@@ -39,7 +39,7 @@ func (m *MemoryGameStateTracker) Load(clubID uint32, gameID uint64) (*GameState,
 		}
 		return gameState, nil
 	}
-	return nil, fmt.Errorf(fmt.Sprintf("Club: %d, Game: %d is not found", clubID, gameID))
+	return nil, fmt.Errorf("Club: %d, Game: %d is not found", clubID, gameID)
 }
 
 func (m *MemoryGameStateTracker) Save(clubID uint32, gameID uint64, state *GameState) error {
@@ -79,7 +79,7 @@ func (m *MemoryHandStateTracker) Load(clubID uint32, gameID uint64, handID uint3
 		}
 		return &handState, nil
 	}
-	return nil, fmt.Errorf(fmt.Sprintf("Club: %d, Game: %d, Hand: %d is not found", clubID, gameID, handID))
+	return nil, fmt.Errorf("Club: %d, Game: %d, Hand: %d is not found", clubID, gameID, handID)
 }
 
 func (m *MemoryHandStateTracker) Save(clubID uint32, gameID uint64, handID uint32, state *HandState) error {
