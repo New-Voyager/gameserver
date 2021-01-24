@@ -62,6 +62,12 @@ func RegisterGameServer(url string, gameManager *GameManager) *chan game.GameMes
 	return &apiServerch
 }
 
+// RequestRestartGames requests api server to restart the games that were running on this game server
+// before crash.
+func RequestRestartGames(apiServerURL string) error {
+	return requestRestartGames(apiServerURL)
+}
+
 func Stop() {
 	stopApiCh <- true
 	<-stoppedApiCh
@@ -257,6 +263,36 @@ func registerGameServer() error {
 	if resp.StatusCode != 200 {
 		logger.Fatal().Msg(fmt.Sprintf("Failed to register server. Error: %d", resp.StatusCode))
 		panic("Failed when registering game server")
+	}
+	return err
+}
+
+func requestRestartGames(apiServerURL string) error {
+	var reqData []byte
+	var err error
+
+	hostname, err := getFqdn()
+	if err != nil {
+		return err
+	}
+	url := fmt.Sprintf("http://%s:8080", hostname)
+	payload := map[string]interface{}{"url": url}
+	reqData, err = json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	restartURL := fmt.Sprintf("%s/internal/restart-games", apiServerURL)
+	resp, err := http.Post(restartURL, "application/json", bytes.NewBuffer(reqData))
+	if err != nil {
+		logger.Fatal().Msg(fmt.Sprintf("Failed to restart games. Error: %s", err.Error()))
+		panic("Failed when restarting games")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		logger.Fatal().Msg(fmt.Sprintf("Failed to restart games. Error: %d", resp.StatusCode))
+		panic("Failed when restarting games")
 	}
 	return err
 }
