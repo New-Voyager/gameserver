@@ -5,7 +5,6 @@ import (
 )
 
 type Manager struct {
-	gameCount        uint64
 	apiServerUrl     string
 	delays           Delays
 	gameStatePersist PersistGameState
@@ -20,15 +19,10 @@ func NewGameManager(apiServerUrl string, gamePersist PersistGameState, handPersi
 		gameStatePersist: gamePersist,
 		handStatePersist: handPersist,
 		activeGames:      make(map[string]*Game),
-		gameCount:        0,
 	}
 }
 
 func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver, config *GameConfig, autoDeal bool) (*Game, uint64, error) {
-	if config.GameId == 0 {
-		gm.gameCount++
-		config.GameId = gm.gameCount
-	}
 	gameIDStr := fmt.Sprintf("%d", config.GameId)
 	game, err := NewPokerGame(gm,
 		&messageReceiver,
