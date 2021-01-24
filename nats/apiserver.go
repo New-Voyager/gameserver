@@ -48,6 +48,9 @@ type TableUpdate struct {
 	SeatNo        uint64 `json:"seatNo"`
 	Type          string `json:"type"`
 	RemainingTime uint32 `json:"remainingTime"`
+	PlayerId      uint64 `json:"playerId"`
+	PlayerUuid    string `json:"playerUuid"`
+	PlayerName    string `json:"name"`
 }
 
 // RegisterGameServer registers game server with the API server

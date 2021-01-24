@@ -304,7 +304,8 @@ func (n *NatsGame) getHandLog() *map[string]interface{} {
 }
 
 const (
-	tableUpdateOpenSeat = "OpenSeat"
+	tableUpdateOpenSeat  = "OpenSeat"
+	tableWaitlistSeating = "WaitlistSeating"
 )
 
 func (n *NatsGame) tableUpdate(gameID uint64, update *TableUpdate) {
@@ -316,12 +317,16 @@ func (n *NatsGame) tableUpdate(gameID uint64, update *TableUpdate) {
 	message.GameCode = n.gameCode
 	message.MessageType = game.GameTableUpdate
 	tableUpdate := game.TableUpdate{}
+	tableUpdate.Type = update.Type
 	if update.Type == tableUpdateOpenSeat {
 		tableUpdate.SeatChangeTime = update.RemainingTime
-		tableUpdate.Type = update.Type
+	} else if update.Type == tableWaitlistSeating {
+		tableUpdate.WaitlistPlayerId = update.PlayerId
+		tableUpdate.WaitlistPlayerName = update.PlayerName
+		tableUpdate.WaitlistPlayerUuid = update.PlayerUuid
+		tableUpdate.WaitlistRemainingTime = update.RemainingTime
 	}
 	message.GameMessage = &game.GameMessage_TableUpdate{TableUpdate: &tableUpdate}
-
 	// send the message to the players
 	go n.BroadcastGameMessage(&message)
 }

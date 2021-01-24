@@ -84,6 +84,10 @@ message TableUpdate {
   uint32 seat_no = 1;
   string type = 2;
   uint32 seat_change_time = 3;
+  string waitlist_player_name = 4;
+  uint32 waitlist_remaining_time = 5;
+  uint64 waitlist_player_id = 6;
+  string waitlist_player_uuid = 7;
 }
 
 message GameState {
