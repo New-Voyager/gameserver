@@ -158,7 +158,7 @@ func (n *NatsGame) pendingUpdatesDone() {
 }
 
 // message sent from bot to game
-func (n *NatsGame) setupDeck(deck []byte, buttonPos uint32) {
+func (n *NatsGame) setupDeck(deck []byte, buttonPos uint32, pause uint32) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Bot->Game: Setup deck. GameID: %d, ButtonPos: %d", n.gameID, buttonPos))
 	// build a game message and send to the game
@@ -167,6 +167,7 @@ func (n *NatsGame) setupDeck(deck []byte, buttonPos uint32) {
 	nextHand := &game.GameSetupNextHandMessage{
 		Deck:      deck,
 		ButtonPos: buttonPos,
+		Pause:     pause,
 	}
 
 	message.ClubId = 0

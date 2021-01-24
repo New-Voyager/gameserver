@@ -34,6 +34,7 @@ type SetupDeck struct {
 	Turn        string       `json:"turn"`
 	River       string       `json:"river"`
 	PlayerCards []PlayerCard `json:"player-cards"`
+	Pause       uint32       `json:"pause"` // pauses before dealing next hand
 }
 
 // The NATS test driver adapter functionality is to listen for new game

@@ -51,6 +51,7 @@ message GameTableStateMessage {
 message GameSetupNextHandMessage {
   bytes deck = 1;
   uint32 button_pos = 2;
+  uint32 pause = 3;
 }
 
 message GameStartMessage {

@@ -125,10 +125,10 @@ func (gm *GameManager) SetupDeck(setupDeck SetupDeck) {
 			setupDeck.Flop,
 			poker.NewCard(setupDeck.Turn),
 			poker.NewCard(setupDeck.River))
-		natsGame.setupDeck(deck.GetBytes(), setupDeck.ButtonPos)
+		natsGame.setupDeck(deck.GetBytes(), setupDeck.ButtonPos, setupDeck.Pause)
 	} else {
 		//deck := poker.NewDeck(nil)
-		natsGame.setupDeck(nil, setupDeck.ButtonPos)
+		natsGame.setupDeck(nil, setupDeck.ButtonPos, setupDeck.Pause)
 	}
 }
 
