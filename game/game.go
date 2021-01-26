@@ -339,32 +339,43 @@ func (g *Game) startGame() (bool, error) {
 		return false, nil
 	}
 
-	playersInSeats := gameState.GetPlayersInSeats()
-	countPlayersInSeats := 0
-	for _, playerID := range playersInSeats {
-		if playerID != 0 {
-			countPlayersInSeats++
+	checkPoint := CheckPoint__START1
+	if gameState.CheckPoint < checkPoint {
+		playersInSeats := gameState.GetPlayersInSeats()
+		countPlayersInSeats := 0
+		for _, playerID := range playersInSeats {
+			if playerID != 0 {
+				countPlayersInSeats++
+			}
 		}
-	}
-	if uint32(countPlayersInSeats) < gameState.GetMinPlayers() {
-		lastTableState := gameState.TableStatus
-		// not enough players
-		// set table status as not enough players
-		gameState.TableStatus = TableStatus_NOT_ENOUGH_PLAYERS
+		if uint32(countPlayersInSeats) < gameState.GetMinPlayers() {
+			lastTableState := gameState.TableStatus
+			// not enough players
+			// set table status as not enough players
+			gameState.TableStatus = TableStatus_NOT_ENOUGH_PLAYERS
+			g.saveState(gameState)
+
+			// TODO:
+			// broadcast this message to the players
+			// update this message in API server
+			if lastTableState != gameState.TableStatus {
+				g.broadcastTableState()
+			}
+			return false, nil
+		}
+
+		gameState.CheckPoint = checkPoint
 		g.saveState(gameState)
-
-		// TODO:
-		// broadcast this message to the players
-		// update this message in API server
-		if lastTableState != gameState.TableStatus {
-			g.broadcastTableState()
+		if err != nil {
+			return false, err
 		}
-		return false, nil
 	}
 
-	if gameState.TableStatus != TableStatus_GAME_RUNNING {
+	checkPoint = CheckPoint__START2
+	if gameState.CheckPoint < checkPoint {
 		gameState.TableStatus = TableStatus_GAME_RUNNING
 
+		playersInSeats := gameState.GetPlayersInSeats()
 		channelGameLogger.Info().
 			Uint32("club", g.config.ClubId).
 			Str("game", g.config.GameCode).
@@ -384,29 +395,30 @@ func (g *Game) startGame() (bool, error) {
 			}
 		}
 		gameState.Status = GameStatus_ACTIVE
-
-		gameMessage := GameMessage{MessageType: GameCurrentStatus, GameId: g.config.GameId, PlayerId: 0}
-		gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: gameState.Status, TableStatus: gameState.TableStatus}}
-		g.broadcastGameMessage(&gameMessage)
-
+		gameState.CheckPoint = checkPoint
 		err = g.saveState(gameState)
 		if err != nil {
 			return false, err
 		}
-	} else {
-		// Retarting crashed game.
-	}
-
-	if g.autoDeal {
-		handState, _ := g.loadHandState(gameState)
-		if handState == nil {
-			g.dealNewHand()
-		} else {
-			// Restarting crashed game.
-		}
 	}
 
 	g.running = true
+
+	checkPoint = CheckPoint__START3
+	if gameState.CheckPoint < checkPoint {
+		gameMessage := GameMessage{MessageType: GameCurrentStatus, GameId: g.config.GameId, PlayerId: 0}
+		gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: gameState.Status, TableStatus: gameState.TableStatus}}
+		g.broadcastGameMessage(&gameMessage)
+		gameState.CheckPoint = checkPoint
+		err = g.saveState(gameState)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	if g.autoDeal {
+		g.dealNewHand()
+	}
 
 	return true, nil
 }
@@ -457,44 +469,56 @@ func (g *Game) dealNewHand() error {
 		return err
 	}
 
-	// remove the old handstate
-	handState1, _ := g.loadHandState(gameState)
-	if handState1 != nil {
-		g.removeHandState(gameState, handState1)
+	var handState *HandState
+
+	checkPoint := CheckPoint__DEAL1
+	if gameState.CheckPoint < checkPoint {
+		// remove the old handstate
+		handState1, _ := g.loadHandState(gameState)
+		if handState1 != nil {
+			g.removeHandState(gameState, handState1)
+		}
+
+		moveButton := gameState.HandNum > 1
+
+		if g.testButtonPos > 0 {
+			gameState.ButtonPos = uint32(g.testButtonPos)
+			moveButton = false
+		}
+
+		gameState.HandNum++
+		handState = &HandState{
+			ClubId:        gameState.GetClubId(),
+			GameId:        gameState.GetGameId(),
+			HandNum:       gameState.GetHandNum(),
+			GameType:      gameState.GetGameType(),
+			CurrentState:  HandStatus_DEAL,
+			HandStartedAt: uint64(time.Now().Unix()),
+		}
+
+		deck := g.testDeckToUse
+		if deck == nil || deck.Empty() {
+			deck = poker.NewDeck(nil).Shuffle()
+		}
+
+		handState.initialize(gameState, deck, gameState.ButtonPos, moveButton)
+
+		gameState.ButtonPos = handState.GetButtonPos()
+
+		// we dealt hands and setup for preflop, save handstate
+		// if we crash between state: deal and preflop, we will deal the cards again
+		gameState.CheckPoint = checkPoint
+		g.saveState(gameState)
+		g.saveHandState(gameState, handState)
+	} else {
+		handState, err = g.loadHandState(gameState)
+		if err != nil {
+			return err
+		}
 	}
-
-	moveButton := gameState.HandNum > 1
-
-	if g.testButtonPos > 0 {
-		gameState.ButtonPos = uint32(g.testButtonPos)
-		moveButton = false
-	}
-
-	gameState.HandNum++
-	handState := &HandState{
-		ClubId:        gameState.GetClubId(),
-		GameId:        gameState.GetGameId(),
-		HandNum:       gameState.GetHandNum(),
-		GameType:      gameState.GetGameType(),
-		CurrentState:  HandStatus_DEAL,
-		HandStartedAt: uint64(time.Now().Unix()),
-	}
-	gameType := gameState.GameType
-
-	deck := g.testDeckToUse
-	if deck == nil || deck.Empty() {
-		deck = poker.NewDeck(nil).Shuffle()
-	}
-
-	handState.initialize(gameState, deck, gameState.ButtonPos, moveButton)
 
 	g.testDeckToUse = nil
 	g.testButtonPos = -1
-	gameState.ButtonPos = handState.GetButtonPos()
-
-	// save the game and hand
-	g.saveState(gameState)
-	g.saveHandState(gameState, handState)
 
 	channelGameLogger.Trace().
 		Uint32("club", g.config.ClubId).
@@ -509,8 +533,8 @@ func (g *Game) dealNewHand() error {
 		HandNum:     handState.HandNum,
 		HandStatus:  handState.CurrentState,
 	}
-	playersCards := make(map[uint32]string)
 
+	gameType := gameState.GameType
 	// send a new hand message to all players
 	newHand := NewHand{
 		ButtonPos:      handState.ButtonPos,
@@ -525,95 +549,111 @@ func (g *Game) dealNewHand() error {
 		Straddle:       handState.Straddle,
 		Pause:          g.pauseBeforeNextHand,
 	}
-	// we dealt hands and setup for preflop, save handstate
-	// if we crash between state: deal and preflop, we will deal the cards again
-	g.saveHandState(gameState, handState)
 
-	//newHand.PlayerCards = playersCards
-	handMessage.HandMessage = &HandMessage_NewHand{NewHand: &newHand}
-	g.broadcastHandMessage(&handMessage)
-	if !RunningTests {
-		time.Sleep(time.Duration(g.delays.BeforeDeal) * time.Millisecond)
+	checkPoint = CheckPoint__DEAL2
+	if gameState.CheckPoint < checkPoint {
+		//newHand.PlayerCards = playersCards
+		handMessage.HandMessage = &HandMessage_NewHand{NewHand: &newHand}
+		g.broadcastHandMessage(&handMessage)
+		if !RunningTests {
+			time.Sleep(time.Duration(g.delays.BeforeDeal) * time.Millisecond)
+		}
+
+		if g.pauseBeforeNextHand != 0 {
+			channelGameLogger.Info().
+				Uint32("club", g.config.ClubId).
+				Str("game", g.config.GameCode).
+				Uint32("hand", handState.HandNum).
+				Msg(fmt.Sprintf("PAUSING the game %d seconds", g.pauseBeforeNextHand))
+			time.Sleep(time.Duration(g.pauseBeforeNextHand) * time.Second)
+		}
+
+		gameState.CheckPoint = checkPoint
+		g.saveHandState(gameState, handState)
 	}
 
-	if g.pauseBeforeNextHand != 0 {
-		channelGameLogger.Info().
+	checkPoint = CheckPoint__DEAL3
+	if gameState.CheckPoint < checkPoint {
+		// indicate the clients card distribution began
+		handMessage = HandMessage{
+			MessageType: HandDealStarted,
+			GameId:      g.config.GameId,
+			ClubId:      g.config.ClubId,
+			GameCode:    g.config.GameCode,
+			HandNum:     handState.HandNum,
+			HandStatus:  handState.CurrentState,
+		}
+		g.broadcastHandMessage(&handMessage)
+
+		playersCards := make(map[uint32]string)
+		activePlayers := uint32(len(gameState.GetPlayersInSeats()))
+		cardAnimationTime := time.Duration(activePlayers * g.delays.DealSingleCard * newHand.NoCards)
+		// send the cards to each player
+		for seatNo, playerID := range gameState.GetPlayersInSeats() {
+			if playerID == 0 {
+				// empty seat
+				continue
+			}
+
+			// if the player balance is 0, then don't deal card to him
+			if _, ok := handState.PlayersState[playerID]; !ok {
+				handState.ActiveSeats[seatNo] = 0
+				continue
+			}
+
+			// if the player is in break or the player has no balance
+			playerState := handState.PlayersState[playerID]
+			if playerState.Status == HandPlayerState_SAT_OUT {
+				handState.PlayersInSeats[seatNo] = 0
+				handState.ActiveSeats[seatNo] = 0
+				continue
+			}
+
+			// seatNo is the key, cards are value
+			playerCards := handState.PlayersCards[uint32(seatNo)]
+			message := HandDealCards{SeatNo: uint32(seatNo)}
+
+			cards, maskedCards := g.maskCards(playerCards, gameState.PlayersState[playerID].GameTokenInt)
+			playersCards[uint32(seatNo+1)] = fmt.Sprintf("%d", maskedCards)
+			message.Cards = fmt.Sprintf("%d", maskedCards)
+			message.CardsStr = poker.CardsToString(cards)
+
+			//messageData, _ := proto.Marshal(&message)
+			player := g.allPlayers[playerID]
+			handMessage := HandMessage{MessageType: HandDeal, GameId: g.config.GameId, ClubId: g.config.ClubId, PlayerId: playerID}
+			handMessage.HandMessage = &HandMessage_DealCards{DealCards: &message}
+			b, _ := proto.Marshal(&handMessage)
+
+			if *g.messageReceiver != nil {
+				(*g.messageReceiver).SendHandMessageToPlayer(&handMessage, playerID)
+
+			} else {
+				player.chHand <- b
+			}
+		}
+		if !RunningTests {
+			time.Sleep(cardAnimationTime * time.Millisecond)
+		}
+
+		// print next action
+		channelGameLogger.Trace().
 			Uint32("club", g.config.ClubId).
 			Str("game", g.config.GameCode).
 			Uint32("hand", handState.HandNum).
-			Msg(fmt.Sprintf("PAUSING the game %d seconds", g.pauseBeforeNextHand))
-		time.Sleep(time.Duration(g.pauseBeforeNextHand) * time.Second)
+			Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, gameState, g.players)))
+		g.saveHandState(gameState, handState)
+
+		gameState.CheckPoint = checkPoint
+		g.saveState(gameState)
 	}
 
-	// indicate the clients card distribution began
-	handMessage = HandMessage{
-		MessageType: HandDealStarted,
-		GameId:      g.config.GameId,
-		ClubId:      g.config.ClubId,
-		GameCode:    g.config.GameCode,
-		HandNum:     handState.HandNum,
-		HandStatus:  handState.CurrentState,
+	checkPoint = CheckPoint__DEAL4
+	if gameState.CheckPoint < checkPoint {
+		g.moveToNextAct(gameState, handState)
+
+		gameState.CheckPoint = checkPoint
+		g.saveState(gameState)
 	}
-	g.broadcastHandMessage(&handMessage)
-
-	activePlayers := uint32(len(gameState.GetPlayersInSeats()))
-	cardAnimationTime := time.Duration(activePlayers * g.delays.DealSingleCard * newHand.NoCards)
-	// send the cards to each player
-	for seatNo, playerID := range gameState.GetPlayersInSeats() {
-		if playerID == 0 {
-			// empty seat
-			continue
-		}
-
-		// if the player balance is 0, then don't deal card to him
-		if _, ok := handState.PlayersState[playerID]; !ok {
-			handState.ActiveSeats[seatNo] = 0
-			continue
-		}
-
-		// if the player is in break or the player has no balance
-		playerState := handState.PlayersState[playerID]
-		if playerState.Status == HandPlayerState_SAT_OUT {
-			handState.PlayersInSeats[seatNo] = 0
-			handState.ActiveSeats[seatNo] = 0
-			continue
-		}
-
-		// seatNo is the key, cards are value
-		playerCards := handState.PlayersCards[uint32(seatNo)]
-		message := HandDealCards{SeatNo: uint32(seatNo)}
-
-		cards, maskedCards := g.maskCards(playerCards, gameState.PlayersState[playerID].GameTokenInt)
-		playersCards[uint32(seatNo+1)] = fmt.Sprintf("%d", maskedCards)
-		message.Cards = fmt.Sprintf("%d", maskedCards)
-		message.CardsStr = poker.CardsToString(cards)
-
-		//messageData, _ := proto.Marshal(&message)
-		player := g.allPlayers[playerID]
-		handMessage := HandMessage{MessageType: HandDeal, GameId: g.config.GameId, ClubId: g.config.ClubId, PlayerId: playerID}
-		handMessage.HandMessage = &HandMessage_DealCards{DealCards: &message}
-		b, _ := proto.Marshal(&handMessage)
-
-		if *g.messageReceiver != nil {
-			(*g.messageReceiver).SendHandMessageToPlayer(&handMessage, playerID)
-
-		} else {
-			player.chHand <- b
-		}
-	}
-	if !RunningTests {
-		time.Sleep(cardAnimationTime * time.Millisecond)
-	}
-
-	// print next action
-	channelGameLogger.Trace().
-		Uint32("club", g.config.ClubId).
-		Str("game", g.config.GameCode).
-		Uint32("hand", handState.HandNum).
-		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, gameState, g.players)))
-	g.saveHandState(gameState, handState)
-
-	g.moveToNextAct(gameState, handState)
 	return nil
 }
 
