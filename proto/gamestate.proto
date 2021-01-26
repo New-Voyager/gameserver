@@ -146,7 +146,10 @@ message GameState {
   // reward tracking ids
   repeated uint64 reward_tracking_ids = 27;
 
-  float bring_in = 28;    // bring in chips 
+  float bring_in = 28;    // bring in chips
+
+  // Where were we when we crashed?
+  uint32 checkPoint = 29;
 }
 
 message PendingGameUpdates {
