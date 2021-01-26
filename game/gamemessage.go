@@ -399,6 +399,11 @@ func (g *Game) onPlayerUpdate(message *GameMessage) error {
 	// send player update message to all
 	if *g.messageReceiver != nil {
 		(*g.messageReceiver).BroadcastGameMessage(message)
+
+		if message.GetPlayerUpdate().NewUpdate == NewUpdate_SWITCH_SEAT {
+			// switch seat, wait for animation
+			time.Sleep(1 * time.Second)
+		}
 	}
 
 	channelGameLogger.Info().Msg(fmt.Sprintf("Player update: %v DONE", playerUpdate))
