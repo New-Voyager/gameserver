@@ -48,6 +48,7 @@ type TableUpdate struct {
 	SeatNo                  uint64   `json:"seatNo"`
 	Type                    string   `json:"type"`
 	SeatChangePlayers       []uint64 `json:"seatChangePlayers"`
+	SeatChangeSeatNos       []uint64 `json:"seatChangeSeatNos"`
 	SeatChangeRemainingTime uint32   `json:"seatChangeRemainingTime"`
 	WaitlistRemainingTime   uint32   `json:"waitlistRemainingTime"`
 	WaitlistPlayerId        uint64   `json:"waitlistPlayerId"`

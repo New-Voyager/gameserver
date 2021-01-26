@@ -317,6 +317,7 @@ func (n *NatsGame) tableUpdate(gameID uint64, update *TableUpdate) {
 	if update.Type == game.TableSeatChangeProcess {
 		tableUpdate.SeatChangeTime = update.SeatChangeRemainingTime
 		tableUpdate.SeatChangePlayers = update.SeatChangePlayers
+		tableUpdate.SeatChangeSeatNo = update.SeatChangeSeatNos
 	} else if update.Type == game.TableWaitlistSeating {
 		tableUpdate.WaitlistPlayerId = update.WaitlistPlayerId
 		tableUpdate.WaitlistPlayerName = update.WaitlistPlayerName
