@@ -525,7 +525,7 @@ func (g *Game) moveToNextHand(handNum uint32) {
 		ClubId:      g.config.ClubId,
 		GameId:      g.config.GameId,
 		HandNum:     handNum,
-		MessageType: HandResultMessage,
+		MessageType: HandEnded,
 	}
 	g.broadcastHandMessage(handMessage)
 
