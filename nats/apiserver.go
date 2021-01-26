@@ -44,13 +44,15 @@ type PlayerUpdate struct {
 }
 
 type TableUpdate struct {
-	GameId        uint64 `json:"gameId"`
-	SeatNo        uint64 `json:"seatNo"`
-	Type          string `json:"type"`
-	RemainingTime uint32 `json:"remainingTime"`
-	PlayerId      uint64 `json:"playerId"`
-	PlayerUuid    string `json:"playerUuid"`
-	PlayerName    string `json:"name"`
+	GameId                  uint64   `json:"gameId"`
+	SeatNo                  uint64   `json:"seatNo"`
+	Type                    string   `json:"type"`
+	SeatChangePlayers       []uint64 `json:"seatChangePlayers"`
+	SeatChangeRemainingTime uint32   `json:"seatChangeRemainingTime"`
+	WaitlistRemainingTime   uint32   `json:"waitlistRemainingTime"`
+	WaitlistPlayerId        uint64   `json:"waitlistPlayerId"`
+	WaitlistPlayerUuid      string   `json:"waitlisttPlayerUuid"`
+	WaitlistPlayerName      string   `json:"waitlistPlayerName"`
 }
 
 // RegisterGameServer registers game server with the API server

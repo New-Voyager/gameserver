@@ -59,3 +59,10 @@ const (
 	HandQueryCurrentHand string = "QUERY_CURRENT_HAND"
 	HandDealStarted      string = "DEAL_STARTED" // used for animations
 )
+
+// sub message types used in TableUpdate message
+const (
+	TableUpdateOpenSeat    string = "OpenSeat"
+	TableWaitlistSeating   string = "WaitlistSeating"
+	TableSeatChangeProcess string = "SeatChangeInProgress"
+)

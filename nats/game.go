@@ -304,11 +304,6 @@ func (n *NatsGame) getHandLog() *map[string]interface{} {
 	return &data
 }
 
-const (
-	tableUpdateOpenSeat  = "OpenSeat"
-	tableWaitlistSeating = "WaitlistSeating"
-)
-
 func (n *NatsGame) tableUpdate(gameID uint64, update *TableUpdate) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("APIServer->Game: Table update. GameID: %d, Type: %s",
@@ -319,13 +314,14 @@ func (n *NatsGame) tableUpdate(gameID uint64, update *TableUpdate) {
 	message.MessageType = game.GameTableUpdate
 	tableUpdate := game.TableUpdate{}
 	tableUpdate.Type = update.Type
-	if update.Type == tableUpdateOpenSeat {
-		tableUpdate.SeatChangeTime = update.RemainingTime
-	} else if update.Type == tableWaitlistSeating {
-		tableUpdate.WaitlistPlayerId = update.PlayerId
-		tableUpdate.WaitlistPlayerName = update.PlayerName
-		tableUpdate.WaitlistPlayerUuid = update.PlayerUuid
-		tableUpdate.WaitlistRemainingTime = update.RemainingTime
+	if update.Type == game.TableSeatChangeProcess {
+		tableUpdate.SeatChangeTime = update.SeatChangeRemainingTime
+		tableUpdate.SeatChangePlayers = update.SeatChangePlayers
+	} else if update.Type == game.TableWaitlistSeating {
+		tableUpdate.WaitlistPlayerId = update.WaitlistPlayerId
+		tableUpdate.WaitlistPlayerName = update.WaitlistPlayerName
+		tableUpdate.WaitlistPlayerUuid = update.WaitlistPlayerUuid
+		tableUpdate.WaitlistRemainingTime = update.WaitlistRemainingTime
 	}
 	message.GameMessage = &game.GameMessage_TableUpdate{TableUpdate: &tableUpdate}
 	// send the message to the players
