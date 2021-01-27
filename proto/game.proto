@@ -1,0 +1,96 @@
+syntax = "proto3";
+package game;
+option go_package = "game";
+
+
+enum PlayerStatus {
+  NOT_PLAYING = 0;
+  PLAYING = 1;
+  IN_QUEUE = 2;
+  IN_BREAK = 3;
+  STANDING_UP = 4;
+  LEFT = 5;
+  KICKED_OUT = 6;
+  BLOCKED = 7;
+  LOST_CONNECTION = 8;
+  WAIT_FOR_BUYIN = 9;
+}
+
+message PlayerState {
+  float buy_in = 1;
+  float current_balance = 2;
+  PlayerStatus status = 3;
+  string game_token = 4;
+  uint64 game_token_int = 5;    // 40 bit number to do XOR decipher the cards
+}
+
+enum GameType {
+  UNKNOWN = 0;
+  HOLDEM = 1;
+  PLO = 2;
+  PLO_HILO = 3;
+  FIVE_CARD_PLO = 4;
+  FIVE_CARD_PLO_HILO = 5;
+}
+
+// GameStatus is controlled by the Host of the game
+enum GameStatus {
+  GAME_STATUS_UNKNOWN = 0;
+  CONFIGURED = 1;
+  ACTIVE = 2;
+  PAUSED = 3;
+  ENDED = 4;
+}
+
+// TableStatus is determined by the Game server
+enum TableStatus {
+  TABLE_STATUS_UNKNOWN = 0;
+  WAITING_TO_BE_STARTED = 1;
+  NOT_ENOUGH_PLAYERS = 2;
+  GAME_RUNNING = 3;
+}
+
+// Player update since the last hand
+enum NewUpdate {
+  NEW_PLAYER = 0;
+  RELOAD_CHIPS = 1;
+  SWITCH_SEAT = 2;
+  TAKE_BREAK = 3;
+  SIT_BACK = 4;
+  LEFT_THE_GAME = 5;
+  EMPTY_STACK = 6;
+}
+
+// Player update comes from the API server
+// The same message is sent for 
+//    Player sitting in a seat
+//    Player buying/reloading chips
+//    Player taking a break
+//    Player leaving the game
+//    Player moving to a new seat
+message GamePlayerUpdate {
+  uint64 player_id = 1;
+  uint32 seat_no = 2;
+  float stack = 3;
+  float buy_in = 4;
+  string game_token = 5;
+  PlayerStatus status = 6;
+  float reload_chips = 7;
+  NewUpdate new_update = 8;
+  uint32 old_seat = 9;
+}
+
+message TableUpdate {
+  uint32 seat_no = 1;
+  string type = 2;
+  uint32 seat_change_time = 3;
+  string waitlist_player_name = 4;
+  uint32 waitlist_remaining_time = 5;
+  uint64 waitlist_player_id = 6;
+  string waitlist_player_uuid = 7;
+}
+
+message PendingGameUpdates {
+  uint64 game_id = 1;
+  repeated GamePlayerUpdate player_updates = 2;
+}

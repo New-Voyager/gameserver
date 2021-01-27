@@ -1,8 +1,8 @@
 syntax = "proto3";
 package game;
 option go_package = "game";
-import "gamestate.proto";
-import "handstate.proto";
+import "game.proto";
+import "hand.proto";
 
 message GameSitMessage {
   uint64 player_id = 1;
