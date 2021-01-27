@@ -509,16 +509,26 @@ func (g *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandSta
 
 	gameState.CheckPoint = CheckPoint__RESULT_SENT
 	g.saveState(gameState)
-	go g.moveToNextHand()
+	go g.moveToNextHand(handState.HandNum)
 	return nil
 }
 
-func (g *Game) moveToNextHand() {
+func (g *Game) moveToNextHand(handNum uint32) {
 	// wait 5 seconds to show the result
 	// send a message to game to start new hand
 	if !RunningTests {
 		time.Sleep(time.Duration(g.delays.MoveToNextHand) * time.Millisecond)
 	}
+
+	// broadcast hand ended
+	handMessage := &HandMessage{
+		ClubId:      g.config.ClubId,
+		GameId:      g.config.GameId,
+		HandNum:     handNum,
+		MessageType: HandEnded,
+	}
+	g.broadcastHandMessage(handMessage)
+
 	gameMessage := &GameMessage{
 		GameId:      g.config.GameId,
 		MessageType: GameMoveToNextHand,
@@ -744,7 +754,7 @@ func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 
 	gameState.CheckPoint = CheckPoint__RESULT_SENT
 	g.saveState(gameState)
-	go g.moveToNextHand()
+	go g.moveToNextHand(handState.HandNum)
 }
 
 func (g *Game) saveHandResult(result *HandResult) (*SaveHandResult, error) {
