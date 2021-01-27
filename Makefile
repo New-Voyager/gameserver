@@ -23,6 +23,8 @@ pull:
 .PHONY: compile-proto
 compile-proto: install-protoc
 	go get -u github.com/golang/protobuf/protoc-gen-go
+	protoc -I=./proto --go_out=./game ./proto/game.proto
+	protoc -I=./proto --go_out=./game ./proto/hand.proto
 	protoc -I=./proto --go_out=./game ./proto/gamestate.proto
 	protoc -I=./proto --go_out=./game ./proto/handstate.proto
 	protoc -I=./proto --go_out=./game ./proto/gamemessage.proto
@@ -31,6 +33,8 @@ compile-proto: install-protoc
 .PHONY: compile-proto2
 compile-proto2:
 	go get -u github.com/golang/protobuf/protoc-gen-go
+	protoc -I=./proto --go_out=./game ./proto/game.proto
+	protoc -I=./proto --go_out=./game ./proto/hand.proto
 	protoc -I=./proto --go_out=./game ./proto/gamestate.proto
 	protoc -I=./proto --go_out=./game ./proto/handstate.proto
 	protoc -I=./proto --go_out=./game ./proto/gamemessage.proto
