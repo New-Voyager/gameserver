@@ -169,6 +169,19 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		return fmt.Errorf(errMsg)
 	}
 
+	if g.processingAction {
+		// We should only process one action at a time.
+		errMsg := "Received another action while processing an action. Ignoring the action message."
+		channelGameLogger.Error().
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
+			Uint32("player", messageSeatNo).
+			Msgf(errMsg)
+		return fmt.Errorf(errMsg)
+	}
+
+	g.processingAction = true
+
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
@@ -183,12 +196,14 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 
 	gameState, err := g.loadState()
 	if err != nil {
+		g.processingAction = false
 		return errors.Wrap(err, "Unable to load game state")
 	}
 
 	// get hand state
 	handState, err := g.loadHandState(gameState)
 	if err != nil {
+		g.processingAction = false
 		return errors.Wrap(err, "Unable to load hand state")
 	}
 
@@ -199,6 +214,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 				Uint32("club", g.config.ClubId).
 				Str("game", g.config.GameCode).
 				Msgf(errMsg)
+			g.processingAction = false
 			return fmt.Errorf(errMsg)
 		}
 	}
@@ -217,6 +233,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		// because the acnowledgement got lost in the network. Just acknowledge so that
 		// the client stops retrying.
 		g.acknowledgeMsg(message)
+		g.processingAction = false
 		return fmt.Errorf(errMsg)
 	}
 
@@ -233,6 +250,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		// because the acnowledgement got lost in the network. Just acknowledge so that
 		// the client stops retrying.
 		g.acknowledgeMsg(message)
+		g.processingAction = false
 		return fmt.Errorf(errMsg)
 	}
 
@@ -249,6 +267,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		// because the acnowledgement got lost in the network. Just acknowledge so that
 		// the client stops retrying.
 		g.acknowledgeMsg(message)
+		g.processingAction = false
 		return fmt.Errorf(errMsg)
 	}
 
@@ -256,12 +275,14 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	if err != nil {
 		// This is not retryable. Just acknowledge, so that the client stops retrying and force the timeout.
 		g.acknowledgeMsg(message)
+		g.processingAction = false
 		return err
 	}
 
 	err = g.saveHandState(gameState, handState)
 	if err != nil {
 		// This is retryable (redis connection temporarily down?). Don't acknowledge and force the client to resend.
+		g.processingAction = false
 		return err
 	}
 
@@ -299,6 +320,8 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	g.broadcastHandMessage(message)
 
 	go func(g *Game) {
+		defer func() { g.processingAction = false }()
+
 		if !RunningTests {
 			time.Sleep(time.Duration(g.delays.PlayerActed) * time.Millisecond)
 		}
@@ -319,6 +342,8 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 			//if !g.autoDeal {
 			//	return nil
 			//}
+		} else if handState.isAllActivePlayersAllIn() {
+			g.handleNoMoreActions(gameState, handState)
 		} else {
 			// if the current player is where the action ends, move to the next round
 			g.moveToNextAct(gameState, handState)
@@ -629,74 +654,71 @@ func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) {
 }
 
 func (g *Game) moveToNextAct(gameState *GameState, handState *HandState) {
-	if handState.isAllActivePlayersAllIn() {
-		g.handleNoMoreActions(gameState, handState)
-	} else {
+	if handState.LastState != handState.CurrentState {
+		// move to next round
+		g.moveToNextRound(gameState, handState)
+	}
 
-		if handState.LastState != handState.CurrentState {
-			// move to next round
-			g.moveToNextRound(gameState, handState)
-		}
+	if handState.NextSeatAction == nil {
+		return
+	}
 
-		if handState.NextSeatAction != nil {
-			// tell the next player to act
-			nextSeatMessage := &HandMessage{
-				ClubId:      g.config.ClubId,
-				GameId:      g.config.GameId,
-				HandNum:     handState.HandNum,
-				MessageType: HandPlayerAction,
-				HandStatus:  handState.CurrentState,
-				SeatNo:      handState.NextSeatAction.SeatNo,
-			}
-			var canCheck bool
-			for _, action := range handState.NextSeatAction.AvailableActions {
-				if action == ACTION_CHECK {
-					canCheck = true
-					break
-				}
-			}
-			nextSeatMessage.HandMessage = &HandMessage_SeatAction{SeatAction: handState.NextSeatAction}
-			playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
-			g.sendHandMessageToPlayer(nextSeatMessage, playerID)
-			g.resetTimer(handState.NextSeatAction.SeatNo, playerID, canCheck)
-
-			pots := make([]float32, 0)
-			for _, pot := range handState.Pots {
-				pots = append(pots, pot.Pot)
-			}
-			currentPot := pots[len(pots)-1]
-			roundState := handState.RoundState[uint32(handState.CurrentState)]
-			currentBettingRound := roundState.Betting
-			seatBets := currentBettingRound.SeatBet
-			bettingRoundBets := float32(0)
-			for _, bet := range seatBets {
-				bettingRoundBets = bettingRoundBets + bet
-			}
-
-			if bettingRoundBets != 0 {
-				currentPot = currentPot + bettingRoundBets
-			} else {
-				currentPot = 0
-			}
-
-			// action moves to the next player
-			actionChange := &ActionChange{
-				SeatNo:     handState.NextSeatAction.SeatNo,
-				Pots:       pots,
-				PotUpdates: currentPot,
-				SeatsPots:  handState.Pots,
-			}
-			message := &HandMessage{
-				ClubId:      g.config.ClubId,
-				GameId:      g.config.GameId,
-				HandNum:     handState.HandNum,
-				HandStatus:  handState.CurrentState,
-				MessageType: HandNextAction,
-			}
-			message.HandMessage = &HandMessage_ActionChange{ActionChange: actionChange}
-			g.broadcastHandMessage(message)
+	// tell the next player to act
+	nextSeatMessage := &HandMessage{
+		ClubId:      g.config.ClubId,
+		GameId:      g.config.GameId,
+		HandNum:     handState.HandNum,
+		MessageType: HandPlayerAction,
+		HandStatus:  handState.CurrentState,
+		SeatNo:      handState.NextSeatAction.SeatNo,
+	}
+	var canCheck bool
+	for _, action := range handState.NextSeatAction.AvailableActions {
+		if action == ACTION_CHECK {
+			canCheck = true
+			break
 		}
 	}
+	nextSeatMessage.HandMessage = &HandMessage_SeatAction{SeatAction: handState.NextSeatAction}
+	playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
+	g.sendHandMessageToPlayer(nextSeatMessage, playerID)
+	g.resetTimer(handState.NextSeatAction.SeatNo, playerID, canCheck)
+
+	pots := make([]float32, 0)
+	for _, pot := range handState.Pots {
+		pots = append(pots, pot.Pot)
+	}
+	currentPot := pots[len(pots)-1]
+	roundState := handState.RoundState[uint32(handState.CurrentState)]
+	currentBettingRound := roundState.Betting
+	seatBets := currentBettingRound.SeatBet
+	bettingRoundBets := float32(0)
+	for _, bet := range seatBets {
+		bettingRoundBets = bettingRoundBets + bet
+	}
+
+	if bettingRoundBets != 0 {
+		currentPot = currentPot + bettingRoundBets
+	} else {
+		currentPot = 0
+	}
+
+	// action moves to the next player
+	actionChange := &ActionChange{
+		SeatNo:     handState.NextSeatAction.SeatNo,
+		Pots:       pots,
+		PotUpdates: currentPot,
+		SeatsPots:  handState.Pots,
+	}
+	message := &HandMessage{
+		ClubId:      g.config.ClubId,
+		GameId:      g.config.GameId,
+		HandNum:     handState.HandNum,
+		HandStatus:  handState.CurrentState,
+		MessageType: HandNextAction,
+	}
+	message.HandMessage = &HandMessage_ActionChange{ActionChange: actionChange}
+	g.broadcastHandMessage(message)
 }
 
 func (g *Game) handleNoMoreActions(gameState *GameState, handState *HandState) {
