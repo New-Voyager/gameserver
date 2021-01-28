@@ -169,6 +169,17 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		return fmt.Errorf(errMsg)
 	}
 
+	if !message.GetPlayerActed().GetTimedOut() {
+		if message.MessageId == 0 {
+			errMsg := fmt.Sprintf("Invalid message ID [0] for player ID %d Seat %d. Ignoring the action message.", message.PlayerId, messageSeatNo)
+			channelGameLogger.Error().
+				Uint32("club", g.config.ClubId).
+				Str("game", g.config.GameCode).
+				Msgf(errMsg)
+			return fmt.Errorf(errMsg)
+		}
+	}
+
 	if g.processingAction {
 		// We should only process one action at a time.
 		errMsg := "Received another action while processing an action. Ignoring the action message."
@@ -179,8 +190,6 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 			Msgf(errMsg)
 		return fmt.Errorf(errMsg)
 	}
-
-	g.processingAction = true
 
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
@@ -196,27 +205,13 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 
 	gameState, err := g.loadState()
 	if err != nil {
-		g.processingAction = false
 		return errors.Wrap(err, "Unable to load game state")
 	}
 
 	// get hand state
 	handState, err := g.loadHandState(gameState)
 	if err != nil {
-		g.processingAction = false
 		return errors.Wrap(err, "Unable to load hand state")
-	}
-
-	if !message.GetPlayerActed().GetTimedOut() {
-		if message.MessageId == 0 {
-			errMsg := fmt.Sprintf("Invalid message ID [0] for player ID %d Seat %d. Ignoring the action message.", message.PlayerId, messageSeatNo)
-			channelGameLogger.Error().
-				Uint32("club", g.config.ClubId).
-				Str("game", g.config.GameCode).
-				Msgf(errMsg)
-			g.processingAction = false
-			return fmt.Errorf(errMsg)
-		}
 	}
 
 	// if the hand number does not match, ignore the message
@@ -233,7 +228,6 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		// because the acnowledgement got lost in the network. Just acknowledge so that
 		// the client stops retrying.
 		g.acknowledgeMsg(message)
-		g.processingAction = false
 		return fmt.Errorf(errMsg)
 	}
 
@@ -250,7 +244,6 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		// because the acnowledgement got lost in the network. Just acknowledge so that
 		// the client stops retrying.
 		g.acknowledgeMsg(message)
-		g.processingAction = false
 		return fmt.Errorf(errMsg)
 	}
 
@@ -267,7 +260,6 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		// because the acnowledgement got lost in the network. Just acknowledge so that
 		// the client stops retrying.
 		g.acknowledgeMsg(message)
-		g.processingAction = false
 		return fmt.Errorf(errMsg)
 	}
 
@@ -275,14 +267,12 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	if err != nil {
 		// This is not retryable. Just acknowledge, so that the client stops retrying and force the timeout.
 		g.acknowledgeMsg(message)
-		g.processingAction = false
 		return err
 	}
 
 	err = g.saveHandState(gameState, handState)
 	if err != nil {
 		// This is retryable (redis connection temporarily down?). Don't acknowledge and force the client to resend.
-		g.processingAction = false
 		return err
 	}
 
@@ -319,6 +309,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	message.MessageId = 0
 	g.broadcastHandMessage(message)
 
+	g.processingAction = true
 	go func(g *Game) {
 		defer func() { g.processingAction = false }()
 
