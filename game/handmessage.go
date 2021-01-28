@@ -636,64 +636,66 @@ func (g *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 		g.moveToNextRound(gameState, handState)
 	}
 
-	if handState.NextSeatAction != nil {
-		// tell the next player to act
-		nextSeatMessage := &HandMessage{
-			ClubId:      g.config.ClubId,
-			GameId:      g.config.GameId,
-			HandNum:     handState.HandNum,
-			MessageType: HandPlayerAction,
-			HandStatus:  handState.CurrentState,
-			SeatNo:      handState.NextSeatAction.SeatNo,
-		}
-		var canCheck bool
-		for _, action := range handState.NextSeatAction.AvailableActions {
-			if action == ACTION_CHECK {
-				canCheck = true
-				break
-			}
-		}
-		nextSeatMessage.HandMessage = &HandMessage_SeatAction{SeatAction: handState.NextSeatAction}
-		playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
-		g.sendHandMessageToPlayer(nextSeatMessage, playerID)
-		g.resetTimer(handState.NextSeatAction.SeatNo, playerID, canCheck)
-
-		pots := make([]float32, 0)
-		for _, pot := range handState.Pots {
-			pots = append(pots, pot.Pot)
-		}
-		currentPot := pots[len(pots)-1]
-		roundState := handState.RoundState[uint32(handState.CurrentState)]
-		currentBettingRound := roundState.Betting
-		seatBets := currentBettingRound.SeatBet
-		bettingRoundBets := float32(0)
-		for _, bet := range seatBets {
-			bettingRoundBets = bettingRoundBets + bet
-		}
-
-		if bettingRoundBets != 0 {
-			currentPot = currentPot + bettingRoundBets
-		} else {
-			currentPot = 0
-		}
-
-		// action moves to the next player
-		actionChange := &ActionChange{
-			SeatNo:     handState.NextSeatAction.SeatNo,
-			Pots:       pots,
-			PotUpdates: currentPot,
-			SeatsPots:  handState.Pots,
-		}
-		message := &HandMessage{
-			ClubId:      g.config.ClubId,
-			GameId:      g.config.GameId,
-			HandNum:     handState.HandNum,
-			HandStatus:  handState.CurrentState,
-			MessageType: HandNextAction,
-		}
-		message.HandMessage = &HandMessage_ActionChange{ActionChange: actionChange}
-		g.broadcastHandMessage(message)
+	if handState.NextSeatAction == nil {
+		return
 	}
+
+	// tell the next player to act
+	nextSeatMessage := &HandMessage{
+		ClubId:      g.config.ClubId,
+		GameId:      g.config.GameId,
+		HandNum:     handState.HandNum,
+		MessageType: HandPlayerAction,
+		HandStatus:  handState.CurrentState,
+		SeatNo:      handState.NextSeatAction.SeatNo,
+	}
+	var canCheck bool
+	for _, action := range handState.NextSeatAction.AvailableActions {
+		if action == ACTION_CHECK {
+			canCheck = true
+			break
+		}
+	}
+	nextSeatMessage.HandMessage = &HandMessage_SeatAction{SeatAction: handState.NextSeatAction}
+	playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
+	g.sendHandMessageToPlayer(nextSeatMessage, playerID)
+	g.resetTimer(handState.NextSeatAction.SeatNo, playerID, canCheck)
+
+	pots := make([]float32, 0)
+	for _, pot := range handState.Pots {
+		pots = append(pots, pot.Pot)
+	}
+	currentPot := pots[len(pots)-1]
+	roundState := handState.RoundState[uint32(handState.CurrentState)]
+	currentBettingRound := roundState.Betting
+	seatBets := currentBettingRound.SeatBet
+	bettingRoundBets := float32(0)
+	for _, bet := range seatBets {
+		bettingRoundBets = bettingRoundBets + bet
+	}
+
+	if bettingRoundBets != 0 {
+		currentPot = currentPot + bettingRoundBets
+	} else {
+		currentPot = 0
+	}
+
+	// action moves to the next player
+	actionChange := &ActionChange{
+		SeatNo:     handState.NextSeatAction.SeatNo,
+		Pots:       pots,
+		PotUpdates: currentPot,
+		SeatsPots:  handState.Pots,
+	}
+	message := &HandMessage{
+		ClubId:      g.config.ClubId,
+		GameId:      g.config.GameId,
+		HandNum:     handState.HandNum,
+		HandStatus:  handState.CurrentState,
+		MessageType: HandNextAction,
+	}
+	message.HandMessage = &HandMessage_ActionChange{ActionChange: actionChange}
+	g.broadcastHandMessage(message)
 }
 
 func (g *Game) handleNoMoreActions(gameState *GameState, handState *HandState) {
