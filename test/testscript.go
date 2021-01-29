@@ -113,7 +113,7 @@ func (g *TestGameScript) dealHands(t *TestDriver) error {
 
 func (g *TestGameScript) playerFromSeat(seatNo uint32) *TestPlayer {
 	for _, player := range g.testGame.players {
-		if player.seatNo == seatNo {
+		if player.player.SeatNo == seatNo {
 			return player
 		}
 	}

@@ -160,7 +160,8 @@ func (p *Player) onPlayerAction(messageBytes []byte, message HandMessage) error 
 
 	if p.delegate != nil {
 		if message.GetSeatAction().SeatNo != p.SeatNo {
-			return nil
+			error := fmt.Sprintf("Seat number %d in message is not matching with seat number %d in test config", message.GetSeatAction().SeatNo, p.SeatNo)
+			panic(error)
 		}
 
 		p.delegate.HandMessageFromGame(messageBytes, &message, jsonb)
@@ -375,6 +376,7 @@ func (p *Player) SitAtTable(seatNo uint32, buyIn float32) error {
 	// only club owner/manager can start a game
 	message.GameMessage = &GameMessage_TakeSeat{TakeSeat: sitMessage}
 	e := p.GameProtoMessageFromAdapter(&message)
+	p.SeatNo = seatNo
 	return e
 }
 

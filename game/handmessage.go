@@ -193,7 +193,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	}
 
 	if !message.GetPlayerActed().GetTimedOut() {
-		if message.MessageId == 0 {
+		if message.MessageId == 0 && !RunningTests {
 			errMsg := fmt.Sprintf("Invalid message ID [0] for player ID %d Seat %d. Ignoring the action message.", message.PlayerId, messageSeatNo)
 			channelGameLogger.Error().
 				Uint32("club", g.config.ClubId).
