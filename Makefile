@@ -49,12 +49,12 @@ install-protoc:
 	rm -f $(PROTOC_ZIP)
 
 .PHONY: build
-build: compile-proto
+build: 
 	go build
 
 
 .PHONY: build2
-build2: compile-proto2
+build2: 
 	go build
 
 .PHONY: test

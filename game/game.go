@@ -95,6 +95,9 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, co
 	g.waitingPlayers = make([]uint64, 0)
 	g.players = make(map[uint64]string)
 	g.initialize()
+	if RunningTests {
+		g.startNewGameState()
+	}
 	return &g, nil
 }
 
@@ -473,7 +476,7 @@ func (g *Game) dealNewHand() error {
 	var handState *HandState
 
 	checkPoint := CheckPoint__DEAL1
-	if gameState.CheckPoint < checkPoint {
+	if gameState.CheckPoint < checkPoint || RunningTests {
 		// remove the old handstate
 		handState1, _ := g.loadHandState(gameState)
 		if handState1 != nil {

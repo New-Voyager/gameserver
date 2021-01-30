@@ -160,7 +160,7 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 func (g *Game) onPlayerActed(message *HandMessage) error {
 
 	messageSeatNo := message.GetPlayerActed().GetSeatNo()
-	if messageSeatNo == 0 {
+	if messageSeatNo == 0 && !RunningTests {
 		errMsg := fmt.Sprintf("Invalid seat number [%d] for player ID %d. Ignoring the action message.", messageSeatNo, message.PlayerId)
 		channelGameLogger.Error().
 			Uint32("club", g.config.ClubId).
@@ -170,7 +170,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	}
 
 	if !message.GetPlayerActed().GetTimedOut() {
-		if message.MessageId == 0 {
+		if message.MessageId == 0 && !RunningTests {
 			errMsg := fmt.Sprintf("Invalid message ID [0] for player ID %d Seat %d. Ignoring the action message.", message.PlayerId, messageSeatNo)
 			channelGameLogger.Error().
 				Uint32("club", g.config.ClubId).
@@ -180,7 +180,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		}
 	}
 
-	if g.processingAction {
+	if g.processingAction && !RunningTests {
 		// We should only process one action at a time.
 		errMsg := "Received another action while processing an action. Ignoring the action message."
 		channelGameLogger.Error().
@@ -212,6 +212,17 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	handState, err := g.loadHandState(gameState)
 	if err != nil {
 		return errors.Wrap(err, "Unable to load hand state")
+	}
+
+	if !message.GetPlayerActed().GetTimedOut() {
+		if message.MessageId == 0 && !RunningTests {
+			errMsg := fmt.Sprintf("Invalid message ID [0] for player ID %d Seat %d. Ignoring the action message.", message.PlayerId, messageSeatNo)
+			channelGameLogger.Error().
+				Uint32("club", g.config.ClubId).
+				Str("game", g.config.GameCode).
+				Msgf(errMsg)
+			return fmt.Errorf(errMsg)
+		}
 	}
 
 	// if the hand number does not match, ignore the message
