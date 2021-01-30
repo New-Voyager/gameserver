@@ -91,6 +91,8 @@ func (p *Player) handleHandMessage(messageBytes []byte, message HandMessage) {
 		p.onNextAction(messageBytes, message)
 	} else if message.MessageType == HandPlayerAction {
 		p.onPlayerAction(messageBytes, message)
+	} else if message.MessageType == HandPlayerActed {
+		p.onPlayerActed(messageBytes, message)
 	} else if message.MessageType == HandNewHand {
 		p.onPlayerNewHand(messageBytes, message)
 	} else if message.MessageType == HandResultMessage {
@@ -166,6 +168,10 @@ func (p *Player) onPlayerAction(messageBytes []byte, message HandMessage) error 
 
 		p.delegate.HandMessageFromGame(messageBytes, &message, jsonb)
 	}
+	return nil
+}
+
+func (p *Player) onPlayerActed(messageBytes []byte, message HandMessage) error {
 	return nil
 }
 
