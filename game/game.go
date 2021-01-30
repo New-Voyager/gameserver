@@ -136,10 +136,23 @@ func (g *Game) actionLoop(stop <-chan bool) {
 				channelGameLogger.Error().Msgf("Wrong type of message [%s] was pushed into the action loop. Ignoring the message.", message.MessageType)
 				break
 			}
-			err := g.onPlayerActed(message)
+			gameState, err := g.loadState()
+			if err != nil {
+				channelGameLogger.Error().Msgf("Unable to load game state. Error: %s", err.Error())
+				break
+			}
+			handState, err := g.loadHandState(gameState)
+			if err != nil {
+				channelGameLogger.Error().Msgf("Unable to load hand state. Error: %s", err.Error())
+				break
+			}
+			err = g.onPlayerActed(message, gameState, handState)
 			if err != nil {
 				channelGameLogger.Error().Msgf("Error while processing %s message. Error: %s", HandPlayerActed, err.Error())
+				break
 			}
+			g.saveState(gameState)
+			g.saveHandState(gameState, handState)
 		default:
 			time.Sleep(100 * time.Millisecond)
 		}
