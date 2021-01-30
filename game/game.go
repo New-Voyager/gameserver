@@ -94,6 +94,9 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, co
 	g.waitingPlayers = make([]uint64, 0)
 	g.players = make(map[uint64]string)
 	g.initialize()
+	if RunningTests {
+		g.startNewGameState()
+	}
 	return &g, nil
 }
 

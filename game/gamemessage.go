@@ -51,6 +51,9 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 
 	case GetHandLog:
 		g.onGetHandLog(message)
+
+	case GameStart:
+		break
 	}
 }
 

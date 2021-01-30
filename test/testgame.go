@@ -8,6 +8,7 @@ import (
 )
 
 var testGameLogger = log.With().Str("logger_name", "test::testgame").Logger()
+var gameID = 1
 
 // TestGame is a game simulation object to drive the game from client perspective
 // this is used for testing the game, hands, winners, split pots
@@ -45,9 +46,12 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	if gameScript.gameScript.GameConfig.ActionTime == 0 {
 		gameScript.gameScript.GameConfig.ActionTime = 300
 	}
+	gameID++
 	gameScript.gameScript.GameConfig.GameCode = "000000"
 	gameScript.gameScript.GameConfig.ClubId = clubID
 	gameScript.gameScript.GameConfig.GameType = gameType
+	gameScript.gameScript.GameConfig.GameId = uint64(gameID)
+
 	serverGame, gameID, err := game.GameManager.InitializeGame(nil, &gameScript.gameScript.GameConfig, false)
 	if err != nil {
 		return nil, nil, err
