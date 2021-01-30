@@ -81,6 +81,15 @@ func (r *RedisGameStateTracker) NextGameId(clubID uint32) (uint64, error) {
 
 func (r *RedisHandStateTracker) Load(clubID uint32, gameID uint64, handID uint32) (*HandState, error) {
 	key := fmt.Sprintf("%d|%d", gameID, handID)
+	return r.load(key, clubID, gameID, handID)
+}
+
+func (r *RedisHandStateTracker) LoadClone(clubID uint32, gameID uint64, handID uint32) (*HandState, error) {
+	key := fmt.Sprintf("%d|%d|clone", gameID, handID)
+	return r.load(key, clubID, gameID, handID)
+}
+
+func (r *RedisHandStateTracker) load(key string, clubID uint32, gameID uint64, handID uint32) (*HandState, error) {
 	handStateBytes, err := r.rdclient.Get(context.Background(), key).Result()
 	if err == redis.Nil {
 		return nil, fmt.Errorf("Hand state for Club: %d, Game: %d, Hand: %d is not found", clubID, gameID, handID)
@@ -97,6 +106,15 @@ func (r *RedisHandStateTracker) Load(clubID uint32, gameID uint64, handID uint32
 
 func (r *RedisHandStateTracker) Save(clubID uint32, gameID uint64, handID uint32, state *HandState) error {
 	key := fmt.Sprintf("%d|%d", gameID, handID)
+	return r.save(key, state)
+}
+
+func (r *RedisHandStateTracker) SaveClone(clubID uint32, gameID uint64, handID uint32, state *HandState) error {
+	key := fmt.Sprintf("%d|%d|clone", gameID, handID)
+	return r.save(key, state)
+}
+
+func (r *RedisHandStateTracker) save(key string, state *HandState) error {
 	stateInBytes, err := proto.Marshal(state)
 	if err != nil {
 		return err
@@ -107,6 +125,15 @@ func (r *RedisHandStateTracker) Save(clubID uint32, gameID uint64, handID uint32
 
 func (r *RedisHandStateTracker) Remove(clubID uint32, gameID uint64, handID uint32) error {
 	key := fmt.Sprintf("%d|%d", gameID, handID)
+	return r.remove(key)
+}
+
+func (r *RedisHandStateTracker) RemoveClone(clubID uint32, gameID uint64, handID uint32) error {
+	key := fmt.Sprintf("%d|%d|clone", gameID, handID)
+	return r.remove(key)
+}
+
+func (r *RedisHandStateTracker) remove(key string) error {
 	err := r.rdclient.Del(context.Background(), key).Err()
 	return err
 }

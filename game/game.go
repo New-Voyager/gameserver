@@ -686,6 +686,21 @@ func (g *Game) saveHandState(gameState *GameState, handState *HandState) error {
 	return err
 }
 
+func (g *Game) saveHandStateClone(gameState *GameState, handState *HandState) error {
+	err := g.manager.handStatePersist.SaveClone(gameState.GetClubId(),
+		gameState.GetGameId(),
+		handState.HandNum,
+		handState)
+	return err
+}
+
+func (g *Game) removeHandStateClone(gameState *GameState, handState *HandState) error {
+	err := g.manager.handStatePersist.RemoveClone(gameState.GetClubId(),
+		gameState.GetGameId(),
+		handState.HandNum)
+	return err
+}
+
 func (g *Game) removeHandState(gameState *GameState, handState *HandState) error {
 	if gameState == nil || handState == nil {
 		return nil
@@ -699,6 +714,13 @@ func (g *Game) removeHandState(gameState *GameState, handState *HandState) error
 
 func (g *Game) loadHandState(gameState *GameState) (*HandState, error) {
 	handState, err := g.manager.handStatePersist.Load(gameState.GetClubId(),
+		gameState.GetGameId(),
+		gameState.GetHandNum())
+	return handState, err
+}
+
+func (g *Game) loadHandStateClone(gameState *GameState) (*HandState, error) {
+	handState, err := g.manager.handStatePersist.LoadClone(gameState.GetClubId(),
 		gameState.GetGameId(),
 		gameState.GetHandNum())
 	return handState, err

@@ -36,13 +36,13 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 			channelGameLogger.Error().Msgf("Unable to load hand state. Error: %s", err.Error())
 			break
 		}
+		g.saveHandStateClone(gameState, handState)
 		err = g.onPlayerActed(message, gameState, handState)
 		if err != nil {
 			channelGameLogger.Error().Msgf("Error while processing %s message. Error: %s", HandPlayerActed, err.Error())
 			break
 		}
-		g.saveState(gameState)
-		g.saveHandState(gameState, handState)
+		g.removeHandStateClone(gameState, handState)
 	case HandQueryCurrentHand:
 		err := g.onQueryCurrentHand(message)
 		if err != nil {
