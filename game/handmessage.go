@@ -154,7 +154,7 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 	return nil
 }
 
-func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handState *HandState) error {
+func (g *Game) onPlayerActed(message *HandMessage) error {
 
 	messageSeatNo := message.GetPlayerActed().GetSeatNo()
 	if messageSeatNo == 0 && !RunningTests {
@@ -187,6 +187,17 @@ func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handSta
 	if messageSeatNo == g.timerSeatNo {
 		// pause play timer
 		g.pausePlayTimer(messageSeatNo)
+	}
+
+	gameState, err := g.loadState()
+	if err != nil {
+		return errors.Wrap(err, "Unable to load game state")
+	}
+
+	// get hand state
+	handState, err := g.loadHandState(gameState)
+	if err != nil {
+		return errors.Wrap(err, "Unable to load hand state")
 	}
 
 	// if the hand number does not match, ignore the message
@@ -237,7 +248,7 @@ func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handSta
 		g.acknowledgeMsg(message)
 		return fmt.Errorf(errMsg)
 	}
-	var err error
+
 	err = handState.actionReceived(message.GetPlayerActed())
 	if err != nil {
 		// This is not retryable. Just acknowledge, so that the client stops retrying and force the timeout.
@@ -566,7 +577,7 @@ func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, hand
 
 			if len(saveResult.HighHand.AssociatedGames) >= 1 {
 				// announce the high hand to other games
-				g.announceHighHand(saveResult, handResult.HighHand)
+				go g.announceHighHand(saveResult, handResult.HighHand)
 			}
 		}
 	}
@@ -731,7 +742,7 @@ func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 
 	gameState.CheckPoint = CheckPoint__RESULT_SENT
 	g.saveState(gameState)
-	g.moveToNextHand(handState.HandNum)
+	go g.moveToNextHand(handState.HandNum)
 }
 
 func (g *Game) saveHandResult(result *HandResult) (*SaveHandResult, error) {
