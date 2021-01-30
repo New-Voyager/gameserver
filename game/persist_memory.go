@@ -71,6 +71,15 @@ func (m *MemoryGameStateTracker) NextGameId(clubID uint32) (uint64, error) {
 
 func (m *MemoryHandStateTracker) Load(clubID uint32, gameID uint64, handID uint32) (*HandState, error) {
 	key := fmt.Sprintf("%d:%d", gameID, handID)
+	return m.load(key, clubID, gameID, handID)
+}
+
+func (m *MemoryHandStateTracker) LoadClone(clubID uint32, gameID uint64, handID uint32) (*HandState, error) {
+	key := fmt.Sprintf("%d:%d:clone", gameID, handID)
+	return m.load(key, clubID, gameID, handID)
+}
+
+func (m *MemoryHandStateTracker) load(key string, clubID uint32, gameID uint64, handID uint32) (*HandState, error) {
 	if handStateBytes, ok := m.activeHands[key]; ok {
 		handState := HandState{}
 		err := proto.Unmarshal(handStateBytes, &handState)
@@ -84,6 +93,15 @@ func (m *MemoryHandStateTracker) Load(clubID uint32, gameID uint64, handID uint3
 
 func (m *MemoryHandStateTracker) Save(clubID uint32, gameID uint64, handID uint32, state *HandState) error {
 	key := fmt.Sprintf("%d:%d", gameID, handID)
+	return m.save(key, state)
+}
+
+func (m *MemoryHandStateTracker) SaveClone(clubID uint32, gameID uint64, handID uint32, state *HandState) error {
+	key := fmt.Sprintf("%d:%d:clone", gameID, handID)
+	return m.save(key, state)
+}
+
+func (m *MemoryHandStateTracker) save(key string, state *HandState) error {
 	stateInBytes, err := proto.Marshal(state)
 	if err != nil {
 		return err
@@ -94,6 +112,15 @@ func (m *MemoryHandStateTracker) Save(clubID uint32, gameID uint64, handID uint3
 
 func (m *MemoryHandStateTracker) Remove(clubID uint32, gameID uint64, handID uint32) error {
 	key := fmt.Sprintf("%d:%d", gameID, handID)
+	return m.remove(key)
+}
+
+func (m *MemoryHandStateTracker) RemoveClone(clubID uint32, gameID uint64, handID uint32) error {
+	key := fmt.Sprintf("%d:%d:clone", gameID, handID)
+	return m.remove(key)
+}
+
+func (m *MemoryHandStateTracker) remove(key string) error {
 	if _, ok := m.activeHands[key]; ok {
 		delete(m.activeHands, key)
 	}

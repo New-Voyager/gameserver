@@ -56,7 +56,6 @@ type Game struct {
 	config                  *GameConfig
 	delays                  Delays
 	lock                    sync.Mutex
-	processingAction        bool
 	timerSeatNo             uint32
 }
 
@@ -336,6 +335,25 @@ func (g *Game) startNewGameState() error {
 func (g *Game) startGame() (bool, error) {
 	gameState, err := g.loadState()
 	if err != nil {
+		return false, err
+	}
+
+	handStateClone, err := g.loadHandStateClone(gameState)
+	if err == nil {
+		// Clone exists. We crashed while processing an action.
+		// Reprocess the action message.
+		channelGameLogger.Info().
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
+			Msgf("Hand state clone exists. Replaying the action message.")
+		go func(g *Game) {
+			g.SendHandMessage(handStateClone.ActionMsgInProgress)
+		}(g)
+		return true, nil
+	}
+
+	if !strings.Contains(err.Error(), "not found") {
+		// Redis error
 		return false, err
 	}
 
@@ -687,6 +705,21 @@ func (g *Game) saveHandState(gameState *GameState, handState *HandState) error {
 	return err
 }
 
+func (g *Game) saveHandStateClone(gameState *GameState, handState *HandState) error {
+	err := g.manager.handStatePersist.SaveClone(gameState.GetClubId(),
+		gameState.GetGameId(),
+		handState.HandNum,
+		handState)
+	return err
+}
+
+func (g *Game) removeHandStateClone(gameState *GameState, handState *HandState) error {
+	err := g.manager.handStatePersist.RemoveClone(gameState.GetClubId(),
+		gameState.GetGameId(),
+		handState.HandNum)
+	return err
+}
+
 func (g *Game) removeHandState(gameState *GameState, handState *HandState) error {
 	if gameState == nil || handState == nil {
 		return nil
@@ -700,6 +733,13 @@ func (g *Game) removeHandState(gameState *GameState, handState *HandState) error
 
 func (g *Game) loadHandState(gameState *GameState) (*HandState, error) {
 	handState, err := g.manager.handStatePersist.Load(gameState.GetClubId(),
+		gameState.GetGameId(),
+		gameState.GetHandNum())
+	return handState, err
+}
+
+func (g *Game) loadHandStateClone(gameState *GameState) (*HandState, error) {
+	handState, err := g.manager.handStatePersist.LoadClone(gameState.GetClubId(),
 		gameState.GetGameId(),
 		gameState.GetHandNum())
 	return handState, err

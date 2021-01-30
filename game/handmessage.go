@@ -24,10 +24,39 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 
 	switch message.MessageType {
 	case HandPlayerActed:
-		err := g.onPlayerActed(message)
+		gameState, err := g.loadState()
+		if err != nil {
+			channelGameLogger.Error().Msgf("Unable to load game state. Error: %s", err.Error())
+			break
+		}
+
+		var handState *HandState
+		var handStateClone *HandState
+		handStateClone, err = g.loadHandStateClone(gameState)
+		if err == nil {
+			// Recovering from crash.
+			handState = handStateClone
+		} else {
+			handState, err = g.loadHandState(gameState)
+			if err != nil {
+				channelGameLogger.Error().Msgf("Unable to load hand state. Error: %s", err.Error())
+				break
+			}
+			handStateClone, err = g.loadHandState(gameState)
+			if err != nil {
+				channelGameLogger.Error().Msgf("Unable to load hand state. Error: %s", err.Error())
+				break
+			}
+			handStateClone.ActionMsgInProgress = message
+			g.saveHandStateClone(gameState, handStateClone)
+		}
+
+		err = g.onPlayerActed(message, gameState, handState)
 		if err != nil {
 			channelGameLogger.Error().Msgf("Error while processing %s message. Error: %s", HandPlayerActed, err.Error())
+			break
 		}
+		g.removeHandStateClone(gameState, handStateClone)
 	case HandQueryCurrentHand:
 		err := g.onQueryCurrentHand(message)
 		if err != nil {
@@ -157,7 +186,7 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 	return nil
 }
 
-func (g *Game) onPlayerActed(message *HandMessage) error {
+func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handState *HandState) error {
 
 	messageSeatNo := message.GetPlayerActed().GetSeatNo()
 	if messageSeatNo == 0 && !RunningTests {
@@ -180,17 +209,6 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		}
 	}
 
-	if g.processingAction && !RunningTests {
-		// We should only process one action at a time.
-		errMsg := "Received another action while processing an action. Ignoring the action message."
-		channelGameLogger.Error().
-			Uint32("club", g.config.ClubId).
-			Str("game", g.config.GameCode).
-			Uint32("player", messageSeatNo).
-			Msgf(errMsg)
-		return fmt.Errorf(errMsg)
-	}
-
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
@@ -201,28 +219,6 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	if messageSeatNo == g.timerSeatNo {
 		// pause play timer
 		g.pausePlayTimer(messageSeatNo)
-	}
-
-	gameState, err := g.loadState()
-	if err != nil {
-		return errors.Wrap(err, "Unable to load game state")
-	}
-
-	// get hand state
-	handState, err := g.loadHandState(gameState)
-	if err != nil {
-		return errors.Wrap(err, "Unable to load hand state")
-	}
-
-	if !message.GetPlayerActed().GetTimedOut() {
-		if message.MessageId == 0 && !RunningTests {
-			errMsg := fmt.Sprintf("Invalid message ID [0] for player ID %d Seat %d. Ignoring the action message.", message.PlayerId, messageSeatNo)
-			channelGameLogger.Error().
-				Uint32("club", g.config.ClubId).
-				Str("game", g.config.GameCode).
-				Msgf(errMsg)
-			return fmt.Errorf(errMsg)
-		}
 	}
 
 	// if the hand number does not match, ignore the message
@@ -274,6 +270,7 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		return fmt.Errorf(errMsg)
 	}
 
+	var err error
 	err = handState.actionReceived(message.GetPlayerActed())
 	if err != nil {
 		// This is not retryable. Just acknowledge, so that the client stops retrying and force the timeout.
@@ -320,37 +317,26 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	message.MessageId = 0
 	g.broadcastHandMessage(message)
 
-	g.processingAction = true
-	go func(g *Game) {
-		defer func() { g.processingAction = false }()
+	if !RunningTests {
+		time.Sleep(time.Duration(g.delays.PlayerActed) * time.Millisecond)
+	}
 
-		if !RunningTests {
-			time.Sleep(time.Duration(g.delays.PlayerActed) * time.Millisecond)
-		}
-		gameState, err := g.loadState()
-		if err != nil {
-			return
-		}
-		handState, err := g.loadHandState(gameState)
-		if err != nil {
-			return
-		} // if only one player is remaining in the hand, we have a winner
-		if handState.NoActiveSeats == 1 {
-			g.sendWinnerBeforeShowdown(gameState, handState)
-			// result of the hand is sent
+	// if only one player is remaining in the hand, we have a winner
+	if handState.NoActiveSeats == 1 {
+		g.sendWinnerBeforeShowdown(gameState, handState)
+		// result of the hand is sent
 
-			// wait for the animation to complete before we send the next hand
-			// if it is not auto deal, we return from here
-			//if !g.autoDeal {
-			//	return nil
-			//}
-		} else if handState.isAllActivePlayersAllIn() {
-			g.handleNoMoreActions(gameState, handState)
-		} else {
-			// if the current player is where the action ends, move to the next round
-			g.moveToNextAct(gameState, handState)
-		}
-	}(g)
+		// wait for the animation to complete before we send the next hand
+		// if it is not auto deal, we return from here
+		//if !g.autoDeal {
+		//	return nil
+		//}
+	} else if handState.isAllActivePlayersAllIn() {
+		g.handleNoMoreActions(gameState, handState)
+	} else {
+		// if the current player is where the action ends, move to the next round
+		g.moveToNextAct(gameState, handState)
+	}
 
 	return nil
 }
@@ -536,7 +522,7 @@ func (g *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandSta
 
 	gameState.CheckPoint = CheckPoint__RESULT_SENT
 	g.saveState(gameState)
-	go g.moveToNextHand(handState.HandNum)
+	g.moveToNextHand(handState.HandNum)
 	return nil
 }
 
@@ -560,7 +546,7 @@ func (g *Game) moveToNextHand(handNum uint32) {
 		GameId:      g.config.GameId,
 		MessageType: GameMoveToNextHand,
 	}
-	g.SendGameMessageToChannel(gameMessage)
+	go g.SendGameMessageToChannel(gameMessage)
 }
 
 func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, handResult *HandResult) {
@@ -613,7 +599,7 @@ func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, hand
 
 			if len(saveResult.HighHand.AssociatedGames) >= 1 {
 				// announce the high hand to other games
-				go g.announceHighHand(saveResult, handResult.HighHand)
+				g.announceHighHand(saveResult, handResult.HighHand)
 			}
 		}
 	}
@@ -778,7 +764,7 @@ func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 
 	gameState.CheckPoint = CheckPoint__RESULT_SENT
 	g.saveState(gameState)
-	go g.moveToNextHand(handState.HandNum)
+	g.moveToNextHand(handState.HandNum)
 }
 
 func (g *Game) saveHandResult(result *HandResult) (*SaveHandResult, error) {
