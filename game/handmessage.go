@@ -24,10 +24,7 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 
 	switch message.MessageType {
 	case HandPlayerActed:
-		err := g.onPlayerActed(message)
-		if err != nil {
-			channelGameLogger.Error().Msgf("Error while processing %s message. Error: %s", HandPlayerActed, err.Error())
-		}
+		g.chNewAction <- message
 	case HandQueryCurrentHand:
 		err := g.onQueryCurrentHand(message)
 		if err != nil {
@@ -503,7 +500,7 @@ func (g *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandSta
 
 	gameState.CheckPoint = CheckPoint__RESULT_SENT
 	g.saveState(gameState)
-	go g.moveToNextHand(handState.HandNum)
+	g.moveToNextHand(handState.HandNum)
 	return nil
 }
 

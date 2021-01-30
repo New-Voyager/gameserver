@@ -39,6 +39,7 @@ type Game struct {
 	chPlayTimedOut      chan timerMsg
 	chResetTimer        chan timerMsg
 	chPauseTimer        chan bool
+	chNewAction         chan *HandMessage
 	allPlayers          map[uint64]*Player   // players at the table and the players that are viewing
 	messageReceiver     *GameMessageReceiver // receives messages
 	actionTimeStart     time.Time
@@ -90,6 +91,7 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, co
 	g.chPlayTimedOut = make(chan timerMsg)
 	g.chResetTimer = make(chan timerMsg)
 	g.chPauseTimer = make(chan bool)
+	g.chNewAction = make(chan *HandMessage, 10)
 	g.end = make(chan bool)
 	g.waitingPlayers = make([]uint64, 0)
 	g.players = make(map[uint64]string)
@@ -119,6 +121,29 @@ func (g *Game) playersInSeatsCount() int {
 		}
 	}
 	return countPlayersInSeats
+}
+
+// Loop that processes player action.
+// Processing actions in a separate goroutine ensures other messages are not blocked
+// while guaranteeing only one action is processed at a time.
+func (g *Game) actionLoop(stop <-chan bool) {
+	for {
+		select {
+		case <-stop:
+			return
+		case message := <-g.chNewAction:
+			if message.MessageType != HandPlayerActed {
+				channelGameLogger.Error().Msgf("Wrong type of message [%s] was pushed into the action loop. Ignoring the message.", message.MessageType)
+				break
+			}
+			err := g.onPlayerActed(message)
+			if err != nil {
+				channelGameLogger.Error().Msgf("Error while processing %s message. Error: %s", HandPlayerActed, err.Error())
+			}
+		default:
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
 }
 
 func (g *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
@@ -172,10 +197,13 @@ func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool) {
 
 func (g *Game) runGame() {
 	stopTimerLoop := make(chan bool)
+	stopActionLoop := make(chan bool)
 	defer func() {
 		stopTimerLoop <- true
+		stopActionLoop <- true
 	}()
 	go g.timerLoop(stopTimerLoop, g.chPauseTimer)
+	go g.actionLoop(stopActionLoop)
 
 	ended := false
 	for !ended {
