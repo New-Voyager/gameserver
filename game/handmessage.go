@@ -503,7 +503,7 @@ func (g *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandSta
 
 	gameState.CheckPoint = CheckPoint__RESULT_SENT
 	g.saveState(gameState)
-	go g.moveToNextHand(handState.HandNum)
+	g.moveToNextHand(handState.HandNum)
 	return nil
 }
 
@@ -527,7 +527,7 @@ func (g *Game) moveToNextHand(handNum uint32) {
 		GameId:      g.config.GameId,
 		MessageType: GameMoveToNextHand,
 	}
-	g.SendGameMessageToChannel(gameMessage)
+	go g.SendGameMessageToChannel(gameMessage)
 }
 
 func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, handResult *HandResult) {
@@ -580,7 +580,7 @@ func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, hand
 
 			if len(saveResult.HighHand.AssociatedGames) >= 1 {
 				// announce the high hand to other games
-				go g.announceHighHand(saveResult, handResult.HighHand)
+				g.announceHighHand(saveResult, handResult.HighHand)
 			}
 		}
 	}
@@ -745,7 +745,7 @@ func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 
 	gameState.CheckPoint = CheckPoint__RESULT_SENT
 	g.saveState(gameState)
-	go g.moveToNextHand(handState.HandNum)
+	g.moveToNextHand(handState.HandNum)
 }
 
 func (g *Game) saveHandResult(result *HandResult) (*SaveHandResult, error) {
