@@ -264,6 +264,12 @@ func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handSta
 		return err
 	}
 
+	err = g.saveHandState(gameState, handState)
+	if err != nil {
+		// This is retryable (redis connection temporarily down?). Don't acknowledge and force the client to resend.
+		return err
+	}
+
 	if !message.GetPlayerActed().GetTimedOut() {
 		g.acknowledgeMsg(message)
 	}
@@ -373,6 +379,7 @@ func (g *Game) gotoFlop(gameState *GameState, handState *HandState) {
 	}
 
 	handState.setupFlop(boardCards)
+	g.saveHandState(gameState, handState)
 	pots, seatsInPots := g.getPots(handState)
 	balance := make(map[uint32]float32, 0)
 	for seatNo, playerID := range handState.PlayersInSeats {
@@ -393,6 +400,7 @@ func (g *Game) gotoFlop(gameState *GameState, handState *HandState) {
 		HandStatus:  handState.CurrentState}
 	handMessage.HandMessage = &HandMessage_Flop{Flop: flopMessage}
 	g.broadcastHandMessage(handMessage)
+	g.saveHandState(gameState, handState)
 	if !RunningTests {
 		time.Sleep(time.Duration(g.delays.GoToFlop) * time.Millisecond)
 	}
@@ -405,6 +413,7 @@ func (g *Game) gotoTurn(gameState *GameState, handState *HandState) {
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
 	handState.setupTurn(handState.TurnCard)
+	g.saveHandState(gameState, handState)
 
 	cardsStr := poker.CardsToString(handState.BoardCards)
 	boardCards := make([]uint32, len(handState.BoardCards))
@@ -431,6 +440,7 @@ func (g *Game) gotoTurn(gameState *GameState, handState *HandState) {
 		HandStatus:  handState.CurrentState}
 	handMessage.HandMessage = &HandMessage_Turn{Turn: turnMessage}
 	g.broadcastHandMessage(handMessage)
+	g.saveHandState(gameState, handState)
 	if !RunningTests {
 		time.Sleep(time.Duration(g.delays.GoToTurn) * time.Millisecond)
 	}
@@ -443,6 +453,7 @@ func (g *Game) gotoRiver(gameState *GameState, handState *HandState) {
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
 	handState.setupRiver(handState.RiverCard)
+	g.saveHandState(gameState, handState)
 
 	cardsStr := poker.CardsToString(handState.BoardCards)
 	boardCards := make([]uint32, len(handState.BoardCards))
@@ -469,6 +480,7 @@ func (g *Game) gotoRiver(gameState *GameState, handState *HandState) {
 		HandStatus:  handState.CurrentState}
 	handMessage.HandMessage = &HandMessage_River{River: riverMessage}
 	g.broadcastHandMessage(handMessage)
+	g.saveHandState(gameState, handState)
 	if !RunningTests {
 		time.Sleep(time.Duration(g.delays.GoToRiver) * time.Millisecond)
 	}
@@ -479,20 +491,23 @@ func (g *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandSta
 	handState.everyOneFoldedWinners()
 
 	handState.CurrentState = HandStatus_HAND_CLOSED
+	err := g.saveHandState(gameState, handState)
+	if err != nil {
+		return err
+	}
+
 	handResultProcessor := NewHandResultProcessor(handState, gameState, g.config.RewardTrackingIds)
 
 	// send the hand to the database to store first
 	handResult := handResultProcessor.getResult(true /*db*/)
 	saveResult, err := g.saveHandResult(handResult)
-	if err != nil {
-		return err
-	}
 
 	// send to all the players
 	handResult = handResultProcessor.getResult(false /*db*/)
 	g.sendResult(handState, saveResult, handResult)
 
 	gameState.CheckPoint = CheckPoint__RESULT_SENT
+	g.saveState(gameState)
 	g.moveToNextHand(handState.HandNum)
 	return nil
 }
