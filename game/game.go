@@ -56,7 +56,6 @@ type Game struct {
 	config                  *GameConfig
 	delays                  Delays
 	lock                    sync.Mutex
-	processingAction        bool
 	timerSeatNo             uint32
 }
 

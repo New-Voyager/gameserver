@@ -180,17 +180,6 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 		}
 	}
 
-	if g.processingAction && !RunningTests {
-		// We should only process one action at a time.
-		errMsg := "Received another action while processing an action. Ignoring the action message."
-		channelGameLogger.Error().
-			Uint32("club", g.config.ClubId).
-			Str("game", g.config.GameCode).
-			Uint32("player", messageSeatNo).
-			Msgf(errMsg)
-		return fmt.Errorf(errMsg)
-	}
-
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
@@ -212,17 +201,6 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	handState, err := g.loadHandState(gameState)
 	if err != nil {
 		return errors.Wrap(err, "Unable to load hand state")
-	}
-
-	if !message.GetPlayerActed().GetTimedOut() {
-		if message.MessageId == 0 && !RunningTests {
-			errMsg := fmt.Sprintf("Invalid message ID [0] for player ID %d Seat %d. Ignoring the action message.", message.PlayerId, messageSeatNo)
-			channelGameLogger.Error().
-				Uint32("club", g.config.ClubId).
-				Str("game", g.config.GameCode).
-				Msgf(errMsg)
-			return fmt.Errorf(errMsg)
-		}
 	}
 
 	// if the hand number does not match, ignore the message
@@ -320,37 +298,26 @@ func (g *Game) onPlayerActed(message *HandMessage) error {
 	message.MessageId = 0
 	g.broadcastHandMessage(message)
 
-	g.processingAction = true
-	go func(g *Game) {
-		defer func() { g.processingAction = false }()
+	if !RunningTests {
+		time.Sleep(time.Duration(g.delays.PlayerActed) * time.Millisecond)
+	}
 
-		if !RunningTests {
-			time.Sleep(time.Duration(g.delays.PlayerActed) * time.Millisecond)
-		}
-		gameState, err := g.loadState()
-		if err != nil {
-			return
-		}
-		handState, err := g.loadHandState(gameState)
-		if err != nil {
-			return
-		} // if only one player is remaining in the hand, we have a winner
-		if handState.NoActiveSeats == 1 {
-			g.sendWinnerBeforeShowdown(gameState, handState)
-			// result of the hand is sent
+	// if only one player is remaining in the hand, we have a winner
+	if handState.NoActiveSeats == 1 {
+		g.sendWinnerBeforeShowdown(gameState, handState)
+		// result of the hand is sent
 
-			// wait for the animation to complete before we send the next hand
-			// if it is not auto deal, we return from here
-			//if !g.autoDeal {
-			//	return nil
-			//}
-		} else if handState.isAllActivePlayersAllIn() {
-			g.handleNoMoreActions(gameState, handState)
-		} else {
-			// if the current player is where the action ends, move to the next round
-			g.moveToNextAct(gameState, handState)
-		}
-	}(g)
+		// wait for the animation to complete before we send the next hand
+		// if it is not auto deal, we return from here
+		//if !g.autoDeal {
+		//	return nil
+		//}
+	} else if handState.isAllActivePlayersAllIn() {
+		g.handleNoMoreActions(gameState, handState)
+	} else {
+		// if the current player is where the action ends, move to the next round
+		g.moveToNextAct(gameState, handState)
+	}
 
 	return nil
 }
