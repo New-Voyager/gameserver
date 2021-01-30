@@ -338,6 +338,25 @@ func (g *Game) startGame() (bool, error) {
 		return false, err
 	}
 
+	handStateClone, err := g.loadHandStateClone(gameState)
+	if err == nil {
+		// Clone exists. We crashed while processing an action.
+		// Reprocess the action message.
+		channelGameLogger.Info().
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
+			Msgf("Hand state clone exists. Replaying the action message.")
+		go func(g *Game) {
+			g.SendHandMessage(handStateClone.ActionMsgInProgress)
+		}(g)
+		return true, nil
+	}
+
+	if !strings.Contains(err.Error(), "not found") {
+		// Redis error
+		return false, err
+	}
+
 	if !g.config.AutoStart && gameState.Status != GameStatus_ACTIVE {
 		return false, nil
 	}

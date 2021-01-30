@@ -30,19 +30,33 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 			break
 		}
 
-		// get hand state
-		handState, err := g.loadHandState(gameState)
-		if err != nil {
-			channelGameLogger.Error().Msgf("Unable to load hand state. Error: %s", err.Error())
-			break
+		var handState *HandState
+		var handStateClone *HandState
+		handStateClone, err = g.loadHandStateClone(gameState)
+		if err == nil {
+			// Recovering from crash.
+			handState = handStateClone
+		} else {
+			handState, err = g.loadHandState(gameState)
+			if err != nil {
+				channelGameLogger.Error().Msgf("Unable to load hand state. Error: %s", err.Error())
+				break
+			}
+			handStateClone, err = g.loadHandState(gameState)
+			if err != nil {
+				channelGameLogger.Error().Msgf("Unable to load hand state. Error: %s", err.Error())
+				break
+			}
+			handStateClone.ActionMsgInProgress = message
+			g.saveHandStateClone(gameState, handStateClone)
 		}
-		g.saveHandStateClone(gameState, handState)
+
 		err = g.onPlayerActed(message, gameState, handState)
 		if err != nil {
 			channelGameLogger.Error().Msgf("Error while processing %s message. Error: %s", HandPlayerActed, err.Error())
 			break
 		}
-		g.removeHandStateClone(gameState, handState)
+		g.removeHandStateClone(gameState, handStateClone)
 	case HandQueryCurrentHand:
 		err := g.onQueryCurrentHand(message)
 		if err != nil {
