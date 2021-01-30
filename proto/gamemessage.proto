@@ -52,6 +52,7 @@ message GameSetupNextHandMessage {
   bytes deck = 1;
   uint32 button_pos = 2;
   uint32 pause = 3;
+  bool auto_deal = 4;
 }
 
 message GameStartMessage {

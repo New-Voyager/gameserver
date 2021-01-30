@@ -136,6 +136,7 @@ type TestSeatCards struct {
 
 type HandSetup struct {
 	ButtonPos uint32               `yaml:"button-pos"`
+	AutoDeal  bool                 `yaml:"auto-deal"`
 	Flop      []string             `yaml:"flop"`
 	Turn      string               `yaml:"turn"`
 	River     string               `yaml:"river"`

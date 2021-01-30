@@ -241,6 +241,8 @@ func (g *Game) onNextHandSetup(message *GameMessage) error {
 	g.testDeckToUse = nil
 	if setupNextHand.Deck != nil {
 		g.testDeckToUse = poker.DeckFromBytes(setupNextHand.Deck)
+	} else {
+		g.testDeckToUse = poker.NewDeck(nil)
 	}
 	g.pauseBeforeNextHand = setupNextHand.Pause
 	return nil
