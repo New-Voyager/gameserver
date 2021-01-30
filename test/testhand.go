@@ -326,11 +326,14 @@ func (h *TestHand) setup(t *TestDriver) error {
 	for _, cards := range h.hand.Setup.SeatCards {
 		playerCards = append(playerCards, cards.Cards)
 	}
-	// arrange deck
-	deck := poker.DeckFromScript(playerCards, h.hand.Setup.Flop, poker.NewCard(h.hand.Setup.Turn), poker.NewCard(h.hand.Setup.River))
+	var deck *poker.Deck
+	if !h.hand.Setup.AutoDeal {
+		// arrange deck
+		deck = poker.DeckFromScript(playerCards, h.hand.Setup.Flop, poker.NewCard(h.hand.Setup.Turn), poker.NewCard(h.hand.Setup.River))
+	}
 
 	// setup hand
-	h.gameScript.testGame.Observer().setupNextHand(deck.GetBytes(), h.hand.Setup.ButtonPos)
+	h.gameScript.testGame.Observer().setupNextHand(deck, h.hand.Setup.AutoDeal, h.hand.Setup.ButtonPos)
 	return nil
 }
 

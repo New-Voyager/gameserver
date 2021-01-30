@@ -1,15 +1,15 @@
-disabled: true
+disabled: true 
 game-config:
   type: PLO
-  max-players: 5
+  max-players: 9
   min-players: 2
   min-buyin: 60.0
   max-buyin: 300.0
   auto-start: false
   auto-approve: true
   title: 5 players playing
-  sb: 1.0
-  bb: 2.0
+  sb: 5
+  bb: 10
   rake-percentage: 10
   rake-cap: 5
 
@@ -25,6 +25,14 @@ players:
     id: 4
   - name: player5
     id: 5
+  - name: player6
+    id: 6
+  - name: player7
+    id: 7
+  - name: player8
+    id: 8
+  - name: player9
+    id: 9
 
 take-seat:
   button-pos: 1
@@ -49,33 +57,24 @@ take-seat:
       seat: 5 
       player: 5
       buy-in: 1000
+    -
+      seat: 6 
+      player: 6
+      buy-in: 1000
+    -
+      seat: 7 
+      player: 7
+      buy-in: 1000
+    -
+      seat: 8 
+      player: 8
+      buy-in: 1000
+    -
+      seat: 9
+      player: 9
+      buy-in: 1000
 
   wait: 1
-
-  # verify the table/player configuration is correct
-  verify:
-    table:
-      players:
-        -
-          seat: 1 
-          player: 1
-          stack: 1000
-        -
-          seat: 2 
-          player: 2
-          stack: 1000
-        -
-          seat: 3 
-          player: 3
-          stack: 1000
-        -
-          seat: 4 
-          player: 4
-          stack: 1000
-        -
-          seat: 5 
-          player: 5
-          stack: 1000
 
 # deal the following hands in the table
 hands:
@@ -83,21 +82,7 @@ hands:
     num: 1
     setup:
       button-pos: 1
-      flop: ["Ac", "Ad", "2c"]
-      turn: Td
-      river: 4s
-      seat-cards:
-        - 
-          cards: ["Kh", "Qd", "Jc", "Th"]
-        -
-          cards: ["3s", "7s", "4c", "5c"]
-        -
-          cards: ["9h", "2s", "Ah", "8d"]
-        -
-          cards: ["9c", "Js", "8h", "3d"]
-        -
-          cards: ["9s", "Qc", "7h", "2d"]
-   
+      auto-deal: true   
     # simulate pre-flop action
     preflop-action:
       seat-actions:
@@ -110,9 +95,9 @@ hands:
           seat: 5
           action: FOLD
         -
-          seat: 1
+          seat: 6
           action: CALL
-          amount: 2
+          amount: 5
           verify-action:
             actions: ["CHECK", "FOLD", "ALLIN", "BET"]
             all-in-amount: 100

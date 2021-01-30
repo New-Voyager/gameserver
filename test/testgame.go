@@ -5,6 +5,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"voyager.com/server/game"
+	"voyager.com/server/poker"
 )
 
 var testGameLogger = log.With().Str("logger_name", "test::testgame").Logger()
@@ -103,8 +104,12 @@ func (o *TestPlayer) startGame(clubID uint32, gameID uint64) error {
 	return o.player.StartGame(clubID, gameID)
 }
 
-func (o *TestPlayer) setupNextHand(deck []byte, buttonPos uint32) error {
-	return o.player.SetupNextHand(deck, buttonPos)
+func (o *TestPlayer) setupNextHand(deck *poker.Deck, autoDeal bool, buttonPos uint32) error {
+	var deckBytes []byte
+	if deck != nil {
+		deckBytes = deck.GetBytes()
+	}
+	return o.player.SetupNextHand(deckBytes, autoDeal, buttonPos)
 }
 
 func (o *TestPlayer) getTableState() error {
