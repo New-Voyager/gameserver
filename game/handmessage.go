@@ -333,6 +333,9 @@ func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handSta
 		//}
 	} else if handState.isAllActivePlayersAllIn() {
 		g.handleNoMoreActions(gameState, handState)
+	} else if handState.LastState != handState.CurrentState {
+		// move to next round
+		g.moveToNextRound(gameState, handState)
 	} else {
 		// if the current player is where the action ends, move to the next round
 		g.moveToNextAct(gameState, handState)
@@ -639,14 +642,11 @@ func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) {
 	} else if handState.LastState == HandStatus_RIVER && handState.CurrentState == HandStatus_SHOW_DOWN {
 		g.gotoShowdown(gameState, handState)
 	}
+
+	g.moveToNextAct(gameState, handState)
 }
 
 func (g *Game) moveToNextAct(gameState *GameState, handState *HandState) {
-	if handState.LastState != handState.CurrentState {
-		// move to next round
-		g.moveToNextRound(gameState, handState)
-	}
-
 	if handState.NextSeatAction == nil {
 		return
 	}
