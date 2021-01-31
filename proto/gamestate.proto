@@ -61,6 +61,9 @@ message GameState {
 
   float bring_in = 28;    // bring in chips
 
+  // What stage of the game are we in?
+  uint32 stage = 29;
+
   // Where were we when we crashed?
-  uint32 checkPoint = 29;
+  uint32 checkPoint = 30;
 }

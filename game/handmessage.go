@@ -29,34 +29,16 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 			channelGameLogger.Error().Msgf("Unable to load game state. Error: %s", err.Error())
 			break
 		}
-
-		var handState *HandState
-		var handStateClone *HandState
-		handStateClone, err = g.loadHandStateClone(gameState)
-		if err == nil {
-			// Recovering from crash.
-			handState = handStateClone
-		} else {
-			handState, err = g.loadHandState(gameState)
-			if err != nil {
-				channelGameLogger.Error().Msgf("Unable to load hand state. Error: %s", err.Error())
-				break
-			}
-			handStateClone, err = g.loadHandState(gameState)
-			if err != nil {
-				channelGameLogger.Error().Msgf("Unable to load hand state. Error: %s", err.Error())
-				break
-			}
-			handStateClone.ActionMsgInProgress = message
-			g.saveHandStateClone(gameState, handStateClone)
+		handState, err := g.loadHandState(gameState)
+		if err != nil {
+			channelGameLogger.Error().Msgf("Unable to load hand state. Error: %s", err.Error())
+			break
 		}
 
 		err = g.onPlayerActed(message, gameState, handState)
 		if err != nil {
 			channelGameLogger.Error().Msgf("Error while processing %s message. Error: %s", HandPlayerActed, err.Error())
-			break
 		}
-		g.removeHandStateClone(gameState, handStateClone)
 	case HandQueryCurrentHand:
 		err := g.onQueryCurrentHand(message)
 		if err != nil {
@@ -188,7 +170,16 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 
 func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handState *HandState) error {
 
+	// If we got here, gameState should be in WAIT_FOR_ACTION stage.
+
 	messageSeatNo := message.GetPlayerActed().GetSeatNo()
+	channelGameLogger.Info().
+		Uint32("club", g.config.ClubId).
+		Str("game", g.config.GameCode).
+		Uint32("player", messageSeatNo).
+		Str("message", message.MessageType).
+		Msg(fmt.Sprintf("%v", message))
+
 	if messageSeatNo == 0 && !RunningTests {
 		errMsg := fmt.Sprintf("Invalid seat number [%d] for player ID %d. Ignoring the action message.", messageSeatNo, message.PlayerId)
 		channelGameLogger.Error().
@@ -207,18 +198,6 @@ func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handSta
 				Msgf(errMsg)
 			return fmt.Errorf(errMsg)
 		}
-	}
-
-	channelGameLogger.Info().
-		Uint32("club", g.config.ClubId).
-		Str("game", g.config.GameCode).
-		Uint32("player", messageSeatNo).
-		Str("message", message.MessageType).
-		Msg(fmt.Sprintf("%v", message))
-
-	if messageSeatNo == g.timerSeatNo {
-		// pause play timer
-		g.pausePlayTimer(messageSeatNo)
 	}
 
 	// if the hand number does not match, ignore the message
@@ -270,26 +249,47 @@ func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handSta
 		return fmt.Errorf(errMsg)
 	}
 
+	if messageSeatNo == g.timerSeatNo {
+		// cancel action timer
+		g.pausePlayTimer(messageSeatNo)
+	}
+
+	handState.ActionMsgInProgress = message
+	g.acknowledgeMsg(message)
+
+	gameState.Stage = GameStage__PREPARE_NEXT_ACTION
+	g.saveState(gameState)
+	g.saveHandState(gameState, handState)
+	g.prepareNextAction(gameState, handState)
+	return nil
+}
+
+func (g *Game) prepareNextAction(gameState *GameState, handState *HandState) error {
+	// If we got here, gameState should be in PREPARE_NEXT_ACTION stage.
+
+	message := handState.ActionMsgInProgress
+	if message == nil {
+		errMsg := "Unable to get action message in progress. handState.ActionMsgInProgress is nil"
+		channelGameLogger.Error().
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
+			Msg(errMsg)
+		return fmt.Errorf(errMsg)
+	}
+
 	var err error
 	err = handState.actionReceived(message.GetPlayerActed())
 	if err != nil {
-		// This is not retryable. Just acknowledge, so that the client stops retrying and force the timeout.
-		g.acknowledgeMsg(message)
-		return err
+		return errors.Wrap(err, "Error while updating handstate from action")
 	}
 
-	err = g.saveHandState(gameState, handState)
 	if err != nil {
 		// This is retryable (redis connection temporarily down?). Don't acknowledge and force the client to resend.
 		return err
 	}
 
-	if !message.GetPlayerActed().GetTimedOut() {
-		g.acknowledgeMsg(message)
-	}
-
 	// Send player's current stack to be updated in the UI
-	seatNo := messageSeatNo
+	seatNo := message.GetPlayerActed().GetSeatNo()
 	var stack float32
 	if bettingState, ok := handState.RoundState[uint32(handState.CurrentState)]; ok {
 		stack = bettingState.PlayerBalance[seatNo]
@@ -333,15 +333,28 @@ func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handSta
 		//}
 	} else if handState.isAllActivePlayersAllIn() {
 		g.handleNoMoreActions(gameState, handState)
-	} else {
+	} else if handState.LastState != handState.CurrentState {
 		// if the current player is where the action ends, move to the next round
-		g.moveToNextAct(gameState, handState)
+		gameState.Stage = GameStage__NEXT_ROUND
+		g.saveState(gameState)
+		g.saveHandState(gameState, handState)
+		g.moveToNextRound(gameState, handState)
+	} else {
+		gameState.Stage = GameStage__MOVE_TO_NEXT_ACTION
+		g.saveState(gameState)
+		g.saveHandState(gameState, handState)
+		g.moveToNextAction(gameState, handState)
 	}
 
 	return nil
 }
 
 func (g *Game) acknowledgeMsg(message *HandMessage) {
+	if message.GetPlayerActed().GetTimedOut() {
+		// Default action is generated by the server on action timeout. Don't acknowledge that.
+		return
+	}
+
 	ack := &HandMessage{
 		ClubId:      message.GetClubId(),
 		GameId:      message.GetGameId(),
@@ -393,7 +406,6 @@ func (g *Game) gotoFlop(gameState *GameState, handState *HandState) {
 	}
 
 	handState.setupFlop(boardCards)
-	g.saveHandState(gameState, handState)
 	pots, seatsInPots := g.getPots(handState)
 	balance := make(map[uint32]float32, 0)
 	for seatNo, playerID := range handState.PlayersInSeats {
@@ -414,7 +426,6 @@ func (g *Game) gotoFlop(gameState *GameState, handState *HandState) {
 		HandStatus:  handState.CurrentState}
 	handMessage.HandMessage = &HandMessage_Flop{Flop: flopMessage}
 	g.broadcastHandMessage(handMessage)
-	g.saveHandState(gameState, handState)
 	if !RunningTests {
 		time.Sleep(time.Duration(g.delays.GoToFlop) * time.Millisecond)
 	}
@@ -427,7 +438,6 @@ func (g *Game) gotoTurn(gameState *GameState, handState *HandState) {
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
 	handState.setupTurn(handState.TurnCard)
-	g.saveHandState(gameState, handState)
 
 	cardsStr := poker.CardsToString(handState.BoardCards)
 	boardCards := make([]uint32, len(handState.BoardCards))
@@ -454,7 +464,6 @@ func (g *Game) gotoTurn(gameState *GameState, handState *HandState) {
 		HandStatus:  handState.CurrentState}
 	handMessage.HandMessage = &HandMessage_Turn{Turn: turnMessage}
 	g.broadcastHandMessage(handMessage)
-	g.saveHandState(gameState, handState)
 	if !RunningTests {
 		time.Sleep(time.Duration(g.delays.GoToTurn) * time.Millisecond)
 	}
@@ -467,7 +476,6 @@ func (g *Game) gotoRiver(gameState *GameState, handState *HandState) {
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
 	handState.setupRiver(handState.RiverCard)
-	g.saveHandState(gameState, handState)
 
 	cardsStr := poker.CardsToString(handState.BoardCards)
 	boardCards := make([]uint32, len(handState.BoardCards))
@@ -494,7 +502,6 @@ func (g *Game) gotoRiver(gameState *GameState, handState *HandState) {
 		HandStatus:  handState.CurrentState}
 	handMessage.HandMessage = &HandMessage_River{River: riverMessage}
 	g.broadcastHandMessage(handMessage)
-	g.saveHandState(gameState, handState)
 	if !RunningTests {
 		time.Sleep(time.Duration(g.delays.GoToRiver) * time.Millisecond)
 	}
@@ -520,7 +527,6 @@ func (g *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandSta
 	handResult = handResultProcessor.getResult(false /*db*/)
 	g.sendResult(handState, saveResult, handResult)
 
-	gameState.CheckPoint = CheckPoint__RESULT_SENT
 	g.saveState(gameState)
 	g.moveToNextHand(handState.HandNum)
 	return nil
@@ -623,6 +629,8 @@ func (g *Game) announceHighHand(saveResult *SaveHandResult, highHand *HighHand) 
 }
 
 func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) {
+	// If we got here, gameState should be in NEXT_ROUND stage.
+
 	if handState.LastState == HandStatus_DEAL {
 		return
 	}
@@ -639,16 +647,18 @@ func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) {
 	} else if handState.LastState == HandStatus_RIVER && handState.CurrentState == HandStatus_SHOW_DOWN {
 		g.gotoShowdown(gameState, handState)
 	}
+
+	gameState.Stage = GameStage__MOVE_TO_NEXT_ACTION
+	g.saveState(gameState)
+	g.saveHandState(gameState, handState)
+	g.moveToNextAction(gameState, handState)
 }
 
-func (g *Game) moveToNextAct(gameState *GameState, handState *HandState) {
-	if handState.LastState != handState.CurrentState {
-		// move to next round
-		g.moveToNextRound(gameState, handState)
-	}
+func (g *Game) moveToNextAction(gameState *GameState, handState *HandState) error {
+	// If we got here, gameState should be in MOVE_TO_NEXT_ACTION stage.
 
 	if handState.NextSeatAction == nil {
-		return
+		return fmt.Errorf("moveToNextAct called when handState.NextSeatAction == nil")
 	}
 
 	// tell the next player to act
@@ -707,6 +717,12 @@ func (g *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 	}
 	message.HandMessage = &HandMessage_ActionChange{ActionChange: actionChange}
 	g.broadcastHandMessage(message)
+
+	gameState.Stage = GameStage__WAIT_FOR_NEXT_ACTION
+	g.saveHandState(gameState, handState)
+	g.saveState(gameState)
+
+	return nil
 }
 
 func (g *Game) handleNoMoreActions(gameState *GameState, handState *HandState) {
@@ -761,9 +777,6 @@ func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 	// save the game state
 	g.saveState(gameState)
 	g.sendResult(handState, saveResult, handResult)
-
-	gameState.CheckPoint = CheckPoint__RESULT_SENT
-	g.saveState(gameState)
 	g.moveToNextHand(handState.HandNum)
 }
 
