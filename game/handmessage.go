@@ -256,7 +256,7 @@ func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handSta
 
 	handState.ActionMsgInProgress = message
 	g.acknowledgeMsg(message)
-	gameState.Stage = GameStage__PREPARE_ACTION
+	gameState.Stage = GameStage__PREPARE_NEXT_ACTION
 	g.saveState(gameState)
 	g.saveHandState(gameState, handState)
 
@@ -335,11 +335,16 @@ func (g *Game) prepareNextAction(gameState *GameState, handState *HandState) err
 	} else if handState.isAllActivePlayersAllIn() {
 		g.handleNoMoreActions(gameState, handState)
 	} else if handState.LastState != handState.CurrentState {
-		// move to next round
+		// if the current player is where the action ends, move to the next round
+		gameState.Stage = GameStage__NEXT_ROUND
+		g.saveState(gameState)
+		g.saveHandState(gameState, handState)
 		g.moveToNextRound(gameState, handState)
 	} else {
-		// if the current player is where the action ends, move to the next round
-		g.moveToNextAct(gameState, handState)
+		gameState.Stage = GameStage__MOVE_TO_NEXT_ACTION
+		g.saveState(gameState)
+		g.saveHandState(gameState, handState)
+		g.moveToNextAction(gameState, handState)
 	}
 
 	return nil
@@ -632,6 +637,8 @@ func (g *Game) announceHighHand(saveResult *SaveHandResult, highHand *HighHand) 
 }
 
 func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) {
+	// If we got here, gameState should be in NEXT_ROUND stage.
+
 	if handState.LastState == HandStatus_DEAL {
 		return
 	}
@@ -649,12 +656,17 @@ func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) {
 		g.gotoShowdown(gameState, handState)
 	}
 
-	g.moveToNextAct(gameState, handState)
+	gameState.Stage = GameStage__MOVE_TO_NEXT_ACTION
+	g.saveState(gameState)
+	g.saveHandState(gameState, handState)
+	g.moveToNextAction(gameState, handState)
 }
 
-func (g *Game) moveToNextAct(gameState *GameState, handState *HandState) {
+func (g *Game) moveToNextAction(gameState *GameState, handState *HandState) error {
+	// If we got here, gameState should be in MOVE_TO_NEXT_ACTION stage.
+
 	if handState.NextSeatAction == nil {
-		return
+		return fmt.Errorf("moveToNextAct called when handState.NextSeatAction == nil")
 	}
 
 	// tell the next player to act
@@ -713,6 +725,12 @@ func (g *Game) moveToNextAct(gameState *GameState, handState *HandState) {
 	}
 	message.HandMessage = &HandMessage_ActionChange{ActionChange: actionChange}
 	g.broadcastHandMessage(message)
+
+	gameState.Stage = GameStage__WAIT_FOR_NEXT_ACTION
+	g.saveHandState(gameState, handState)
+	g.saveState(gameState)
+
+	return nil
 }
 
 func (g *Game) handleNoMoreActions(gameState *GameState, handState *HandState) {
