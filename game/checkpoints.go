@@ -9,4 +9,13 @@ const (
 	CheckPoint__DEAL2       uint32 = 22
 	CheckPoint__DEAL3       uint32 = 23
 	CheckPoint__DEAL4       uint32 = 24
+
+	GameStage__NEW_HAND                 uint32 = 1
+	GameStage__WAIT_FOR_ACTION          uint32 = 2
+	GameStage__PREPARE_ACTION           uint32 = 3
+	GameStage__NEXT_ROUND               uint32 = 4
+	GameStage__RESULT                   uint32 = 5
+	GameStage__HAND_END                 uint32 = 6
+	GameStage__HEADS_UP_PROMPT          uint32 = 7
+	GameStage__HEADS_UP_PROMPT_RESPONSE uint32 = 8
 )
