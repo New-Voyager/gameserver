@@ -170,7 +170,16 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 
 func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handState *HandState) error {
 
+	// If we got here, gameState should be in WAIT_FOR_ACTION stage.
+
 	messageSeatNo := message.GetPlayerActed().GetSeatNo()
+	channelGameLogger.Info().
+		Uint32("club", g.config.ClubId).
+		Str("game", g.config.GameCode).
+		Uint32("player", messageSeatNo).
+		Str("message", message.MessageType).
+		Msg(fmt.Sprintf("%v", message))
+
 	if messageSeatNo == 0 && !RunningTests {
 		errMsg := fmt.Sprintf("Invalid seat number [%d] for player ID %d. Ignoring the action message.", messageSeatNo, message.PlayerId)
 		channelGameLogger.Error().
@@ -189,18 +198,6 @@ func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handSta
 				Msgf(errMsg)
 			return fmt.Errorf(errMsg)
 		}
-	}
-
-	channelGameLogger.Info().
-		Uint32("club", g.config.ClubId).
-		Str("game", g.config.GameCode).
-		Uint32("player", messageSeatNo).
-		Str("message", message.MessageType).
-		Msg(fmt.Sprintf("%v", message))
-
-	if messageSeatNo == g.timerSeatNo {
-		// pause play timer
-		g.pausePlayTimer(messageSeatNo)
 	}
 
 	// if the hand number does not match, ignore the message
@@ -252,14 +249,38 @@ func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handSta
 		return fmt.Errorf(errMsg)
 	}
 
+	if messageSeatNo == g.timerSeatNo {
+		// cancel action timer
+		g.pausePlayTimer(messageSeatNo)
+	}
+
+	handState.ActionMsgInProgress = message
 	g.acknowledgeMsg(message)
+	gameState.Stage = GameStage__PREPARE_ACTION
+	g.saveState(gameState)
+	g.saveHandState(gameState, handState)
+
+	g.prepareNextAction(gameState, handState)
+	return nil
+}
+
+func (g *Game) prepareNextAction(gameState *GameState, handState *HandState) error {
+	// If we got here, gameState should be in PREPARE_NEXT_ACTION stage.
+
+	message := handState.ActionMsgInProgress
+	if message == nil {
+		errMsg := "Unable to get action message in progress. handState.ActionMsgInProgress is nil"
+		channelGameLogger.Error().
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
+			Msg(errMsg)
+		return fmt.Errorf(errMsg)
+	}
 
 	var err error
 	err = handState.actionReceived(message.GetPlayerActed())
 	if err != nil {
-		// This is not retryable. Just acknowledge, so that the client stops retrying and force the timeout.
-		g.acknowledgeMsg(message)
-		return err
+		return errors.Wrap(err, "Error while updating handstate from action")
 	}
 
 	err = g.saveHandState(gameState, handState)
@@ -269,7 +290,7 @@ func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handSta
 	}
 
 	// Send player's current stack to be updated in the UI
-	seatNo := messageSeatNo
+	seatNo := message.GetPlayerActed().GetSeatNo()
 	var stack float32
 	if bettingState, ok := handState.RoundState[uint32(handState.CurrentState)]; ok {
 		stack = bettingState.PlayerBalance[seatNo]
