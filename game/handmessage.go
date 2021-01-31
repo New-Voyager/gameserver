@@ -534,7 +534,6 @@ func (g *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandSta
 	handResult = handResultProcessor.getResult(false /*db*/)
 	g.sendResult(handState, saveResult, handResult)
 
-	gameState.CheckPoint = CheckPoint__RESULT_SENT
 	g.saveState(gameState)
 	g.moveToNextHand(handState.HandNum)
 	return nil
@@ -785,9 +784,6 @@ func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 	// save the game state
 	g.saveState(gameState)
 	g.sendResult(handState, saveResult, handResult)
-
-	gameState.CheckPoint = CheckPoint__RESULT_SENT
-	g.saveState(gameState)
 	g.moveToNextHand(handState.HandNum)
 }
 

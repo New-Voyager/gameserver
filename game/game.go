@@ -342,81 +342,68 @@ func (g *Game) startGame() (bool, error) {
 		return false, nil
 	}
 
-	checkPoint := CheckPoint__START1
-	if gameState.CheckPoint < checkPoint {
-		playersInSeats := gameState.GetPlayersInSeats()
-		countPlayersInSeats := 0
-		for _, playerID := range playersInSeats {
-			if playerID != 0 {
-				countPlayersInSeats++
-			}
-		}
-		if uint32(countPlayersInSeats) < gameState.GetMinPlayers() {
-			lastTableState := gameState.TableStatus
-			// not enough players
-			// set table status as not enough players
-			gameState.TableStatus = TableStatus_NOT_ENOUGH_PLAYERS
-			g.saveState(gameState)
-
-			// TODO:
-			// broadcast this message to the players
-			// update this message in API server
-			if lastTableState != gameState.TableStatus {
-				g.broadcastTableState()
-			}
-			return false, nil
-		}
-
-		gameState.CheckPoint = checkPoint
-		g.saveState(gameState)
-		if err != nil {
-			return false, err
+	playersInSeats := gameState.GetPlayersInSeats()
+	countPlayersInSeats := 0
+	for _, playerID := range playersInSeats {
+		if playerID != 0 {
+			countPlayersInSeats++
 		}
 	}
+	if uint32(countPlayersInSeats) < gameState.GetMinPlayers() {
+		lastTableState := gameState.TableStatus
+		// not enough players
+		// set table status as not enough players
+		gameState.TableStatus = TableStatus_NOT_ENOUGH_PLAYERS
+		g.saveState(gameState)
 
-	checkPoint = CheckPoint__START2
-	if gameState.CheckPoint < checkPoint {
-		gameState.TableStatus = TableStatus_GAME_RUNNING
-
-		playersInSeats := gameState.GetPlayersInSeats()
-		channelGameLogger.Info().
-			Uint32("club", g.config.ClubId).
-			Str("game", g.config.GameCode).
-			Msg(fmt.Sprintf("Game started. Good luck every one. Players in the table: %d. Waiting list players: %d",
-				playersInSeats, len(g.waitingPlayers)))
-
-		// assign the button pos to the first guy in the list
-		playersInSeat := gameState.PlayersInSeats
-		for seatNo, playerID := range playersInSeat {
-			// skip seat no 0
-			if seatNo == 0 {
-				continue
-			}
-			if playerID != 0 {
-				gameState.ButtonPos = uint32(seatNo)
-				break
-			}
+		// TODO:
+		// broadcast this message to the players
+		// update this message in API server
+		if lastTableState != gameState.TableStatus {
+			g.broadcastTableState()
 		}
-		gameState.Status = GameStatus_ACTIVE
-		gameState.CheckPoint = checkPoint
-		err = g.saveState(gameState)
-		if err != nil {
-			return false, err
+		return false, nil
+	}
+
+	g.saveState(gameState)
+	if err != nil {
+		return false, err
+	}
+
+	gameState.TableStatus = TableStatus_GAME_RUNNING
+
+	channelGameLogger.Info().
+		Uint32("club", g.config.ClubId).
+		Str("game", g.config.GameCode).
+		Msg(fmt.Sprintf("Game started. Good luck every one. Players in the table: %d. Waiting list players: %d",
+			playersInSeats, len(g.waitingPlayers)))
+
+	// assign the button pos to the first guy in the list
+	playersInSeat := gameState.PlayersInSeats
+	for seatNo, playerID := range playersInSeat {
+		// skip seat no 0
+		if seatNo == 0 {
+			continue
 		}
+		if playerID != 0 {
+			gameState.ButtonPos = uint32(seatNo)
+			break
+		}
+	}
+	gameState.Status = GameStatus_ACTIVE
+	err = g.saveState(gameState)
+	if err != nil {
+		return false, err
 	}
 
 	g.running = true
 
-	checkPoint = CheckPoint__START3
-	if gameState.CheckPoint < checkPoint {
-		gameMessage := GameMessage{MessageType: GameCurrentStatus, GameId: g.config.GameId, PlayerId: 0}
-		gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: gameState.Status, TableStatus: gameState.TableStatus}}
-		g.broadcastGameMessage(&gameMessage)
-		gameState.CheckPoint = checkPoint
-		err = g.saveState(gameState)
-		if err != nil {
-			return false, err
-		}
+	gameMessage := GameMessage{MessageType: GameCurrentStatus, GameId: g.config.GameId, PlayerId: 0}
+	gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: gameState.Status, TableStatus: gameState.TableStatus}}
+	g.broadcastGameMessage(&gameMessage)
+	err = g.saveState(gameState)
+	if err != nil {
+		return false, err
 	}
 
 	if g.autoDeal {
