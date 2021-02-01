@@ -21,7 +21,7 @@ pull:
 	docker pull redis:$(REDIS_VERSION)
 
 .PHONY: compile-proto
-compile-proto: install-protoc
+compile-proto: #install-protoc
 	go get -u github.com/golang/protobuf/protoc-gen-go
 	protoc -I=./proto --go_out=./game ./proto/game.proto
 	protoc -I=./proto --go_out=./game ./proto/hand.proto
