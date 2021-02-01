@@ -169,8 +169,10 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 }
 
 func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handState *HandState) error {
-
-	// If we got here, gameState should be in WAIT_FOR_ACTION stage.
+	expectedState := FlowState_WAIT_FOR_NEXT_ACTION
+	if handState.FlowState != expectedState {
+		return fmt.Errorf("onPlayerActed called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+	}
 
 	messageSeatNo := message.GetPlayerActed().GetSeatNo()
 	channelGameLogger.Info().
@@ -257,7 +259,7 @@ func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handSta
 	handState.ActionMsgInProgress = message
 	g.acknowledgeMsg(message)
 
-	gameState.Stage = GameStage__PREPARE_NEXT_ACTION
+	handState.FlowState = FlowState_PREPARE_NEXT_ACTION
 	g.saveState(gameState)
 	g.saveHandState(gameState, handState)
 	g.prepareNextAction(gameState, handState)
@@ -265,7 +267,10 @@ func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handSta
 }
 
 func (g *Game) prepareNextAction(gameState *GameState, handState *HandState) error {
-	// If we got here, gameState should be in PREPARE_NEXT_ACTION stage.
+	expectedState := FlowState_PREPARE_NEXT_ACTION
+	if handState.FlowState != expectedState {
+		return fmt.Errorf("prepareNextAction called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+	}
 
 	message := handState.ActionMsgInProgress
 	if message == nil {
@@ -324,19 +329,23 @@ func (g *Game) prepareNextAction(gameState *GameState, handState *HandState) err
 	g.saveHandState(gameState, handState)
 
 	if handState.NoActiveSeats == 1 {
-		gameState.Stage = GameStage__RESULT
+		handState.FlowState = FlowState_ONE_PLAYER_REMAINING
 		g.saveState(gameState)
-		g.allButOneFolded(gameState, handState)
+		g.onePlayerRemaining(gameState, handState)
 	} else if handState.isAllActivePlayersAllIn() {
-		gameState.Stage = GameStage__RESULT
+		handState.FlowState = FlowState_ALL_PLAYERS_ALL_IN
 		g.saveState(gameState)
-		g.handleNoMoreActions(gameState, handState)
+		g.allPlayersAllIn(gameState, handState)
+	} else if handState.CurrentState == HandStatus_SHOW_DOWN {
+		handState.FlowState = FlowState_SHOWDOWN
+		g.saveState(gameState)
+		g.showdown(gameState, handState)
 	} else if handState.LastState != handState.CurrentState {
-		gameState.Stage = GameStage__NEXT_ROUND
+		handState.FlowState = FlowState_MOVE_TO_NEXT_ROUND
 		g.saveState(gameState)
 		g.moveToNextRound(gameState, handState)
 	} else {
-		gameState.Stage = GameStage__MOVE_TO_NEXT_ACTION
+		handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 		g.saveState(gameState)
 		g.moveToNextAction(gameState, handState)
 	}
@@ -502,7 +511,12 @@ func (g *Game) gotoRiver(gameState *GameState, handState *HandState) {
 	}
 }
 
-func (g *Game) handEnded(handNum uint32) {
+func (g *Game) handEnded(gameState *GameState, handState *HandState) error {
+	expectedState := FlowState_HAND_ENDED
+	if handState.FlowState != expectedState {
+		return fmt.Errorf("handEnded called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+	}
+
 	// wait 5 seconds to show the result
 	// send a message to game to start new hand
 	if !RunningTests {
@@ -513,7 +527,7 @@ func (g *Game) handEnded(handNum uint32) {
 	handMessage := &HandMessage{
 		ClubId:      g.config.ClubId,
 		GameId:      g.config.GameId,
-		HandNum:     handNum,
+		HandNum:     handState.HandNum,
 		MessageType: HandEnded,
 	}
 	g.broadcastHandMessage(handMessage)
@@ -523,6 +537,8 @@ func (g *Game) handEnded(handNum uint32) {
 		MessageType: GameMoveToNextHand,
 	}
 	go g.SendGameMessageToChannel(gameMessage)
+
+	return nil
 }
 
 func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, handResult *HandResult) {
@@ -598,44 +614,41 @@ func (g *Game) announceHighHand(saveResult *SaveHandResult, highHand *HighHand) 
 
 }
 
-func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) {
-	// If we got here, gameState should be in NEXT_ROUND stage.
+func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) error {
+	expectedState := FlowState_MOVE_TO_NEXT_ROUND
+	if handState.FlowState != expectedState {
+		return fmt.Errorf("moveToNextRound called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+	}
 
 	if handState.LastState == HandStatus_DEAL {
 		// How do we get here?
-		return
+		return nil
 	}
 
 	// remove folded players from the pots
 	handState.removeFoldedPlayersFromPots()
 
-	moreRounds := true
 	if handState.LastState == HandStatus_PREFLOP && handState.CurrentState == HandStatus_FLOP {
 		g.gotoFlop(gameState, handState)
 	} else if handState.LastState == HandStatus_FLOP && handState.CurrentState == HandStatus_TURN {
 		g.gotoTurn(gameState, handState)
 	} else if handState.LastState == HandStatus_TURN && handState.CurrentState == HandStatus_RIVER {
 		g.gotoRiver(gameState, handState)
-	} else if handState.LastState == HandStatus_RIVER && handState.CurrentState == HandStatus_SHOW_DOWN {
-		moreRounds = false
-		g.gotoShowdown(gameState, handState)
 	}
 
-	if moreRounds {
-		gameState.Stage = GameStage__MOVE_TO_NEXT_ACTION
-		g.saveState(gameState)
-		g.saveHandState(gameState, handState)
-		g.moveToNextAction(gameState, handState)
-	} else {
-		gameState.Stage = GameStage__HAND_END
-		g.saveState(gameState)
-		g.saveHandState(gameState, handState)
-		g.handEnded(handState.HandNum)
-	}
+	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
+	g.saveState(gameState)
+	g.saveHandState(gameState, handState)
+	g.moveToNextAction(gameState, handState)
+
+	return nil
 }
 
 func (g *Game) moveToNextAction(gameState *GameState, handState *HandState) error {
-	// If we got here, gameState should be in MOVE_TO_NEXT_ACTION stage.
+	expectedState := FlowState_MOVE_TO_NEXT_ACTION
+	if handState.FlowState != expectedState {
+		return fmt.Errorf("moveToNextAction called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+	}
 
 	if handState.NextSeatAction == nil {
 		return fmt.Errorf("moveToNextAct called when handState.NextSeatAction == nil")
@@ -698,14 +711,19 @@ func (g *Game) moveToNextAction(gameState *GameState, handState *HandState) erro
 	message.HandMessage = &HandMessage_ActionChange{ActionChange: actionChange}
 	g.broadcastHandMessage(message)
 
-	gameState.Stage = GameStage__WAIT_FOR_NEXT_ACTION
+	handState.FlowState = FlowState_WAIT_FOR_NEXT_ACTION
 	g.saveHandState(gameState, handState)
 	g.saveState(gameState)
 
 	return nil
 }
 
-func (g *Game) handleNoMoreActions(gameState *GameState, handState *HandState) {
+func (g *Game) allPlayersAllIn(gameState *GameState, handState *HandState) error {
+	expectedState := FlowState_ALL_PLAYERS_ALL_IN
+	if handState.FlowState != expectedState {
+		return fmt.Errorf("allPlayersAllIn called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+	}
+
 	_, seatsInPots := g.getPots(handState)
 
 	// broadcast the players no more actions
@@ -734,31 +752,48 @@ func (g *Game) handleNoMoreActions(gameState *GameState, handState *HandState) {
 			handState.CurrentState = HandStatus_SHOW_DOWN
 		}
 	}
-	g.gotoShowdown(gameState, handState)
 
-	gameState.Stage = GameStage__HAND_END
+	handState.FlowState = FlowState_SHOWDOWN
 	g.saveState(gameState)
 	g.saveHandState(gameState, handState)
-	g.handEnded(handState.HandNum)
-}
+	g.showdown(gameState, handState)
 
-func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) error {
-	handState.removeEmptyPots()
-	handState.HandCompletedAt = HandStatus_SHOW_DOWN
-	g.generateAndSendResult(gameState, handState)
 	return nil
 }
 
-func (g *Game) allButOneFolded(gameState *GameState, handState *HandState) error {
+func (g *Game) showdown(gameState *GameState, handState *HandState) error {
+	expectedState := FlowState_SHOWDOWN
+	if handState.FlowState != expectedState {
+		return fmt.Errorf("showdown called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+	}
+
+	handState.removeFoldedPlayersFromPots()
+	handState.removeEmptyPots()
+	handState.HandCompletedAt = HandStatus_SHOW_DOWN
+	g.generateAndSendResult(gameState, handState)
+
+	handState.FlowState = FlowState_HAND_ENDED
+	g.saveState(gameState)
+	g.saveHandState(gameState, handState)
+	g.handEnded(gameState, handState)
+	return nil
+}
+
+func (g *Game) onePlayerRemaining(gameState *GameState, handState *HandState) error {
+	expectedState := FlowState_ONE_PLAYER_REMAINING
+	if handState.FlowState != expectedState {
+		return fmt.Errorf("onePlayerRemaining called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+	}
+
 	// every one folded except one player, send the pot to the player
 	handState.everyOneFoldedWinners()
 	handState.CurrentState = HandStatus_HAND_CLOSED
 	g.generateAndSendResult(gameState, handState)
 
-	gameState.Stage = GameStage__HAND_END
+	handState.FlowState = FlowState_HAND_ENDED
 	g.saveState(gameState)
 	g.saveHandState(gameState, handState)
-	g.handEnded(handState.HandNum)
+	g.handEnded(gameState, handState)
 	return nil
 }
 

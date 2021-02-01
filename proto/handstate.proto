@@ -92,5 +92,6 @@ message HandState {
   float bet_before_raise = 51;       // bet before the raise
   float bring_in = 52;    // bring in chips
 
-  HandMessage action_msg_in_progress = 53;
+  FlowState flow_state = 53;
+  HandMessage action_msg_in_progress = 54;
 }

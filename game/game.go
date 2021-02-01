@@ -609,10 +609,9 @@ func (g *Game) dealNewHand() error {
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, gameState, g.players)))
 
-	gameState.Stage = GameStage__MOVE_TO_NEXT_ACTION
+	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 	g.saveHandState(gameState, handState)
 	g.saveState(gameState)
-
 	g.moveToNextAction(gameState, handState)
 	return nil
 }
