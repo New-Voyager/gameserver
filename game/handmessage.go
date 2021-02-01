@@ -324,19 +324,19 @@ func (g *Game) prepareNextAction(gameState *GameState, handState *HandState) err
 	g.saveHandState(gameState, handState)
 
 	if handState.NoActiveSeats == 1 {
-		gameState.Stage = GameStage__RESULT
+		gameState.Stage = GameStage__ONE_PLAYER_REMAINING
 		g.saveState(gameState)
-		g.allButOneFolded(gameState, handState)
+		g.onePlayerRemaining(gameState, handState)
 	} else if handState.isAllActivePlayersAllIn() {
-		gameState.Stage = GameStage__RESULT
+		gameState.Stage = GameStage__ALL_PLAYERS_ALL_IN
 		g.saveState(gameState)
-		g.noMoreActions(gameState, handState)
+		g.allPlayersAllIn(gameState, handState)
 	} else if handState.CurrentState == HandStatus_SHOW_DOWN {
-		gameState.Stage = GameStage__RESULT
+		gameState.Stage = GameStage__SHOWDOWN
 		g.saveState(gameState)
 		g.showdown(gameState, handState)
 	} else if handState.LastState != handState.CurrentState {
-		gameState.Stage = GameStage__NEXT_ROUND
+		gameState.Stage = GameStage__MOVE_TO_NEXT_ROUND
 		g.saveState(gameState)
 		g.moveToNextRound(gameState, handState)
 	} else {
@@ -698,7 +698,7 @@ func (g *Game) moveToNextAction(gameState *GameState, handState *HandState) erro
 	return nil
 }
 
-func (g *Game) noMoreActions(gameState *GameState, handState *HandState) {
+func (g *Game) allPlayersAllIn(gameState *GameState, handState *HandState) {
 	_, seatsInPots := g.getPots(handState)
 
 	// broadcast the players no more actions
@@ -728,7 +728,7 @@ func (g *Game) noMoreActions(gameState *GameState, handState *HandState) {
 		}
 	}
 
-	gameState.Stage = GameStage__RESULT
+	gameState.Stage = GameStage__SHOWDOWN
 	g.saveState(gameState)
 	g.saveHandState(gameState, handState)
 	g.showdown(gameState, handState)
@@ -740,20 +740,20 @@ func (g *Game) showdown(gameState *GameState, handState *HandState) error {
 	handState.HandCompletedAt = HandStatus_SHOW_DOWN
 	g.generateAndSendResult(gameState, handState)
 
-	gameState.Stage = GameStage__HAND_END
+	gameState.Stage = GameStage__HAND_ENDED
 	g.saveState(gameState)
 	g.saveHandState(gameState, handState)
 	g.handEnded(handState.HandNum)
 	return nil
 }
 
-func (g *Game) allButOneFolded(gameState *GameState, handState *HandState) error {
+func (g *Game) onePlayerRemaining(gameState *GameState, handState *HandState) error {
 	// every one folded except one player, send the pot to the player
 	handState.everyOneFoldedWinners()
 	handState.CurrentState = HandStatus_HAND_CLOSED
 	g.generateAndSendResult(gameState, handState)
 
-	gameState.Stage = GameStage__HAND_END
+	gameState.Stage = GameStage__HAND_ENDED
 	g.saveState(gameState)
 	g.saveHandState(gameState, handState)
 	g.handEnded(handState.HandNum)
