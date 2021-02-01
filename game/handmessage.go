@@ -330,7 +330,11 @@ func (g *Game) prepareNextAction(gameState *GameState, handState *HandState) err
 	} else if handState.isAllActivePlayersAllIn() {
 		gameState.Stage = GameStage__RESULT
 		g.saveState(gameState)
-		g.handleNoMoreActions(gameState, handState)
+		g.noMoreActions(gameState, handState)
+	} else if handState.CurrentState == HandStatus_SHOW_DOWN {
+		gameState.Stage = GameStage__RESULT
+		g.saveState(gameState)
+		g.showdown(gameState, handState)
 	} else if handState.LastState != handState.CurrentState {
 		gameState.Stage = GameStage__NEXT_ROUND
 		g.saveState(gameState)
@@ -609,29 +613,18 @@ func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) {
 	// remove folded players from the pots
 	handState.removeFoldedPlayersFromPots()
 
-	moreRounds := true
 	if handState.LastState == HandStatus_PREFLOP && handState.CurrentState == HandStatus_FLOP {
 		g.gotoFlop(gameState, handState)
 	} else if handState.LastState == HandStatus_FLOP && handState.CurrentState == HandStatus_TURN {
 		g.gotoTurn(gameState, handState)
 	} else if handState.LastState == HandStatus_TURN && handState.CurrentState == HandStatus_RIVER {
 		g.gotoRiver(gameState, handState)
-	} else if handState.LastState == HandStatus_RIVER && handState.CurrentState == HandStatus_SHOW_DOWN {
-		moreRounds = false
-		g.gotoShowdown(gameState, handState)
 	}
 
-	if moreRounds {
-		gameState.Stage = GameStage__MOVE_TO_NEXT_ACTION
-		g.saveState(gameState)
-		g.saveHandState(gameState, handState)
-		g.moveToNextAction(gameState, handState)
-	} else {
-		gameState.Stage = GameStage__HAND_END
-		g.saveState(gameState)
-		g.saveHandState(gameState, handState)
-		g.handEnded(handState.HandNum)
-	}
+	gameState.Stage = GameStage__MOVE_TO_NEXT_ACTION
+	g.saveState(gameState)
+	g.saveHandState(gameState, handState)
+	g.moveToNextAction(gameState, handState)
 }
 
 func (g *Game) moveToNextAction(gameState *GameState, handState *HandState) error {
@@ -705,7 +698,7 @@ func (g *Game) moveToNextAction(gameState *GameState, handState *HandState) erro
 	return nil
 }
 
-func (g *Game) handleNoMoreActions(gameState *GameState, handState *HandState) {
+func (g *Game) noMoreActions(gameState *GameState, handState *HandState) {
 	_, seatsInPots := g.getPots(handState)
 
 	// broadcast the players no more actions
@@ -734,18 +727,23 @@ func (g *Game) handleNoMoreActions(gameState *GameState, handState *HandState) {
 			handState.CurrentState = HandStatus_SHOW_DOWN
 		}
 	}
-	g.gotoShowdown(gameState, handState)
+
+	gameState.Stage = GameStage__RESULT
+	g.saveState(gameState)
+	g.saveHandState(gameState, handState)
+	g.showdown(gameState, handState)
+}
+
+func (g *Game) showdown(gameState *GameState, handState *HandState) error {
+	handState.removeFoldedPlayersFromPots()
+	handState.removeEmptyPots()
+	handState.HandCompletedAt = HandStatus_SHOW_DOWN
+	g.generateAndSendResult(gameState, handState)
 
 	gameState.Stage = GameStage__HAND_END
 	g.saveState(gameState)
 	g.saveHandState(gameState, handState)
 	g.handEnded(handState.HandNum)
-}
-
-func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) error {
-	handState.removeEmptyPots()
-	handState.HandCompletedAt = HandStatus_SHOW_DOWN
-	g.generateAndSendResult(gameState, handState)
 	return nil
 }
 
