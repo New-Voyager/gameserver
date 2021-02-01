@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -9,6 +10,9 @@ import (
 type MemoryGameStateTracker struct {
 	activeGames map[string][]byte
 	clubGames   map[uint32]uint64
+
+	activeGamesLock sync.RWMutex
+	clubGamesLock   sync.RWMutex
 }
 
 type MemoryHandStateTracker struct {
@@ -31,6 +35,8 @@ func NewMemoryHandStateTracker() *MemoryHandStateTracker {
 
 func (m *MemoryGameStateTracker) Load(clubID uint32, gameID uint64) (*GameState, error) {
 	key := fmt.Sprintf("%d", gameID)
+	m.activeGamesLock.RLock()
+	defer m.activeGamesLock.RUnlock()
 	if gameStateBytes, ok := m.activeGames[key]; ok {
 		gameState := &GameState{}
 		err := proto.Unmarshal(gameStateBytes, gameState)
@@ -48,12 +54,16 @@ func (m *MemoryGameStateTracker) Save(clubID uint32, gameID uint64, state *GameS
 	if err != nil {
 		return err
 	}
+	m.activeGamesLock.Lock()
+	defer m.activeGamesLock.Unlock()
 	m.activeGames[key] = stateInBytes
 	return nil
 }
 
 func (m *MemoryGameStateTracker) Remove(clubID uint32, gameID uint64) error {
 	key := fmt.Sprintf("%d", gameID)
+	m.activeGamesLock.Lock()
+	defer m.activeGamesLock.Unlock()
 	if _, ok := m.activeGames[key]; ok {
 		delete(m.activeGames, key)
 	}
@@ -62,6 +72,8 @@ func (m *MemoryGameStateTracker) Remove(clubID uint32, gameID uint64) error {
 }
 
 func (m *MemoryGameStateTracker) NextGameId(clubID uint32) (uint64, error) {
+	m.clubGamesLock.Lock()
+	defer m.clubGamesLock.Unlock()
 	if _, ok := m.clubGames[clubID]; !ok {
 		m.clubGames[clubID] = 0
 	}

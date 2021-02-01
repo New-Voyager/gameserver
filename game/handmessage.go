@@ -321,28 +321,23 @@ func (g *Game) prepareNextAction(gameState *GameState, handState *HandState) err
 		time.Sleep(time.Duration(g.delays.PlayerActed) * time.Millisecond)
 	}
 
-	// if only one player is remaining in the hand, we have a winner
-	if handState.NoActiveSeats == 1 {
-		g.sendWinnerBeforeShowdown(gameState, handState)
-		// result of the hand is sent
+	g.saveHandState(gameState, handState)
 
-		// wait for the animation to complete before we send the next hand
-		// if it is not auto deal, we return from here
-		//if !g.autoDeal {
-		//	return nil
-		//}
+	if handState.NoActiveSeats == 1 {
+		gameState.Stage = GameStage__RESULT
+		g.saveState(gameState)
+		g.allButOneFolded(gameState, handState)
 	} else if handState.isAllActivePlayersAllIn() {
+		gameState.Stage = GameStage__RESULT
+		g.saveState(gameState)
 		g.handleNoMoreActions(gameState, handState)
 	} else if handState.LastState != handState.CurrentState {
-		// if the current player is where the action ends, move to the next round
 		gameState.Stage = GameStage__NEXT_ROUND
 		g.saveState(gameState)
-		g.saveHandState(gameState, handState)
 		g.moveToNextRound(gameState, handState)
 	} else {
 		gameState.Stage = GameStage__MOVE_TO_NEXT_ACTION
 		g.saveState(gameState)
-		g.saveHandState(gameState, handState)
 		g.moveToNextAction(gameState, handState)
 	}
 
@@ -507,32 +502,7 @@ func (g *Game) gotoRiver(gameState *GameState, handState *HandState) {
 	}
 }
 
-func (g *Game) sendWinnerBeforeShowdown(gameState *GameState, handState *HandState) error {
-	// every one folded except one player, send the pot to the player
-	handState.everyOneFoldedWinners()
-
-	handState.CurrentState = HandStatus_HAND_CLOSED
-	err := g.saveHandState(gameState, handState)
-	if err != nil {
-		return err
-	}
-
-	handResultProcessor := NewHandResultProcessor(handState, gameState, g.config.RewardTrackingIds)
-
-	// send the hand to the database to store first
-	handResult := handResultProcessor.getResult(true /*db*/)
-	saveResult, err := g.saveHandResult(handResult)
-
-	// send to all the players
-	handResult = handResultProcessor.getResult(false /*db*/)
-	g.sendResult(handState, saveResult, handResult)
-
-	g.saveState(gameState)
-	g.moveToNextHand(handState.HandNum)
-	return nil
-}
-
-func (g *Game) moveToNextHand(handNum uint32) {
+func (g *Game) handEnded(handNum uint32) {
 	// wait 5 seconds to show the result
 	// send a message to game to start new hand
 	if !RunningTests {
@@ -632,12 +602,14 @@ func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) {
 	// If we got here, gameState should be in NEXT_ROUND stage.
 
 	if handState.LastState == HandStatus_DEAL {
+		// How do we get here?
 		return
 	}
 
 	// remove folded players from the pots
 	handState.removeFoldedPlayersFromPots()
 
+	moreRounds := true
 	if handState.LastState == HandStatus_PREFLOP && handState.CurrentState == HandStatus_FLOP {
 		g.gotoFlop(gameState, handState)
 	} else if handState.LastState == HandStatus_FLOP && handState.CurrentState == HandStatus_TURN {
@@ -645,13 +617,21 @@ func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) {
 	} else if handState.LastState == HandStatus_TURN && handState.CurrentState == HandStatus_RIVER {
 		g.gotoRiver(gameState, handState)
 	} else if handState.LastState == HandStatus_RIVER && handState.CurrentState == HandStatus_SHOW_DOWN {
+		moreRounds = false
 		g.gotoShowdown(gameState, handState)
 	}
 
-	gameState.Stage = GameStage__MOVE_TO_NEXT_ACTION
-	g.saveState(gameState)
-	g.saveHandState(gameState, handState)
-	g.moveToNextAction(gameState, handState)
+	if moreRounds {
+		gameState.Stage = GameStage__MOVE_TO_NEXT_ACTION
+		g.saveState(gameState)
+		g.saveHandState(gameState, handState)
+		g.moveToNextAction(gameState, handState)
+	} else {
+		gameState.Stage = GameStage__HAND_END
+		g.saveState(gameState)
+		g.saveHandState(gameState, handState)
+		g.handEnded(handState.HandNum)
+	}
 }
 
 func (g *Game) moveToNextAction(gameState *GameState, handState *HandState) error {
@@ -726,7 +706,6 @@ func (g *Game) moveToNextAction(gameState *GameState, handState *HandState) erro
 }
 
 func (g *Game) handleNoMoreActions(gameState *GameState, handState *HandState) {
-
 	_, seatsInPots := g.getPots(handState)
 
 	// broadcast the players no more actions
@@ -756,13 +735,36 @@ func (g *Game) handleNoMoreActions(gameState *GameState, handState *HandState) {
 		}
 	}
 	g.gotoShowdown(gameState, handState)
+
+	gameState.Stage = GameStage__HAND_END
+	g.saveState(gameState)
+	g.saveHandState(gameState, handState)
+	g.handEnded(handState.HandNum)
 }
 
-func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) {
+func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) error {
 	handState.removeEmptyPots()
-
 	handState.HandCompletedAt = HandStatus_SHOW_DOWN
+	g.generateAndSendResult(gameState, handState)
+	return nil
+}
+
+func (g *Game) allButOneFolded(gameState *GameState, handState *HandState) error {
+	// every one folded except one player, send the pot to the player
+	handState.everyOneFoldedWinners()
+	handState.CurrentState = HandStatus_HAND_CLOSED
+	g.generateAndSendResult(gameState, handState)
+
+	gameState.Stage = GameStage__HAND_END
+	g.saveState(gameState)
+	g.saveHandState(gameState, handState)
+	g.handEnded(handState.HandNum)
+	return nil
+}
+
+func (g *Game) generateAndSendResult(gameState *GameState, handState *HandState) error {
 	handResultProcessor := NewHandResultProcessor(handState, gameState, g.config.RewardTrackingIds)
+
 	// send the hand to the database to store first
 	handResult := handResultProcessor.getResult(true /*db*/)
 	saveResult, _ := g.saveHandResult(handResult)
@@ -774,10 +776,10 @@ func (g *Game) gotoShowdown(gameState *GameState, handState *HandState) {
 	for _, player := range handResult.Players {
 		gameState.PlayersState[player.Id].CurrentBalance = player.Balance.After
 	}
-	// save the game state
-	g.saveState(gameState)
+
 	g.sendResult(handState, saveResult, handResult)
-	g.moveToNextHand(handState.HandNum)
+
+	return nil
 }
 
 func (g *Game) saveHandResult(result *HandResult) (*SaveHandResult, error) {
