@@ -195,3 +195,17 @@ message PotWinners {
   repeated HandWinner hi_winners = 1;
   repeated HandWinner low_winners = 2;
 }
+
+enum FlowState {
+	NEW_HAND                 = 0;
+	WAIT_FOR_NEXT_ACTION     = 1;
+	PREPARE_NEXT_ACTION      = 2;
+	MOVE_TO_NEXT_ACTION      = 3;
+	MOVE_TO_NEXT_ROUND       = 4;
+	ALL_PLAYERS_ALL_IN       = 5;
+	ONE_PLAYER_REMAINING     = 6;
+	SHOWDOWN                 = 7;
+	HAND_ENDED               = 8;
+	HEADS_UP_PROMPT          = 9;
+	HEADS_UP_PROMPT_RESPONSE = 10;
+}
