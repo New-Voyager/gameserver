@@ -338,6 +338,19 @@ func (g *Game) startGame() (bool, error) {
 		return false, err
 	}
 
+	handState, err := g.loadHandState(gameState)
+	if err == nil {
+		// There is an existing hand state. The game must've crashed and is now restarting.
+		// Continue where we left off.
+		err := g.resumeGame(gameState, handState)
+		if err != nil {
+			// Unable to resume game. This is bad.
+			// TODO: Come up with a proper action.
+			return false, err
+		}
+		return true, nil
+	}
+
 	if !g.config.AutoStart && gameState.Status != GameStatus_ACTIVE {
 		return false, nil
 	}
@@ -365,7 +378,7 @@ func (g *Game) startGame() (bool, error) {
 		return false, nil
 	}
 
-	g.saveState(gameState)
+	err = g.saveState(gameState)
 	if err != nil {
 		return false, err
 	}
@@ -411,6 +424,46 @@ func (g *Game) startGame() (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (g *Game) resumeGame(gameState *GameState, handState *HandState) error {
+	channelGameLogger.Info().
+		Uint32("club", g.config.ClubId).
+		Str("game", g.config.GameCode).
+		Msgf("Restarting hand at flow state [%s].", handState.FlowState)
+
+	switch handState.FlowState {
+	case FlowState_WAIT_FOR_NEXT_ACTION:
+		// We're relying on the client to resend the action message.
+		break
+	case FlowState_PREPARE_NEXT_ACTION:
+		err := g.prepareNextAction(gameState, handState)
+		if err != nil {
+			if strings.Contains(err.Error(), "Invalid seat") {
+				channelGameLogger.Info().
+					Uint32("club", g.config.ClubId).
+					Str("game", g.config.GameCode).
+					Msgf("Ignoring invalid message during restart.")
+			} else {
+				return err
+			}
+		}
+	case FlowState_MOVE_TO_NEXT_ACTION:
+		return g.moveToNextAction(gameState, handState)
+	case FlowState_MOVE_TO_NEXT_ROUND:
+		return g.moveToNextRound(gameState, handState)
+	case FlowState_ALL_PLAYERS_ALL_IN:
+		return g.allPlayersAllIn(gameState, handState)
+	case FlowState_ONE_PLAYER_REMAINING:
+		return g.onePlayerRemaining(gameState, handState)
+	case FlowState_SHOWDOWN:
+		return g.showdown(gameState, handState)
+	case FlowState_HAND_ENDED:
+		return g.handEnded(gameState, handState)
+	default:
+		return fmt.Errorf("Unhandled flow state: %s", handState.FlowState)
+	}
+	return nil
 }
 
 func (g *Game) maskCards(playerCards []byte, gameToken uint64) ([]uint32, uint64) {
