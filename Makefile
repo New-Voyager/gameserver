@@ -15,6 +15,18 @@ REDIS_VERSION := 6.0.9
 
 DOCKER_BUILDKIT ?= 1
 
+# NATS Logging Options:
+# -l, --log <file>                 File to redirect log output
+# -T, --logtime                    Timestamp log entries (default: true)
+# -s, --syslog                     Log to syslog or windows event log
+# -r, --remote_syslog <addr>       Syslog server addr (udp://localhost:514)
+# -D, --debug                      Enable debugging output
+# -V, --trace                      Trace the raw protocol
+# -VV                              Verbose trace (traces system account as well)
+# -DV                              Debug and trace
+# -DVV                             Debug and verbose trace (traces system account as well)
+NATS_OPTS ?=
+
 .PHONY: pull
 pull:
 	docker pull nats:$(NATS_VERSION)
@@ -82,7 +94,7 @@ create-network:
 .PHONY: run-nats
 run-nats: create-network
 	docker rm -f nats || true
-	docker run -d --name nats --network $(DEFAULT_DOCKER_NET) -p 4222:4222 -p 9222:9222 -p 8222:8222 nats:$(NATS_VERSION)
+	docker run -d --name nats --network $(DEFAULT_DOCKER_NET) -p 4222:4222 -p 9222:9222 -p 8222:8222 nats:$(NATS_VERSION) --config /etc/nats/nats-server.conf $(NATS_OPTS)
 
 .PHONY: run-redis
 run-redis: create-network
