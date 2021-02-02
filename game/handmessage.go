@@ -169,11 +169,6 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 }
 
 func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handState *HandState) error {
-	expectedState := FlowState_WAIT_FOR_NEXT_ACTION
-	if handState.FlowState != expectedState {
-		return fmt.Errorf("onPlayerActed called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
-	}
-
 	messageSeatNo := message.GetPlayerActed().GetSeatNo()
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
@@ -251,6 +246,18 @@ func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handSta
 		return fmt.Errorf(errMsg)
 	}
 
+	expectedState := FlowState_WAIT_FOR_NEXT_ACTION
+	if handState.FlowState != expectedState {
+		errMsg := fmt.Sprintf("onPlayerActed called in wrong flow state. Ignoring message. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+		channelGameLogger.Error().
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
+			Uint32("player", messageSeatNo).
+			Str("message", message.MessageType).
+			Msg(errMsg)
+		return nil
+	}
+
 	if messageSeatNo == g.timerSeatNo {
 		// cancel action timer
 		g.pausePlayTimer(messageSeatNo)
@@ -326,27 +333,27 @@ func (g *Game) prepareNextAction(gameState *GameState, handState *HandState) err
 		time.Sleep(time.Duration(g.delays.PlayerActed) * time.Millisecond)
 	}
 
-	g.saveHandState(gameState, handState)
+	g.saveState(gameState)
 
 	if handState.NoActiveSeats == 1 {
 		handState.FlowState = FlowState_ONE_PLAYER_REMAINING
-		g.saveState(gameState)
+		g.saveHandState(gameState, handState)
 		g.onePlayerRemaining(gameState, handState)
 	} else if handState.isAllActivePlayersAllIn() {
 		handState.FlowState = FlowState_ALL_PLAYERS_ALL_IN
-		g.saveState(gameState)
+		g.saveHandState(gameState, handState)
 		g.allPlayersAllIn(gameState, handState)
 	} else if handState.CurrentState == HandStatus_SHOW_DOWN {
 		handState.FlowState = FlowState_SHOWDOWN
-		g.saveState(gameState)
+		g.saveHandState(gameState, handState)
 		g.showdown(gameState, handState)
 	} else if handState.LastState != handState.CurrentState {
 		handState.FlowState = FlowState_MOVE_TO_NEXT_ROUND
-		g.saveState(gameState)
+		g.saveHandState(gameState, handState)
 		g.moveToNextRound(gameState, handState)
 	} else {
 		handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
-		g.saveState(gameState)
+		g.saveHandState(gameState, handState)
 		g.moveToNextAction(gameState, handState)
 	}
 
