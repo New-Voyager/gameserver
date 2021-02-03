@@ -670,7 +670,7 @@ func (g *Game) dealNewHand() error {
 }
 
 func (g *Game) loadState() (*GameState, error) {
-	gameState, err := g.manager.gameStatePersist.Load(g.config.ClubId, g.config.GameId)
+	gameState, err := g.manager.gameStatePersist.Load(g.config.GameCode)
 	if err != nil {
 		channelGameLogger.Error().
 			Uint32("club", g.config.ClubId).
@@ -683,13 +683,13 @@ func (g *Game) loadState() (*GameState, error) {
 }
 
 func (g *Game) saveState(gameState *GameState) error {
-	err := g.manager.gameStatePersist.Save(g.config.ClubId, g.config.GameId, gameState)
+	err := g.manager.gameStatePersist.Save(g.config.GameCode, gameState)
 	return err
 }
 
 func (g *Game) saveHandState(gameState *GameState, handState *HandState) error {
-	err := g.manager.handStatePersist.Save(gameState.GetClubId(),
-		gameState.GetGameId(),
+	err := g.manager.handStatePersist.Save(
+		gameState.GameCode,
 		handState.HandNum,
 		handState)
 	return err
@@ -700,15 +700,15 @@ func (g *Game) removeHandState(gameState *GameState, handState *HandState) error
 		return nil
 	}
 
-	err := g.manager.handStatePersist.Remove(gameState.GetClubId(),
-		gameState.GetGameId(),
+	err := g.manager.handStatePersist.Remove(
+		gameState.GameCode,
 		handState.HandNum)
 	return err
 }
 
 func (g *Game) loadHandState(gameState *GameState) (*HandState, error) {
-	handState, err := g.manager.handStatePersist.Load(gameState.GetClubId(),
-		gameState.GetGameId(),
+	handState, err := g.manager.handStatePersist.Load(
+		gameState.GetGameCode(),
 		gameState.GetHandNum())
 	return handState, err
 }
