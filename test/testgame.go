@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"voyager.com/server/game"
@@ -30,7 +31,7 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 
 	gamePlayers := make(map[uint64]*TestPlayer)
 
-	gameCode := fmt.Sprintf("000000")
+	gameCode := fmt.Sprintf("%d", time.Now().Unix())
 	maxPlayers := 9
 	config := game.GameConfig{
 		ClubId:     clubID,
@@ -51,7 +52,7 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	gameScript.gameScript.GameConfig.GameCode = "000000"
 	gameScript.gameScript.GameConfig.ClubId = clubID
 	gameScript.gameScript.GameConfig.GameType = gameType
-	gameScript.gameScript.GameConfig.GameId = uint64(gameID)
+	gameScript.gameScript.GameConfig.GameId = uint64(time.Now().Unix())
 
 	serverGame, gameID, err := game.GameManager.InitializeGame(nil, &gameScript.gameScript.GameConfig, false)
 	if err != nil {

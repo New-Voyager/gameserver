@@ -1,4 +1,4 @@
-disabled: false
+disabled: true
 game-config:
   type: FIVE_CARD_PLO
   max-players: 3
