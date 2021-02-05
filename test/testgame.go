@@ -49,7 +49,7 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 		gameScript.gameScript.GameConfig.ActionTime = 300
 	}
 	gameID++
-	gameScript.gameScript.GameConfig.GameCode = "000000"
+	gameScript.gameScript.GameConfig.GameCode = gameCode
 	gameScript.gameScript.GameConfig.ClubId = clubID
 	gameScript.gameScript.GameConfig.GameType = gameType
 	gameScript.gameScript.GameConfig.GameId = uint64(time.Now().Unix())
