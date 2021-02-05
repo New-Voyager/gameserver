@@ -344,9 +344,10 @@ func (g *Game) startGame() (bool, error) {
 		// Continue where we left off.
 		err := g.resumeGame(gameState, handState)
 		if err != nil {
-			// Unable to resume game. This is bad.
-			// TODO: Come up with a proper action.
-			return false, err
+			channelGameLogger.Error().
+				Uint32("club", g.config.ClubId).
+				Str("game", g.config.GameCode).
+				Msgf("Error while resuming game. Error: %s", err.Error())
 		}
 		return true, nil
 	}
@@ -437,17 +438,7 @@ func (g *Game) resumeGame(gameState *GameState, handState *HandState) error {
 		// We're relying on the client to resend the action message.
 		break
 	case FlowState_PREPARE_NEXT_ACTION:
-		err := g.prepareNextAction(gameState, handState)
-		if err != nil {
-			if strings.Contains(err.Error(), "Invalid seat") {
-				channelGameLogger.Info().
-					Uint32("club", g.config.ClubId).
-					Str("game", g.config.GameCode).
-					Msgf("Ignoring invalid message during restart.")
-			} else {
-				return err
-			}
-		}
+		return g.prepareNextAction(gameState, handState)
 	case FlowState_MOVE_TO_NEXT_ACTION:
 		return g.moveToNextAction(gameState, handState)
 	case FlowState_MOVE_TO_NEXT_ROUND:
