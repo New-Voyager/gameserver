@@ -118,7 +118,7 @@ func (m *MemoryHandStateTracker) Remove(gameCode string, handID uint32) error {
 }
 
 func (m *MemoryHandStateTracker) RemoveClone(gameCode string, handID uint32) error {
-	key := fmt.Sprintf("%s:clone", gameCode, handID)
+	key := fmt.Sprintf("%s:%d:clone", gameCode, handID)
 	return m.remove(key)
 }
 

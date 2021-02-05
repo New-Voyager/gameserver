@@ -81,7 +81,7 @@ func (r *RedisHandStateTracker) LoadClone(gameCode string, handID uint32) (*Hand
 func (r *RedisHandStateTracker) load(key string, gameCode string, handID uint32) (*HandState, error) {
 	handStateBytes, err := r.rdclient.Get(context.Background(), key).Result()
 	if err == redis.Nil {
-		return nil, fmt.Errorf("Hand state for Game: %d, Hand: %d is not found", gameCode, handID)
+		return nil, fmt.Errorf("Hand state for Game: %s, Hand: %d is not found", gameCode, handID)
 	} else if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func (r *RedisHandStateTracker) Remove(gameCode string, handID uint32) error {
 }
 
 func (r *RedisHandStateTracker) RemoveClone(gameCode string, handID uint32) error {
-	key := fmt.Sprintf("%s|clone", gameCode, handID)
+	key := fmt.Sprintf("%s|%d|clone", gameCode, handID)
 	return r.remove(key)
 }
 
