@@ -32,7 +32,7 @@ func (cp CrashPoint) IsValid() bool {
 	return false
 }
 
-var crashTestLogger = log.With().Str("logger_name", "crashtest::controller").Logger()
+var crashTestLogger = log.With().Str("logger_name", "crashtest::crashtest").Logger()
 var crashAt CrashPoint = CrashPoint_NO_CRASH
 
 // Set schedules for crashing at the specified point.

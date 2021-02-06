@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -57,6 +56,8 @@ type Game struct {
 	delays                  Delays
 	lock                    sync.Mutex
 	timerSeatNo             uint32
+
+	state *GameState
 }
 
 type timerMsg struct {
@@ -105,13 +106,7 @@ func (g *Game) SetScriptTest(scriptTest bool) {
 }
 
 func (g *Game) playersInSeatsCount() int {
-	state, err := g.loadState()
-	if err != nil {
-		// panic
-		// TODO: FIX THIS CODE
-		panic("Shouldn't be here")
-	}
-	playersInSeats := state.GetPlayersInSeats()
+	playersInSeats := g.state.GetPlayersInSeats()
 	countPlayersInSeats := 0
 	for _, playerID := range playersInSeats {
 		if playerID != 0 {
@@ -236,11 +231,7 @@ func (g *Game) pausePlayTimer(seatNo uint32) {
 }
 
 func (g *Game) handlePlayTimeout(timeoutMsg timerMsg) error {
-	gameState, err := g.loadState()
-	if err != nil {
-		return err
-	}
-	handState, err := g.loadHandState(gameState)
+	handState, err := g.loadHandState(g.state)
 	if err != nil {
 		return err
 	}
@@ -270,22 +261,10 @@ func (g *Game) handlePlayTimeout(timeoutMsg timerMsg) error {
 }
 
 func (g *Game) initialize() error {
-	for {
-		_, err := g.loadState()
-		if err == nil {
-			break
-		}
-		if strings.Contains(err.Error(), "not found") {
-			// No existing state. New game.
-			channelGameLogger.Info().Msgf("Starting a new game state for club %d game %d.", g.config.ClubId, g.config.GameId)
-			g.startNewGameState()
-		} else {
-			// Redis error?
-			channelGameLogger.Error().Msgf("Error while loading game state for club %d game %d. Error: %s", g.config.ClubId, g.config.GameId, err.Error())
-			time.Sleep(2 * time.Second)
-		}
-	}
-
+	// This is where we used to check if there is an existing game state in redis and reuse that instead of
+	// starting a new game state.
+	// Now that we don't save game state to redis, how do we resume the state of a crashed game?
+	g.startNewGameState()
 	return nil
 }
 
@@ -302,47 +281,42 @@ func (g *Game) startNewGameState() error {
 	}
 
 	// initialize game state
-	gameState := GameState{
+	g.state = &GameState{
 		ClubId:                g.config.ClubId,
 		GameId:                g.config.GameId,
+		GameCode:              g.config.GameCode,
 		PlayersInSeats:        playersInSeats,
 		PlayersState:          playersState,
 		UtgStraddleAllowed:    false,
 		ButtonStraddleAllowed: false,
-		Status:                GameStatus_CONFIGURED,
+		Status:                g.config.Status,
 		GameType:              g.config.GameType,
 		MinPlayers:            uint32(g.config.MinPlayers),
-		HandNum:               0,
 		ButtonPos:             0,
 		SmallBlind:            float32(g.config.SmallBlind),
 		BigBlind:              float32(g.config.BigBlind),
 		MaxSeats:              uint32(g.config.MaxPlayers),
-		TableStatus:           TableStatus_WAITING_TO_BE_STARTED,
+		TableStatus:           g.config.TableStatus,
 		ActionTime:            uint32(g.config.ActionTime),
 		RakePercentage:        float32(g.config.RakePercentage),
 		RakeCap:               float32(g.config.RakeCap),
 		RewardTrackingIds:     rewardTrackingIds,
 		BringIn:               float32(g.config.BringIn),
 	}
-	err := g.saveState(&gameState)
-	if err != nil {
-		panic("Could not store game state")
-		//return err
-	}
+	fmt.Printf("g.state: %+v\n", g.state)
 	return nil
 }
 
 func (g *Game) startGame() (bool, error) {
-	gameState, err := g.loadState()
-	if err != nil {
-		return false, err
+	if g.state == nil {
+		return false, fmt.Errorf("Game state has not been initialized")
 	}
 
-	handState, err := g.loadHandState(gameState)
+	handState, err := g.loadHandState(g.state)
 	if err == nil {
 		// There is an existing hand state. The game must've crashed and is now restarting.
 		// Continue where we left off.
-		err := g.resumeGame(gameState, handState)
+		err := g.resumeGame(g.state, handState)
 		if err != nil {
 			channelGameLogger.Error().
 				Uint32("club", g.config.ClubId).
@@ -352,39 +326,33 @@ func (g *Game) startGame() (bool, error) {
 		return true, nil
 	}
 
-	if !g.config.AutoStart && gameState.Status != GameStatus_ACTIVE {
+	if !g.config.AutoStart && g.state.Status != GameStatus_ACTIVE {
 		return false, nil
 	}
 
-	playersInSeats := gameState.GetPlayersInSeats()
+	playersInSeats := g.state.GetPlayersInSeats()
 	countPlayersInSeats := 0
 	for _, playerID := range playersInSeats {
 		if playerID != 0 {
 			countPlayersInSeats++
 		}
 	}
-	if uint32(countPlayersInSeats) < gameState.GetMinPlayers() {
-		lastTableState := gameState.TableStatus
+	if uint32(countPlayersInSeats) < g.state.GetMinPlayers() {
+		lastTableState := g.state.TableStatus
 		// not enough players
 		// set table status as not enough players
-		gameState.TableStatus = TableStatus_NOT_ENOUGH_PLAYERS
-		g.saveState(gameState)
+		g.state.TableStatus = TableStatus_NOT_ENOUGH_PLAYERS
 
 		// TODO:
 		// broadcast this message to the players
 		// update this message in API server
-		if lastTableState != gameState.TableStatus {
+		if lastTableState != g.state.TableStatus {
 			g.broadcastTableState()
 		}
 		return false, nil
 	}
 
-	err = g.saveState(gameState)
-	if err != nil {
-		return false, err
-	}
-
-	gameState.TableStatus = TableStatus_GAME_RUNNING
+	g.state.TableStatus = TableStatus_GAME_RUNNING
 
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
@@ -393,32 +361,24 @@ func (g *Game) startGame() (bool, error) {
 			playersInSeats, len(g.waitingPlayers)))
 
 	// assign the button pos to the first guy in the list
-	playersInSeat := gameState.PlayersInSeats
+	playersInSeat := g.state.PlayersInSeats
 	for seatNo, playerID := range playersInSeat {
 		// skip seat no 0
 		if seatNo == 0 {
 			continue
 		}
 		if playerID != 0 {
-			gameState.ButtonPos = uint32(seatNo)
+			g.state.ButtonPos = uint32(seatNo)
 			break
 		}
 	}
-	gameState.Status = GameStatus_ACTIVE
-	err = g.saveState(gameState)
-	if err != nil {
-		return false, err
-	}
+	g.state.Status = GameStatus_ACTIVE
 
 	g.running = true
 
 	gameMessage := GameMessage{MessageType: GameCurrentStatus, GameId: g.config.GameId, PlayerId: 0}
-	gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: gameState.Status, TableStatus: gameState.TableStatus}}
+	gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: g.state.Status, TableStatus: g.state.TableStatus}}
 	g.broadcastGameMessage(&gameMessage)
-	err = g.saveState(gameState)
-	if err != nil {
-		return false, err
-	}
 
 	if g.autoDeal {
 		g.dealNewHand()
@@ -498,32 +458,31 @@ func (g *Game) NumCards(gameType GameType) uint32 {
 }
 
 func (g *Game) dealNewHand() error {
-	gameState, err := g.loadState()
-	if err != nil {
-		return err
-	}
-
 	var handState *HandState
 
 	// remove the old handstate
-	handState1, _ := g.loadHandState(gameState)
+	handState1, _ := g.loadHandState(g.state)
 	if handState1 != nil {
-		g.removeHandState(gameState, handState1)
+		g.removeHandState(g.state, handState1)
 	}
 
-	moveButton := gameState.HandNum > 1
+	prevHandNum := 0
+	if handState1 != nil {
+		prevHandNum = int(handState1.HandNum)
+	}
+
+	moveButton := prevHandNum > 1
 
 	if g.testButtonPos > 0 {
-		gameState.ButtonPos = uint32(g.testButtonPos)
+		g.state.ButtonPos = uint32(g.testButtonPos)
 		moveButton = false
 	}
 
-	gameState.HandNum++
 	handState = &HandState{
-		ClubId:        gameState.GetClubId(),
-		GameId:        gameState.GetGameId(),
-		HandNum:       gameState.GetHandNum(),
-		GameType:      gameState.GetGameType(),
+		ClubId:        g.state.GetClubId(),
+		GameId:        g.state.GetGameId(),
+		HandNum:       uint32(prevHandNum) + 1,
+		GameType:      g.state.GetGameType(),
 		CurrentState:  HandStatus_DEAL,
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
@@ -533,9 +492,9 @@ func (g *Game) dealNewHand() error {
 		deck = poker.NewDeck(nil).Shuffle()
 	}
 
-	handState.initialize(gameState, deck, gameState.ButtonPos, moveButton)
+	handState.initialize(g.state, deck, g.state.ButtonPos, moveButton)
 
-	gameState.ButtonPos = handState.GetButtonPos()
+	g.state.ButtonPos = handState.GetButtonPos()
 	g.testDeckToUse = nil
 	g.testButtonPos = -1
 
@@ -553,7 +512,7 @@ func (g *Game) dealNewHand() error {
 		HandStatus:  handState.CurrentState,
 	}
 
-	gameType := gameState.GameType
+	gameType := g.state.GameType
 	// send a new hand message to all players
 	newHand := NewHand{
 		ButtonPos:      handState.ButtonPos,
@@ -597,10 +556,10 @@ func (g *Game) dealNewHand() error {
 	g.broadcastHandMessage(&handMessage)
 
 	playersCards := make(map[uint32]string)
-	activePlayers := uint32(len(gameState.GetPlayersInSeats()))
+	activePlayers := uint32(len(g.state.GetPlayersInSeats()))
 	cardAnimationTime := time.Duration(activePlayers * g.delays.DealSingleCard * newHand.NoCards)
 	// send the cards to each player
-	for seatNo, playerID := range gameState.GetPlayersInSeats() {
+	for seatNo, playerID := range g.state.GetPlayersInSeats() {
 		if playerID == 0 {
 			// empty seat
 			continue
@@ -624,7 +583,7 @@ func (g *Game) dealNewHand() error {
 		playerCards := handState.PlayersCards[uint32(seatNo)]
 		message := HandDealCards{SeatNo: uint32(seatNo)}
 
-		cards, maskedCards := g.maskCards(playerCards, gameState.PlayersState[playerID].GameTokenInt)
+		cards, maskedCards := g.maskCards(playerCards, g.state.PlayersState[playerID].GameTokenInt)
 		playersCards[uint32(seatNo+1)] = fmt.Sprintf("%d", maskedCards)
 		message.Cards = fmt.Sprintf("%d", maskedCards)
 		message.CardsStr = poker.CardsToString(cards)
@@ -651,37 +610,17 @@ func (g *Game) dealNewHand() error {
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
 		Uint32("hand", handState.HandNum).
-		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, gameState, g.players)))
+		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, g.state, g.players)))
 
 	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
-	g.saveHandState(gameState, handState)
-	g.saveState(gameState)
-	g.moveToNextAction(gameState, handState)
+	g.saveHandState(handState)
+	g.moveToNextAction(g.state, handState)
 	return nil
 }
 
-func (g *Game) loadState() (*GameState, error) {
-	gameState, err := g.manager.gameStatePersist.Load(g.config.GameCode)
-	if err != nil {
-		channelGameLogger.Error().
-			Uint32("club", g.config.ClubId).
-			Str("game", g.config.GameCode).
-			Msg(fmt.Sprintf("Error loading game state.  Error: %v", err))
-		return nil, err
-	}
-
-	return gameState, err
-}
-
-func (g *Game) saveState(gameState *GameState) error {
-	err := g.manager.gameStatePersist.Save(g.config.GameCode, gameState)
-	return err
-}
-
-func (g *Game) saveHandState(gameState *GameState, handState *HandState) error {
+func (g *Game) saveHandState(handState *HandState) error {
 	err := g.manager.handStatePersist.Save(
-		gameState.GameCode,
-		handState.HandNum,
+		g.state.GameCode,
 		handState)
 	return err
 }
@@ -692,15 +631,12 @@ func (g *Game) removeHandState(gameState *GameState, handState *HandState) error
 	}
 
 	err := g.manager.handStatePersist.Remove(
-		gameState.GameCode,
-		handState.HandNum)
+		gameState.GameCode)
 	return err
 }
 
 func (g *Game) loadHandState(gameState *GameState) (*HandState, error) {
-	handState, err := g.manager.handStatePersist.Load(
-		gameState.GetGameCode(),
-		gameState.GetHandNum())
+	handState, err := g.manager.handStatePersist.Load(gameState.GetGameCode())
 	return handState, err
 }
 
@@ -779,15 +715,11 @@ func (g *Game) addPlayer(player *Player) error {
 }
 
 func (g *Game) getPlayersAtTable() ([]*PlayerAtTableState, error) {
-	gameState, err := g.loadState()
-	if err != nil {
-		return nil, err
-	}
 	ret := make([]*PlayerAtTableState, 0)
-	playersInSeats := gameState.GetPlayersInSeats()
+	playersInSeats := g.state.GetPlayersInSeats()
 	for seatNo, playerID := range playersInSeats {
 		if playerID != 0 {
-			playerState := gameState.PlayersState[playerID]
+			playerState := g.state.PlayersState[playerID]
 			playerAtTable := &PlayerAtTableState{
 				PlayerId:       playerID,
 				SeatNo:         uint32(seatNo + 1),
@@ -836,16 +768,11 @@ func anyPendingUpdates(apiServerUrl string, gameID uint64, retryDelay uint32) (b
 }
 
 func (g *Game) GameEnded() error {
-	gameState, err := g.loadState()
-	if err != nil {
-		return err
-	}
-
-	if gameState != nil {
+	if g.state != nil {
 		// remove the old handstate
-		handState, _ := g.loadHandState(gameState)
+		handState, _ := g.loadHandState(g.state)
 		if handState != nil {
-			g.removeHandState(gameState, handState)
+			g.removeHandState(g.state, handState)
 		}
 	}
 	return nil

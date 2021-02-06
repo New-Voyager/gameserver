@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"google.golang.org/protobuf/proto"
@@ -76,17 +77,24 @@ func processPendingUpdates(apiServerUrl string, gameID uint64) {
 }
 
 func (g *Game) onGetHandLog(message *GameMessage) error {
-	gameState, err := g.loadState()
 	gameMessage := &GameMessage{
 		GameId:      g.config.GameId,
 		MessageType: GetHandLog,
 		PlayerId:    message.PlayerId,
 	}
-	if err != nil || gameState.HandNum == 0 {
-		go g.sendGameMessageToReceiver(gameMessage)
+
+	handState, err := g.loadHandState(g.state)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			go g.sendGameMessageToReceiver(gameMessage)
+			return nil
+		}
+		return err
 	}
-	handState, err := g.loadHandState(gameState)
 	logData, err := json.Marshal(handState)
+	if err != nil {
+		return err
+	}
 	gameMessage.GameMessage = &GameMessage_HandLog{HandLog: logData}
 	go g.sendGameMessageToReceiver(gameMessage)
 	return nil
@@ -95,12 +103,7 @@ func (g *Game) onGetHandLog(message *GameMessage) error {
 func (g *Game) onPendingUpdatesDone(message *GameMessage) error {
 	g.inProcessPendingUpdates = false
 	// move to next hand
-	gameState, err := g.loadState()
-	if err != nil {
-		return err
-	}
-
-	if gameState.Status == GameStatus_ACTIVE && gameState.TableStatus == TableStatus_GAME_RUNNING {
+	if g.state.Status == GameStatus_ACTIVE && g.state.TableStatus == TableStatus_GAME_RUNNING {
 		// deal next hand
 		gameMessage := &GameMessage{
 			GameId:      g.config.GameId,
@@ -147,22 +150,18 @@ func (g *Game) onMoveToNextHand(message *GameMessage) error {
 }
 
 func (g *Game) onPlayerTakeSeat(message *GameMessage) error {
-	gameState, err := g.loadState()
-	if err != nil {
-		return err
-	}
 	gameSit := message.GetTakeSeat()
 
-	if gameSit.SeatNo < 1 || gameSit.SeatNo > gameState.MaxSeats {
+	if gameSit.SeatNo < 1 || gameSit.SeatNo > g.state.MaxSeats {
 		channelGameLogger.Error().
 			Uint32("club", g.config.ClubId).
 			Str("game", g.config.GameCode).
 			Str("message", "GameSitMessage").
-			Msg(fmt.Sprintf("Invalid seat no: %d Allowed values from 1-%d", gameSit.SeatNo, gameState.MaxSeats))
-		return fmt.Errorf("Invalid seat no: %d Allowed values from 1-%d", gameSit.SeatNo, gameState.MaxSeats)
+			Msg(fmt.Sprintf("Invalid seat no: %d Allowed values from 1-%d", gameSit.SeatNo, g.state.MaxSeats))
+		return fmt.Errorf("Invalid seat no: %d Allowed values from 1-%d", gameSit.SeatNo, g.state.MaxSeats)
 	}
 
-	playersInSeat := gameState.PlayersInSeats
+	playersInSeat := g.state.PlayersInSeats
 	if playersInSeat[gameSit.SeatNo] != 0 {
 		// there is already a player in the seat
 		channelGameLogger.Error().
@@ -180,23 +179,17 @@ func (g *Game) onPlayerTakeSeat(message *GameMessage) error {
 		Str("message", "GameSitMessage").
 		Msg(fmt.Sprintf("Player %d took %d seat, buy-in: %f", gameSit.PlayerId, gameSit.SeatNo, gameSit.BuyIn))
 
-	gameState.PlayersInSeats[gameSit.SeatNo] = gameSit.PlayerId
+	g.state.PlayersInSeats[gameSit.SeatNo] = gameSit.PlayerId
 	// TODO: Need to work on the buy-in and sitting
 	// This is a bigger work item. A multiple players will be auto-seated
 	// If the buy-in needs to approved by the club manager, we need to wait for the approval
 	// we need a state tracking for seat as well
 	// seat state: open, waiting for buyin approval, sitting, occupied, break, hold for certain time limit
 
-	if gameState.PlayersState == nil {
-		gameState.PlayersState = make(map[uint64]*PlayerState)
+	if g.state.PlayersState == nil {
+		g.state.PlayersState = make(map[uint64]*PlayerState)
 	}
-	gameState.PlayersState[gameSit.PlayerId] = &PlayerState{BuyIn: gameSit.BuyIn, CurrentBalance: gameSit.BuyIn, Status: PlayerStatus_PLAYING}
-
-	// save game state
-	err = g.saveState(gameState)
-	if err != nil {
-		return err
-	}
+	g.state.PlayersState[gameSit.PlayerId] = &PlayerState{BuyIn: gameSit.BuyIn, CurrentBalance: gameSit.BuyIn, Status: PlayerStatus_PLAYING}
 
 	// send player sat message to all
 	playerSatMessage := GamePlayerSatMessage{SeatNo: gameSit.SeatNo, BuyIn: gameSit.BuyIn, PlayerId: gameSit.PlayerId}
@@ -208,17 +201,9 @@ func (g *Game) onPlayerTakeSeat(message *GameMessage) error {
 
 func (g *Game) onStatusChanged(message *GameMessage) error {
 	gameStatusChanged := message.GetStatusChange()
-	gameState, err := g.loadState()
-	if err != nil {
-		return err
-	}
-	gameState.Status = gameStatusChanged.NewStatus
-	err = g.saveState(gameState)
-	if err != nil {
-		return err
-	}
+	g.state.Status = gameStatusChanged.NewStatus
 
-	if gameState.Status == GameStatus_ACTIVE {
+	if g.state.Status == GameStatus_ACTIVE {
 		g.startGame()
 	}
 
@@ -228,14 +213,9 @@ func (g *Game) onStatusChanged(message *GameMessage) error {
 func (g *Game) onNextHandSetup(message *GameMessage) error {
 	setupNextHand := message.GetNextHand()
 
-	gameState, err := g.loadState()
-	if err != nil {
-		return err
-	}
 	if setupNextHand.ButtonPos != 0 {
-		gameState.ButtonPos = setupNextHand.ButtonPos
+		g.state.ButtonPos = setupNextHand.ButtonPos
 	}
-	g.saveState(gameState)
 
 	g.testButtonPos = int32(setupNextHand.ButtonPos)
 	g.testDeckToUse = nil
@@ -260,12 +240,8 @@ func (g *Game) onQueryTableState(message *GameMessage) error {
 	if err != nil {
 		return err
 	}
-	gameState, err := g.loadState()
-	if err != nil {
-		return err
-	}
 
-	gameTableState := &GameTableStateMessage{PlayersState: playersAtTable, Status: gameState.Status, TableStatus: gameState.TableStatus}
+	gameTableState := &GameTableStateMessage{PlayersState: playersAtTable, Status: g.state.Status, TableStatus: g.state.TableStatus}
 	var gameMessage GameMessage
 	gameMessage.ClubId = g.config.ClubId
 	gameMessage.GameId = g.config.GameId
@@ -288,12 +264,8 @@ func (g *Game) broadcastTableState() error {
 	if err != nil {
 		return err
 	}
-	gameState, err := g.loadState()
-	if err != nil {
-		return err
-	}
 
-	gameTableState := &GameTableStateMessage{PlayersState: playersAtTable, Status: gameState.Status, TableStatus: gameState.TableStatus}
+	gameTableState := &GameTableStateMessage{PlayersState: playersAtTable, Status: g.state.Status, TableStatus: g.state.TableStatus}
 	var gameMessage GameMessage
 	gameMessage.ClubId = g.config.ClubId
 	gameMessage.GameId = g.config.GameId
@@ -315,25 +287,21 @@ func (g *Game) onJoinGame(message *GameMessage) error {
 func (g *Game) onPlayerUpdate(message *GameMessage) error {
 	playerUpdate := message.GetPlayerUpdate()
 	channelGameLogger.Info().Msg(fmt.Sprintf("Player update: %v", playerUpdate))
-	gameState, err := g.loadState()
-	if err != nil {
-		return err
-	}
-	if gameState.PlayersState == nil {
-		gameState.PlayersState = make(map[uint64]*PlayerState)
+	if g.state.PlayersState == nil {
+		g.state.PlayersState = make(map[uint64]*PlayerState)
 	}
 
 	if playerUpdate.Status == PlayerStatus_KICKED_OUT ||
 		playerUpdate.Status == PlayerStatus_LEFT {
 		// the player is out of the game
-		for i, playerId := range gameState.PlayersInSeats {
+		for i, playerId := range g.state.PlayersInSeats {
 			if playerId == playerUpdate.PlayerId {
 				// this is the seat no where player was sitting
-				gameState.PlayersInSeats[i] = 0
+				g.state.PlayersInSeats[i] = 0
 			}
 		}
 	} else if playerUpdate.Status == PlayerStatus_IN_BREAK {
-		gameState.PlayersState[playerUpdate.PlayerId].Status = playerUpdate.Status
+		g.state.PlayersState[playerUpdate.PlayerId].Status = playerUpdate.Status
 	} else {
 		// we can only update the players that are in seats
 		if playerUpdate.SeatNo == 0 {
@@ -341,19 +309,19 @@ func (g *Game) onPlayerUpdate(message *GameMessage) error {
 			return fmt.Errorf("SeatNo cannot be empty")
 		}
 		// check to see if the player switched seat
-		for seatNo, playerID := range gameState.PlayersInSeats {
+		for seatNo, playerID := range g.state.PlayersInSeats {
 			if playerID == playerUpdate.PlayerId &&
 				uint32(seatNo) != playerUpdate.SeatNo {
 				// this player switch seat
 				channelGameLogger.Error().Msgf("Player %d switched seat from %d to %d", playerID, seatNo, playerUpdate.SeatNo)
-				gameState.PlayersInSeats[seatNo] = 0
+				g.state.PlayersInSeats[seatNo] = 0
 				message.GetPlayerUpdate().OldSeat = uint32(seatNo)
 				break
 			}
 		}
 
 		// buyin/reload/sitting in the table
-		gameState.PlayersInSeats[playerUpdate.SeatNo] = playerUpdate.PlayerId
+		g.state.PlayersInSeats[playerUpdate.SeatNo] = playerUpdate.PlayerId
 		var tokenInt uint64
 		if playerUpdate.GameToken != "" {
 			// pad here 000000
@@ -375,7 +343,7 @@ func (g *Game) onPlayerUpdate(message *GameMessage) error {
 					playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate.BuyIn)
 		}
 		if playerUpdate.GameToken != "" {
-			gameState.PlayersState[playerUpdate.PlayerId] = &PlayerState{BuyIn: playerUpdate.BuyIn,
+			g.state.PlayersState[playerUpdate.PlayerId] = &PlayerState{BuyIn: playerUpdate.BuyIn,
 				CurrentBalance: playerUpdate.Stack,
 				Status:         playerUpdate.Status,
 				GameToken:      playerUpdate.GameToken,
@@ -383,22 +351,16 @@ func (g *Game) onPlayerUpdate(message *GameMessage) error {
 		} else {
 			var gameToken string
 			var gameTokenInt uint64
-			if playerState, ok := gameState.PlayersState[playerUpdate.PlayerId]; ok {
+			if playerState, ok := g.state.PlayersState[playerUpdate.PlayerId]; ok {
 				gameToken = playerState.GameToken
 				gameTokenInt = playerState.GameTokenInt
 			}
-			gameState.PlayersState[playerUpdate.PlayerId] = &PlayerState{BuyIn: playerUpdate.BuyIn,
+			g.state.PlayersState[playerUpdate.PlayerId] = &PlayerState{BuyIn: playerUpdate.BuyIn,
 				CurrentBalance: playerUpdate.Stack,
 				Status:         playerUpdate.Status,
 				GameToken:      gameToken,
 				GameTokenInt:   gameTokenInt}
 		}
-	}
-
-	// save game state
-	err = g.saveState(gameState)
-	if err != nil {
-		return err
 	}
 
 	// send player update message to all
@@ -413,7 +375,7 @@ func (g *Game) onPlayerUpdate(message *GameMessage) error {
 
 	channelGameLogger.Info().Msg(fmt.Sprintf("Player update: %v DONE", playerUpdate))
 
-	if gameState.Status == GameStatus_ACTIVE && !g.running {
+	if g.state.Status == GameStatus_ACTIVE && !g.running {
 		g.startGame()
 	}
 

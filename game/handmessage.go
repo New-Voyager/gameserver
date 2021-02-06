@@ -25,18 +25,13 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 
 	switch message.MessageType {
 	case HandPlayerActed:
-		gameState, err := g.loadState()
-		if err != nil {
-			channelGameLogger.Error().Msgf("Unable to load game state. Error: %s", err.Error())
-			break
-		}
-		handState, err := g.loadHandState(gameState)
+		handState, err := g.loadHandState(g.state)
 		if err != nil {
 			channelGameLogger.Error().Msgf("Unable to load hand state. Error: %s", err.Error())
 			break
 		}
 
-		err = g.onPlayerActed(message, gameState, handState)
+		err = g.onPlayerActed(message, g.state, handState)
 		if err != nil {
 			channelGameLogger.Error().Msgf("Error while processing %s message. Error: %s", HandPlayerActed, err.Error())
 		}
@@ -49,13 +44,8 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 }
 
 func (g *Game) onQueryCurrentHand(message *HandMessage) error {
-	gameState, err := g.loadState()
-	if err != nil {
-		return errors.Wrap(err, "Unable to load game state")
-	}
-
 	// get hand state
-	handState, err := g.loadHandState(gameState)
+	handState, err := g.loadHandState(g.state)
 	if err != nil {
 		return errors.Wrap(err, "Unable to load hand state")
 	}
@@ -117,7 +107,7 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 		BigBlindPos:   handState.BigBlindPos,
 		SmallBlind:    handState.SmallBlind,
 		BigBlind:      handState.BigBlind,
-		NoCards:       g.NumCards(gameState.GameType),
+		NoCards:       g.NumCards(g.state.GameType),
 	}
 	currentHandState.PlayersActed = make(map[uint32]*PlayerActRound, 0)
 
@@ -138,7 +128,7 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 
 	if playerSeatNo != 0 {
 		_, maskedCards := g.maskCards(handState.GetPlayersCards()[playerSeatNo],
-			gameState.PlayersState[message.PlayerId].GameTokenInt)
+			g.state.PlayersState[message.PlayerId].GameTokenInt)
 		currentHandState.PlayerCards = fmt.Sprintf("%d", maskedCards)
 		currentHandState.PlayerSeatNo = playerSeatNo
 	}
@@ -272,8 +262,7 @@ func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handSta
 	crashtest.Hit(crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_2)
 
 	handState.FlowState = FlowState_PREPARE_NEXT_ACTION
-	g.saveState(gameState)
-	g.saveHandState(gameState, handState)
+	g.saveHandState(handState)
 	g.prepareNextAction(gameState, handState)
 	return nil
 }
@@ -344,29 +333,27 @@ func (g *Game) prepareNextAction(gameState *GameState, handState *HandState) err
 		time.Sleep(time.Duration(g.delays.PlayerActed) * time.Millisecond)
 	}
 
-	g.saveState(gameState)
-
 	crashtest.Hit(crashtest.CrashPoint_PREPARE_NEXT_ACTION_4)
 
 	if handState.NoActiveSeats == 1 {
 		handState.FlowState = FlowState_ONE_PLAYER_REMAINING
-		g.saveHandState(gameState, handState)
+		g.saveHandState(handState)
 		g.onePlayerRemaining(gameState, handState)
 	} else if handState.isAllActivePlayersAllIn() {
 		handState.FlowState = FlowState_ALL_PLAYERS_ALL_IN
-		g.saveHandState(gameState, handState)
+		g.saveHandState(handState)
 		g.allPlayersAllIn(gameState, handState)
 	} else if handState.CurrentState == HandStatus_SHOW_DOWN {
 		handState.FlowState = FlowState_SHOWDOWN
-		g.saveHandState(gameState, handState)
+		g.saveHandState(handState)
 		g.showdown(gameState, handState)
 	} else if handState.LastState != handState.CurrentState {
 		handState.FlowState = FlowState_MOVE_TO_NEXT_ROUND
-		g.saveHandState(gameState, handState)
+		g.saveHandState(handState)
 		g.moveToNextRound(gameState, handState)
 	} else {
 		handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
-		g.saveHandState(gameState, handState)
+		g.saveHandState(handState)
 		g.moveToNextAction(gameState, handState)
 	}
 
@@ -657,8 +644,7 @@ func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) error
 	}
 
 	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
-	g.saveState(gameState)
-	g.saveHandState(gameState, handState)
+	g.saveHandState(handState)
 	g.moveToNextAction(gameState, handState)
 
 	return nil
@@ -732,8 +718,7 @@ func (g *Game) moveToNextAction(gameState *GameState, handState *HandState) erro
 	g.broadcastHandMessage(message)
 
 	handState.FlowState = FlowState_WAIT_FOR_NEXT_ACTION
-	g.saveHandState(gameState, handState)
-	g.saveState(gameState)
+	g.saveHandState(handState)
 
 	return nil
 }
@@ -774,8 +759,7 @@ func (g *Game) allPlayersAllIn(gameState *GameState, handState *HandState) error
 	}
 
 	handState.FlowState = FlowState_SHOWDOWN
-	g.saveState(gameState)
-	g.saveHandState(gameState, handState)
+	g.saveHandState(handState)
 	g.showdown(gameState, handState)
 
 	return nil
@@ -793,8 +777,7 @@ func (g *Game) showdown(gameState *GameState, handState *HandState) error {
 	g.generateAndSendResult(gameState, handState)
 
 	handState.FlowState = FlowState_HAND_ENDED
-	g.saveState(gameState)
-	g.saveHandState(gameState, handState)
+	g.saveHandState(handState)
 	g.handEnded(gameState, handState)
 	return nil
 }
@@ -811,8 +794,7 @@ func (g *Game) onePlayerRemaining(gameState *GameState, handState *HandState) er
 	g.generateAndSendResult(gameState, handState)
 
 	handState.FlowState = FlowState_HAND_ENDED
-	g.saveState(gameState)
-	g.saveHandState(gameState, handState)
+	g.saveHandState(handState)
 	g.handEnded(gameState, handState)
 	return nil
 }

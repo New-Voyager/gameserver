@@ -31,40 +31,37 @@ message GameState {
   // game type
   GameType game_type = 10;
 
-  // current hand num
-  uint32 hand_num = 11;
+  uint32 button_pos = 11;
 
-  uint32 button_pos = 12;
+  float small_blind = 12;
 
-  float small_blind = 13;
+  float big_blind = 13;
 
-  float big_blind = 14;
-
-  uint32 max_seats = 15;
-  uint32 min_players = 16;
-  uint32 game_length = 17;
-  float rakePercentage = 18;
-  float rakeCap = 19;
-  float buyInMin = 20;
-  float buyInMax = 21;
-  uint32 actionTime = 22;
-  bool privateGame = 23;
-  uint32 breakLength = 24;
-  bool autoKickAfterBreak = 25;
+  uint32 max_seats = 14;
+  uint32 min_players = 15;
+  uint32 game_length = 16;
+  float rakePercentage = 17;
+  float rakeCap = 18;
+  float buyInMin = 19;
+  float buyInMax = 20;
+  uint32 actionTime = 21;
+  bool privateGame = 22;
+  uint32 breakLength = 23;
+  bool autoKickAfterBreak = 24;
 
   // table status
-  TableStatus table_status = 26;
+  TableStatus table_status = 25;
 
-  float straddle = 27;
+  float straddle = 26;
 
   // reward tracking ids
-  repeated uint64 reward_tracking_ids = 28;
+  repeated uint64 reward_tracking_ids = 27;
 
-  float bring_in = 29;    // bring in chips
+  float bring_in = 28;    // bring in chips
 
   // What stage of the game are we in?
-  uint32 stage = 30;
+  uint32 stage = 39;
 
   // Where were we when we crashed?
-  uint32 checkPoint = 31;
+  uint32 checkPoint = 30;
 }

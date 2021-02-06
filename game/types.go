@@ -27,32 +27,34 @@ package game
 
 */
 type GameConfig struct {
-	ClubId             uint32   `json:"clubId"`
-	GameId             uint64   `json:"gameId"`
-	GameTypeStr        string   `yaml:"type"`
-	GameType           GameType `json:"gameType"`
-	ClubCode           string   `json:"clubCode"`
-	GameCode           string   `json:"gameCode"`
-	Title              string   `json:"title" yaml:"title"`
-	SmallBlind         float64  `json:"smallBlind" yaml:"sb"`
-	BigBlind           float64  `json:"bigBlind" yaml:"bb"`
-	StraddleBet        float64  `json:"straddleBet"`
-	MinPlayers         int      `json:"minPlayers" yaml:"min-players"`
-	MaxPlayers         int      `json:"maxPlayers" yaml:"max-players"`
-	GameLength         int      `json:"gameLength"`
-	RakePercentage     float64  `json:"rakePercentage" yaml:"rake-percentage"`
-	RakeCap            float64  `json:"rakeCap" yaml:"rake-cap"`
-	BuyInMin           float64  `json:"buyInMin" yaml:"min-buyin"`
-	BuyInMax           float64  `json:"buyInMax" yaml:"max-buyin"`
-	ActionTime         int      `json:"actionTime"`
-	StartedBy          string   `json:"startedBy"`
-	StartedByUuid      string   `json:"startedByUuid"`
-	BreakLength        int      `json:"breakLength"`
-	AutoKickAfterBreak bool     `json:"autoKickAfterBreak"`
-	AutoStart          bool     `yaml:"auto-start"`
-	AutoApprove        bool     `yaml:"auto-approve"`
-	RewardTrackingIds  []uint32 `json:"rewardTrackingIds"`
-	BringIn            float64  `json:"bringIn" yaml:"bring-in"`
+	ClubId             uint32      `json:"clubId"`
+	GameId             uint64      `json:"gameId"`
+	GameTypeStr        string      `yaml:"type"`
+	GameType           GameType    `json:"gameType"`
+	ClubCode           string      `json:"clubCode"`
+	GameCode           string      `json:"gameCode"`
+	Title              string      `json:"title" yaml:"title"`
+	Status             GameStatus  `json:"status"`
+	TableStatus        TableStatus `json:"tableStatus"`
+	SmallBlind         float64     `json:"smallBlind" yaml:"sb"`
+	BigBlind           float64     `json:"bigBlind" yaml:"bb"`
+	StraddleBet        float64     `json:"straddleBet"`
+	MinPlayers         int         `json:"minPlayers" yaml:"min-players"`
+	MaxPlayers         int         `json:"maxPlayers" yaml:"max-players"`
+	GameLength         int         `json:"gameLength"`
+	RakePercentage     float64     `json:"rakePercentage" yaml:"rake-percentage"`
+	RakeCap            float64     `json:"rakeCap" yaml:"rake-cap"`
+	BuyInMin           float64     `json:"buyInMin" yaml:"min-buyin"`
+	BuyInMax           float64     `json:"buyInMax" yaml:"max-buyin"`
+	ActionTime         int         `json:"actionTime"`
+	StartedBy          string      `json:"startedBy"`
+	StartedByUuid      string      `json:"startedByUuid"`
+	BreakLength        int         `json:"breakLength"`
+	AutoKickAfterBreak bool        `json:"autoKickAfterBreak"`
+	AutoStart          bool        `yaml:"auto-start"`
+	AutoApprove        bool        `yaml:"auto-approve"`
+	RewardTrackingIds  []uint32    `json:"rewardTrackingIds"`
+	BringIn            float64     `json:"bringIn" yaml:"bring-in"`
 }
 
 type GamePlayer struct {
