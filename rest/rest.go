@@ -129,6 +129,8 @@ func newGame(c *gin.Context) {
 		return
 	}
 
+	fmt.Printf("new-game payload: %+v\n", gameConfig)
+
 	// initialize nats game
 	_, e := natsGameManager.NewGame(gameConfig.ClubId, gameConfig.GameId, &gameConfig)
 	if e != nil {
