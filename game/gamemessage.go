@@ -83,7 +83,7 @@ func (g *Game) onGetHandLog(message *GameMessage) error {
 		PlayerId:    message.PlayerId,
 	}
 
-	handState, err := g.loadHandState(g.state)
+	handState, err := g.loadHandState()
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			go g.sendGameMessageToReceiver(gameMessage)
