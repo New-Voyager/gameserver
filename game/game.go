@@ -231,7 +231,7 @@ func (g *Game) pausePlayTimer(seatNo uint32) {
 }
 
 func (g *Game) handlePlayTimeout(timeoutMsg timerMsg) error {
-	handState, err := g.loadHandState(g.state)
+	handState, err := g.loadHandState()
 	if err != nil {
 		return err
 	}
@@ -312,7 +312,7 @@ func (g *Game) startGame() (bool, error) {
 		return false, fmt.Errorf("Game state has not been initialized")
 	}
 
-	handState, err := g.loadHandState(g.state)
+	handState, err := g.loadHandState()
 	if err == nil {
 		// There is an existing hand state. The game must've crashed and is now restarting.
 		// Continue where we left off.
@@ -460,15 +460,10 @@ func (g *Game) NumCards(gameType GameType) uint32 {
 func (g *Game) dealNewHand() error {
 	var handState *HandState
 
-	// remove the old handstate
-	handState1, _ := g.loadHandState(g.state)
-	if handState1 != nil {
-		g.removeHandState(g.state, handState1)
-	}
-
+	prevHandState, _ := g.loadHandState()
 	prevHandNum := 0
-	if handState1 != nil {
-		prevHandNum = int(handState1.HandNum)
+	if prevHandState != nil {
+		prevHandNum = int(prevHandState.HandNum)
 	}
 
 	moveButton := prevHandNum > 1
@@ -635,8 +630,8 @@ func (g *Game) removeHandState(gameState *GameState, handState *HandState) error
 	return err
 }
 
-func (g *Game) loadHandState(gameState *GameState) (*HandState, error) {
-	handState, err := g.manager.handStatePersist.Load(gameState.GetGameCode())
+func (g *Game) loadHandState() (*HandState, error) {
+	handState, err := g.manager.handStatePersist.Load(g.state.GetGameCode())
 	return handState, err
 }
 
@@ -770,7 +765,7 @@ func anyPendingUpdates(apiServerUrl string, gameID uint64, retryDelay uint32) (b
 func (g *Game) GameEnded() error {
 	if g.state != nil {
 		// remove the old handstate
-		handState, _ := g.loadHandState(g.state)
+		handState, _ := g.loadHandState()
 		if handState != nil {
 			g.removeHandState(g.state, handState)
 		}

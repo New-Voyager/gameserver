@@ -25,7 +25,7 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 
 	switch message.MessageType {
 	case HandPlayerActed:
-		handState, err := g.loadHandState(g.state)
+		handState, err := g.loadHandState()
 		if err != nil {
 			channelGameLogger.Error().Msgf("Unable to load hand state. Error: %s", err.Error())
 			break
@@ -45,7 +45,7 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 
 func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 	// get hand state
-	handState, err := g.loadHandState(g.state)
+	handState, err := g.loadHandState()
 	if err != nil {
 		return errors.Wrap(err, "Unable to load hand state")
 	}
