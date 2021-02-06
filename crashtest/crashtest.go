@@ -15,6 +15,8 @@ const (
 	CrashPoint_NOW                  CrashPoint = "NOW"
 	CrashPoint_WAIT_FOR_NEXT_ACTION CrashPoint = "WAIT_FOR_NEXT_ACTION"
 	CrashPoint_PREPARE_NEXT_ACTION  CrashPoint = "PREPARE_NEXT_ACTION"
+
+	ExitCode int = 66
 )
 
 // IsValid checks if cp is a valid enum value for CrashPoint.
@@ -43,6 +45,6 @@ func Set(cp CrashPoint) error {
 func Hit(cp CrashPoint) {
 	if cp == crashAt {
 		fmt.Printf("CRASHTEST: %s\n", cp)
-		os.Exit(1)
+		os.Exit(ExitCode)
 	}
 }
