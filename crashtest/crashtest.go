@@ -48,7 +48,7 @@ func Set(cp CrashPoint) error {
 	return nil
 }
 
-// Hit will panic and crash the process if cp matches the crash point scheduled by Set.
+// Hit will crash the process if cp matches the crash point scheduled by Set.
 func Hit(cp CrashPoint) {
 	if cp == crashAt {
 		fmt.Printf("CRASHTEST: %s\n", cp)
