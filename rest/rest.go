@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
+	"voyager.com/server/crashtest"
 	"voyager.com/server/game"
 	"voyager.com/server/nats"
 	"voyager.com/server/timer"
@@ -78,7 +79,39 @@ func RunRestServer(gameManager *nats.GameManager) {
 
 	r.POST("/start-timer", startTimer)
 	r.POST("/cancel-timer", cancelTimer)
+
+	// Intentionally crash the process for testing
+	r.POST("/setup-crash", setupCrash)
 	r.Run(":8080")
+}
+
+func setupCrash(c *gin.Context) {
+	type Payload struct {
+		CrashPoint string `json:"crashPoint"`
+	}
+	var payload Payload
+	err := c.BindJSON(&payload)
+	if err != nil {
+		restLogger.Error().Msgf("Unable to parse crash configuration. Error: %v", err)
+		c.IndentedJSON(http.StatusInternalServerError, appError{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		})
+		c.Error(err)
+		return
+	}
+
+	restLogger.Info().Msgf("Received request to crash the server at [%s]", payload.CrashPoint)
+	err = crashtest.Set(crashtest.CrashPoint(payload.CrashPoint))
+	if err != nil {
+		restLogger.Error().Msgf("Unable to setup server for crash. Error: %v", err)
+		c.IndentedJSON(http.StatusInternalServerError, appError{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		})
+		c.Error(err)
+		return
+	}
 }
 
 func newGame(c *gin.Context) {
