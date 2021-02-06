@@ -460,15 +460,10 @@ func (g *Game) NumCards(gameType GameType) uint32 {
 func (g *Game) dealNewHand() error {
 	var handState *HandState
 
-	// remove the old handstate
-	handState1, _ := g.loadHandState(g.state)
-	if handState1 != nil {
-		g.removeHandState(g.state, handState1)
-	}
-
+	prevHandState, _ := g.loadHandState()
 	prevHandNum := 0
-	if handState1 != nil {
-		prevHandNum = int(handState1.HandNum)
+	if prevHandState != nil {
+		prevHandNum = int(prevHandState.HandNum)
 	}
 
 	moveButton := prevHandNum > 1
