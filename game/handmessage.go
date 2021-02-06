@@ -262,7 +262,7 @@ func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handSta
 	crashtest.Hit(crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_2)
 
 	handState.FlowState = FlowState_PREPARE_NEXT_ACTION
-	g.saveHandState(gameState, handState)
+	g.saveHandState(handState)
 	g.prepareNextAction(gameState, handState)
 	return nil
 }
@@ -337,23 +337,23 @@ func (g *Game) prepareNextAction(gameState *GameState, handState *HandState) err
 
 	if handState.NoActiveSeats == 1 {
 		handState.FlowState = FlowState_ONE_PLAYER_REMAINING
-		g.saveHandState(gameState, handState)
+		g.saveHandState(handState)
 		g.onePlayerRemaining(gameState, handState)
 	} else if handState.isAllActivePlayersAllIn() {
 		handState.FlowState = FlowState_ALL_PLAYERS_ALL_IN
-		g.saveHandState(gameState, handState)
+		g.saveHandState(handState)
 		g.allPlayersAllIn(gameState, handState)
 	} else if handState.CurrentState == HandStatus_SHOW_DOWN {
 		handState.FlowState = FlowState_SHOWDOWN
-		g.saveHandState(gameState, handState)
+		g.saveHandState(handState)
 		g.showdown(gameState, handState)
 	} else if handState.LastState != handState.CurrentState {
 		handState.FlowState = FlowState_MOVE_TO_NEXT_ROUND
-		g.saveHandState(gameState, handState)
+		g.saveHandState(handState)
 		g.moveToNextRound(gameState, handState)
 	} else {
 		handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
-		g.saveHandState(gameState, handState)
+		g.saveHandState(handState)
 		g.moveToNextAction(gameState, handState)
 	}
 
@@ -644,7 +644,7 @@ func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) error
 	}
 
 	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
-	g.saveHandState(gameState, handState)
+	g.saveHandState(handState)
 	g.moveToNextAction(gameState, handState)
 
 	return nil
@@ -718,7 +718,7 @@ func (g *Game) moveToNextAction(gameState *GameState, handState *HandState) erro
 	g.broadcastHandMessage(message)
 
 	handState.FlowState = FlowState_WAIT_FOR_NEXT_ACTION
-	g.saveHandState(gameState, handState)
+	g.saveHandState(handState)
 
 	return nil
 }
@@ -759,7 +759,7 @@ func (g *Game) allPlayersAllIn(gameState *GameState, handState *HandState) error
 	}
 
 	handState.FlowState = FlowState_SHOWDOWN
-	g.saveHandState(gameState, handState)
+	g.saveHandState(handState)
 	g.showdown(gameState, handState)
 
 	return nil
@@ -777,7 +777,7 @@ func (g *Game) showdown(gameState *GameState, handState *HandState) error {
 	g.generateAndSendResult(gameState, handState)
 
 	handState.FlowState = FlowState_HAND_ENDED
-	g.saveHandState(gameState, handState)
+	g.saveHandState(handState)
 	g.handEnded(gameState, handState)
 	return nil
 }
@@ -794,7 +794,7 @@ func (g *Game) onePlayerRemaining(gameState *GameState, handState *HandState) er
 	g.generateAndSendResult(gameState, handState)
 
 	handState.FlowState = FlowState_HAND_ENDED
-	g.saveHandState(gameState, handState)
+	g.saveHandState(handState)
 	g.handEnded(gameState, handState)
 	return nil
 }

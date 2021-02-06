@@ -7,12 +7,12 @@ type PersistGameState interface {
 }
 
 type PersistHandState interface {
-	Load(gameCode string, handID uint32) (*HandState, error)
-	LoadClone(gameCode string, handID uint32) (*HandState, error)
-	Save(gameCode string, handID uint32, state *HandState) error
-	SaveClone(gameCode string, handID uint32, state *HandState) error
-	Remove(gameCode string, handID uint32) error
-	RemoveClone(gameCode string, handID uint32) error
+	Load(gameCode string) (*HandState, error)
+	LoadClone(gameCode string) (*HandState, error)
+	Save(gameCode string, state *HandState) error
+	SaveClone(gameCode string, state *HandState) error
+	Remove(gameCode string) error
+	RemoveClone(gameCode string) error
 }
 
 type PersistGameUpdatesState interface {

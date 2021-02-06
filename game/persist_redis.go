@@ -68,20 +68,19 @@ func (r *RedisGameStateTracker) Remove(gameCode string) error {
 	return err
 }
 
-func (r *RedisHandStateTracker) Load(gameCode string, handID uint32) (*HandState, error) {
-	key := fmt.Sprintf("%s|%d", gameCode, handID)
-	return r.load(key, gameCode, handID)
+func (r *RedisHandStateTracker) Load(gameCode string) (*HandState, error) {
+	return r.load(gameCode)
 }
 
-func (r *RedisHandStateTracker) LoadClone(gameCode string, handID uint32) (*HandState, error) {
-	key := fmt.Sprintf("%s|%d|clone", gameCode, handID)
-	return r.load(key, gameCode, handID)
+func (r *RedisHandStateTracker) LoadClone(gameCode string) (*HandState, error) {
+	key := fmt.Sprintf("%s|clone", gameCode)
+	return r.load(key)
 }
 
-func (r *RedisHandStateTracker) load(key string, gameCode string, handID uint32) (*HandState, error) {
+func (r *RedisHandStateTracker) load(key string) (*HandState, error) {
 	handStateBytes, err := r.rdclient.Get(context.Background(), key).Result()
 	if err == redis.Nil {
-		return nil, fmt.Errorf("Hand state for Game: %s, Hand: %d is not found", gameCode, handID)
+		return nil, fmt.Errorf("Hand state for Key: %s is not found", key)
 	} else if err != nil {
 		return nil, err
 	}
@@ -93,13 +92,12 @@ func (r *RedisHandStateTracker) load(key string, gameCode string, handID uint32)
 	return handState, nil
 }
 
-func (r *RedisHandStateTracker) Save(gameCode string, handID uint32, state *HandState) error {
-	key := fmt.Sprintf("%s|%d", gameCode, handID)
-	return r.save(key, state)
+func (r *RedisHandStateTracker) Save(gameCode string, state *HandState) error {
+	return r.save(gameCode, state)
 }
 
-func (r *RedisHandStateTracker) SaveClone(gameCode string, handID uint32, state *HandState) error {
-	key := fmt.Sprintf("%s|%d|clone", gameCode, handID)
+func (r *RedisHandStateTracker) SaveClone(gameCode string, state *HandState) error {
+	key := fmt.Sprintf("%s|clone", gameCode)
 	return r.save(key, state)
 }
 
@@ -112,13 +110,12 @@ func (r *RedisHandStateTracker) save(key string, state *HandState) error {
 	return err
 }
 
-func (r *RedisHandStateTracker) Remove(gameCode string, handID uint32) error {
-	key := fmt.Sprintf("%s|%d", gameCode, handID)
-	return r.remove(key)
+func (r *RedisHandStateTracker) Remove(gameCode string) error {
+	return r.remove(gameCode)
 }
 
-func (r *RedisHandStateTracker) RemoveClone(gameCode string, handID uint32) error {
-	key := fmt.Sprintf("%s|%d|clone", gameCode, handID)
+func (r *RedisHandStateTracker) RemoveClone(gameCode string) error {
+	key := fmt.Sprintf("%s|clone", gameCode)
 	return r.remove(key)
 }
 

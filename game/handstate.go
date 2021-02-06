@@ -15,8 +15,8 @@ var postFlopBets = []int{30, 50, 100} // % of pot
 var raiseOptions = []int{2, 3, 5}     // raise times
 var ploPreFlopBets = []int{2}         // big blinds
 
-func LoadHandState(handStatePersist PersistHandState, gameCode string, handNum uint32) (*HandState, error) {
-	handState, err := handStatePersist.Load(gameCode, handNum)
+func LoadHandState(handStatePersist PersistHandState, gameCode string) (*HandState, error) {
+	handState, err := handStatePersist.Load(gameCode)
 	if err != nil {
 		return nil, err
 	}

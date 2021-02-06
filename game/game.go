@@ -284,6 +284,7 @@ func (g *Game) startNewGameState() error {
 	g.state = &GameState{
 		ClubId:                g.config.ClubId,
 		GameId:                g.config.GameId,
+		GameCode:              g.config.GameCode,
 		PlayersInSeats:        playersInSeats,
 		PlayersState:          playersState,
 		UtgStraddleAllowed:    false,
@@ -291,7 +292,6 @@ func (g *Game) startNewGameState() error {
 		Status:                g.config.Status,
 		GameType:              g.config.GameType,
 		MinPlayers:            uint32(g.config.MinPlayers),
-		HandNum:               0,
 		ButtonPos:             0,
 		SmallBlind:            float32(g.config.SmallBlind),
 		BigBlind:              float32(g.config.BigBlind),
@@ -466,18 +466,22 @@ func (g *Game) dealNewHand() error {
 		g.removeHandState(g.state, handState1)
 	}
 
-	moveButton := g.state.HandNum > 1
+	prevHandNum := 0
+	if handState1 != nil {
+		prevHandNum = int(handState1.HandNum)
+	}
+
+	moveButton := prevHandNum > 1
 
 	if g.testButtonPos > 0 {
 		g.state.ButtonPos = uint32(g.testButtonPos)
 		moveButton = false
 	}
 
-	g.state.HandNum++
 	handState = &HandState{
 		ClubId:        g.state.GetClubId(),
 		GameId:        g.state.GetGameId(),
-		HandNum:       g.state.GetHandNum(),
+		HandNum:       uint32(prevHandNum) + 1,
 		GameType:      g.state.GetGameType(),
 		CurrentState:  HandStatus_DEAL,
 		HandStartedAt: uint64(time.Now().Unix()),
@@ -609,15 +613,14 @@ func (g *Game) dealNewHand() error {
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, g.state, g.players)))
 
 	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
-	g.saveHandState(g.state, handState)
+	g.saveHandState(handState)
 	g.moveToNextAction(g.state, handState)
 	return nil
 }
 
-func (g *Game) saveHandState(gameState *GameState, handState *HandState) error {
+func (g *Game) saveHandState(handState *HandState) error {
 	err := g.manager.handStatePersist.Save(
-		gameState.GameCode,
-		handState.HandNum,
+		g.state.GameCode,
 		handState)
 	return err
 }
@@ -628,15 +631,12 @@ func (g *Game) removeHandState(gameState *GameState, handState *HandState) error
 	}
 
 	err := g.manager.handStatePersist.Remove(
-		gameState.GameCode,
-		handState.HandNum)
+		gameState.GameCode)
 	return err
 }
 
 func (g *Game) loadHandState(gameState *GameState) (*HandState, error) {
-	handState, err := g.manager.handStatePersist.Load(
-		gameState.GetGameCode(),
-		gameState.GetHandNum())
+	handState, err := g.manager.handStatePersist.Load(gameState.GetGameCode())
 	return handState, err
 }
 

@@ -71,17 +71,16 @@ func (m *MemoryGameStateTracker) Remove(gameCode string) error {
 	return nil
 }
 
-func (m *MemoryHandStateTracker) Load(gameCode string, handID uint32) (*HandState, error) {
-	key := fmt.Sprintf("%s:%d", gameCode, handID)
-	return m.load(key, gameCode, handID)
+func (m *MemoryHandStateTracker) Load(gameCode string) (*HandState, error) {
+	return m.load(gameCode)
 }
 
-func (m *MemoryHandStateTracker) LoadClone(gameCode string, handID uint32) (*HandState, error) {
-	key := fmt.Sprintf("%s:%d:clone", gameCode, handID)
-	return m.load(key, gameCode, handID)
+func (m *MemoryHandStateTracker) LoadClone(gameCode string) (*HandState, error) {
+	key := fmt.Sprintf("%s:clone", gameCode)
+	return m.load(key)
 }
 
-func (m *MemoryHandStateTracker) load(key string, gameCode string, handID uint32) (*HandState, error) {
+func (m *MemoryHandStateTracker) load(key string) (*HandState, error) {
 	if handStateBytes, ok := m.activeHands[key]; ok {
 		handState := HandState{}
 		err := proto.Unmarshal(handStateBytes, &handState)
@@ -90,16 +89,15 @@ func (m *MemoryHandStateTracker) load(key string, gameCode string, handID uint32
 		}
 		return &handState, nil
 	}
-	return nil, fmt.Errorf("Game: %s, Hand: %d is not found", gameCode, handID)
+	return nil, fmt.Errorf("Hand state for Key: %s is not found", key)
 }
 
-func (m *MemoryHandStateTracker) Save(gameCode string, handID uint32, state *HandState) error {
-	key := fmt.Sprintf("%s:%d", gameCode, handID)
-	return m.save(key, state)
+func (m *MemoryHandStateTracker) Save(gameCode string, state *HandState) error {
+	return m.save(gameCode, state)
 }
 
-func (m *MemoryHandStateTracker) SaveClone(gameCode string, handID uint32, state *HandState) error {
-	key := fmt.Sprintf("%s:%d:clone", gameCode, handID)
+func (m *MemoryHandStateTracker) SaveClone(gameCode string, state *HandState) error {
+	key := fmt.Sprintf("%s:clone", gameCode)
 	return m.save(key, state)
 }
 
@@ -112,13 +110,12 @@ func (m *MemoryHandStateTracker) save(key string, state *HandState) error {
 	return nil
 }
 
-func (m *MemoryHandStateTracker) Remove(gameCode string, handID uint32) error {
-	key := fmt.Sprintf("%s:%d", gameCode, handID)
-	return m.remove(key)
+func (m *MemoryHandStateTracker) Remove(gameCode string) error {
+	return m.remove(gameCode)
 }
 
-func (m *MemoryHandStateTracker) RemoveClone(gameCode string, handID uint32) error {
-	key := fmt.Sprintf("%s:%d:clone", gameCode, handID)
+func (m *MemoryHandStateTracker) RemoveClone(gameCode string) error {
+	key := fmt.Sprintf("%s:clone", gameCode)
 	return m.remove(key)
 }
 

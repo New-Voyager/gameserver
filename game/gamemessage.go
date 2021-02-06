@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"google.golang.org/protobuf/proto"
@@ -81,11 +82,13 @@ func (g *Game) onGetHandLog(message *GameMessage) error {
 		MessageType: GetHandLog,
 		PlayerId:    message.PlayerId,
 	}
-	if g.state.HandNum == 0 {
-		go g.sendGameMessageToReceiver(gameMessage)
-	}
+
 	handState, err := g.loadHandState(g.state)
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			go g.sendGameMessageToReceiver(gameMessage)
+			return nil
+		}
 		return err
 	}
 	logData, err := json.Marshal(handState)
