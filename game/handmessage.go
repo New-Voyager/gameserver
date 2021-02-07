@@ -107,7 +107,7 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 		BigBlindPos:   handState.BigBlindPos,
 		SmallBlind:    handState.SmallBlind,
 		BigBlind:      handState.BigBlind,
-		NoCards:       g.NumCards(g.state.GameType),
+		NoCards:       g.NumCards(g.config.GameType),
 	}
 	currentHandState.PlayersActed = make(map[uint32]*PlayerActRound, 0)
 
@@ -800,7 +800,7 @@ func (g *Game) onePlayerRemaining(gameState *GameState, handState *HandState) er
 }
 
 func (g *Game) generateAndSendResult(gameState *GameState, handState *HandState) error {
-	handResultProcessor := NewHandResultProcessor(handState, gameState, g.config.RewardTrackingIds)
+	handResultProcessor := NewHandResultProcessor(handState, uint32(g.config.MaxPlayers), g.config.RewardTrackingIds)
 
 	// send the hand to the database to store first
 	handResult := handResultProcessor.getResult(true /*db*/)

@@ -5,11 +5,6 @@ import "game.proto";
 
 message GameState {
 
-  uint32 club_id = 1;
-  uint64 game_id = 2;   // game id is unique in the system
-  string game_code = 3;
-  // max 15 seats reserved
-
   // index 0-8 for 9 seats
   // the array item is player id
   // if array item is 0, that means the seat is empty 
@@ -21,47 +16,14 @@ message GameState {
   // players who participated in the game
   map<uint64, PlayerState> players_state = 6;
 
-  bool utg_straddle_allowed = 7;
-
-  bool button_straddle_allowed = 8;
-
   // game status
   GameStatus status = 9;
-  
-  // game type
-  GameType game_type = 10;
 
   uint32 button_pos = 11;
-
-  float small_blind = 12;
-
-  float big_blind = 13;
-
-  uint32 max_seats = 14;
-  uint32 min_players = 15;
-  uint32 game_length = 16;
-  float rakePercentage = 17;
-  float rakeCap = 18;
-  float buyInMin = 19;
-  float buyInMax = 20;
-  uint32 actionTime = 21;
-  bool privateGame = 22;
-  uint32 breakLength = 23;
-  bool autoKickAfterBreak = 24;
 
   // table status
   TableStatus table_status = 25;
 
-  float straddle = 26;
-
-  // reward tracking ids
-  repeated uint64 reward_tracking_ids = 27;
-
-  float bring_in = 28;    // bring in chips
-
   // What stage of the game are we in?
   uint32 stage = 39;
-
-  // Where were we when we crashed?
-  uint32 checkPoint = 30;
 }

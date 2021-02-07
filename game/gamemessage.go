@@ -152,13 +152,13 @@ func (g *Game) onMoveToNextHand(message *GameMessage) error {
 func (g *Game) onPlayerTakeSeat(message *GameMessage) error {
 	gameSit := message.GetTakeSeat()
 
-	if gameSit.SeatNo < 1 || gameSit.SeatNo > g.state.MaxSeats {
+	if gameSit.SeatNo < 1 || gameSit.SeatNo > uint32(g.config.MaxPlayers) {
 		channelGameLogger.Error().
 			Uint32("club", g.config.ClubId).
 			Str("game", g.config.GameCode).
 			Str("message", "GameSitMessage").
-			Msg(fmt.Sprintf("Invalid seat no: %d Allowed values from 1-%d", gameSit.SeatNo, g.state.MaxSeats))
-		return fmt.Errorf("Invalid seat no: %d Allowed values from 1-%d", gameSit.SeatNo, g.state.MaxSeats)
+			Msg(fmt.Sprintf("Invalid seat no: %d Allowed values from 1-%d", gameSit.SeatNo, g.config.MaxPlayers))
+		return fmt.Errorf("Invalid seat no: %d Allowed values from 1-%d", gameSit.SeatNo, g.config.MaxPlayers)
 	}
 
 	playersInSeat := g.state.PlayersInSeats

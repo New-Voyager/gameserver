@@ -7,16 +7,14 @@ import (
 type Manager struct {
 	apiServerUrl     string
 	delays           Delays
-	gameStatePersist PersistGameState
 	handStatePersist PersistHandState
 	activeGames      map[string]*Game
 }
 
-func NewGameManager(apiServerUrl string, gamePersist PersistGameState, handPersist PersistHandState, delays Delays) *Manager {
+func NewGameManager(apiServerUrl string, handPersist PersistHandState, delays Delays) *Manager {
 	return &Manager{
 		apiServerUrl:     apiServerUrl,
 		delays:           delays,
-		gameStatePersist: gamePersist,
 		handStatePersist: handPersist,
 		activeGames:      make(map[string]*Game),
 	}
@@ -29,7 +27,6 @@ func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver, config *G
 		config,
 		gm.delays,
 		autoDeal,
-		gm.gameStatePersist,
 		gm.handStatePersist,
 		gm.apiServerUrl)
 	gm.activeGames[gameIDStr] = game

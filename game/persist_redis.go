@@ -8,23 +8,8 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-type RedisGameStateTracker struct {
-	rdclient *redis.Client
-}
-
 type RedisHandStateTracker struct {
 	rdclient *redis.Client
-}
-
-func NewRedisGameStateTracker(redisURL string, redisPW string, redisDB int) *RedisGameStateTracker {
-	rdclient := redis.NewClient(&redis.Options{
-		Addr:     redisURL,
-		Password: redisPW,
-		DB:       redisDB,
-	})
-	return &RedisGameStateTracker{
-		rdclient: rdclient,
-	}
 }
 
 func NewRedisHandStateTracker(redisURL string, redisPW string, redisDB int) *RedisHandStateTracker {
@@ -36,36 +21,6 @@ func NewRedisHandStateTracker(redisURL string, redisPW string, redisDB int) *Red
 	return &RedisHandStateTracker{
 		rdclient: rdclient,
 	}
-}
-
-func (r *RedisGameStateTracker) Load(gameCode string) (*GameState, error) {
-	key := gameCode
-	gameStateBytes, err := r.rdclient.Get(context.Background(), key).Result()
-	if err == redis.Nil {
-		return nil, fmt.Errorf("Game state for Game: %s is not found", gameCode)
-	} else if err != nil {
-		return nil, err
-	}
-	gameState := &GameState{}
-	err = proto.Unmarshal([]byte(gameStateBytes), gameState)
-	if err != nil {
-		return nil, err
-	}
-	return gameState, nil
-}
-
-func (r *RedisGameStateTracker) Save(gameCode string, state *GameState) error {
-	stateInBytes, err := proto.Marshal(state)
-	if err != nil {
-		return err
-	}
-	err = r.rdclient.Set(context.Background(), gameCode, stateInBytes, 0).Err()
-	return err
-}
-
-func (r *RedisGameStateTracker) Remove(gameCode string) error {
-	err := r.rdclient.Del(context.Background(), gameCode).Err()
-	return err
 }
 
 func (r *RedisHandStateTracker) Load(gameCode string) (*HandState, error) {

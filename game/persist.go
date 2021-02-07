@@ -1,11 +1,5 @@
 package game
 
-type PersistGameState interface {
-	Load(gameCode string) (*GameState, error)
-	Save(gameCode string, state *GameState) error
-	Remove(gameCode string) error
-}
-
 type PersistHandState interface {
 	Load(gameCode string) (*HandState, error)
 	LoadClone(gameCode string) (*HandState, error)

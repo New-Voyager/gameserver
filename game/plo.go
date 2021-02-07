@@ -8,7 +8,6 @@ import (
 
 type PloWinnerEvaluate struct {
 	handState           *HandState
-	gameState           *GameState
 	activeSeatBestCombo map[uint32]*EvaluatedCards
 	winners             map[uint32]*PotWinners
 	highHandCombo       map[uint32]*EvaluatedCards
@@ -17,13 +16,12 @@ type PloWinnerEvaluate struct {
 	hiLo                bool
 }
 
-func NewPloWinnerEvaluate(gameState *GameState, handState *HandState, includeHighHand bool, lowWinner bool) *PloWinnerEvaluate {
+func NewPloWinnerEvaluate(handState *HandState, includeHighHand bool, lowWinner bool, maxSeats uint32) *PloWinnerEvaluate {
 	return &PloWinnerEvaluate{
 		handState:           handState,
-		gameState:           gameState,
-		activeSeatBestCombo: make(map[uint32]*EvaluatedCards, gameState.MaxSeats),
+		activeSeatBestCombo: make(map[uint32]*EvaluatedCards, maxSeats),
 		winners:             make(map[uint32]*PotWinners),
-		highHandCombo:       make(map[uint32]*EvaluatedCards, gameState.MaxSeats),
+		highHandCombo:       make(map[uint32]*EvaluatedCards, maxSeats),
 		includeHighHand:     includeHighHand,
 		playerResult:        make(map[uint32]poker.OmahaResult, 0),
 		hiLo:                lowWinner,

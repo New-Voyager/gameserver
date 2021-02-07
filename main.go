@@ -81,7 +81,6 @@ func runWithNats() {
 
 	// subscribe to api server events
 	nats.RegisterGameServer(apiServerURL, natsGameManager)
-	nats.SubscribeToNats(nc)
 
 	// run rest server
 	go rest.RunRestServer(natsGameManager)
