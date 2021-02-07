@@ -29,6 +29,19 @@ type GameMessageReceiver interface {
 	SendGameMessageToPlayer(message *GameMessage, playerID uint64)
 }
 
+type SeatPlayer struct {
+	SeatNo       uint32
+	OpenSeat     bool
+	PlayerID     uint64 `json:"playerId"`
+	PlayerUUID   string `json:"playerUuid"`
+	Name         string
+	BuyIn        float32
+	Stack        float32
+	Status       PlayerStatus
+	GameToken    string
+	GameTokenInt uint64
+}
+
 type Game struct {
 	manager             *Manager
 	end                 chan bool
@@ -57,7 +70,12 @@ type Game struct {
 	lock                    sync.Mutex
 	timerSeatNo             uint32
 
-	state *GameState
+	// state *GameState
+
+	PlayersInSeats []SeatPlayer
+	Status         GameStatus
+	TableStatus    TableStatus
+	ButtonPos      uint32
 }
 
 type timerMsg struct {
@@ -104,14 +122,15 @@ func (g *Game) SetScriptTest(scriptTest bool) {
 }
 
 func (g *Game) playersInSeatsCount() int {
-	playersInSeats := g.state.GetPlayersInSeats()
-	countPlayersInSeats := 0
-	for _, playerID := range playersInSeats {
-		if playerID != 0 {
-			countPlayersInSeats++
-		}
-	}
-	return countPlayersInSeats
+	// playersInSeats := g.state.GetPlayersInSeats()
+	// countPlayersInSeats := 0
+	// for _, playerID := range playersInSeats {
+	// 	if playerID != 0 {
+	// 		countPlayersInSeats++
+	// 	}
+	// }
+	// return countPlayersInSeats
+	return len(g.PlayersInSeats)
 }
 
 func (g *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
@@ -267,8 +286,6 @@ func (g *Game) initialize() error {
 }
 
 func (g *Game) startNewGameState() error {
-	playersInSeats := make([]uint64, g.config.MaxPlayers+1) // seat 0: dealer
-
 	var rewardTrackingIds []uint64
 	if g.config.RewardTrackingIds != nil && len(g.config.RewardTrackingIds) > 0 {
 		rewardTrackingIds = make([]uint64, len(g.config.RewardTrackingIds))
@@ -277,27 +294,25 @@ func (g *Game) startNewGameState() error {
 		}
 	}
 
-	// initialize game state
-	g.state = &GameState{
-		PlayersInSeats: playersInSeats,
-		Status:         g.config.Status,
-		ButtonPos:      0,
-		TableStatus:    g.config.TableStatus,
-	}
-	fmt.Printf("g.state: %+v\n", g.state)
 	return nil
 }
 
-func (g *Game) startGame() (bool, error) {
-	if g.state == nil {
-		return false, fmt.Errorf("Game state has not been initialized")
+func (g *Game) countActivePlayers() int {
+	count := 0
+	for _, p := range g.PlayersInSeats {
+		if p.Status == PlayerStatus_PLAYING {
+			count++
+		}
 	}
+	return count
+}
 
+func (g *Game) startGame() (bool, error) {
 	handState, err := g.loadHandState()
 	if err == nil {
 		// There is an existing hand state. The game must've crashed and is now restarting.
 		// Continue where we left off.
-		err := g.resumeGame(g.state, handState)
+		err := g.resumeGame(handState)
 		if err != nil {
 			channelGameLogger.Error().
 				Uint32("club", g.config.ClubId).
@@ -307,58 +322,48 @@ func (g *Game) startGame() (bool, error) {
 		return true, nil
 	}
 
-	if !g.config.AutoStart && g.state.Status != GameStatus_ACTIVE {
+	if !g.config.AutoStart && g.Status != GameStatus_ACTIVE {
 		return false, nil
 	}
 
-	playersInSeats := g.state.GetPlayersInSeats()
-	countPlayersInSeats := 0
-	for _, playerID := range playersInSeats {
-		if playerID != 0 {
-			countPlayersInSeats++
-		}
-	}
-	if uint32(countPlayersInSeats) < uint32(g.config.MinPlayers) {
-		lastTableState := g.state.TableStatus
+	numActivePlayers := g.countActivePlayers()
+	if uint32(numActivePlayers) < uint32(g.config.MinPlayers) {
+		lastTableState := g.TableStatus
 		// not enough players
 		// set table status as not enough players
-		g.state.TableStatus = TableStatus_NOT_ENOUGH_PLAYERS
+		g.TableStatus = TableStatus_NOT_ENOUGH_PLAYERS
 
 		// TODO:
 		// broadcast this message to the players
 		// update this message in API server
-		if lastTableState != g.state.TableStatus {
+		if lastTableState != g.TableStatus {
 			g.broadcastTableState()
 		}
 		return false, nil
 	}
 
-	g.state.TableStatus = TableStatus_GAME_RUNNING
+	g.TableStatus = TableStatus_GAME_RUNNING
 
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
 		Msg(fmt.Sprintf("Game started. Good luck every one. Players in the table: %d. Waiting list players: %d",
-			playersInSeats, len(g.waitingPlayers)))
+			numActivePlayers, len(g.waitingPlayers)))
 
 	// assign the button pos to the first guy in the list
-	playersInSeat := g.state.PlayersInSeats
-	for seatNo, playerID := range playersInSeat {
-		// skip seat no 0
-		if seatNo == 0 {
-			continue
-		}
-		if playerID != 0 {
-			g.state.ButtonPos = uint32(seatNo)
+	playersInSeat := g.PlayersInSeats
+	for _, player := range playersInSeat {
+		if player.PlayerID != 0 {
+			g.ButtonPos = player.SeatNo
 			break
 		}
 	}
-	g.state.Status = GameStatus_ACTIVE
+	g.Status = GameStatus_ACTIVE
 
 	g.running = true
 
 	gameMessage := GameMessage{MessageType: GameCurrentStatus, GameId: g.config.GameId, PlayerId: 0}
-	gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: g.state.Status, TableStatus: g.state.TableStatus}}
+	gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: g.Status, TableStatus: g.TableStatus}}
 	g.broadcastGameMessage(&gameMessage)
 
 	if g.autoDeal {
@@ -368,7 +373,7 @@ func (g *Game) startGame() (bool, error) {
 	return true, nil
 }
 
-func (g *Game) resumeGame(gameState *GameState, handState *HandState) error {
+func (g *Game) resumeGame(handState *HandState) error {
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
@@ -379,19 +384,19 @@ func (g *Game) resumeGame(gameState *GameState, handState *HandState) error {
 		// We're relying on the client to resend the action message.
 		break
 	case FlowState_PREPARE_NEXT_ACTION:
-		return g.prepareNextAction(gameState, handState)
+		return g.prepareNextAction(handState)
 	case FlowState_MOVE_TO_NEXT_ACTION:
-		return g.moveToNextAction(gameState, handState)
+		return g.moveToNextAction(handState)
 	case FlowState_MOVE_TO_NEXT_ROUND:
-		return g.moveToNextRound(gameState, handState)
+		return g.moveToNextRound(handState)
 	case FlowState_ALL_PLAYERS_ALL_IN:
-		return g.allPlayersAllIn(gameState, handState)
+		return g.allPlayersAllIn(handState)
 	case FlowState_ONE_PLAYER_REMAINING:
-		return g.onePlayerRemaining(gameState, handState)
+		return g.onePlayerRemaining(handState)
 	case FlowState_SHOWDOWN:
-		return g.showdown(gameState, handState)
+		return g.showdown(handState)
 	case FlowState_HAND_ENDED:
-		return g.handEnded(gameState, handState)
+		return g.handEnded(handState)
 	default:
 		return fmt.Errorf("Unhandled flow state: %s", handState.FlowState)
 	}
@@ -450,7 +455,7 @@ func (g *Game) dealNewHand() error {
 	moveButton := prevHandNum > 1
 
 	if g.testButtonPos > 0 {
-		g.state.ButtonPos = uint32(g.testButtonPos)
+		g.ButtonPos = uint32(g.testButtonPos)
 		moveButton = false
 	}
 
@@ -468,9 +473,9 @@ func (g *Game) dealNewHand() error {
 		deck = poker.NewDeck(nil).Shuffle()
 	}
 
-	handState.initialize(g.config, g.state, deck, g.state.ButtonPos, moveButton)
+	handState.initialize(g.config, deck, g.ButtonPos, moveButton, g.PlayersInSeats)
 
-	g.state.ButtonPos = handState.GetButtonPos()
+	g.ButtonPos = handState.GetButtonPos()
 	g.testDeckToUse = nil
 	g.testButtonPos = -1
 
@@ -532,49 +537,51 @@ func (g *Game) dealNewHand() error {
 	g.broadcastHandMessage(&handMessage)
 
 	playersCards := make(map[uint32]string)
-	activePlayers := uint32(len(g.state.GetPlayersInSeats()))
-	cardAnimationTime := time.Duration(activePlayers * g.delays.DealSingleCard * newHand.NoCards)
+	numActivePlayers := uint32(g.countActivePlayers())
+	cardAnimationTime := time.Duration(numActivePlayers * g.delays.DealSingleCard * newHand.NoCards)
 	// send the cards to each player
-	for seatNo, playerID := range g.state.GetPlayersInSeats() {
-		if playerID == 0 {
-			// empty seat
+	for seatNo, player := range g.PlayersInSeats {
+		if player.Status != PlayerStatus_PLAYING {
+			// Open seat or not playing this hand
 			continue
 		}
 
 		// if the player balance is 0, then don't deal card to him
-		if _, ok := handState.PlayersState[playerID]; !ok {
+		if _, ok := handState.PlayersState[player.PlayerID]; !ok {
 			handState.ActiveSeats[seatNo] = 0
 			continue
 		}
 
-		// if the player is in break or the player has no balance
-		playerState := handState.PlayersState[playerID]
-		if playerState.Status == HandPlayerState_SAT_OUT {
-			handState.PlayersInSeats[seatNo] = 0
-			handState.ActiveSeats[seatNo] = 0
-			continue
-		}
+		// TODO: Clean up this block if not needed.
+		//
+		// // if the player is in break or the player has no balance
+		// playerState := handState.PlayersState[player.PlayerID]
+		// if playerState.Status == HandPlayerState_SAT_OUT {
+		// 	handState.PlayersInSeats[seatNo] = 0
+		// 	handState.ActiveSeats[seatNo] = 0
+		// 	continue
+		// }
 
 		// seatNo is the key, cards are value
 		playerCards := handState.PlayersCards[uint32(seatNo)]
 		message := HandDealCards{SeatNo: uint32(seatNo)}
 
-		cards, maskedCards := g.maskCards(playerCards, g.state.PlayersState[playerID].GameTokenInt)
+		tmpGameToken := uint64(0)
+		cards, maskedCards := g.maskCards(playerCards, tmpGameToken)
 		playersCards[uint32(seatNo+1)] = fmt.Sprintf("%d", maskedCards)
 		message.Cards = fmt.Sprintf("%d", maskedCards)
 		message.CardsStr = poker.CardsToString(cards)
 
 		//messageData, _ := proto.Marshal(&message)
-		player := g.allPlayers[playerID]
-		handMessage := HandMessage{MessageType: HandDeal, GameId: g.config.GameId, ClubId: g.config.ClubId, PlayerId: playerID}
+		handMessage := HandMessage{MessageType: HandDeal, GameId: g.config.GameId, ClubId: g.config.ClubId, PlayerId: player.PlayerID}
 		handMessage.HandMessage = &HandMessage_DealCards{DealCards: &message}
 		b, _ := proto.Marshal(&handMessage)
 
 		if *g.messageReceiver != nil {
-			(*g.messageReceiver).SendHandMessageToPlayer(&handMessage, playerID)
+			(*g.messageReceiver).SendHandMessageToPlayer(&handMessage, player.PlayerID)
 
 		} else {
-			player.chHand <- b
+			g.allPlayers[player.PlayerID].chHand <- b
 		}
 	}
 	if !RunningTests {
@@ -586,11 +593,11 @@ func (g *Game) dealNewHand() error {
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
 		Uint32("hand", handState.HandNum).
-		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, g.state, g.players)))
+		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, g.PlayersInSeats)))
 
 	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 	g.saveHandState(handState)
-	g.moveToNextAction(g.state, handState)
+	g.moveToNextAction(handState)
 	return nil
 }
 
@@ -601,13 +608,8 @@ func (g *Game) saveHandState(handState *HandState) error {
 	return err
 }
 
-func (g *Game) removeHandState(gameState *GameState, handState *HandState) error {
-	if gameState == nil || handState == nil {
-		return nil
-	}
-
-	err := g.manager.handStatePersist.Remove(
-		g.config.GameCode)
+func (g *Game) removeHandState() error {
+	err := g.manager.handStatePersist.Remove(g.config.GameCode)
 	return err
 }
 
@@ -692,16 +694,14 @@ func (g *Game) addPlayer(player *Player) error {
 
 func (g *Game) getPlayersAtTable() ([]*PlayerAtTableState, error) {
 	ret := make([]*PlayerAtTableState, 0)
-	playersInSeats := g.state.GetPlayersInSeats()
-	for seatNo, playerID := range playersInSeats {
-		if playerID != 0 {
-			playerState := g.state.PlayersState[playerID]
+	for _, player := range g.PlayersInSeats {
+		if player.PlayerID != 0 {
 			playerAtTable := &PlayerAtTableState{
-				PlayerId:       playerID,
-				SeatNo:         uint32(seatNo + 1),
-				BuyIn:          playerState.BuyIn,
-				CurrentBalance: playerState.CurrentBalance,
-				Status:         playerState.Status,
+				PlayerId:       player.PlayerID,
+				SeatNo:         player.SeatNo,
+				BuyIn:          player.BuyIn,
+				CurrentBalance: player.Stack,
+				Status:         player.Status,
 			}
 			ret = append(ret, playerAtTable)
 		}
@@ -776,12 +776,6 @@ func anyPendingUpdates(apiServerUrl string, gameID uint64, retryDelay uint32) (b
 }
 
 func (g *Game) GameEnded() error {
-	if g.state != nil {
-		// remove the old handstate
-		handState, _ := g.loadHandState()
-		if handState != nil {
-			g.removeHandState(g.state, handState)
-		}
-	}
+	g.removeHandState()
 	return nil
 }

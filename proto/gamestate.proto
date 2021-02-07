@@ -2,28 +2,3 @@ syntax = "proto3";
 package game;
 option go_package = "game";
 import "game.proto";
-
-message GameState {
-
-  // index 0-8 for 9 seats
-  // the array item is player id
-  // if array item is 0, that means the seat is empty 
-  repeated uint64 players_in_seats = 4 [packed=true];
-
-  // players in the table and the queue
-  repeated uint64 players_in_game = 5 [packed=true];
-
-  // players who participated in the game
-  map<uint64, PlayerState> players_state = 6;
-
-  // game status
-  GameStatus status = 9;
-
-  uint32 button_pos = 11;
-
-  // table status
-  TableStatus table_status = 25;
-
-  // What stage of the game are we in?
-  uint32 stage = 39;
-}

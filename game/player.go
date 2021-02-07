@@ -366,19 +366,19 @@ func (p *Player) JoinGame(clubID uint32, gameID uint64) error {
 	return e
 }
 
-func (p *Player) SitAtTable(seatNo uint32, buyIn float32) error {
-	var message GameMessage
-	message.ClubId = p.ClubID
-	message.GameId = p.GameID
-	message.MessageType = PlayerTakeSeat
+// func (p *Player) SitAtTable(seatNo uint32, buyIn float32) error {
+// 	var message GameMessage
+// 	message.ClubId = p.ClubID
+// 	message.GameId = p.GameID
+// 	message.MessageType = PlayerTakeSeat
 
-	sitMessage := &GameSitMessage{PlayerId: p.PlayerID, SeatNo: seatNo, BuyIn: buyIn}
-	// only club owner/manager can start a game
-	message.GameMessage = &GameMessage_TakeSeat{TakeSeat: sitMessage}
-	e := p.GameProtoMessageFromAdapter(&message)
-	p.SeatNo = seatNo
-	return e
-}
+// 	sitMessage := &GameSitMessage{PlayerId: p.PlayerID, SeatNo: seatNo, BuyIn: buyIn}
+// 	// only club owner/manager can start a game
+// 	message.GameMessage = &GameMessage_TakeSeat{TakeSeat: sitMessage}
+// 	e := p.GameProtoMessageFromAdapter(&message)
+// 	p.SeatNo = seatNo
+// 	return e
+// }
 
 // SetupNextHand method can be called only from the test driver
 // and this is available only in test mode.
