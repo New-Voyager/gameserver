@@ -54,14 +54,14 @@ func (h *HandState) initializeBettingRound() {
 	h.resetPlayerActions()
 }
 
-func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos uint32, moveButton bool) {
+func (h *HandState) initialize(gameConfig *GameConfig, gameState *GameState, deck *poker.Deck, buttonPos uint32, moveButton bool) {
 	// settle players in the seats
-	h.PlayersInSeats = make([]uint64, gameState.MaxSeats+1) // seat 0 is dealer
+	h.PlayersInSeats = make([]uint64, gameConfig.MaxPlayers+1) // seat 0 is dealer
 	h.NoActiveSeats = 0
-	h.GameType = gameState.GameType
+	h.GameType = gameConfig.GameType
 
 	// copy player's stack (we need to copy only the players that are in the hand)
-	h.PlayersState = h.copyPlayersState(gameState)
+	h.PlayersState = h.copyPlayersState(gameState, uint32(gameConfig.MaxPlayers))
 
 	// update active seats with players who are playing
 	for seatNo, playerID := range gameState.GetPlayersInSeats() {
@@ -79,15 +79,15 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 			h.NoActiveSeats++
 		}
 	}
-	h.MaxSeats = gameState.MaxSeats
-	h.SmallBlind = gameState.SmallBlind
-	h.BigBlind = gameState.BigBlind
-	h.Straddle = gameState.Straddle
-	h.RakePercentage = gameState.RakePercentage
-	h.RakeCap = gameState.RakeCap
+	h.MaxSeats = uint32(gameConfig.MaxPlayers)
+	h.SmallBlind = float32(gameConfig.SmallBlind)
+	h.BigBlind = float32(gameConfig.BigBlind)
+	h.Straddle = float32(gameConfig.StraddleBet)
+	h.RakePercentage = float32(gameConfig.RakePercentage)
+	h.RakeCap = float32(gameConfig.RakeCap)
 	h.ButtonPos = buttonPos
 	h.PlayersActed = make([]*PlayerActRound, h.MaxSeats+1)
-	h.BringIn = gameState.BringIn
+	h.BringIn = float32(gameConfig.BringIn)
 
 	// if the players don't have money less than the blinds
 	// don't let them play
@@ -119,7 +119,7 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 
 	// setup main pot
 	h.Pots = make([]*SeatsInPots, 0)
-	mainPot := initializePot(int(gameState.MaxSeats + 1))
+	mainPot := initializePot(gameConfig.MaxPlayers + 1)
 	h.Pots = append(h.Pots, mainPot)
 	h.RakePaid = make(map[uint64]float32, 0)
 
@@ -165,9 +165,9 @@ func (h *HandState) initialize(gameState *GameState, deck *poker.Deck, buttonPos
 	h.setupPreflob()
 }
 
-func (h *HandState) copyPlayersState(gameState *GameState) map[uint64]*HandPlayerState {
+func (h *HandState) copyPlayersState(gameState *GameState, maxSeats uint32) map[uint64]*HandPlayerState {
 	handPlayerState := make(map[uint64]*HandPlayerState, 0)
-	for seatNo := 1; seatNo <= int(gameState.GetMaxSeats()); seatNo++ {
+	for seatNo := 1; seatNo <= int(maxSeats); seatNo++ {
 		playerID := gameState.GetPlayersInSeats()[seatNo]
 		if playerID == 0 {
 			continue

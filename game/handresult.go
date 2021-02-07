@@ -8,24 +8,22 @@ import (
 
 type HandResultProcessor struct {
 	handState         *HandState
-	gameState         *GameState
 	rewardTrackingIds []uint32
 	evaluator         HandEvaluator
 }
 
-func NewHandResultProcessor(handState *HandState, gameState *GameState, rewardTrackingIds []uint32) *HandResultProcessor {
+func NewHandResultProcessor(handState *HandState, maxSeats uint32, rewardTrackingIds []uint32) *HandResultProcessor {
 	var evaluator HandEvaluator
-	includeHighHand := gameState.RewardTrackingIds != nil
+	includeHighHand := rewardTrackingIds != nil
 	if handState.GameType == GameType_HOLDEM {
-		evaluator = NewHoldemWinnerEvaluate(gameState, handState, includeHighHand)
+		evaluator = NewHoldemWinnerEvaluate(handState, includeHighHand, maxSeats)
 	} else if handState.GameType == GameType_PLO || handState.GameType == GameType_FIVE_CARD_PLO {
-		evaluator = NewPloWinnerEvaluate(gameState, handState, includeHighHand, false)
+		evaluator = NewPloWinnerEvaluate(handState, includeHighHand, false, maxSeats)
 	} else if handState.GameType == GameType_PLO_HILO || handState.GameType == GameType_FIVE_CARD_PLO_HILO {
-		evaluator = NewPloWinnerEvaluate(gameState, handState, includeHighHand, true)
+		evaluator = NewPloWinnerEvaluate(handState, includeHighHand, true, maxSeats)
 	}
 	return &HandResultProcessor{
 		handState:         handState,
-		gameState:         gameState,
 		rewardTrackingIds: rewardTrackingIds,
 		evaluator:         evaluator,
 	}
@@ -90,7 +88,7 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 	}
 
 	// we want to evaulate the hands again for the high hand if the remaining player may have the high hand
-	if (hr.handState.BoardCards != nil && hr.gameState.RewardTrackingIds != nil) ||
+	if (hr.handState.BoardCards != nil && hr.rewardTrackingIds != nil && len(hr.rewardTrackingIds) > 0) ||
 		hr.handState.HandCompletedAt == HandStatus_SHOW_DOWN {
 		bestSeatHands = hr.evaluator.GetBestPlayerCards()
 		highHands = hr.evaluator.GetHighHandCards()
@@ -112,9 +110,9 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 		fmt.Printf("\n\n================================================================\n\n")
 	}
 	handResult := &HandResult{
-		GameId:   hr.gameState.GameId,
+		GameId:   hr.handState.GameId,
 		HandNum:  hr.handState.HandNum,
-		GameType: hr.gameState.GameType,
+		GameType: hr.handState.GameType,
 	}
 
 	// get hand log

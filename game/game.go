@@ -67,9 +67,7 @@ type timerMsg struct {
 	allowedTime time.Duration
 }
 
-func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, config *GameConfig, delays Delays, autoDeal bool,
-	gameStatePersist PersistGameState,
-	handStatePersist PersistHandState,
+func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, config *GameConfig, delays Delays, autoDeal bool, handStatePersist PersistHandState,
 	apiServerUrl string) (*Game, error) {
 
 	if config.SmallBlind == 0.0 || config.BigBlind == 0.0 {
@@ -269,7 +267,6 @@ func (g *Game) initialize() error {
 }
 
 func (g *Game) startNewGameState() error {
-	playersState := make(map[uint64]*PlayerState)
 	playersInSeats := make([]uint64, g.config.MaxPlayers+1) // seat 0: dealer
 
 	var rewardTrackingIds []uint64
@@ -282,26 +279,10 @@ func (g *Game) startNewGameState() error {
 
 	// initialize game state
 	g.state = &GameState{
-		ClubId:                g.config.ClubId,
-		GameId:                g.config.GameId,
-		GameCode:              g.config.GameCode,
-		PlayersInSeats:        playersInSeats,
-		PlayersState:          playersState,
-		UtgStraddleAllowed:    false,
-		ButtonStraddleAllowed: false,
-		Status:                g.config.Status,
-		GameType:              g.config.GameType,
-		MinPlayers:            uint32(g.config.MinPlayers),
-		ButtonPos:             0,
-		SmallBlind:            float32(g.config.SmallBlind),
-		BigBlind:              float32(g.config.BigBlind),
-		MaxSeats:              uint32(g.config.MaxPlayers),
-		TableStatus:           g.config.TableStatus,
-		ActionTime:            uint32(g.config.ActionTime),
-		RakePercentage:        float32(g.config.RakePercentage),
-		RakeCap:               float32(g.config.RakeCap),
-		RewardTrackingIds:     rewardTrackingIds,
-		BringIn:               float32(g.config.BringIn),
+		PlayersInSeats: playersInSeats,
+		Status:         g.config.Status,
+		ButtonPos:      0,
+		TableStatus:    g.config.TableStatus,
 	}
 	fmt.Printf("g.state: %+v\n", g.state)
 	return nil
@@ -337,7 +318,7 @@ func (g *Game) startGame() (bool, error) {
 			countPlayersInSeats++
 		}
 	}
-	if uint32(countPlayersInSeats) < g.state.GetMinPlayers() {
+	if uint32(countPlayersInSeats) < uint32(g.config.MinPlayers) {
 		lastTableState := g.state.TableStatus
 		// not enough players
 		// set table status as not enough players
@@ -474,10 +455,10 @@ func (g *Game) dealNewHand() error {
 	}
 
 	handState = &HandState{
-		ClubId:        g.state.GetClubId(),
-		GameId:        g.state.GetGameId(),
+		ClubId:        g.config.ClubId,
+		GameId:        g.config.GameId,
 		HandNum:       uint32(prevHandNum) + 1,
-		GameType:      g.state.GetGameType(),
+		GameType:      g.config.GameType,
 		CurrentState:  HandStatus_DEAL,
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
@@ -487,7 +468,7 @@ func (g *Game) dealNewHand() error {
 		deck = poker.NewDeck(nil).Shuffle()
 	}
 
-	handState.initialize(g.state, deck, g.state.ButtonPos, moveButton)
+	handState.initialize(g.config, g.state, deck, g.state.ButtonPos, moveButton)
 
 	g.state.ButtonPos = handState.GetButtonPos()
 	g.testDeckToUse = nil
@@ -507,7 +488,7 @@ func (g *Game) dealNewHand() error {
 		HandStatus:  handState.CurrentState,
 	}
 
-	gameType := g.state.GameType
+	gameType := g.config.GameType
 	// send a new hand message to all players
 	newHand := NewHand{
 		ButtonPos:      handState.ButtonPos,
@@ -615,7 +596,7 @@ func (g *Game) dealNewHand() error {
 
 func (g *Game) saveHandState(handState *HandState) error {
 	err := g.manager.handStatePersist.Save(
-		g.state.GameCode,
+		g.config.GameCode,
 		handState)
 	return err
 }
@@ -626,12 +607,12 @@ func (g *Game) removeHandState(gameState *GameState, handState *HandState) error
 	}
 
 	err := g.manager.handStatePersist.Remove(
-		gameState.GameCode)
+		g.config.GameCode)
 	return err
 }
 
 func (g *Game) loadHandState() (*HandState, error) {
-	handState, err := g.manager.handStatePersist.Load(g.state.GetGameCode())
+	handState, err := g.manager.handStatePersist.Load(g.config.GameCode)
 	return handState, err
 }
 
@@ -727,6 +708,38 @@ func (g *Game) getPlayersAtTable() ([]*PlayerAtTableState, error) {
 	}
 
 	return ret, nil
+}
+
+func (g *Game) getGameInfo(apiServerURL string, gameCode string, retryDelay uint32) (*GameConfig, error) {
+	var gameConfig GameConfig
+	url := fmt.Sprintf("%s/internal/game-info/game_num/%s", apiServerURL, gameCode)
+
+	retry := true
+	for retry {
+		resp, err := http.Get(url)
+		if resp == nil {
+			channelGameLogger.Error().Msgf("Connection to API server is lost. Waiting for %.3f seconds before retrying", float32(retryDelay)/1000)
+			time.Sleep(time.Duration(retryDelay) * time.Millisecond)
+			continue
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != 200 {
+			channelGameLogger.Fatal().
+				Str("gameCode", gameCode).
+				Msg(fmt.Sprintf("Failed to fetch game info. Error: %d", resp.StatusCode))
+		}
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		err = json.Unmarshal(body, &gameConfig)
+		if err != nil {
+			return nil, err
+		}
+		retry = false
+	}
+	return &gameConfig, nil
 }
 
 func anyPendingUpdates(apiServerUrl string, gameID uint64, retryDelay uint32) (bool, error) {
