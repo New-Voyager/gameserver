@@ -43,8 +43,11 @@ func (g *Game) saveHandResult(result *HandResult) (*SaveHandResult, error) {
 	}
 }
 
-func (g *Game) getNewHandInfo() (*NewHandInfo, error) {
-	url := fmt.Sprintf("%s/internal/new-hand-info/game_num/%s", g.apiServerUrl, g.config.GameCode)
+func (g *Game) getNewHandInfo(retryDelay uint32) (*NewHandInfo, error) {
+	// TODO: Implement retry.
+
+	url := fmt.Sprintf("%s/internal/next-hand-info/game_num/%s", g.apiServerUrl, g.config.GameCode)
+
 	resp, _ := http.Get(url)
 	// if the api server returns nil, do nothing
 	if resp == nil {

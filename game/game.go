@@ -61,6 +61,8 @@ type Game struct {
 	Status                  GameStatus
 	TableStatus             TableStatus
 	ButtonPos               uint32
+
+	retryDelayMillis uint32
 }
 
 type timerMsg struct {
@@ -78,13 +80,14 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, co
 		return nil, fmt.Errorf("Blinds must be set. SmallBlind: %f BigBlind: %f", config.SmallBlind, config.BigBlind)
 	}
 	g := Game{
-		manager:         gameManager,
-		messageReceiver: messageReceiver,
-		config:          config,
-		delays:          delays,
-		autoDeal:        autoDeal,
-		testButtonPos:   -1,
-		apiServerUrl:    apiServerUrl,
+		manager:          gameManager,
+		messageReceiver:  messageReceiver,
+		config:           config,
+		delays:           delays,
+		autoDeal:         autoDeal,
+		testButtonPos:    -1,
+		apiServerUrl:     apiServerUrl,
+		retryDelayMillis: 500,
 	}
 	g.allPlayers = make(map[uint64]*Player)
 	g.chGame = make(chan []byte)
@@ -304,8 +307,28 @@ func (g *Game) startGame() (bool, error) {
 		return false, nil
 	}
 
-	numActivePlayers := g.countActivePlayers()
-	if uint32(numActivePlayers) < uint32(g.config.MinPlayers) {
+	var numActivePlayers int
+	if !RunningTests {
+		// Get game config.
+		gameConfig, err := g.getGameInfo(g.apiServerUrl, g.config.GameCode, 500)
+		if err != nil {
+			return false, err
+		}
+
+		g.config = gameConfig
+		fmt.Printf("New Game Config: %+v\n", g.config)
+
+		// Get seat info.
+		handInfo, err := g.getNewHandInfo(500)
+		if err != nil {
+			return false, err
+		}
+		numActivePlayers = len(handInfo.PlayersInSeats)
+	} else {
+		numActivePlayers = g.countActivePlayers()
+	}
+
+	if numActivePlayers < g.config.MinPlayers {
 		lastTableState := g.TableStatus
 		// not enough players
 		// set table status as not enough players
@@ -434,7 +457,7 @@ func (g *Game) dealNewHand() error {
 		// we are not running tests
 		// get new hand information from the API server
 		// new hand information contains players in seats/balance/status, game type, announce new game
-		newHandInfo, err = g.getNewHandInfo()
+		newHandInfo, err = g.getNewHandInfo(g.retryDelayMillis)
 		if err != nil {
 			// right now panic (shouldn't happen)
 			panic(err)
