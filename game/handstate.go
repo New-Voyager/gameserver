@@ -65,6 +65,9 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 
 	// update active seats with players who are playing
 	for _, player := range playersInSeats {
+		if player.SeatNo == 0 {
+			continue
+		}
 		h.PlayersInSeats[int(player.SeatNo)] = player.PlayerID
 		if player.Status != PlayerStatus_PLAYING {
 			continue
@@ -226,7 +229,7 @@ func (h *HandState) setupPreflob() {
 
 func (h *HandState) resetPlayerActions() {
 	for seatNo, playerID := range h.GetPlayersInSeats() {
-		if playerID == 0 || h.ActiveSeats[seatNo] == 0 {
+		if seatNo == 0 || playerID == 0 || h.ActiveSeats[seatNo] == 0 {
 			h.PlayersActed[seatNo] = &PlayerActRound{
 				State: PlayerActState_PLAYER_ACT_EMPTY_SEAT,
 			}
