@@ -86,7 +86,7 @@ message GameMessage {
     GameSetupNextHandMessage next_hand = 14;
     GameStartMessage start_game = 15;
     GameQueryTableStateMessage query_table_state = 16;
-    // GamePlayerUpdate player_update = 17;
+    GamePlayerUpdate player_update = 17;
     bytes hand_log = 18;
     HighHand high_hand = 19;
     TableUpdate table_update = 20;

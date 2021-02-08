@@ -102,9 +102,9 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 			// player ID is 0, meaning an open seat or a dealer.
 			continue
 		}
-		state := playersInSeats[seatNo-1]
+		playerInSeat := playersInSeats[seatNo]
 		h.BalanceBeforeHand = append(h.BalanceBeforeHand,
-			&PlayerBalance{SeatNo: uint32(seatNo + 1), PlayerId: player, Balance: state.Stack})
+			&PlayerBalance{SeatNo: playerInSeat.SeatNo, PlayerId: playerInSeat.PlayerID, Balance: playerInSeat.Stack})
 	}
 
 	h.Deck = deck.GetBytes()
@@ -161,7 +161,7 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 func (h *HandState) copyPlayersState(maxSeats uint32, playersInSeats []SeatPlayer) map[uint64]*HandPlayerState {
 	handPlayerState := make(map[uint64]*HandPlayerState, 0)
 	for seatNo := 1; seatNo <= int(maxSeats); seatNo++ {
-		player := playersInSeats[seatNo-1]
+		player := playersInSeats[seatNo]
 		if player.Status != PlayerStatus_PLAYING {
 			continue
 		}

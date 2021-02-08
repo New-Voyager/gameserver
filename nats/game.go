@@ -144,7 +144,7 @@ func (n *NatsGame) playerUpdate(gameID uint64, update *PlayerUpdate) {
 
 	message.GameMessage = &game.GameMessage_PlayerUpdate{PlayerUpdate: &playerUpdate}
 
-	go n.serverGame.SendGameMessageToChannel(&message)
+	n.BroadcastGameMessage(&message)
 }
 
 func (n *NatsGame) pendingUpdatesDone() {

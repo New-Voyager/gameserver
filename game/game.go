@@ -69,13 +69,10 @@ type Game struct {
 	delays                  Delays
 	lock                    sync.Mutex
 	timerSeatNo             uint32
-
-	// state *GameState
-
-	PlayersInSeats []SeatPlayer
-	Status         GameStatus
-	TableStatus    TableStatus
-	ButtonPos      uint32
+	PlayersInSeats          []SeatPlayer
+	Status                  GameStatus
+	TableStatus             TableStatus
+	ButtonPos               uint32
 }
 
 type timerMsg struct {
@@ -122,15 +119,7 @@ func (g *Game) SetScriptTest(scriptTest bool) {
 }
 
 func (g *Game) playersInSeatsCount() int {
-	// playersInSeats := g.state.GetPlayersInSeats()
-	// countPlayersInSeats := 0
-	// for _, playerID := range playersInSeats {
-	// 	if playerID != 0 {
-	// 		countPlayersInSeats++
-	// 	}
-	// }
-	// return countPlayersInSeats
-	return len(g.PlayersInSeats)
+	return len(g.PlayersInSeats) - 1
 }
 
 func (g *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
@@ -294,6 +283,7 @@ func (g *Game) startNewGameState() error {
 		}
 	}
 
+	g.PlayersInSeats = make([]SeatPlayer, g.config.MaxPlayers+1) // 0 is dealer/observer
 	return nil
 }
 
@@ -540,7 +530,7 @@ func (g *Game) dealNewHand() error {
 	numActivePlayers := uint32(g.countActivePlayers())
 	cardAnimationTime := time.Duration(numActivePlayers * g.delays.DealSingleCard * newHand.NoCards)
 	// send the cards to each player
-	for seatNo, player := range g.PlayersInSeats {
+	for _, player := range g.PlayersInSeats {
 		if player.Status != PlayerStatus_PLAYING {
 			// Open seat or not playing this hand
 			continue
@@ -548,7 +538,7 @@ func (g *Game) dealNewHand() error {
 
 		// if the player balance is 0, then don't deal card to him
 		if _, ok := handState.PlayersState[player.PlayerID]; !ok {
-			handState.ActiveSeats[seatNo] = 0
+			handState.ActiveSeats[int(player.SeatNo)] = 0
 			continue
 		}
 
@@ -563,12 +553,12 @@ func (g *Game) dealNewHand() error {
 		// }
 
 		// seatNo is the key, cards are value
-		playerCards := handState.PlayersCards[uint32(seatNo)]
-		message := HandDealCards{SeatNo: uint32(seatNo)}
+		playerCards := handState.PlayersCards[uint32(player.SeatNo)]
+		message := HandDealCards{SeatNo: uint32(player.SeatNo)}
 
 		tmpGameToken := uint64(0)
 		cards, maskedCards := g.maskCards(playerCards, tmpGameToken)
-		playersCards[uint32(seatNo+1)] = fmt.Sprintf("%d", maskedCards)
+		playersCards[player.SeatNo] = fmt.Sprintf("%d", maskedCards)
 		message.Cards = fmt.Sprintf("%d", maskedCards)
 		message.CardsStr = poker.CardsToString(cards)
 
@@ -685,10 +675,21 @@ func (g *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint64) {
 	}
 }
 
-func (g *Game) addPlayer(player *Player) error {
+func (g *Game) addPlayer(player *Player, buyIn float32) error {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 	g.allPlayers[player.PlayerID] = player
+
+	// add the player to playerSeatInfos
+	g.PlayersInSeats[int(player.SeatNo)] = SeatPlayer{
+		Name:       player.PlayerName,
+		PlayerID:   player.PlayerID,
+		PlayerUUID: fmt.Sprintf("%d", player.PlayerID),
+		Status:     PlayerStatus_PLAYING,
+		Stack:      buyIn,
+		OpenSeat:   false,
+		SeatNo:     player.SeatNo,
+	}
 	return nil
 }
 

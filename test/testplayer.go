@@ -64,6 +64,10 @@ func (t *TestPlayer) setPlayer(player *game.Player) {
 	t.player = player
 }
 
+func (t *TestPlayer) joinGame(gameID uint64, seatNo uint32, buyIn float32) {
+	t.player.JoinGame(gameID, seatNo, buyIn)
+}
+
 func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.HandMessage, jsonb []byte) {
 
 	if handMessage.MessageType == game.HandNewHand {
@@ -204,10 +208,10 @@ func (t *TestPlayer) GameMessageFromGame(messageBytes []byte, gameMessage *game.
 		if messageTypeStr == game.GameTableState {
 			t.lastTableState = gameMessage.GetTableState()
 			t.observerCh <- messageBytes
-		} else if messageTypeStr == "PLAYER_SAT" {
-			if gameMessage.GetPlayerSat().PlayerId == t.player.PlayerID {
-				t.seatNo = gameMessage.GetPlayerSat().SeatNo
-			}
+			// } else if messageTypeStr == "PLAYER_SAT" {
+			// 	if gameMessage.GetPlayerSat().PlayerId == t.player.PlayerID {
+			// 		t.seatNo = gameMessage.GetPlayerSat().SeatNo
+			// 	}
 		} else {
 			t.lastGameMessage = gameMessage
 		}

@@ -48,13 +48,13 @@ func (g *TestGameScript) configure(t *TestDriver) error {
 	g.testGame.Start(g.gameScript.AssignSeat.Seats)
 	// get current game status
 	//gameManager.GetTableState(g.testGame.clubID, g.testGame.gameNum, g.observer.player.PlayerID)
-	g.observer.getTableState()
-	g.waitForObserver()
+	// g.observer.getTableState()
+	// g.waitForObserver()
 
-	e := g.verifyTableResult(t, g.gameScript.AssignSeat.Verify.Table.Players, "take-seat")
-	if e != nil {
-		return e
-	}
+	// e := g.verifyTableResult(t, g.gameScript.AssignSeat.Verify.Table.Players, "take-seat")
+	// if e != nil {
+	// 	return e
+	// }
 
 	return nil
 }

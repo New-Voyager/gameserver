@@ -1,4 +1,4 @@
-disabled: false
+disabled: true
 game-config:
   type: HOLDEM
   max-players: 9

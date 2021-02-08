@@ -142,10 +142,10 @@ func (g *Game) onMoveToNextHand(message *GameMessage) error {
 
 // This is only for testing.
 func (g *Game) onPlayerInSeats(message *GameMessage) error {
-	g.PlayersInSeats = make([]SeatPlayer, g.config.MaxPlayers)
+	g.PlayersInSeats = make([]SeatPlayer, g.config.MaxPlayers+1) // 0 is for dealer/observer
 	for _, player := range message.GetPlayersInSeats().GetPlayerInSeats() {
 		seatNo := player.SeatNo
-		g.PlayersInSeats[seatNo-1] = SeatPlayer{
+		g.PlayersInSeats[seatNo] = SeatPlayer{
 			SeatNo:   seatNo,
 			OpenSeat: false,
 			PlayerID: player.PlayerId,

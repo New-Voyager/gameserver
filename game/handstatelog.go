@@ -44,7 +44,7 @@ func (h *HandState) PrintTable(players map[uint64]string) string {
 func (n *NextSeatAction) PrettyPrint(h *HandState, playersInSeats []SeatPlayer) string {
 	seatNo := n.SeatNo
 	playerState := h.getPlayerFromSeat(seatNo)
-	player := playersInSeats[seatNo-1]
+	player := playersInSeats[seatNo]
 	var b strings.Builder
 	b.Grow(32)
 	fmt.Fprintf(&b, " Next Action: {Seat No: %d, Player: %s, balance: %f}, ", seatNo, player.Name, playerState.Balance)
@@ -114,8 +114,7 @@ func (a *HandAction) Print(h *HandState, playersInSeats []SeatPlayer) string {
 	}
 
 	seatNo := a.SeatNo
-	//playerState := h.getPlayerFromSeat(seatNo)
-	player := playersInSeats[seatNo-1]
+	player := playersInSeats[seatNo]
 
 	if a.Action == ACTION_FOLD {
 		return fmt.Sprintf("%s   %s", player.Name, action)

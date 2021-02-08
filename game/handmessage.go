@@ -127,7 +127,7 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 	}
 
 	if playerSeatNo != 0 {
-		player := g.PlayersInSeats[playerSeatNo-1]
+		player := g.PlayersInSeats[playerSeatNo]
 		_, maskedCards := g.maskCards(handState.GetPlayersCards()[playerSeatNo], player.GameTokenInt)
 		currentHandState.PlayerCards = fmt.Sprintf("%d", maskedCards)
 		currentHandState.PlayerSeatNo = playerSeatNo
@@ -811,7 +811,7 @@ func (g *Game) generateAndSendResult(handState *HandState) error {
 
 	// update the player balance
 	for seatNo, player := range handResult.Players {
-		g.PlayersInSeats[seatNo-1].Stack = player.Balance.After
+		g.PlayersInSeats[seatNo].Stack = player.Balance.After
 	}
 
 	g.sendResult(handState, saveResult, handResult)
