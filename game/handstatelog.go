@@ -41,14 +41,13 @@ func (h *HandState) PrintTable(players map[uint64]string) string {
 	return b.String()
 }
 
-func (n *NextSeatAction) PrettyPrint(h *HandState, gameState *GameState, players map[uint64]string) string {
+func (n *NextSeatAction) PrettyPrint(h *HandState, playersInSeats []SeatPlayer) string {
 	seatNo := n.SeatNo
 	playerState := h.getPlayerFromSeat(seatNo)
-	playerID := gameState.GetPlayersInSeats()[seatNo]
-	player, _ := players[playerID]
+	player := playersInSeats[seatNo]
 	var b strings.Builder
 	b.Grow(32)
-	fmt.Fprintf(&b, " Next Action: {Seat No: %d, Player: %s, balance: %f}, ", seatNo, player, playerState.Balance)
+	fmt.Fprintf(&b, " Next Action: {Seat No: %d, Player: %s, balance: %f}, ", seatNo, player.Name, playerState.Balance)
 	fmt.Fprintf(&b, " Available actions: [")
 	for _, action := range n.AvailableActions {
 		switch action {
@@ -69,7 +68,7 @@ func (n *NextSeatAction) PrettyPrint(h *HandState, gameState *GameState, players
 	return b.String()
 }
 
-func (h *HandState) PrintCurrentActionLog(gameState *GameState, players map[uint64]string) string {
+func (h *HandState) PrintCurrentActionLog(playersInSeats []SeatPlayer) string {
 	var log *HandActionLog
 	var b strings.Builder
 	b.Grow(32)
@@ -89,13 +88,13 @@ func (h *HandState) PrintCurrentActionLog(gameState *GameState, players map[uint
 		fmt.Fprintf(&b, "River: \n")
 	}
 	for _, seatAction := range log.Actions {
-		fmt.Fprintf(&b, "%s\n", seatAction.Print(h, gameState, players))
+		fmt.Fprintf(&b, "%s\n", seatAction.Print(h, playersInSeats))
 	}
 	fmt.Fprintf(&b, "Pot: %f\n", log.Pot)
 	return b.String()
 }
 
-func (a *HandAction) Print(h *HandState, gameState *GameState, players map[uint64]string) string {
+func (a *HandAction) Print(h *HandState, playersInSeats []SeatPlayer) string {
 	action := ""
 	switch a.Action {
 	case ACTION_FOLD:
@@ -115,12 +114,10 @@ func (a *HandAction) Print(h *HandState, gameState *GameState, players map[uint6
 	}
 
 	seatNo := a.SeatNo
-	//playerState := h.getPlayerFromSeat(seatNo)
-	playerID := gameState.GetPlayersInSeats()[seatNo]
-	player, _ := players[playerID]
+	player := playersInSeats[seatNo]
 
 	if a.Action == ACTION_FOLD {
-		return fmt.Sprintf("%s   %s", player, action)
+		return fmt.Sprintf("%s   %s", player.Name, action)
 	}
-	return fmt.Sprintf("%s   %s   %f", player, action, a.Amount)
+	return fmt.Sprintf("%s   %s   %f", player.Name, action, a.Amount)
 }

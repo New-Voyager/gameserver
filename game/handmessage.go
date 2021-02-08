@@ -1,16 +1,12 @@
 package game
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/encoding/protojson"
 	"voyager.com/server/crashtest"
 	"voyager.com/server/poker"
 )
@@ -31,7 +27,7 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 			break
 		}
 
-		err = g.onPlayerActed(message, g.state, handState)
+		err = g.onPlayerActed(message, handState)
 		if err != nil {
 			channelGameLogger.Error().Msgf("Error while processing %s message. Error: %s", HandPlayerActed, err.Error())
 		}
@@ -127,8 +123,8 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 	}
 
 	if playerSeatNo != 0 {
-		_, maskedCards := g.maskCards(handState.GetPlayersCards()[playerSeatNo],
-			g.state.PlayersState[message.PlayerId].GameTokenInt)
+		player := g.PlayersInSeats[playerSeatNo]
+		_, maskedCards := g.maskCards(handState.GetPlayersCards()[playerSeatNo], player.GameTokenInt)
 		currentHandState.PlayerCards = fmt.Sprintf("%d", maskedCards)
 		currentHandState.PlayerSeatNo = playerSeatNo
 	}
@@ -159,7 +155,7 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 	return nil
 }
 
-func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handState *HandState) error {
+func (g *Game) onPlayerActed(message *HandMessage, handState *HandState) error {
 	messageSeatNo := message.GetPlayerActed().GetSeatNo()
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
@@ -263,11 +259,11 @@ func (g *Game) onPlayerActed(message *HandMessage, gameState *GameState, handSta
 
 	handState.FlowState = FlowState_PREPARE_NEXT_ACTION
 	g.saveHandState(handState)
-	g.prepareNextAction(gameState, handState)
+	g.prepareNextAction(handState)
 	return nil
 }
 
-func (g *Game) prepareNextAction(gameState *GameState, handState *HandState) error {
+func (g *Game) prepareNextAction(handState *HandState) error {
 	expectedState := FlowState_PREPARE_NEXT_ACTION
 	if handState.FlowState != expectedState {
 		return fmt.Errorf("prepareNextAction called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
@@ -338,23 +334,23 @@ func (g *Game) prepareNextAction(gameState *GameState, handState *HandState) err
 	if handState.NoActiveSeats == 1 {
 		handState.FlowState = FlowState_ONE_PLAYER_REMAINING
 		g.saveHandState(handState)
-		g.onePlayerRemaining(gameState, handState)
+		g.onePlayerRemaining(handState)
 	} else if handState.isAllActivePlayersAllIn() {
 		handState.FlowState = FlowState_ALL_PLAYERS_ALL_IN
 		g.saveHandState(handState)
-		g.allPlayersAllIn(gameState, handState)
+		g.allPlayersAllIn(handState)
 	} else if handState.CurrentState == HandStatus_SHOW_DOWN {
 		handState.FlowState = FlowState_SHOWDOWN
 		g.saveHandState(handState)
-		g.showdown(gameState, handState)
+		g.showdown(handState)
 	} else if handState.LastState != handState.CurrentState {
 		handState.FlowState = FlowState_MOVE_TO_NEXT_ROUND
 		g.saveHandState(handState)
-		g.moveToNextRound(gameState, handState)
+		g.moveToNextRound(handState)
 	} else {
 		handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 		g.saveHandState(handState)
-		g.moveToNextAction(gameState, handState)
+		g.moveToNextAction(handState)
 	}
 
 	return nil
@@ -397,7 +393,7 @@ func (g *Game) getPots(handState *HandState) ([]float32, []*SeatsInPots) {
 	return pots, seatsInPots
 }
 
-func (g *Game) gotoFlop(gameState *GameState, handState *HandState) {
+func (g *Game) gotoFlop(handState *HandState) {
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
@@ -442,7 +438,7 @@ func (g *Game) gotoFlop(gameState *GameState, handState *HandState) {
 	}
 }
 
-func (g *Game) gotoTurn(gameState *GameState, handState *HandState) {
+func (g *Game) gotoTurn(handState *HandState) {
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
@@ -480,7 +476,7 @@ func (g *Game) gotoTurn(gameState *GameState, handState *HandState) {
 	}
 }
 
-func (g *Game) gotoRiver(gameState *GameState, handState *HandState) {
+func (g *Game) gotoRiver(handState *HandState) {
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
@@ -518,7 +514,7 @@ func (g *Game) gotoRiver(gameState *GameState, handState *HandState) {
 	}
 }
 
-func (g *Game) handEnded(gameState *GameState, handState *HandState) error {
+func (g *Game) handEnded(handState *HandState) error {
 	expectedState := FlowState_HAND_ENDED
 	if handState.FlowState != expectedState {
 		return fmt.Errorf("handEnded called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
@@ -621,7 +617,7 @@ func (g *Game) announceHighHand(saveResult *SaveHandResult, highHand *HighHand) 
 
 }
 
-func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) error {
+func (g *Game) moveToNextRound(handState *HandState) error {
 	expectedState := FlowState_MOVE_TO_NEXT_ROUND
 	if handState.FlowState != expectedState {
 		return fmt.Errorf("moveToNextRound called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
@@ -636,21 +632,21 @@ func (g *Game) moveToNextRound(gameState *GameState, handState *HandState) error
 	handState.removeFoldedPlayersFromPots()
 
 	if handState.LastState == HandStatus_PREFLOP && handState.CurrentState == HandStatus_FLOP {
-		g.gotoFlop(gameState, handState)
+		g.gotoFlop(handState)
 	} else if handState.LastState == HandStatus_FLOP && handState.CurrentState == HandStatus_TURN {
-		g.gotoTurn(gameState, handState)
+		g.gotoTurn(handState)
 	} else if handState.LastState == HandStatus_TURN && handState.CurrentState == HandStatus_RIVER {
-		g.gotoRiver(gameState, handState)
+		g.gotoRiver(handState)
 	}
 
 	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 	g.saveHandState(handState)
-	g.moveToNextAction(gameState, handState)
+	g.moveToNextAction(handState)
 
 	return nil
 }
 
-func (g *Game) moveToNextAction(gameState *GameState, handState *HandState) error {
+func (g *Game) moveToNextAction(handState *HandState) error {
 	expectedState := FlowState_MOVE_TO_NEXT_ACTION
 	if handState.FlowState != expectedState {
 		return fmt.Errorf("moveToNextAction called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
@@ -723,7 +719,7 @@ func (g *Game) moveToNextAction(gameState *GameState, handState *HandState) erro
 	return nil
 }
 
-func (g *Game) allPlayersAllIn(gameState *GameState, handState *HandState) error {
+func (g *Game) allPlayersAllIn(handState *HandState) error {
 	expectedState := FlowState_ALL_PLAYERS_ALL_IN
 	if handState.FlowState != expectedState {
 		return fmt.Errorf("allPlayersAllIn called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
@@ -747,25 +743,25 @@ func (g *Game) allPlayersAllIn(gameState *GameState, handState *HandState) error
 	for handState.CurrentState != HandStatus_SHOW_DOWN {
 		switch handState.CurrentState {
 		case HandStatus_FLOP:
-			g.gotoFlop(gameState, handState)
+			g.gotoFlop(handState)
 			handState.CurrentState = HandStatus_TURN
 		case HandStatus_TURN:
-			g.gotoTurn(gameState, handState)
+			g.gotoTurn(handState)
 			handState.CurrentState = HandStatus_RIVER
 		case HandStatus_RIVER:
-			g.gotoRiver(gameState, handState)
+			g.gotoRiver(handState)
 			handState.CurrentState = HandStatus_SHOW_DOWN
 		}
 	}
 
 	handState.FlowState = FlowState_SHOWDOWN
 	g.saveHandState(handState)
-	g.showdown(gameState, handState)
+	g.showdown(handState)
 
 	return nil
 }
 
-func (g *Game) showdown(gameState *GameState, handState *HandState) error {
+func (g *Game) showdown(handState *HandState) error {
 	expectedState := FlowState_SHOWDOWN
 	if handState.FlowState != expectedState {
 		return fmt.Errorf("showdown called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
@@ -774,15 +770,15 @@ func (g *Game) showdown(gameState *GameState, handState *HandState) error {
 	handState.removeFoldedPlayersFromPots()
 	handState.removeEmptyPots()
 	handState.HandCompletedAt = HandStatus_SHOW_DOWN
-	g.generateAndSendResult(gameState, handState)
+	g.generateAndSendResult(handState)
 
 	handState.FlowState = FlowState_HAND_ENDED
 	g.saveHandState(handState)
-	g.handEnded(gameState, handState)
+	g.handEnded(handState)
 	return nil
 }
 
-func (g *Game) onePlayerRemaining(gameState *GameState, handState *HandState) error {
+func (g *Game) onePlayerRemaining(handState *HandState) error {
 	expectedState := FlowState_ONE_PLAYER_REMAINING
 	if handState.FlowState != expectedState {
 		return fmt.Errorf("onePlayerRemaining called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
@@ -791,15 +787,15 @@ func (g *Game) onePlayerRemaining(gameState *GameState, handState *HandState) er
 	// every one folded except one player, send the pot to the player
 	handState.everyOneFoldedWinners()
 	handState.CurrentState = HandStatus_HAND_CLOSED
-	g.generateAndSendResult(gameState, handState)
+	g.generateAndSendResult(handState)
 
 	handState.FlowState = FlowState_HAND_ENDED
 	g.saveHandState(handState)
-	g.handEnded(gameState, handState)
+	g.handEnded(handState)
 	return nil
 }
 
-func (g *Game) generateAndSendResult(gameState *GameState, handState *HandState) error {
+func (g *Game) generateAndSendResult(handState *HandState) error {
 	handResultProcessor := NewHandResultProcessor(handState, uint32(g.config.MaxPlayers), g.config.RewardTrackingIds)
 
 	// send the hand to the database to store first
@@ -810,44 +806,11 @@ func (g *Game) generateAndSendResult(gameState *GameState, handState *HandState)
 	handResult = handResultProcessor.getResult(false /*db*/)
 
 	// update the player balance
-	for _, player := range handResult.Players {
-		gameState.PlayersState[player.Id].CurrentBalance = player.Balance.After
+	for seatNo, player := range handResult.Players {
+		g.PlayersInSeats[seatNo].Stack = player.Balance.After
 	}
 
 	g.sendResult(handState, saveResult, handResult)
 
 	return nil
-}
-
-func (g *Game) saveHandResult(result *HandResult) (*SaveHandResult, error) {
-	// call the API server to save the hand result
-	var m protojson.MarshalOptions
-	m.EmitUnpopulated = true
-	data, _ := m.Marshal(result)
-	fmt.Printf("%s\n", string(data))
-
-	url := fmt.Sprintf("%s/internal/post-hand/gameId/%d/handNum/%d", g.apiServerUrl, result.GameId, result.HandNum)
-	resp, _ := http.Post(url, "application/json", bytes.NewBuffer(data))
-	// if the api server returns nil, do nothing
-	if resp == nil {
-		return nil, fmt.Errorf("Saving hand failed")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusOK {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			channelGameLogger.Error().Msgf("Failed to read save result for hand num: %d", result.HandNum)
-		}
-		bodyString := string(bodyBytes)
-		fmt.Printf(bodyString)
-		fmt.Printf("\n")
-		fmt.Printf("Posted successfully")
-
-		var saveResult SaveHandResult
-		json.Unmarshal(bodyBytes, &saveResult)
-		return &saveResult, nil
-	} else {
-		return nil, fmt.Errorf("faile to save hand")
-	}
 }

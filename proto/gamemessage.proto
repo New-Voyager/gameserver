@@ -4,10 +4,15 @@ option go_package = "game";
 import "game.proto";
 import "hand.proto";
 
-message GameSitMessage {
+message PlayersInSeatsMessage {
+  repeated PlayerInSeat player_in_seats = 1;
+}
+
+message PlayerInSeat {
   uint64 player_id = 1;
-  uint32 seat_no = 2;
-  float  buy_in = 3;
+  string name = 2;
+  uint32 seat_no = 3;
+  float  buy_in = 4;
 }
 
 message GameJoinMessage {
@@ -71,9 +76,9 @@ message GameMessage {
   uint64 player_id = 5;
   string message_type = 6;
   oneof game_message {
-    GameSitMessage  take_seat = 7;
+    PlayersInSeatsMessage  players_in_seats = 7;
     GameStatusMessage status = 8;
-    GamePlayerSatMessage  player_sat = 9;
+    // GamePlayerSatMessage  player_sat = 9;
     GameStatusChangeMessage status_change = 10;
     GameJoinMessage join_game = 11;
     GameDealHandMessage deal_hand = 12;

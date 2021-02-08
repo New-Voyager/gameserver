@@ -54,30 +54,25 @@ func (h *HandState) initializeBettingRound() {
 	h.resetPlayerActions()
 }
 
-func (h *HandState) initialize(gameConfig *GameConfig, gameState *GameState, deck *poker.Deck, buttonPos uint32, moveButton bool) {
+func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonPos uint32, moveButton bool, playersInSeats []SeatPlayer) {
 	// settle players in the seats
 	h.PlayersInSeats = make([]uint64, gameConfig.MaxPlayers+1) // seat 0 is dealer
 	h.NoActiveSeats = 0
 	h.GameType = gameConfig.GameType
 
 	// copy player's stack (we need to copy only the players that are in the hand)
-	h.PlayersState = h.copyPlayersState(gameState, uint32(gameConfig.MaxPlayers))
+	h.PlayersState = h.copyPlayersState(uint32(gameConfig.MaxPlayers), playersInSeats)
 
 	// update active seats with players who are playing
-	for seatNo, playerID := range gameState.GetPlayersInSeats() {
-		if seatNo == 0 { // dealer seat
+	for _, player := range playersInSeats {
+		if player.SeatNo == 0 {
 			continue
 		}
-		h.PlayersInSeats[seatNo] = 0
-		if playerID != 0 {
-			// get player state
-			state := h.PlayersState[playerID]
-			if state == nil || state.Balance == 0 {
-				continue
-			}
-			h.PlayersInSeats[seatNo] = playerID
-			h.NoActiveSeats++
+		h.PlayersInSeats[int(player.SeatNo)] = player.PlayerID
+		if player.Status != PlayerStatus_PLAYING {
+			continue
 		}
+		h.NoActiveSeats++
 	}
 	h.MaxSeats = uint32(gameConfig.MaxPlayers)
 	h.SmallBlind = float32(gameConfig.SmallBlind)
@@ -105,13 +100,14 @@ func (h *HandState) initialize(gameConfig *GameConfig, gameState *GameState, dec
 
 	h.BalanceBeforeHand = make([]*PlayerBalance, 0)
 	// also populate current balance of the players in the table
-	for seatNo, player := range h.ActiveSeats {
+	for seatNo, player := range h.PlayersInSeats {
 		if player == 0 {
+			// player ID is 0, meaning an open seat or a dealer.
 			continue
 		}
-		state := gameState.GetPlayersState()[player]
+		playerInSeat := playersInSeats[seatNo]
 		h.BalanceBeforeHand = append(h.BalanceBeforeHand,
-			&PlayerBalance{SeatNo: uint32(seatNo + 1), PlayerId: player, Balance: state.CurrentBalance})
+			&PlayerBalance{SeatNo: playerInSeat.SeatNo, PlayerId: playerInSeat.PlayerID, Balance: playerInSeat.Stack})
 	}
 
 	h.Deck = deck.GetBytes()
@@ -165,20 +161,16 @@ func (h *HandState) initialize(gameConfig *GameConfig, gameState *GameState, dec
 	h.setupPreflob()
 }
 
-func (h *HandState) copyPlayersState(gameState *GameState, maxSeats uint32) map[uint64]*HandPlayerState {
+func (h *HandState) copyPlayersState(maxSeats uint32, playersInSeats []SeatPlayer) map[uint64]*HandPlayerState {
 	handPlayerState := make(map[uint64]*HandPlayerState, 0)
 	for seatNo := 1; seatNo <= int(maxSeats); seatNo++ {
-		playerID := gameState.GetPlayersInSeats()[seatNo]
-		if playerID == 0 {
+		player := playersInSeats[seatNo]
+		if player.Status != PlayerStatus_PLAYING {
 			continue
 		}
-		playerState, _ := gameState.GetPlayersState()[playerID]
-		if playerState.GetStatus() != PlayerStatus_PLAYING {
-			continue
-		}
-		handPlayerState[playerID] = &HandPlayerState{
+		handPlayerState[player.PlayerID] = &HandPlayerState{
 			Status:  HandPlayerState_ACTIVE,
-			Balance: playerState.CurrentBalance,
+			Balance: player.Stack,
 		}
 	}
 	return handPlayerState
@@ -237,7 +229,7 @@ func (h *HandState) setupPreflob() {
 
 func (h *HandState) resetPlayerActions() {
 	for seatNo, playerID := range h.GetPlayersInSeats() {
-		if playerID == 0 || h.ActiveSeats[seatNo] == 0 {
+		if seatNo == 0 || playerID == 0 || h.ActiveSeats[seatNo] == 0 {
 			h.PlayersActed[seatNo] = &PlayerActRound{
 				State: PlayerActState_PLAYER_ACT_EMPTY_SEAT,
 			}
