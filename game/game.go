@@ -28,20 +28,6 @@ type GameMessageReceiver interface {
 	SendHandMessageToPlayer(message *HandMessage, playerID uint64)
 	SendGameMessageToPlayer(message *GameMessage, playerID uint64)
 }
-
-type SeatPlayer struct {
-	SeatNo       uint32
-	OpenSeat     bool
-	PlayerID     uint64 `json:"playerId"`
-	PlayerUUID   string `json:"playerUuid"`
-	Name         string
-	BuyIn        float32
-	Stack        float32
-	Status       PlayerStatus
-	GameToken    string
-	GameTokenInt uint64
-}
-
 type Game struct {
 	manager             *Manager
 	end                 chan bool
@@ -59,11 +45,13 @@ type Game struct {
 	remainingActionTime uint32
 	apiServerUrl        string
 	// test driver specific variables
-	autoDeal                bool
-	testDeckToUse           *poker.Deck
-	testButtonPos           int32
+	autoDeal      bool
+	testDeckToUse *poker.Deck
+	testButtonPos int32
+	prevHandNum   uint32
+	scriptTest    bool
+
 	pauseBeforeNextHand     uint32
-	scriptTest              bool
 	inProcessPendingUpdates bool
 	config                  *GameConfig
 	delays                  Delays
@@ -435,14 +423,41 @@ func (g *Game) NumCards(gameType GameType) uint32 {
 
 func (g *Game) dealNewHand() error {
 	var handState *HandState
+	moveButton := true
+	newHandNum := g.prevHandNum + 1
+	var newHandInfo *NewHandInfo
+	var err error
 
-	prevHandState, _ := g.loadHandState()
-	prevHandNum := 0
-	if prevHandState != nil {
-		prevHandNum = int(prevHandState.HandNum)
+	gameType := g.config.GameType
+
+	if !RunningTests {
+		// we are not running tests
+		// get new hand information from the API server
+		// new hand information contains players in seats/balance/status, game type, announce new game
+		newHandInfo, err = g.getNewHandInfo()
+		if err != nil {
+			// right now panic (shouldn't happen)
+			panic(err)
+		}
+		g.ButtonPos = newHandInfo.ButtonPos
+		moveButton = true
+		gameType = newHandInfo.GameType
+		newHandNum = newHandInfo.HandNum
+		for seatNo := range g.PlayersInSeats {
+			g.PlayersInSeats[seatNo] = SeatPlayer{}
+		}
+
+		for _, playerInSeat := range newHandInfo.PlayersInSeats {
+			if playerInSeat.SeatNo < uint32(g.config.MaxPlayers) {
+				g.PlayersInSeats[playerInSeat.SeatNo] = playerInSeat
+			}
+		}
+
+		// change game configuration
+		g.config.GameType = newHandInfo.GameType
+		g.config.SmallBlind = float64(newHandInfo.SmallBlind)
+		g.config.BigBlind = float64(newHandInfo.BigBlind)
 	}
-
-	moveButton := prevHandNum > 1
 
 	if g.testButtonPos > 0 {
 		g.ButtonPos = uint32(g.testButtonPos)
@@ -452,8 +467,8 @@ func (g *Game) dealNewHand() error {
 	handState = &HandState{
 		ClubId:        g.config.ClubId,
 		GameId:        g.config.GameId,
-		HandNum:       uint32(prevHandNum) + 1,
-		GameType:      g.config.GameType,
+		HandNum:       uint32(newHandNum),
+		GameType:      gameType,
 		CurrentState:  HandStatus_DEAL,
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
@@ -483,7 +498,6 @@ func (g *Game) dealNewHand() error {
 		HandStatus:  handState.CurrentState,
 	}
 
-	gameType := g.config.GameType
 	// send a new hand message to all players
 	newHand := NewHand{
 		ButtonPos:      handState.ButtonPos,
@@ -541,16 +555,6 @@ func (g *Game) dealNewHand() error {
 			handState.ActiveSeats[int(player.SeatNo)] = 0
 			continue
 		}
-
-		// TODO: Clean up this block if not needed.
-		//
-		// // if the player is in break or the player has no balance
-		// playerState := handState.PlayersState[player.PlayerID]
-		// if playerState.Status == HandPlayerState_SAT_OUT {
-		// 	handState.PlayersInSeats[seatNo] = 0
-		// 	handState.ActiveSeats[seatNo] = 0
-		// 	continue
-		// }
 
 		// seatNo is the key, cards are value
 		playerCards := handState.PlayersCards[uint32(player.SeatNo)]

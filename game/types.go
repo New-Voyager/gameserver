@@ -283,3 +283,39 @@ type SaveHandResult struct {
 	Success  bool            `json:"success"`
 	HighHand *HighHandResult `json:"highHand"`
 }
+
+type SeatPlayer struct {
+	SeatNo       uint32
+	OpenSeat     bool
+	PlayerID     uint64 `json:"playerId"`
+	PlayerUUID   string `json:"playerUuid"`
+	Name         string
+	BuyIn        float32
+	Stack        float32
+	Status       PlayerStatus
+	GameToken    string
+	GameTokenInt uint64
+}
+
+/*
+export interface NewHandInfo {
+  gameCode: string;
+  gameType: GameType;
+  maxPlayers: number;
+  smallBlind: number;
+  bigBlind: number;
+  buttonPos: number;
+  announceGameType: boolean;
+  playersInSeats: Array<PlayerInSeat>;
+}*/
+type NewHandInfo struct {
+	GameCode         string
+	GameType         GameType
+	MaxPlayers       uint32
+	SmallBlind       float32
+	BigBlind         float32
+	ButtonPos        uint32
+	HandNum          uint32
+	AnnounceGameType bool
+	PlayersInSeats   []SeatPlayer
+}
