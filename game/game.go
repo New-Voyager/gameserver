@@ -267,28 +267,10 @@ func (g *Game) countActivePlayers() int {
 }
 
 func (g *Game) startGame() (bool, error) {
-	handState, err := g.loadHandState()
-	if err == nil {
-		// There is an existing hand state. The game must've crashed and is now restarting.
-		// Continue where we left off.
-		err := g.resumeGame(handState)
-		if err != nil {
-			channelGameLogger.Error().
-				Uint32("club", g.config.ClubId).
-				Str("game", g.config.GameCode).
-				Msgf("Error while resuming game. Error: %s", err.Error())
-		}
-		return true, nil
-	}
-
-	if !g.config.AutoStart && g.Status != GameStatus_ACTIVE {
-		return false, nil
-	}
-
 	var numActivePlayers int
 	if !RunningTests {
 		// Get game config.
-		gameConfig, err := g.getGameInfo(g.apiServerUrl, g.config.GameCode, 500)
+		gameConfig, err := g.getGameInfo(g.apiServerUrl, g.config.GameCode, g.retryDelayMillis)
 		if err != nil {
 			return false, err
 		}
@@ -307,6 +289,24 @@ func (g *Game) startGame() (bool, error) {
 		numActivePlayers = len(handInfo.PlayersInSeats)
 	} else {
 		numActivePlayers = g.countActivePlayers()
+	}
+
+	handState, err := g.loadHandState()
+	if err == nil {
+		// There is an existing hand state. The game must've crashed and is now restarting.
+		// Continue where we left off.
+		err := g.resumeGame(handState)
+		if err != nil {
+			channelGameLogger.Error().
+				Uint32("club", g.config.ClubId).
+				Str("game", g.config.GameCode).
+				Msgf("Error while resuming game. Error: %s", err.Error())
+		}
+		return true, nil
+	}
+
+	if !g.config.AutoStart && g.Status != GameStatus_ACTIVE {
+		return false, nil
 	}
 
 	if numActivePlayers < g.config.MinPlayers {
