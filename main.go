@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"time"
 
 	natsgo "github.com/nats-io/nats.go"
 
@@ -86,9 +87,9 @@ func runWithNats() {
 	go rest.RunRestServer(natsGameManager)
 
 	// restart games
-	// time.Sleep(1 * time.Second)
-	// mainLogger.Info().Msg("Requesting to restart the active games.")
-	// nats.RequestRestartGames(apiServerURL)
+	time.Sleep(1 * time.Second)
+	mainLogger.Info().Msg("Requesting to restart the active games.")
+	nats.RequestRestartGames(apiServerURL)
 
 	select {}
 }
