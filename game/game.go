@@ -74,11 +74,6 @@ type timerMsg struct {
 
 func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, config *GameConfig, delays Delays, autoDeal bool, handStatePersist PersistHandState,
 	apiServerUrl string) (*Game, error) {
-
-	if config.SmallBlind == 0.0 || config.BigBlind == 0.0 {
-		channelGameLogger.Error().Msgf("Game cannot be configured with small blind and big blind")
-		return nil, fmt.Errorf("Blinds must be set. SmallBlind: %f BigBlind: %f", config.SmallBlind, config.BigBlind)
-	}
 	g := Game{
 		manager:          gameManager,
 		messageReceiver:  messageReceiver,
@@ -98,9 +93,8 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver, co
 	g.end = make(chan bool)
 	g.waitingPlayers = make([]uint64, 0)
 	g.players = make(map[uint64]string)
-	g.initialize()
 	if RunningTests {
-		g.startNewGameState()
+		g.initGameState()
 	}
 	return &g, nil
 }
@@ -257,23 +251,7 @@ func (g *Game) handlePlayTimeout(timeoutMsg timerMsg) error {
 	return nil
 }
 
-func (g *Game) initialize() error {
-	// This is where we used to check if there is an existing game state in redis and reuse that instead of
-	// starting a new game state.
-	// Now that we don't save game state to redis, how do we resume the state of a crashed game?
-	g.startNewGameState()
-	return nil
-}
-
-func (g *Game) startNewGameState() error {
-	var rewardTrackingIds []uint64
-	if g.config.RewardTrackingIds != nil && len(g.config.RewardTrackingIds) > 0 {
-		rewardTrackingIds = make([]uint64, len(g.config.RewardTrackingIds))
-		for i, id := range g.config.RewardTrackingIds {
-			rewardTrackingIds[i] = uint64(id)
-		}
-	}
-
+func (g *Game) initGameState() error {
 	g.PlayersInSeats = make([]SeatPlayer, g.config.MaxPlayers+1) // 0 is dealer/observer
 	return nil
 }
@@ -316,10 +294,13 @@ func (g *Game) startGame() (bool, error) {
 		}
 
 		g.config = gameConfig
-		fmt.Printf("New Game Config: %+v\n", g.config)
+		channelGameLogger.Info().Msgf("New Game Config: %+v\n", g.config)
+
+		// Initialize stateful information in the game object.
+		g.initGameState()
 
 		// Get seat info.
-		handInfo, err := g.getNewHandInfo(500)
+		handInfo, err := g.getNewHandInfo()
 		if err != nil {
 			return false, err
 		}
@@ -457,7 +438,7 @@ func (g *Game) dealNewHand() error {
 		// we are not running tests
 		// get new hand information from the API server
 		// new hand information contains players in seats/balance/status, game type, announce new game
-		newHandInfo, err = g.getNewHandInfo(g.retryDelayMillis)
+		newHandInfo, err = g.getNewHandInfo()
 		if err != nil {
 			// right now panic (shouldn't happen)
 			panic(err)
