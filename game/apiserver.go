@@ -43,7 +43,7 @@ func (g *Game) saveHandResult(result *HandResult) (*SaveHandResult, error) {
 	}
 }
 
-func (g *Game) getNewHandInfo(retryDelay uint32) (*NewHandInfo, error) {
+func (g *Game) getNewHandInfo() (*NewHandInfo, error) {
 	// TODO: Implement retry.
 
 	url := fmt.Sprintf("%s/internal/next-hand-info/game_num/%s", g.apiServerUrl, g.config.GameCode)
