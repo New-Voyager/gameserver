@@ -13,7 +13,7 @@ jobs:
           version: 19.03.13
       - run:
           name: Remove unsupported mount clause from Dockerfile
-          command: sed -i -E 's|--mount=type=[^ ]+||g' Dockerfile && cat Dockerfile
+          command: sed -i -E 's|--mount=type=[^ ]+||g' server/Dockerfile && cat server/Dockerfile
       - run:
           name: Build images
           command: make docker-build
