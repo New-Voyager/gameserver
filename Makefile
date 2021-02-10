@@ -1,3 +1,5 @@
+# All targets delegate to the gameserver (server) for now.
+
 SERVER_DIR := server
 
 .PHONY: %
