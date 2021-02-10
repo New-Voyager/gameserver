@@ -1,0 +1,110 @@
+players:
+  - name: yong
+    deviceId: c2dc2c3d-13da-46cc-8c66-caa0c77459de
+    email: yong@gmail.com
+    password: 340k7n0p
+    bot: true
+    botActionPauseTime: 1000
+  - name: brian
+    deviceId: 4b93e2be-7992-45c3-a2dd-593c2f708cb7
+    email: brian@hotmail.com
+    password: 0x44m89w
+    bot: true
+    botActionPauseTime: 1000
+  - name: tom
+    deviceId: 371e8c15-39cb-4bd9-a932-ced7a9dd6aac
+    email: tom@yahoo.com
+    password: n3rdr4x4
+    bot: false
+  - name: jim
+    deviceId: 52f59bab-02eb-43d8-9dce-69e57aed7f7d
+    email: jim@google.com
+    password: v7xpzD7C
+    bot: true
+    botActionPauseTime: 1000
+  - name: rob
+    deviceId: 5cd96779-c6b2-4dba-a814-f365b6b48aeb
+    email: rob@yahoo.com
+    password: j627fn8g
+    bot: true
+    botActionPauseTime: 1000
+  - name: john
+    deviceId: d04d24d1-be90-4c02-b8fb-c2499d9b76ed
+    email: john@google.com
+    password: DU8Hqt75
+    bot: true
+    botActionPauseTime: 1000
+  - name: michael
+    deviceId: e9e2ee8b-2e2d-4659-a61d-4439fc274e1b
+    email: michael@yahoo.com
+    password: h26sx7Nw
+    bot: true
+    botActionPauseTime: 1000
+  - name: bill
+    deviceId: 8a159f59-bd78-4bce-a39b-fc32d63200ec
+    email: bill@google.com
+    password: rqxBhYba
+    bot: true
+    botActionPauseTime: 1000
+  - name: david
+    deviceId: e9d58c4b-6665-47fa-aa87-887baba79c0a
+    email: david@yahoo.com
+    password: VjGQLuZ8
+    bot: true
+    botActionPauseTime: 1000
+  - name: rich
+    deviceId: 290bf492-9dde-448e-922d-40270e163649
+    email: rich@google.com
+    password: usZFgdsp
+    bot: true
+    botActionPauseTime: 1000
+  - name: josh
+    deviceId: 0967b2c1-e630-49c5-a4ab-f987d9e4cacd
+    email: josh@yahoo.com
+    password: dPHM78PB
+    bot: true
+    botActionPauseTime: 1000
+  - name: chris
+    deviceId: 0375d41b-a8db-4c35-b3ab-8480d4716fd3
+    email: chris@google.com
+    password: LWsvng5A
+    bot: true
+    botActionPauseTime: 1000
+
+club:
+  name: Bad Robots
+  description: Club used for testing with the bot runner
+
+game:
+  create: true
+  title: "Bot Testing Game"
+  gameType: "HOLDEM"
+  smallBlind: 1.0
+  bigBlind: 2.0
+  utgStraddleAllowed: true
+  straddleBet: 4.0
+  minPlayers: 2
+  maxPlayers: 9
+  gameLength: 60
+  buyInApproval: true
+  rakePercentage: 5.0
+  rakeCap: 5.0
+  buyInMin: 100
+  buyInMax: 300
+  actionTime: 100
+
+sitIn:
+  - seatNo: 1
+    playerName: yong
+  - seatNo: 5
+    playerName: brian
+  - seatNo: 8
+    playerName: tom
+
+buyIn:
+  - seatNo: 1
+    buyChips: 100
+  - seatNo: 5
+    buyChips: 100
+  - seatNo: 8
+    buyChips: 100
