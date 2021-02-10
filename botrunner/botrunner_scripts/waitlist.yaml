@@ -1,0 +1,69 @@
+setup-script: botrunner_scripts/setup/bots-full-table.yaml
+game-title: "Waitlist Testing"
+reset-db: true
+
+# deal the following hands in the table
+hands:
+  - num: 1
+    setup:
+      button-pos: 1
+      auto: true
+      wait-list:
+        - player: david
+          confirm: false
+          buyIn: 500
+
+  - num: 2
+    setup:
+      pause: 10
+      wait-list:
+        - player: john
+          confirm: true
+          buyIn: 500    
+      auto: true
+      leave-game:
+        - seatNo: 3
+
+  - num: 3
+    setup:
+      auto: true
+
+  - num: 4
+    setup:
+      auto: true
+
+  # - num: 4
+  #   setup:
+  #     auto: true
+
+  # - num: 4
+  #   setup:
+  #     button-pos: 4
+  #     auto: true
+
+  # - num: 3
+  #   setup:
+  #     button-pos: 2
+  #     auto: true
+  #     leave-game:
+  #       - 3
+  #     verify:
+  #       table-pos:
+  #         - seatNo: 1
+  #           playerName: yong
+  #         - seatNo: 2
+  #           empty: true
+  #         - seatNo: 3
+  #           empty: tom
+  #         - seatNo: 4
+  #           playerName: jim
+  #         - seatNo: 5
+  #           playerName: rob
+  #         - seatNo: 6
+  #           playerName: rich
+  #         - seatNo: 7
+  #           playerName: josh
+  #         - seatNo: 8
+  #           playerName: chris
+  #         - seatNo: 9
+  #           playerName: michael

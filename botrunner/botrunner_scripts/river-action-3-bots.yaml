@@ -1,0 +1,87 @@
+setup-script: botrunner_scripts/setup/3-bots.yaml
+
+# deal the following hands in the table
+hands:
+  - num: 1
+    setup:
+      button-pos: 1
+      flop: ["Ac", "Ad", "2c"]
+      turn: Td
+      river: 4s
+      seat-cards:
+        # seat cards in the order players are sitting 
+        # seat 1 gets Kh Qd
+        # seat 5 gets 3s 7s
+        # seat 8 gets 9h 2s
+        - cards: ["Kh", "Qd"]
+        - cards: ["3s", "7s"]
+        - cards: ["9h", "2s"]
+      # here the game engine sends the cards to the players
+      verify:
+        button: 1
+        sb: 5
+        bb: 8
+        next-action-pos: 1
+        state: PREFLOP
+        dealt-cards:
+          - seat-no: 5
+            cards: ["Kh", "Qd"]
+          - seat-no: 8
+            cards: ["3s", "7s"]
+          - seat-no: 1
+            cards: ["9h", "2s"]
+   
+    # simulate pre-flop action
+    preflop-action:
+      seat-actions:
+        # seat number/action/amount
+        - 1, CALL, 2
+        - 5, CALL, 2
+        - 8, CHECK
+      verify:
+        state: FLOP
+        board: ["Ac", "Ad", "2c"]
+
+    flop-action:
+      seat-actions:
+        - 5, CHECK
+        - 8, BET, 2
+        - 1, CALL, 2
+        - 5, RAISE, 4
+        - 8, FOLD
+        - 1, CALL, 4
+      verify:
+        state: TURN
+        board: ["Ac", "Ad", "2c", "Td"]
+
+    turn-action:
+      seat-actions:
+        - 5, CHECK
+        - 1, BET, 10
+        - 5, CALL, 10
+      verify:
+        state: RIVER
+        board: ["Ac", "Ad", "2c", "Td", "4s"]
+
+    river-action:
+      seat-actions:
+        - 5, BET, 10
+        - 1, CALL, 10
+      verify:
+        state: RESULT
+
+    result:
+      winners:
+        - seat: 1
+          receive: 56.0
+      action-ended: SHOW_DOWN
+      
+      # balance indicates the player balance after the hand
+      # bb player won a chip
+      stacks:
+        - seat: 1
+          stack: 84
+        - seat: 5
+          stack: 120
+        - seat: 8
+          stack: 96

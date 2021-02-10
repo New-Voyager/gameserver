@@ -1,0 +1,15 @@
+# Compiled executables
+botrunner
+tester
+server
+!botrunner/
+!tester/
+!server/
+
+# Generated protobuf code
+internal/game/*.pb.go
+
+# Bot log files
+log/
+*.out
+*.log
