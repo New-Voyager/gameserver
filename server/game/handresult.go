@@ -87,6 +87,24 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 		hr.handState.setWinners(hr.getWinners())
 	}
 
+	// determine winners who went to showdown
+	handState := hr.handState
+	for _, winners := range handState.PotWinners {
+		// we are going to walk through each winner and identify who won at showdown
+		for _, winner := range winners.GetHiWinners() {
+			playerID := handState.ActiveSeats[winner.SeatNo]
+			if handState.PlayerStats[playerID].WentToShowdown {
+				handState.PlayerStats[playerID].WonChipsAtShowdown = true
+			}
+		}
+		for _, winner := range winners.GetLowWinners() {
+			playerID := handState.ActiveSeats[winner.SeatNo]
+			if handState.PlayerStats[playerID].WentToShowdown {
+				handState.PlayerStats[playerID].WonChipsAtShowdown = true
+			}
+		}
+	}
+
 	// we want to evaulate the hands again for the high hand if the remaining player may have the high hand
 	if (hr.handState.BoardCards != nil && hr.rewardTrackingIds != nil && len(hr.rewardTrackingIds) > 0) ||
 		hr.handState.HandCompletedAt == HandStatus_SHOW_DOWN {
@@ -114,6 +132,10 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 		HandNum:  hr.handState.HandNum,
 		GameType: hr.handState.GameType,
 	}
+
+	// update stats in the result
+	handResult.PlayerStats = hr.handState.PlayerStats
+	handResult.HandStats = hr.handState.HandStats
 
 	// get hand log
 	handResult.HandLog = hr.handState.getLog()
