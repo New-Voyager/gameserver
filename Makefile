@@ -13,7 +13,7 @@ POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5
 
 SERVER_DIR := server
 BOTRUNNER_DIR := botrunner
-TEST_DIR := test
+SYSTEM_TEST_DIR := system_test
 
 .PHONE: login
 login:
@@ -61,11 +61,11 @@ compile-proto:
 build:
 	$(MAKE) -C $(SERVER_DIR) build
 	$(MAKE) -C $(BOTRUNNER_DIR) build
-	$(MAKE) -C $(TEST_DIR) build
+	$(MAKE) -C $(SYSTEM_TEST_DIR) build
 
 .PHONY: system_test
 system_test:
-	$(TEST_DIR)/test
+	$(MAKE) -C $(SYSTEM_TEST_DIR) run
 
 # Delegate the other targets to the game server Makefile for now.
 .PHONY: %
