@@ -1,0 +1,5 @@
+tests:
+  - name: River-Action 3 Players
+    # Botrunner script. Path relative to the botrunner directory.
+    script: botrunner_scripts/river-action-3-bots.yaml
+    timeout: 120s
