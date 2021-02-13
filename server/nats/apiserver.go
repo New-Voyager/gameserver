@@ -36,16 +36,38 @@ type PlayerUpdate struct {
 }
 
 type TableUpdate struct {
-	GameId                  uint64   `json:"gameId"`
-	SeatNo                  uint64   `json:"seatNo"`
-	Type                    string   `json:"type"`
-	SeatChangePlayers       []uint64 `json:"seatChangePlayers"`
-	SeatChangeSeatNos       []uint64 `json:"seatChangeSeatNos"`
-	SeatChangeRemainingTime uint32   `json:"seatChangeRemainingTime"`
-	WaitlistRemainingTime   uint32   `json:"waitlistRemainingTime"`
-	WaitlistPlayerId        uint64   `json:"waitlistPlayerId"`
-	WaitlistPlayerUuid      string   `json:"waitlisttPlayerUuid"`
-	WaitlistPlayerName      string   `json:"waitlistPlayerName"`
+	GameId                  uint64       `json:"gameId"`
+	SeatNo                  uint64       `json:"seatNo"`
+	Type                    string       `json:"type"`
+	SeatChangePlayers       []uint64     `json:"seatChangePlayers"`
+	SeatChangeSeatNos       []uint64     `json:"seatChangeSeatNos"`
+	SeatChangeRemainingTime uint32       `json:"seatChangeRemainingTime"`
+	WaitlistRemainingTime   uint32       `json:"waitlistRemainingTime"`
+	WaitlistPlayerId        uint64       `json:"waitlistPlayerId"`
+	WaitlistPlayerUuid      string       `json:"waitlisttPlayerUuid"`
+	WaitlistPlayerName      string       `json:"waitlistPlayerName"`
+	SeatMoves               []SeatMove   `json:"seatMoves"`
+	SeatUpdates             []SeatUpdate `json:"seatUpdates"`
+	SeatChangeHostId        uint64       `json:"seatChangeHostId"`
+}
+
+type SeatMove struct {
+	PlayerId   uint64  `json:"playerId"`
+	PlayerUuid string  `json:"playerUuid"`
+	Name       string  `json:"name"`
+	Stack      float64 `json:"stack"`
+	OldSeatNo  uint32  `json:"oldSeatNo"`
+	NewSeatNo  uint32  `json:"newSeatNo"`
+}
+
+type SeatUpdate struct {
+	SeatNo       uint32            `json:"seatNo"`
+	PlayerId     uint64            `json:"playerId"`
+	PlayerUuid   string            `json:"playerUuid"`
+	Name         string            `json:"name"`
+	Stack        float64           `json:"stack"`
+	PlayerStatus game.PlayerStatus `json:"playerStatus"`
+	OpenSeat     bool              `json:"openSeat"`
 }
 
 // RegisterGameServer registers game server with the API server
