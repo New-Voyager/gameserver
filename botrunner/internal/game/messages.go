@@ -10,13 +10,11 @@ const (
 )
 
 // Game messages
-// These messages can be sent to game only from api server or test driver
 const (
-	GameJoin          string = "JOIN"
-	GameCurrentStatus string = "GAME_STATUS"
-	// PlayerTakeSeat      string = "TAKE_SEAT"
-	// PlayerSat           string = "PLAYER_SAT"
-	GamePlayerInSeats   string = "PLAYER_IN_SEATS"
+	GameJoin            string = "JOIN"
+	GameCurrentStatus   string = "GAME_STATUS"
+	PlayerTakeSeat      string = "TAKE_SEAT"
+	PlayerSat           string = "PLAYER_SAT"
 	GameStatusChanged   string = "STATUS_CHANGED"
 	GameCurrentState    string = "GAME_STATE"
 	GameQueryTableState string = "QUERY_TABLE_STATE"
@@ -24,22 +22,10 @@ const (
 	GameTableState      string = "TABLE_STATE"
 	PlayerUpdate        string = "PLAYER_UPDATE"
 	GameTableUpdate     string = "TABLE_UPDATE"
-	GetHandLog          string = "GET_HAND_LOG"
 
 	// These messages are used by the test driver
 	GameSetupNextHand string = "SETUP_NEXT_HAND"
-
-	// messages used internally to move the game
-	// hand to game or game to game
-	GameMoveToNextHand string = "MOVE_TO_NEXT_HAND"
-	GameDealHand       string = "DEAL_NEW_HAND"
-
-	// API Server
-	GamePendingUpdatesStarted string = "GamePendingUpdatesStarted"
-	GamePendingUpdatesDone    string = "GamePendingUpdatesDone"
-
-	// announcements
-	HighHandMsg string = "HIGH_HAND"
+	GameDealHand      string = "DEAL_NEW_HAND"
 )
 
 // Hand messages
@@ -58,12 +44,11 @@ const (
 	HandPlayerActed      string = "PLAYER_ACTED"
 	HandNoMoreActions    string = "NO_MORE_ACTIONS"
 	HandQueryCurrentHand string = "QUERY_CURRENT_HAND"
-	HandDealStarted      string = "DEAL_STARTED" // used for animations
 )
 
-// sub message types used in TableUpdate message
+// Table update messages
 const (
-	TableUpdateOpenSeat    string = "OpenSeat"
-	TableWaitlistSeating   string = "WaitlistSeating"
-	TableSeatChangeProcess string = "SeatChangeInProgress"
+	TableUpdateOpenSeat          string = "OpenSeat"
+	TableUpdateWaitlistSeating   string = "WaitlistSeating"
+	TableUpdateSeatChangeProcess string = "SeatChangeInProgress"
 )

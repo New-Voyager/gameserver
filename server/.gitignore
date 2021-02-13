@@ -1,0 +1,13 @@
+game/gamestate.pb.go
+game/gamemessage.pb.go
+server
+game/handmessage.pb.go
+*.pb.*
+protoc-3.7.1-linux-x86_64.zip
+.VSCodeCounter/details.md
+.VSCodeCounter/results.csv
+.VSCodeCounter/results.md
+.VSCodeCounter/results.txt
+game-server
+nats-server
+__debug_bin

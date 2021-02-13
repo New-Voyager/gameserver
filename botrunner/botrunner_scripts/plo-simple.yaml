@@ -1,0 +1,59 @@
+setup-script: botrunner_scripts/setup/plo-simple.yaml
+
+# deal the following hands in the table
+hands:
+  -
+    num: 1
+    setup:
+      button-pos: 1
+      flop: ["Ac", "Ad", "2c"]
+      turn: Td
+      river: 4s
+      seat-cards:
+        - 
+          cards: ["Kh", "Qd", "Jc", "Th"]
+        -
+          cards: ["3s", "7s", "4c", "5c"]
+        -
+          cards: ["9h", "2s", "Ah", "8d"]
+   
+    # simulate pre-flop action
+    preflop-action:
+      seat-actions:
+        - 1, BET, 5
+        - 2, CALL, 5
+        - 3, CALL, 5
+    flop-action:
+      seat-actions:
+        - 2, BET, 10
+        - 3, CALL, 10
+        - 1, CALL, 10
+    turn-action:
+      seat-actions:
+        - 2, CHECK
+        - 3, CHECK
+        - 1, CHECK
+    river-action:
+      seat-actions:
+        - 2, CHECK
+        - 3, CHECK
+        - 1, CHECK
+    result:
+      winners:
+        -
+          seat: 1
+          receive: 41.0
+      action-ended: SHOW_DOWN
+      
+      # balance indicates the player balance after the hand
+      # bb player won a chip
+      stacks:
+        -
+          seat: 1
+          stack: 1026
+        -
+          seat: 5
+          stack: 985
+        -
+          seat: 8
+          stack: 985

@@ -1,0 +1,3 @@
+setup-script: botrunner_scripts/setup/5card-plo-bots.yaml
+game:
+  auto-play: true

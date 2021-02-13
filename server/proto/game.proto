@@ -80,6 +80,7 @@ message GamePlayerUpdate {
   uint32 old_seat = 9;
 }
 
+
 // SeatMove message used when a host is rearranging the seats
 // the client will show animations to show who is moving where
 message SeatMove {
@@ -91,7 +92,6 @@ message SeatMove {
   uint32 newSeatNo = 6;
 }
 
-
 // SeatUpdate message used to broadcast latest updates happen to a seat
 message SeatUpdate {
   uint32 seat_no = 1;
@@ -102,7 +102,6 @@ message SeatUpdate {
   PlayerStatus player_status = 6;
   bool open_seat = 7;
 }
-
 
 message TableUpdate {
   uint32 seat_no = 1;

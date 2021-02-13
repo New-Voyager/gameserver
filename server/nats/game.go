@@ -323,6 +323,36 @@ func (n *NatsGame) tableUpdate(gameID uint64, update *TableUpdate) {
 		tableUpdate.WaitlistPlayerName = update.WaitlistPlayerName
 		tableUpdate.WaitlistPlayerUuid = update.WaitlistPlayerUuid
 		tableUpdate.WaitlistRemainingTime = update.WaitlistRemainingTime
+	} else if update.Type == game.TableHostSeatChangeMove {
+		tableUpdate.SeatMoves = make([]*game.SeatMove, len(update.SeatMoves))
+		for i, move := range update.SeatMoves {
+			tableUpdate.SeatMoves[i] = &game.SeatMove{
+				PlayerId:   move.PlayerId,
+				PlayerUuid: move.PlayerUuid,
+				Name:       move.Name,
+				OldSeatNo:  move.OldSeatNo,
+				NewSeatNo:  move.NewSeatNo,
+			}
+		}
+		natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+			Msgf("APIServer->Game: SeatMove. GameID: %d, Code: %s, Moves: +%v",
+				gameID, n.gameCode, update.SeatMoves)
+	} else if update.Type == game.TableHostSeatChangeProcessStart {
+		tableUpdate.SeatChangeHost = update.SeatChangeHostId
+	} else if update.Type == game.TableHostSeatChangeProcessEnd {
+		tableUpdate.SeatChangeHost = update.SeatChangeHostId
+		tableUpdate.SeatUpdates = make([]*game.SeatUpdate, len(update.SeatUpdates))
+		for i, update := range update.SeatUpdates {
+			tableUpdate.SeatUpdates[i] = &game.SeatUpdate{
+				SeatNo:       update.SeatNo,
+				PlayerId:     update.PlayerId,
+				PlayerUuid:   update.PlayerUuid,
+				Name:         update.Name,
+				Stack:        float32(update.Stack),
+				PlayerStatus: update.PlayerStatus,
+				OpenSeat:     update.OpenSeat,
+			}
+		}
 	}
 	message.GameMessage = &game.GameMessage_TableUpdate{TableUpdate: &tableUpdate}
 	// send the message to the players

@@ -1,0 +1,137 @@
+players:
+  - name: yong
+    deviceId: c2dc2c3d-13da-46cc-8c66-caa0c77459de
+    email: yong@gmail.com
+    password: 340k7n0p
+    bot: true
+    botActionPauseTime: 2000
+  - name: brian
+    deviceId: 4b93e2be-7992-45c3-a2dd-593c2f708cb7
+    email: brian@hotmail.com
+    password: 0x44m89w
+    bot: true
+    botActionPauseTime: 2000
+  - name: tom
+    deviceId: 371e8c15-39cb-4bd9-a932-ced7a9dd6aac
+    email: tom@yahoo.com
+    password: tom
+    bot: true
+    botActionPauseTime: 10000
+  - name: jim
+    deviceId: 52f59bab-02eb-43d8-9dce-69e57aed7f7d
+    email: jim@google.com
+    password: v7xpzD7C
+    bot: true
+    botActionPauseTime: 2000
+  - name: rob
+    deviceId: 5cd96779-c6b2-4dba-a814-f365b6b48aeb
+    email: rob@yahoo.com
+    password: j627fn8g
+    bot: true
+    botActionPauseTime: 2000
+  - name: john
+    deviceId: d04d24d1-be90-4c02-b8fb-c2499d9b76ed
+    email: john@google.com
+    password: john
+    bot: true
+    botActionPauseTime: 2000
+  - name: michael
+    deviceId: e9e2ee8b-2e2d-4659-a61d-4439fc274e1b
+    email: michael@yahoo.com
+    password: h26sx7Nw
+    bot: true
+    botActionPauseTime: 2000
+  - name: bill
+    deviceId: 8a159f59-bd78-4bce-a39b-fc32d63200ec
+    email: bill@google.com
+    password: rqxBhYba
+    bot: true
+    botActionPauseTime: 2000
+  - name: david
+    deviceId: e9d58c4b-6665-47fa-aa87-887baba79c0a
+    email: david@yahoo.com
+    password: VjGQLuZ8
+    bot: true
+    botActionPauseTime: 2000
+  - name: rich
+    deviceId: 290bf492-9dde-448e-922d-40270e163649
+    email: rich@google.com
+    password: usZFgdsp
+    bot: true
+    botActionPauseTime: 2000
+  - name: josh
+    deviceId: 0967b2c1-e630-49c5-a4ab-f987d9e4cacd
+    email: josh@yahoo.com
+    password: dPHM78PB
+    bot: true
+    botActionPauseTime: 2000
+  - name: chris
+    deviceId: 0375d41b-a8db-4c35-b3ab-8480d4716fd3
+    email: chris@google.com
+    password: LWsvng5A
+    bot: true
+    botActionPauseTime: 2000
+
+club:
+  name: Bad Robots
+  description: Club used for testing with the bot runner
+  rewards:
+    - name: High Hand
+      type: HIGH_HAND
+      amount: 100
+      schedule: ENTIRE_GAME
+
+game:
+  create: true
+  title: "Bot Testing Game"
+  gameType: "PLO"
+  smallBlind: 1.0
+  bigBlind: 2.0
+  utgStraddleAllowed: true
+  straddleBet: 4.0
+  minPlayers: 2
+  maxPlayers: 8
+  gameLength: 60
+  buyInApproval: true
+  rakePercentage: 5.0
+  rakeCap: 5.0
+  buyInMin: 500
+  buyInMax: 2000
+  actionTime: 100
+  rewards: High Hand
+
+sitIn:
+  - seatNo: 1
+    playerName: yong
+  - seatNo: 2
+    playerName: brian
+  - seatNo: 3
+    playerName: tom
+  - seatNo: 4
+    playerName: jim
+  - seatNo: 5
+    playerName: rob
+  - seatNo: 6
+    playerName: rich
+  - seatNo: 7
+    playerName: josh
+  - seatNo: 8
+    playerName: chris
+
+buyIn:
+  - seatNo: 1
+    buyChips: 1000
+  - seatNo: 2
+    buyChips: 1000
+  - seatNo: 3
+    buyChips: 1000
+  - seatNo: 4
+    buyChips: 1000
+  - seatNo: 5
+    buyChips: 1000
+  - seatNo: 6
+    buyChips: 1000
+  - seatNo: 7
+    buyChips: 1000
+  - seatNo: 8
+    buyChips: 1000

@@ -1,0 +1,84 @@
+
+# deal the following hands in the table
+hands:
+  -
+    num: 1
+    setup:
+      button-pos: 1
+      flop: ["Ac", "Ad", "2c"]
+      turn: Td
+      river: 4s
+      seat-cards:
+        - 
+          cards: ["Kh", "Qd"]
+        -
+          cards: ["3s", "7s"]
+        -
+          cards: ["9h", "2s"]
+
+      verify:
+        # verify button, sb, bb positions
+        # verify next action seat position
+        # verify current hand state
+        button: 1
+        sb: 5
+        bb: 8
+        next-action-pos: 1
+        state: PREFLOP
+        dealt-cards:
+          -
+            seat-no: 5
+            cards: ["Kh", "Qd"]
+          -
+            seat-no: 8
+            cards: ["3s", "7s"]
+          -
+            seat-no: 1
+            cards: ["9h", "2s"]
+   
+    # simulate pre-flop action
+    preflop-action:
+      actions:
+        -
+          seat: 1
+          action: ALLIN
+        - 
+          seat: 5
+          action: ALLIN
+        - 
+          seat: 8
+          action: ALLIN
+
+      # verify preflop-action result
+      # since both players folded, the round ended with a hand result
+      verify:
+        state: FLOP
+        pots:
+          -
+            pot: 150.0
+            seats: [1, 5, 8]
+          -
+            pot: 50.0
+            seats: [5, 8]
+
+    result:
+      winners:
+        -
+          seat: 1
+          receive: 150.0
+        - seat: 5
+          receive: 50.0
+      action-ended: SHOW_DOWN
+      
+      # balance indicates the player balance after the hand
+      # bb player won a chip
+      stacks:
+        -
+          seat: 1
+          stack: 150
+        -
+          seat: 5
+          stack: 50.0
+        -
+          seat: 8
+          stack: 25
