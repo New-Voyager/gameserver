@@ -96,11 +96,19 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 			if handState.PlayerStats[playerID].WentToShowdown {
 				handState.PlayerStats[playerID].WonChipsAtShowdown = true
 			}
+			if handState.PlayerStats[playerID].Headsup {
+				handState.PlayerStats[playerID].WonHeadsup = true
+			}
 		}
+
 		for _, winner := range winners.GetLowWinners() {
 			playerID := handState.ActiveSeats[winner.SeatNo]
 			if handState.PlayerStats[playerID].WentToShowdown {
 				handState.PlayerStats[playerID].WonChipsAtShowdown = true
+			}
+
+			if handState.PlayerStats[playerID].Headsup {
+				handState.PlayerStats[playerID].WonHeadsup = true
 			}
 		}
 	}

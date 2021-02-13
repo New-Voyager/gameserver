@@ -11,7 +11,7 @@ message PlayerStats {
   bool cbet = 3;
   bool vpip = 4;
   bool allin = 6;
-  bool went_to_showdown = 7;
+  bool went_to_showdown = 7;      // same as inShowdown
   bool won_chips_at_showdown = 8;
   bool headsup = 9;
   uint64 headsup_player = 10;
@@ -21,7 +21,6 @@ message PlayerStats {
   bool in_flop = 14;
   bool in_turn = 15;
   bool in_river = 16;
-  bool in_showdown = 17;
 }
 
 message HandStats {

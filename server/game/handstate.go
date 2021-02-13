@@ -76,6 +76,7 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 		h.PlayerStats[player.PlayerID] = &PlayerStats{InPreflop: true}
 		h.NoActiveSeats++
 	}
+	h.HandStats = &HandStats{}
 	h.MaxSeats = uint32(gameConfig.MaxPlayers)
 	h.SmallBlind = float32(gameConfig.SmallBlind)
 	h.BigBlind = float32(gameConfig.BigBlind)
@@ -271,7 +272,7 @@ func (h *HandState) acted(seatChangedAction uint32, state PlayerActState, amount
 				h.PlayerStats[playerID].Vpip = true
 			}
 
-			if amount > h.CurrentRaise {
+			if amount > h.CurrentRaise && state != PlayerActState_PLAYER_ACT_BB {
 				h.PlayerStats[playerID].PreflopRaise = true
 			}
 		} else if h.CurrentState == HandStatus_FLOP {
