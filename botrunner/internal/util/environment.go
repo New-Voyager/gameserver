@@ -28,7 +28,6 @@ type environment struct {
 	PrintGameMsg  string
 	PrintHandMsg  string
 	PrintStateMsg string
-	CollectMsgs   string
 }
 
 // Env is a helper object for accessing environment variables.
@@ -41,7 +40,6 @@ var Env = &environment{
 	PrintGameMsg:  "PRINT_GAME_MSG",
 	PrintHandMsg:  "PRINT_HAND_MSG",
 	PrintStateMsg: "PRINT_STATE_MSG",
-	CollectMsgs:   "COLLECT_MSGS",
 }
 
 func (e *environment) GetNatsURL() string {
@@ -153,14 +151,6 @@ func (e *environment) GetPrintStateMsg() string {
 	return v
 }
 
-func (e *environment) GetCollectMsgs() string {
-	v := os.Getenv(e.CollectMsgs)
-	if v == "" {
-		return "false"
-	}
-	return v
-}
-
 func (e *environment) ShouldPrintGameMsg() bool {
 	return e.GetPrintGameMsg() == "1" || strings.ToLower(e.GetPrintGameMsg()) == "true"
 }
@@ -171,8 +161,4 @@ func (e *environment) ShouldPrintHandMsg() bool {
 
 func (e *environment) ShouldPrintStateMsg() bool {
 	return e.GetPrintStateMsg() == "1" || strings.ToLower(e.GetPrintStateMsg()) == "true"
-}
-
-func (e *environment) ShouldCollectMsgs() bool {
-	return e.GetCollectMsgs() == "1" || strings.ToLower(e.GetCollectMsgs()) == "true"
 }
