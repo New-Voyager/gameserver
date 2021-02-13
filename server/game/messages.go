@@ -63,7 +63,11 @@ const (
 
 // sub message types used in TableUpdate message
 const (
-	TableUpdateOpenSeat    string = "OpenSeat"
-	TableWaitlistSeating   string = "WaitlistSeating"
-	TableSeatChangeProcess string = "SeatChangeInProgress"
+	TableUpdateOpenSeat             string = "OpenSeat"
+	TableWaitlistSeating            string = "WaitlistSeating"
+	TableSeatChangeProcess          string = "SeatChangeInProgress"
+	TableHostSeatChangeProcessStart string = "HostSeatChangeInProcessStart"
+	TableHostSeatChangeProcessEnd   string = "HostSeatChangeInProcessEnd"
+	TableHostSeatChangeMove         string = "HostSeatChangeMove"
+	TableUpdatePlayerSeats          string = "UpdatePlayerSeats"
 )
