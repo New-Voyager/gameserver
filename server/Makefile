@@ -102,7 +102,7 @@ run-nats: create-network
 .PHONY: run-redis
 run-redis: create-network
 	docker rm -f redis || true
-	docker run -d --name redis --network $(DEFAULT_DOCKER_NET) -p 6379:6379 redis:$(REDIS_VERSION)
+	docker run -d --name redis --network $(DEFAULT_DOCKER_NET) redis:$(REDIS_VERSION)
 
 .PHONY: run-server
 run-server: export PERSIST_METHOD=redis
@@ -114,14 +114,14 @@ run-server:
 	go run ./main.go --server
 
 .PHONY: docker-test
-docker-test: create-network run-nats run-redis
+docker-test: create-network run-redis
 	docker run -t --rm \
 		--name gameserver \
 		--network $(DEFAULT_DOCKER_NET) \
 		-e REDIS_HOST=redis \
 		-e REDIS_PORT=6379 \
 		-e REDIS_DB=0 \
-		game-server sh -c "PERSIST_METHOD=redis /app/game-server --script-tests && PERSIST_METHOD=memory /app/game-server --script-tests"
+		game-server sh -c "PERSIST_METHOD=redis /app/game-server --script-tests"
 
 .PHONY: stop
 stop:
