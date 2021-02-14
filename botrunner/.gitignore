@@ -13,3 +13,4 @@ internal/game/*.pb.go
 log/
 *.out
 *.log
+msgs_dump.json

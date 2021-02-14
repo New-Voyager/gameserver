@@ -50,7 +50,7 @@ run:
 	API_SERVER_URL=$(DEV_API_SERVER_URL) \
 	PRINT_GAME_MSG=$(PRINT_GAME_MSG) \
 	PRINT_HAND_MSG=$(PRINT_HAND_MSG) \
-	go run ./cmd/botrunner/main.go --config botrunner_scripts/$(DEV_BOT_SCRIPT)
+	go run ./cmd/botrunner/main.go --config botrunner_scripts/$(DEV_BOT_SCRIPT) --dump-msgs-to=./botrunner_scripts/expected_msgs/msgs_dump.json --expected-msgs=./botrunner_scripts/expected_msgs/river-action-3-bots.json
 
 .PHONY: tester
 tester: CODE=$(GAME_CODE)

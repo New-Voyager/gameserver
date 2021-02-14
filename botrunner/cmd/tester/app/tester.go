@@ -51,7 +51,7 @@ func (t *Tester) Run() error {
 		NatsURL:       util.Env.GetNatsURL(),
 		GQLTimeoutSec: 10,
 		Script:        t.config,
-	}, &playerLogger)
+	}, &playerLogger, nil)
 	if err != nil {
 		return err
 	}
