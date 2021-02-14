@@ -62,6 +62,7 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 
 	// copy player's stack (we need to copy only the players that are in the hand)
 	h.PlayersState = h.copyPlayersState(uint32(gameConfig.MaxPlayers), playersInSeats)
+	h.PlayerStats = make(map[uint64]*PlayerStats)
 
 	// update active seats with players who are playing
 	for _, player := range playersInSeats {
@@ -72,8 +73,10 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 		if player.Status != PlayerStatus_PLAYING {
 			continue
 		}
+		h.PlayerStats[player.PlayerID] = &PlayerStats{InPreflop: true}
 		h.NoActiveSeats++
 	}
+	h.HandStats = &HandStats{}
 	h.MaxSeats = uint32(gameConfig.MaxPlayers)
 	h.SmallBlind = float32(gameConfig.SmallBlind)
 	h.BigBlind = float32(gameConfig.BigBlind)
@@ -259,6 +262,65 @@ func (h *HandState) acted(seatChangedAction uint32, state PlayerActState, amount
 		} else {
 			h.PlayersActed[seatChangedAction].RaiseAmount = h.CurrentRaiseDiff
 		}
+		playerID := h.ActiveSeats[int(seatChangedAction)]
+		// this player put money in the pot
+		if h.CurrentState == HandStatus_PREFLOP {
+			if state == PlayerActState_PLAYER_ACT_CALL ||
+				state == PlayerActState_PLAYER_ACT_BET ||
+				state == PlayerActState_PLAYER_ACT_RAISE ||
+				state == PlayerActState_PLAYER_ACT_STRADDLE {
+				h.PlayerStats[playerID].Vpip = true
+			}
+
+			if amount > h.CurrentRaise && state != PlayerActState_PLAYER_ACT_BB {
+				h.PlayerStats[playerID].PreflopRaise = true
+			}
+		} else if h.CurrentState == HandStatus_FLOP {
+			if amount > h.CurrentRaise {
+				h.PlayerStats[playerID].PostflopRaise = true
+			}
+		}
+
+		// if player bets or raised, determine whether this is 3bet or cbet
+		if amount > h.CurrentRaise {
+			if h.CurrentState == HandStatus_PREFLOP {
+				if h.CurrentRaise == h.BigBlind { // we need to handle straddle
+					h.PlayerStats[playerID].ThreeBet = true
+				}
+			} else if h.CurrentState == HandStatus_FLOP {
+				if h.PlayerStats[playerID].ThreeBet {
+					// continuation bet
+					h.PlayerStats[playerID].Cbet = true
+				}
+			}
+		}
+
+		if state == PlayerActState_PLAYER_ACT_ALL_IN {
+			h.PlayerStats[playerID].Allin = true
+		}
+	}
+
+	activeSeats := 0
+	player1 := uint64(0)
+	player2 := uint64(0)
+	for _, playerID := range h.ActiveSeats {
+		if playerID != 0 {
+			activeSeats++
+		}
+		if player1 == 0 {
+			player1 = playerID
+		} else if player2 == 0 {
+			player2 = playerID
+		}
+	}
+
+	if activeSeats == 2 {
+		// headsup
+		h.PlayerStats[player1].Headsup = true
+		h.PlayerStats[player1].HeadsupPlayer = player2
+
+		h.PlayerStats[player2].Headsup = true
+		h.PlayerStats[player2].HeadsupPlayer = player1
 	}
 }
 
