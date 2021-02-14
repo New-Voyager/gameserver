@@ -26,6 +26,8 @@ build:
 # Build the docker image used for system test.
 .PHONY: docker-build
 docker-build:
+	# Compile protobuf files for game server and botrunner.
+	$(MAKE) -C $(PROJECT_ROOT) compile-proto
 	# Build context is the root directory, so that the game server and the botrunner are included.
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build $(PROJECT_ROOT) -f ./Dockerfile -t $(TEST_DOCKER_IMAGE)
 
@@ -33,26 +35,29 @@ docker-build:
 create-network:
 	@docker network create $(TEST_DOCKER_NET) 2>/dev/null || true
 
-.PHONE: login
+.PHONY: login
 login:
 	docker login --username c1a5bd86f63f2882b8a11671bce3bae92e8355abf6e23613d7758a824c8f5082 --password c1a5bd86f63f2882b8a11671bce3bae92e8355abf6e23613d7758a824c8f5082 registry.digitalocean.com
 
-.PHONY: stack-up
-stack-up: create-network login
+.PHONY: env
+env:
 	> .env && \
 		echo "API_SERVER_IMAGE=$(API_SERVER_IMAGE)" >> .env && \
 		echo "NATS_SERVER_IMAGE=$(NATS_SERVER_IMAGE)" >> .env && \
 		echo "REDIS_IMAGE=$(REDIS_IMAGE)" >> .env && \
 		echo "POSTGRES_IMAGE=$(POSTGRES_IMAGE)" >> .env && \
-		echo "TEST_DOCKER_NET=$(TEST_DOCKER_NET)" >> .env && \
-		docker-compose up -d
+		echo "TEST_DOCKER_NET=$(TEST_DOCKER_NET)" >> .env
+
+.PHONY: stack-up
+stack-up: create-network login env
+	docker-compose up -d
 
 .PHONY: stack-logs
 stack-logs:
 	docker-compose logs -f
 
 .PHONY: stack-down
-stack-down:
+stack-down: env
 	docker-compose down
 
 .PHONY: docker-test

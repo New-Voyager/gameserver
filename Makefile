@@ -14,7 +14,7 @@ build:
 	$(MAKE) -C $(SYSTEM_TEST_DIR) build
 
 .PHONY: system_test
-system_test: build
+system_test:
 	$(MAKE) -C $(SYSTEM_TEST_DIR) docker-test
 
 # Delegate the other targets to the game server Makefile for now.
