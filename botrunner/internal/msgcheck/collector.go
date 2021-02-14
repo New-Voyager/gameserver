@@ -1,4 +1,4 @@
-package msgcollector
+package msgcheck
 
 import (
 	"encoding/json"

@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog"
 	"voyager.com/botrunner/internal/game"
 	"voyager.com/botrunner/internal/gql"
-	"voyager.com/botrunner/internal/msgcollector"
+	"voyager.com/botrunner/internal/msgcheck"
 	"voyager.com/botrunner/internal/player"
 	"voyager.com/botrunner/internal/util"
 )
@@ -20,7 +20,7 @@ import (
 type BotRunner struct {
 	logger           *zerolog.Logger
 	playerLogger     *zerolog.Logger
-	msgCollector     *msgcollector.MsgCollector
+	msgCollector     *msgcheck.MsgCollector
 	msgDumpFile      string
 	expectedMsgsFile string
 	clubCode         string
@@ -46,9 +46,9 @@ func NewBotRunner(clubCode string, gameCode string, config game.BotRunnerConfig,
 		return nil, errors.Wrap(err, fmt.Sprintf("Driver unable to connect to NATS server [%s]", natsURL))
 	}
 
-	var msgCollector *msgcollector.MsgCollector
+	var msgCollector *msgcheck.MsgCollector
 	if msgDumpFile != "" || expectedMsgsFile != "" {
-		msgCollector, err = msgcollector.NewMsgCollector(expectedMsgsFile)
+		msgCollector, err = msgcheck.NewMsgCollector(expectedMsgsFile)
 		if err != nil {
 			return nil, err
 		}

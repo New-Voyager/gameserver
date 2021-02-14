@@ -23,7 +23,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"voyager.com/botrunner/internal/game"
 	"voyager.com/botrunner/internal/gql"
-	"voyager.com/botrunner/internal/msgcollector"
+	"voyager.com/botrunner/internal/msgcheck"
 	"voyager.com/botrunner/internal/poker"
 	"voyager.com/botrunner/internal/util"
 )
@@ -120,7 +120,7 @@ type BotPlayer struct {
 	printStateMsg bool
 
 	// Collect nats messages for testing.
-	msgCollector *msgcollector.MsgCollector
+	msgCollector *msgcheck.MsgCollector
 
 	decision ScriptBasedDecision
 
@@ -131,7 +131,7 @@ type BotPlayer struct {
 }
 
 // NewBotPlayer creates an instance of BotPlayer.
-func NewBotPlayer(playerConfig Config, logger *zerolog.Logger, msgCollector *msgcollector.MsgCollector) (*BotPlayer, error) {
+func NewBotPlayer(playerConfig Config, logger *zerolog.Logger, msgCollector *msgcheck.MsgCollector) (*BotPlayer, error) {
 	nc, err := natsgo.Connect(playerConfig.NatsURL)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Error connecting to NATS server [%s]", playerConfig.NatsURL))
