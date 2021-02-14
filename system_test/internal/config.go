@@ -11,9 +11,11 @@ import (
 
 // TestCase contains one of the test cases in the yaml config.
 type TestCase struct {
-	Name    string        `yaml:"name"`
-	Script  string        `yaml:"script"`
-	Timeout time.Duration `yaml:"timeout"`
+	Name             string        `yaml:"name"`
+	Script           string        `yaml:"script"`
+	Timeout          time.Duration `yaml:"timeout"`
+	ExpectedMsgsFile string        `yaml:"expectedMsgs"`
+	MsgDumpFile      string        `yaml:"msgDumpFile"`
 }
 
 // TestConfig contains the config yaml content.

@@ -11,13 +11,15 @@ import (
 
 // StandardTest is a basic test case that runs the game server and a bot runner with one game script.
 type StandardTest struct {
-	gameServerDir   string
-	gameServerExec  string
-	botRunnerDir    string
-	botRunnerExec   string
-	testName        string
-	botRunnerScript string
-	timeOutDuration time.Duration
+	gameServerDir    string
+	gameServerExec   string
+	botRunnerDir     string
+	botRunnerExec    string
+	testName         string
+	botRunnerScript  string
+	timeOutDuration  time.Duration
+	expectedMsgsFile string
+	msgDumpFile      string
 }
 
 // NewStandardTest creates an instance of StandardTest.
@@ -29,15 +31,19 @@ func NewStandardTest(
 	testName string,
 	botRunnerScript string,
 	timeOutDuration time.Duration,
+	expectedMsgsFile string,
+	msgDumpFile string,
 ) *StandardTest {
 	return &StandardTest{
-		gameServerDir:   gameServerDir,
-		gameServerExec:  gameServerExec,
-		botRunnerDir:    botRunnerDir,
-		botRunnerExec:   botRunnerExec,
-		testName:        testName,
-		botRunnerScript: botRunnerScript,
-		timeOutDuration: timeOutDuration,
+		gameServerDir:    gameServerDir,
+		gameServerExec:   gameServerExec,
+		botRunnerDir:     botRunnerDir,
+		botRunnerExec:    botRunnerExec,
+		testName:         testName,
+		botRunnerScript:  botRunnerScript,
+		timeOutDuration:  timeOutDuration,
+		msgDumpFile:      msgDumpFile,
+		expectedMsgsFile: expectedMsgsFile,
 	}
 }
 
@@ -66,7 +72,7 @@ func (t *StandardTest) Run() error {
 
 	// Launch botrunner with the test script.
 	fmt.Println("Launching botrunner")
-	botRunnerArgs := []string{"--config", t.botRunnerScript}
+	botRunnerArgs := []string{"--config", t.botRunnerScript, "--expected-msgs", t.expectedMsgsFile, "--dump-msgs-to", t.msgDumpFile}
 	brCmd := exec.Command(t.botRunnerExec, botRunnerArgs...)
 	brCmd.Dir = t.botRunnerDir
 	brCmd.Stdout = os.Stdout

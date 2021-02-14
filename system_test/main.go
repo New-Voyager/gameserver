@@ -49,7 +49,7 @@ func main() {
 
 	for _, testCase := range testConfig.Tests {
 		fmt.Printf("Executing test case %+v", testCase)
-		t := internal.NewStandardTest(*gameServerDir, gameServerExec, *botRunnerDir, botRunnerExec, testCase.Name, testCase.Script, testCase.Timeout)
+		t := internal.NewStandardTest(*gameServerDir, gameServerExec, *botRunnerDir, botRunnerExec, testCase.Name, testCase.Script, testCase.Timeout, testCase.ExpectedMsgsFile, testCase.MsgDumpFile)
 		err := t.Run()
 		if err != nil {
 			panic(err)

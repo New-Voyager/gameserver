@@ -1,0 +1,58 @@
+version: '3'
+
+# This docker-compose launches all components except game server and botrunner.
+# Game server and botrunner will be launched separtely by the system test.
+
+services:
+  nats:
+    image: ${NATS_SERVER_IMAGE}
+    restart: always
+    ports:
+      - 4222:4222
+      - 8222:8222
+      - 9222:9222
+    command:
+      - "/bin/sh"
+      - "-c"
+      - "nats-server --config /etc/nats/nats-server.conf ${NATS_OPTS}"
+
+  redis:
+    image: ${REDIS_IMAGE}
+    restart: always
+    ports:
+      - 6379:6379
+
+  api-server:
+    image: ${API_SERVER_IMAGE}
+    restart: always
+    ports:
+      - 9501:9501
+    depends_on:
+      - postgres
+      - nats
+    command:
+      - "/bin/sh"
+      - "-c"
+      - "sleep 5 && yarn run-docker"
+    environment:
+      NATS_URL: nats://nats:4222
+      BOTRUNNER_URL: http://botrunner:8081
+
+  postgres:
+    image: ${POSTGRES_IMAGE}
+    restart: always
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: 'game'
+      POSTGRES_PASSWORD: 'game'
+
+volumes:
+  db-data:
+      
+networks:
+  default:
+    external:
+      name: ${TEST_DOCKER_NET}
