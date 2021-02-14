@@ -94,4 +94,6 @@ message HandState {
 
   FlowState flow_state = 53;
   HandMessage action_msg_in_progress = 54;
+  map<uint64, PlayerStats> player_stats = 55;
+  HandStats hand_stats = 56;
 }

@@ -4,6 +4,32 @@ option go_package = "game";
 import "game.proto";
 import "hand.proto";
 
+message PlayerStats {
+  bool preflop_raise = 1;
+  bool postflop_raise = 2;
+  bool three_bet = 5;
+  bool cbet = 3;
+  bool vpip = 4;
+  bool allin = 6;
+  bool went_to_showdown = 7;      // same as inShowdown
+  bool won_chips_at_showdown = 8;
+  bool headsup = 9;
+  uint64 headsup_player = 10;
+  bool won_headsup = 11;
+  bool badbeat = 12;        // any four of a kinds gets beat
+  bool in_preflop = 13;
+  bool in_flop = 14;
+  bool in_turn = 15;
+  bool in_river = 16;
+}
+
+message HandStats {
+  bool ended_at_preflop = 1;
+  bool ended_at_flop = 2;
+  bool ended_at_turn = 3;
+  bool ended_at_river = 4;
+  bool ended_at_showdown = 5;
+}
 
 //NewHand message is sent to all the players to indicate which seat is next to act 
 message NewHand {
@@ -126,6 +152,8 @@ message HandResult  {
   map<uint32, PlayerInfo> players = 11;    // player cards with rank (key: seat_no)
   float rake_collected = 13;               // rake collected from the hand
   HighHand high_hand = 14;
+  map<uint64, PlayerStats> player_stats = 15;
+  HandStats hand_stats = 16;
 }
 
 message MsgAcknowledgement {

@@ -424,6 +424,14 @@ func (g *Game) gotoFlop(handState *HandState) {
 		}
 	}
 
+	// update player stats
+	for _, playerID := range handState.ActiveSeats {
+		if playerID == 0 {
+			continue
+		}
+		handState.PlayerStats[playerID].InFlop = true
+	}
+
 	cardsStr := poker.CardsToString(boardCards)
 	flopMessage := &Flop{Board: boardCards, CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots, PlayerBalance: balance}
 	handMessage := &HandMessage{ClubId: g.config.ClubId,
@@ -462,6 +470,15 @@ func (g *Game) gotoTurn(handState *HandState) {
 			balance[uint32(seatNo)] = playerState.Balance
 		}
 	}
+
+	// update player stats
+	for _, playerID := range handState.ActiveSeats {
+		if playerID == 0 {
+			continue
+		}
+		handState.PlayerStats[playerID].InTurn = true
+	}
+
 	turnMessage := &Turn{Board: boardCards, TurnCard: uint32(handState.TurnCard),
 		CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots, PlayerBalance: balance}
 	handMessage := &HandMessage{ClubId: g.config.ClubId,
@@ -499,6 +516,14 @@ func (g *Game) gotoRiver(handState *HandState) {
 		if playerState, ok := handState.PlayersState[playerID]; ok {
 			balance[uint32(seatNo)] = playerState.Balance
 		}
+	}
+
+	// update player stats
+	for _, playerID := range handState.ActiveSeats {
+		if playerID == 0 {
+			continue
+		}
+		handState.PlayerStats[playerID].InRiver = true
 	}
 	riverMessage := &River{Board: boardCards, RiverCard: uint32(handState.RiverCard),
 		CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots, PlayerBalance: balance}
@@ -766,6 +791,15 @@ func (g *Game) showdown(handState *HandState) error {
 	if handState.FlowState != expectedState {
 		return fmt.Errorf("showdown called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
+	// update hand stats
+	handState.HandStats.EndedAtShowdown = true
+	// update player stats
+	for _, playerID := range handState.ActiveSeats {
+		if playerID == 0 {
+			continue
+		}
+		handState.PlayerStats[playerID].WentToShowdown = true
+	}
 
 	handState.removeFoldedPlayersFromPots()
 	handState.removeEmptyPots()
@@ -783,7 +817,16 @@ func (g *Game) onePlayerRemaining(handState *HandState) error {
 	if handState.FlowState != expectedState {
 		return fmt.Errorf("onePlayerRemaining called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
-
+	switch handState.CurrentState {
+	case HandStatus_DEAL:
+		handState.HandStats.EndedAtPreflop = true
+	case HandStatus_FLOP:
+		handState.HandStats.EndedAtFlop = true
+	case HandStatus_TURN:
+		handState.HandStats.EndedAtTurn = true
+	case HandStatus_RIVER:
+		handState.HandStats.EndedAtRiver = true
+	}
 	// every one folded except one player, send the pot to the player
 	handState.everyOneFoldedWinners()
 	handState.CurrentState = HandStatus_HAND_CLOSED
