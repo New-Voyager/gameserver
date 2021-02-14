@@ -735,7 +735,7 @@ func (g *Game) getGameInfo(apiServerURL string, gameCode string, retryDelay uint
 		if resp.StatusCode != 200 {
 			channelGameLogger.Fatal().
 				Str("gameCode", gameCode).
-				Msg(fmt.Sprintf("Failed to fetch game info. Error: %d", resp.StatusCode))
+				Msgf("Failed to fetch game info from api server (%s). Error: %d", apiServerURL, resp.StatusCode)
 		}
 
 		body, err := ioutil.ReadAll(resp.Body)
