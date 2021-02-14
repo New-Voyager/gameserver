@@ -23,6 +23,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"voyager.com/botrunner/internal/game"
 	"voyager.com/botrunner/internal/gql"
+	"voyager.com/botrunner/internal/msgcheck"
 	"voyager.com/botrunner/internal/poker"
 	"voyager.com/botrunner/internal/util"
 )
@@ -118,6 +119,9 @@ type BotPlayer struct {
 	printHandMsg  bool
 	printStateMsg bool
 
+	// Collect nats messages for testing.
+	msgCollector *msgcheck.MsgCollector
+
 	decision ScriptBasedDecision
 
 	isSeated bool
@@ -127,7 +131,7 @@ type BotPlayer struct {
 }
 
 // NewBotPlayer creates an instance of BotPlayer.
-func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, error) {
+func NewBotPlayer(playerConfig Config, logger *zerolog.Logger, msgCollector *msgcheck.MsgCollector) (*BotPlayer, error) {
 	nc, err := natsgo.Connect(playerConfig.NatsURL)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Error connecting to NATS server [%s]", playerConfig.NatsURL))
@@ -155,6 +159,7 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 		printGameMsg:    util.Env.ShouldPrintGameMsg(),
 		printHandMsg:    util.Env.ShouldPrintHandMsg(),
 		printStateMsg:   util.Env.ShouldPrintStateMsg(),
+		msgCollector:    msgCollector,
 		RewardsNameToId: make(map[string]uint32),
 		ackMaxWait:      30,
 	}
@@ -236,6 +241,8 @@ func (bp *BotPlayer) queueGameMsg(msg *natsgo.Msg) {
 		return
 	}
 
+	bp.collectGameMsg(&message, msg.Data)
+
 	bp.chGame <- &message
 }
 
@@ -251,7 +258,25 @@ func (bp *BotPlayer) queueHandMsg(msg *natsgo.Msg) {
 		return
 	}
 
+	bp.collectHandMsg(&message, msg.Data)
+
 	bp.chHand <- &message
+}
+
+func (bp *BotPlayer) collectGameMsg(msg *game.GameMessage, rawMsg []byte) {
+	if bp.msgCollector == nil {
+		return
+	}
+
+	bp.msgCollector.AddGameMsg(bp.config.Name, msg, rawMsg)
+}
+
+func (bp *BotPlayer) collectHandMsg(msg *game.HandMessage, rawMsg []byte) {
+	if bp.msgCollector == nil {
+		return
+	}
+
+	bp.msgCollector.AddHandMsg(bp.config.Name, msg, rawMsg)
 }
 
 func (bp *BotPlayer) messageLoop() {

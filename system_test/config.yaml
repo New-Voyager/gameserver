@@ -1,0 +1,7 @@
+tests:
+  - name: River-Action 3 Players
+    timeout: 120s
+    # Botrunner script. Path relative to the botrunner directory.
+    script: botrunner_scripts/river-action-3-bots.yaml
+    expectedMsgs: botrunner_scripts/expected_msgs/river-action-3-bots.json
+    msgDumpFile: botrunner_scripts/expected_msgs/msgs_dump.json
