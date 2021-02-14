@@ -62,7 +62,7 @@ stack-down: env
 
 .PHONY: docker-test
 docker-test: docker-build stack-down stack-up
-	docker run -it --rm \
+	docker run -t --rm \
 		--name=systest \
 		--network=$(TEST_DOCKER_NET) \
 		-e PERSIST_METHOD=redis \
