@@ -102,7 +102,7 @@ run-nats: create-network
 .PHONY: run-redis
 run-redis: create-network
 	docker rm -f redis || true
-	docker run -d --name redis --network $(DEFAULT_DOCKER_NET) redis:$(REDIS_VERSION)
+	docker run -d --name redis --network $(DEFAULT_DOCKER_NET) -p 6379:6379 redis:$(REDIS_VERSION)
 
 .PHONY: run-server
 run-server: export PERSIST_METHOD=redis

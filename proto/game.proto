@@ -52,13 +52,14 @@ enum TableStatus {
 
 // Player update since the last hand
 enum NewUpdate {
-  NEW_PLAYER = 0;
-  RELOAD_CHIPS = 1;
-  SWITCH_SEAT = 2;
-  TAKE_BREAK = 3;
-  SIT_BACK = 4;
-  LEFT_THE_GAME = 5;
-  EMPTY_STACK = 6;
+  UNKNOWN_PLAYER_UPDATE = 0;
+  NEW_PLAYER = 1;
+  RELOAD_CHIPS = 2;
+  SWITCH_SEAT = 3;
+  TAKE_BREAK = 4;
+  SIT_BACK = 5;
+  LEFT_THE_GAME = 6;
+  EMPTY_STACK = 7;
 }
 
 // Player update comes from the API server
