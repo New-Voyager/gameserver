@@ -44,6 +44,7 @@ compile-proto: install-protoc
 	protoc -I=$(PROTO_DIR) --go_out=./game $(PROTO_DIR)/handstate.proto
 	protoc -I=$(PROTO_DIR) --go_out=./game $(PROTO_DIR)/gamemessage.proto
 	protoc -I=$(PROTO_DIR) --go_out=./game $(PROTO_DIR)/handmessage.proto
+	ls game/*.pb.go | xargs -n1 -IX bash -c 'sed s/,omitempty// X > X.tmp && mv X{.tmp,}'
 
 .PHONY: compile-proto2
 compile-proto2:
