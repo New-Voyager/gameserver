@@ -44,24 +44,16 @@ compile-proto: install-protoc
 	protoc -I=$(PROTO_DIR) --go_out=./game $(PROTO_DIR)/handstate.proto
 	protoc -I=$(PROTO_DIR) --go_out=./game $(PROTO_DIR)/gamemessage.proto
 	protoc -I=$(PROTO_DIR) --go_out=./game $(PROTO_DIR)/handmessage.proto
-
-.PHONY: compile-proto2
-compile-proto2:
-	go get -u github.com/golang/protobuf/protoc-gen-go
-	protoc -I=$(PROTO_DIR) --go_out=./game $(PROTO_DIR)/game.proto
-	protoc -I=$(PROTO_DIR) --go_out=./game $(PROTO_DIR)/hand.proto
-	protoc -I=$(PROTO_DIR) --go_out=./game $(PROTO_DIR)/gamestate.proto
-	protoc -I=$(PROTO_DIR) --go_out=./game $(PROTO_DIR)/handstate.proto
-	protoc -I=$(PROTO_DIR) --go_out=./game $(PROTO_DIR)/gamemessage.proto
-	protoc -I=$(PROTO_DIR) --go_out=./game $(PROTO_DIR)/handmessage.proto
 	ls game/*.pb.go | xargs -n1 -IX bash -c 'sed s/,omitempty// X > X.tmp && mv X{.tmp,}'
 
 .PHONY: install-protoc
 install-protoc:
-	curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.7.1/$(PROTOC_ZIP)
-	sudo unzip -o $(PROTOC_ZIP) -d /usr/local bin/protoc
-	sudo unzip -o $(PROTOC_ZIP) -d /usr/local 'include/*'
-	rm -f $(PROTOC_ZIP)
+	if ! which protoc; then \
+		curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.7.1/$(PROTOC_ZIP) && \
+		sudo unzip -o $(PROTOC_ZIP) -d /usr/local bin/protoc && \
+		sudo unzip -o $(PROTOC_ZIP) -d /usr/local 'include/*' && \
+		rm -f $(PROTOC_ZIP); \
+	fi
 
 .PHONY: build
 build: 
