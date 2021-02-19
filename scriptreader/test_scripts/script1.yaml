@@ -1,0 +1,126 @@
+club: Manchester Club
+
+game:
+  create: true
+  title: "NLH Testing Game"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 9
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 100
+  buy-in-max: 300
+  action-time: 100
+
+starting-seats:
+  - seat-no: 1
+    player: yong
+    buy-in: 100
+  - seat-no: 5
+    player: brian
+    buy-in: 100
+  - seat-no: 8
+    player: tom
+    buy-in: 100
+
+bot-config:
+  min-action-pause-time: 500
+  max-action-pause-time: 1000
+
+hands:
+  - setup:
+      button-pos: 1
+      flop: ["Ac", "Ad", "2c"]
+      turn: Td
+      river: 4s
+      seat-cards:
+        # seat cards in the order players are sitting 
+        # seat 1 gets Kh Qd
+        # seat 5 gets 3s 7s
+        # seat 8 gets 9h 2s
+        - cards: ["Kh", "Qd"]
+        - cards: ["3s", "7s"]
+        - cards: ["9h", "2s"]
+      auto: true
+      seat-change:
+        - seat-no: 2
+          confirm: true
+      leave-game:
+        - seat-no: 6
+      wait-list:
+        - player: david
+          confirm: true
+          buy-in: 500
+      pause: 5
+
+    # Should just call it preflop, or preflop-events?
+    preflop-action:
+      seat-actions:
+        # seat number/action/amount
+        - action: 1, CALL, 2
+          pre-action:
+            setup-server-crash:
+              crash-point: ON_PLAYER_ACTED_2
+            verify:
+              min-bet-amount: 2
+              max-bet-amount: 4
+          post-action:
+            - request-end-game
+            - request-seat-change
+
+        # seat number/action/amount
+        - action: 1, CALL, 2
+        - action: 5, CALL, 2
+        - action: 8, CHECK
+      # verify:
+      #   state: FLOP
+      #   board: ["Ac", "Ad", "2c"]
+
+    # flop-action:
+    #   seat-actions:
+    #     - 5, CHECK
+    #     - 8, BET, 2
+    #     - 1, CALL, 2
+    #     - 5, RAISE, 4
+    #     - 8, FOLD
+    #     - 1, CALL, 4
+    #   verify:
+    #     state: TURN
+    #     board: ["Ac", "Ad", "2c", "Td"]
+
+    # turn-action:
+    #   seat-actions:
+    #     - 5, CHECK
+    #     - 1, BET, 10
+    #     - 5, CALL, 10
+    #   verify:
+    #     state: RIVER
+    #     board: ["Ac", "Ad", "2c", "Td", "4s"]
+
+    # river-action:
+    #   seat-actions:
+    #     - 5, BET, 10
+    #     - 1, CALL, 10
+    #   verify:
+    #     state: RESULT
+
+    # result:
+    #   winners:
+    #     - seat: 1
+    #       receive: 56.0
+    #   action-ended: SHOW_DOWN
+
+    #   # player balance after the hand
+    #   stacks:
+    #     - seat: 1
+    #       stack: 84
+    #     - seat: 5
+    #       stack: 120
+    #     - seat: 8
+    #       stack: 96
