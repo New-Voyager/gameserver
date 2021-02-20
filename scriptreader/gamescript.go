@@ -166,9 +166,8 @@ func (a *Action) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 type PreAction struct {
-	SetupServerCrash       SetupServerCrash       `yaml:"setup-server-crash"`
-	VerifyAvailableActions YourActionVerification `yaml:"verify-available-actions"`
-	VerifyBoard            []string               `yaml:"verify-board"`
+	SetupServerCrash SetupServerCrash       `yaml:"setup-server-crash"`
+	Verify           YourActionVerification `yaml:"verify"`
 }
 
 type SetupServerCrash struct {
