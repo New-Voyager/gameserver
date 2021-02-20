@@ -54,6 +54,55 @@ func (h *HandState) initializeBettingRound() {
 	h.resetPlayerActions()
 }
 
+func (h *HandState) board(deck *poker.Deck) []byte {
+	board := make([]byte, 5)
+	// setup board 1
+	if h.BurnCards {
+		deck.Draw(1)
+		h.DeckIndex++
+	}
+
+	cards := deck.Draw(3)
+	h.DeckIndex += 3
+	//fmt.Printf("Flop Cards: ")
+	for i, card := range cards {
+		board[i] = card.GetByte()
+		fmt.Printf("%s", poker.CardToString(uint32(card.GetByte())))
+	}
+	fmt.Printf("\n")
+
+	var burnCard uint32
+	if h.BurnCards {
+		// burn card
+		cards = deck.Draw(1)
+		burnCard = uint32(cards[0].GetByte())
+		fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
+		h.DeckIndex++
+	}
+
+	// turn card
+	cards = deck.Draw(1)
+	h.DeckIndex++
+	board[3] = cards[0].GetByte()
+	//fmt.Printf("Turn card: %s\n", poker.CardToString(cards[0]))
+
+	// burn card
+	if h.BurnCards {
+		cards = deck.Draw(1)
+		h.DeckIndex++
+		burnCard = uint32(cards[0].GetByte())
+		fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
+	}
+
+	// river card
+	cards = deck.Draw(1)
+	h.DeckIndex++
+	board[4] = cards[0].GetByte()
+	//fmt.Printf("River card: %s\n", poker.CardToString(board[4]))
+
+	return board
+}
+
 func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonPos uint32, moveButton bool, playersInSeats []SeatPlayer) {
 	// settle players in the seats
 	h.PlayersInSeats = make([]uint64, gameConfig.MaxPlayers+1) // seat 0 is dealer
@@ -86,6 +135,7 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 	h.ButtonPos = buttonPos
 	h.PlayersActed = make([]*PlayerActRound, h.MaxSeats+1)
 	h.BringIn = float32(gameConfig.BringIn)
+	h.BurnCards = true
 
 	// if the players don't have money less than the blinds
 	// don't let them play
@@ -122,40 +172,11 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 	h.Pots = append(h.Pots, mainPot)
 	h.RakePaid = make(map[uint64]float32, 0)
 
-	deck.Draw(1)
-	h.DeckIndex++
-	cards := deck.Draw(3)
-	h.DeckIndex += 3
-	h.FlopCards = make([]uint32, 3)
-	fmt.Printf("Flop Cards: ")
-	for i, card := range cards {
-		h.FlopCards[i] = uint32(card.GetByte())
-		fmt.Printf("%s", poker.CardToString(uint32(card.GetByte())))
-	}
-	fmt.Printf("\n")
-
-	// burn card
-	cards = deck.Draw(1)
-	burnCard := uint32(cards[0].GetByte())
-	fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
-	h.DeckIndex++
-	// turn card
-	cards = deck.Draw(1)
-	h.DeckIndex++
-	h.TurnCard = uint32(cards[0].GetByte())
-	fmt.Printf("Turn card: %s\n", poker.CardToString(h.TurnCard))
-
-	// burn card
-	cards = deck.Draw(1)
-	h.DeckIndex++
-	burnCard = uint32(cards[0].GetByte())
-	fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
-
-	// river card
-	cards = deck.Draw(1)
-	h.DeckIndex++
-	h.RiverCard = uint32(cards[0].GetByte())
-	fmt.Printf("River card: %s\n", poker.CardToString(h.RiverCard))
+	// board cards
+	h.BoardCards = h.board(deck)
+	fmt.Printf("Board1: %s", poker.CardsToString(h.BoardCards))
+	h.BoardCards_2 = h.board(deck)
+	fmt.Printf("Board2: %s", poker.CardsToString(h.BoardCards_2))
 
 	// setup data structure to handle betting rounds
 	h.initializeBettingRound()
@@ -837,22 +858,16 @@ func (h *HandState) setupNextRound(state HandStatus) {
 	}
 }
 
-func (h *HandState) setupFlop(board []uint32) {
+func (h *HandState) setupFlop() {
 	h.setupNextRound(HandStatus_FLOP)
-	h.BoardCards = make([]byte, 3)
-	for i, card := range board {
-		h.BoardCards[i] = uint8(card)
-	}
 }
 
-func (h *HandState) setupTurn(turnCard uint32) {
+func (h *HandState) setupTurn() {
 	h.setupNextRound(HandStatus_TURN)
-	h.BoardCards = append(h.BoardCards, uint8(turnCard))
 }
 
-func (h *HandState) setupRiver(riverCard uint32) {
+func (h *HandState) setupRiver() {
 	h.setupNextRound(HandStatus_RIVER)
-	h.BoardCards = append(h.BoardCards, uint8(riverCard))
 }
 
 func (h *HandState) adjustToBringIn(amount float32) float32 {

@@ -53,8 +53,8 @@ func (hr *HandResultProcessor) getPlayerBalance(playerID uint64) *HandPlayerBala
 }
 
 func (hr *HandResultProcessor) populateCommunityCards(handResult *HandResult) {
-	handResult.Turn = hr.handState.TurnCard
-	handResult.River = hr.handState.RiverCard
+	handResult.Turn = uint32(hr.handState.BoardCards[3])
+	handResult.River = uint32(hr.handState.BoardCards[4])
 	if hr.handState.BoardCards != nil {
 		handResult.BoardCards = make([]uint32, len(hr.handState.BoardCards))
 		for i, card := range hr.handState.BoardCards {
@@ -64,16 +64,14 @@ func (hr *HandResultProcessor) populateCommunityCards(handResult *HandResult) {
 
 	if hr.handState.BoardCards_2 != nil {
 		handResult.BoardCards_2 = make([]uint32, len(hr.handState.BoardCards_2))
-		for i, card := range hr.handState.BoardCards {
+		for i, card := range hr.handState.BoardCards_2 {
 			handResult.BoardCards_2[i] = uint32(card)
 		}
 	}
 
-	if hr.handState.FlopCards != nil {
-		handResult.Flop = make([]uint32, len(hr.handState.FlopCards))
-		for i, card := range hr.handState.FlopCards {
-			handResult.Flop[i] = uint32(card)
-		}
+	handResult.Flop = make([]uint32, 3)
+	for i, card := range hr.handState.BoardCards[:3] {
+		handResult.Flop[i] = uint32(card)
 	}
 }
 

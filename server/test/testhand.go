@@ -146,8 +146,15 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.Betting
 				if !IsEqual(actionsStr, action.VerifyAction.Actions) {
 					return fmt.Errorf("Actions does not match. Expected: %+v Actual: %+v", action.VerifyAction.Actions, actionsStr)
 				}
+				callAvailable := false
+				for _, action := range nextSeatAction.AvailableActions {
+					if action == game.ACTION_CALL {
+						callAvailable = true
+						break
+					}
+				}
 
-				if nextSeatAction.CallAmount != action.VerifyAction.CallAmount {
+				if callAvailable && nextSeatAction.CallAmount != action.VerifyAction.CallAmount {
 					return fmt.Errorf("Call amount does not match. Expected: %+v Actual: %+v", action.VerifyAction.CallAmount, nextSeatAction.CallAmount)
 				}
 
