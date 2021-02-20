@@ -254,7 +254,7 @@ type PlayerStack struct {
 }
 
 type HighHandSeat struct {
-	SeatNo uint32 `yaml:"seat-no"`
+	Seat uint32 `yaml:"seat"`
 }
 
 // ReadGameScript reads game script yaml file.

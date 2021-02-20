@@ -240,6 +240,39 @@ func TestReadGameScript(t *testing.T) {
 						},
 					},
 				},
+				Result: HandResult{
+					Winners: []HandWinner{
+						{
+							Seat:    1,
+							Receive: 56.0,
+							RankStr: "Two Pair",
+						},
+						{
+							Seat:    5,
+							Receive: 12.0,
+						},
+					},
+					ActionEndedAt: "SHOW_DOWN",
+					Stacks: []PlayerStack{
+						{
+							Seat:  1,
+							Stack: 84,
+						},
+						{
+							Seat:  5,
+							Stack: 120,
+						},
+						{
+							Seat:  8,
+							Stack: 96,
+						},
+					},
+					HighHand: []HighHandSeat{
+						{
+							Seat: 1,
+						},
+					},
+				},
 			},
 		},
 	}

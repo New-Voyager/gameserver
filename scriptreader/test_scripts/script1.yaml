@@ -108,20 +108,23 @@ hands:
       seat-actions:
         - action: 5, BET, 10
         - action: 1, CALL, 10
-    #   verify:
-    #     state: RESULT
 
-    # result:
-    #   winners:
-    #     - seat: 1
-    #       receive: 56.0
-    #   action-ended: SHOW_DOWN
+    result:
+      winners:
+        - seat: 1
+          receive: 56.0
+          rank: Two Pair
+        - seat: 5
+          receive: 12.0
+      action-ended: SHOW_DOWN
 
-    #   # player balance after the hand
-    #   stacks:
-    #     - seat: 1
-    #       stack: 84
-    #     - seat: 5
-    #       stack: 120
-    #     - seat: 8
-    #       stack: 96
+      # player balance after the hand
+      stacks:
+        - seat: 1
+          stack: 84
+        - seat: 5
+          stack: 120
+        - seat: 8
+          stack: 96
+      high-hand:
+        - seat: 1
