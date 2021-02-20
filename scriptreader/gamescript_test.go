@@ -104,7 +104,7 @@ func TestReadGameScript(t *testing.T) {
 								Amount: 2,
 							},
 							PreAction: PreAction{
-								Verify: YourActionVerification{
+								VerifyAvailableActions: YourActionVerification{
 									AvailableActions: []string{"FOLD", "CALL", "RAISE", "ALLIN"},
 									StraddleAmount:   3,
 									CallAmount:       5,
@@ -141,6 +141,53 @@ func TestReadGameScript(t *testing.T) {
 							Action: Action{
 								SeatNo: 8,
 								Action: "CHECK",
+							},
+						},
+					},
+				},
+				Flop: BettingRound{
+					SeatActions: []SeatAction{
+						{
+							Action: Action{
+								SeatNo: 5,
+								Action: "CHECK",
+							},
+							PreAction: PreAction{
+								VerifyBoard: []string{"Ac", "Ad", "2c"},
+							},
+						},
+						{
+							Action: Action{
+								SeatNo: 8,
+								Action: "BET",
+								Amount: 2,
+							},
+						},
+						{
+							Action: Action{
+								SeatNo: 1,
+								Action: "CALL",
+								Amount: 2,
+							},
+						},
+						{
+							Action: Action{
+								SeatNo: 5,
+								Action: "RAISE",
+								Amount: 4,
+							},
+						},
+						{
+							Action: Action{
+								SeatNo: 8,
+								Action: "FOLD",
+							},
+						},
+						{
+							Action: Action{
+								SeatNo: 1,
+								Action: "CALL",
+								Amount: 4,
 							},
 						},
 					},

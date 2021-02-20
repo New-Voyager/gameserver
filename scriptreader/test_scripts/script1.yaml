@@ -66,7 +66,7 @@ hands:
           pre-action:
             setup-server-crash:
               crash-point: ON_PLAYER_ACTED_2
-            verify:
+            verify-available-actions:
               available-actions: ["FOLD", "CALL", "RAISE", "ALLIN"]
               straddle-amount: 3
               call-amount: 5
@@ -79,25 +79,20 @@ hands:
               bet-options:
                 - Pot, 100
                 - All-In, 300
-          post-action:
-            - request-end-game
-            - request-seat-change
 
-        # seat number/action/amount
         - action: 5, CALL, 2
         - action: 8, CHECK
-      # verify:
-      #   state: FLOP
-      #   board: ["Ac", "Ad", "2c"]
 
-    # flop-action:
-    #   seat-actions:
-    #     - 5, CHECK
-    #     - 8, BET, 2
-    #     - 1, CALL, 2
-    #     - 5, RAISE, 4
-    #     - 8, FOLD
-    #     - 1, CALL, 4
+    flop:
+      seat-actions:
+        - action: 5, CHECK
+          pre-action:
+            verify-board: ["Ac", "Ad", "2c"]
+        - action: 8, BET, 2
+        - action: 1, CALL, 2
+        - action: 5, RAISE, 4
+        - action: 8, FOLD
+        - action: 1, CALL, 4
     #   verify:
     #     state: TURN
     #     board: ["Ac", "Ad", "2c", "Td"]
