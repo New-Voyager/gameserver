@@ -37,17 +37,17 @@ func TestReadGameScript(t *testing.T) {
 		},
 		StartingSeats: []StartingSeat{
 			{
-				SeatNo: 1,
+				Seat:   1,
 				Player: "yong",
 				BuyIn:  100,
 			},
 			{
-				SeatNo: 5,
+				Seat:   5,
 				Player: "brian",
 				BuyIn:  100,
 			},
 			{
-				SeatNo: 8,
+				Seat:   8,
 				Player: "tom",
 				BuyIn:  100,
 			},
@@ -65,25 +65,28 @@ func TestReadGameScript(t *testing.T) {
 					River:     "4s",
 					SeatCards: []SeatCards{
 						{
+							Seat:  1,
 							Cards: []string{"Kh", "Qd"},
 						},
 						{
+							Seat:  5,
 							Cards: []string{"3s", "7s"},
 						},
 						{
+							Seat:  8,
 							Cards: []string{"9h", "2s"},
 						},
 					},
 					Auto: true,
 					SeatChange: []SeatChange{
 						{
-							SeatNo:  2,
+							Seat:    2,
 							Confirm: true,
 						},
 					},
 					LeaveGame: []LeaveGame{
 						{
-							SeatNo: 6,
+							Seat: 6,
 						},
 					},
 					WaitLists: []WaitList{
@@ -142,6 +145,134 @@ func TestReadGameScript(t *testing.T) {
 								SeatNo: 8,
 								Action: "CHECK",
 							},
+						},
+					},
+				},
+				Flop: BettingRound{
+					Verify: BettingRoundVerification{
+						Board: []string{"Ac", "Ad", "2c"},
+					},
+					SeatActions: []SeatAction{
+						{
+							Action: Action{
+								SeatNo: 5,
+								Action: "CHECK",
+							},
+						},
+						{
+							Action: Action{
+								SeatNo: 8,
+								Action: "BET",
+								Amount: 2,
+							},
+						},
+						{
+							Action: Action{
+								SeatNo: 1,
+								Action: "CALL",
+								Amount: 2,
+							},
+						},
+						{
+							Action: Action{
+								SeatNo: 5,
+								Action: "RAISE",
+								Amount: 4,
+							},
+						},
+						{
+							Action: Action{
+								SeatNo: 8,
+								Action: "FOLD",
+							},
+						},
+						{
+							Action: Action{
+								SeatNo: 1,
+								Action: "CALL",
+								Amount: 4,
+							},
+						},
+					},
+				},
+				Turn: BettingRound{
+					Verify: BettingRoundVerification{
+						Board: []string{"Ac", "Ad", "2c", "Td"},
+					},
+					SeatActions: []SeatAction{
+						{
+							Action: Action{
+								SeatNo: 5,
+								Action: "CHECK",
+							},
+						},
+						{
+							Action: Action{
+								SeatNo: 1,
+								Action: "BET",
+								Amount: 10,
+							},
+						},
+						{
+							Action: Action{
+								SeatNo: 5,
+								Action: "CALL",
+								Amount: 10,
+							},
+						},
+					},
+				},
+				River: BettingRound{
+					Verify: BettingRoundVerification{
+						Board: []string{"Ac", "Ad", "2c", "Td", "4s"},
+					},
+					SeatActions: []SeatAction{
+						{
+							Action: Action{
+								SeatNo: 5,
+								Action: "BET",
+								Amount: 10,
+							},
+						},
+						{
+							Action: Action{
+								SeatNo: 1,
+								Action: "CALL",
+								Amount: 10,
+							},
+						},
+					},
+				},
+				Result: HandResult{
+					Winners: []HandWinner{
+						{
+							Seat:    1,
+							Receive: 56.0,
+							RankStr: "Two Pair",
+						},
+						{
+							Seat:    5,
+							Receive: 12.0,
+						},
+					},
+					ActionEndedAt: "SHOW_DOWN",
+					Stacks: []PlayerStack{
+						{
+							Seat:  1,
+							Stack: 84,
+						},
+						{
+							Seat:  5,
+							Stack: 120,
+						},
+						{
+							Seat:  8,
+							Stack: 96,
+						},
+					},
+					HighHand: []HighHandSeat{
+						{
+							Seat: 1,
 						},
 					},
 				},

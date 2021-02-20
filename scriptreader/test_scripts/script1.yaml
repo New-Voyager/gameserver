@@ -19,13 +19,13 @@ game:
   action-time: 100
 
 starting-seats:
-  - seat-no: 1
+  - seat: 1
     player: yong
     buy-in: 100
-  - seat-no: 5
+  - seat: 5
     player: brian
     buy-in: 100
-  - seat-no: 8
+  - seat: 8
     player: tom
     buy-in: 100
 
@@ -40,19 +40,18 @@ hands:
       turn: Td
       river: 4s
       seat-cards:
-        # seat cards in the order players are sitting 
-        # seat 1 gets Kh Qd
-        # seat 5 gets 3s 7s
-        # seat 8 gets 9h 2s
-        - cards: ["Kh", "Qd"]
-        - cards: ["3s", "7s"]
-        - cards: ["9h", "2s"]
+        - seat: 1
+          cards: ["Kh", "Qd"]
+        - seat: 5
+          cards: ["3s", "7s"]
+        - seat: 8
+          cards: ["9h", "2s"]
       auto: true
       seat-change:
-        - seat-no: 2
+        - seat: 2
           confirm: true
       leave-game:
-        - seat-no: 6
+        - seat: 6
       wait-list:
         - player: david
           confirm: true
@@ -79,56 +78,52 @@ hands:
               bet-options:
                 - Pot, 100
                 - All-In, 300
-          post-action:
-            - request-end-game
-            - request-seat-change
 
-        # seat number/action/amount
         - action: 5, CALL, 2
         - action: 8, CHECK
-      # verify:
-      #   state: FLOP
-      #   board: ["Ac", "Ad", "2c"]
 
-    # flop-action:
-    #   seat-actions:
-    #     - 5, CHECK
-    #     - 8, BET, 2
-    #     - 1, CALL, 2
-    #     - 5, RAISE, 4
-    #     - 8, FOLD
-    #     - 1, CALL, 4
-    #   verify:
-    #     state: TURN
-    #     board: ["Ac", "Ad", "2c", "Td"]
+    flop:
+      verify:
+        board: ["Ac", "Ad", "2c"]
+      seat-actions:
+        - action: 5, CHECK
+        - action: 8, BET, 2
+        - action: 1, CALL, 2
+        - action: 5, RAISE, 4
+        - action: 8, FOLD
+        - action: 1, CALL, 4
 
-    # turn-action:
-    #   seat-actions:
-    #     - 5, CHECK
-    #     - 1, BET, 10
-    #     - 5, CALL, 10
-    #   verify:
-    #     state: RIVER
-    #     board: ["Ac", "Ad", "2c", "Td", "4s"]
+    turn:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td"]
+      seat-actions:
+        - action: 5, CHECK
+        - action: 1, BET, 10
+        - action: 5, CALL, 10
 
-    # river-action:
-    #   seat-actions:
-    #     - 5, BET, 10
-    #     - 1, CALL, 10
-    #   verify:
-    #     state: RESULT
+    river:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-actions:
+        - action: 5, BET, 10
+        - action: 1, CALL, 10
 
-    # result:
-    #   winners:
-    #     - seat: 1
-    #       receive: 56.0
-    #   action-ended: SHOW_DOWN
+    result:
+      winners:
+        - seat: 1
+          receive: 56.0
+          rank: Two Pair
+        - seat: 5
+          receive: 12.0
+      action-ended: SHOW_DOWN
 
-    #   # player balance after the hand
-    #   stacks:
-    #     - seat: 1
-    #       stack: 84
-    #     - seat: 5
-    #       stack: 120
-    #     - seat: 8
-    #       stack: 96
+      # player balance after the hand
+      stacks:
+        - seat: 1
+          stack: 84
+        - seat: 5
+          stack: 120
+        - seat: 8
+          stack: 96
+      high-hand:
+        - seat: 1

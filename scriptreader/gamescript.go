@@ -42,7 +42,7 @@ type Game struct {
 
 // StartingSeat contains an entry in the StartingSeats array in the game script.
 type StartingSeat struct {
-	SeatNo uint32  `yaml:"seat-no"`
+	Seat   uint32  `yaml:"seat"`
 	Player string  `yaml:"player"`
 	BuyIn  float32 `yaml:"buy-in"`
 }
@@ -80,8 +80,8 @@ type HandSetup struct {
 }
 
 type SeatCards struct {
-	Cards  []string `yaml:"cards"`
-	SeatNo uint32   `yaml:"seat-no"`
+	Cards []string `yaml:"cards"`
+	Seat  uint32   `yaml:"seat"`
 }
 
 type HandSetupVerfication struct {
@@ -94,12 +94,12 @@ type HandSetupVerfication struct {
 }
 
 type SeatChange struct {
-	SeatNo  uint32 `yaml:"seat-no"`
+	Seat    uint32 `yaml:"seat"`
 	Confirm bool   `yaml:"confirm"`
 }
 
 type LeaveGame struct {
-	SeatNo uint32 `yaml:"seat-no"`
+	Seat uint32 `yaml:"seat"`
 }
 
 type WaitList struct {
@@ -254,7 +254,7 @@ type PlayerStack struct {
 }
 
 type HighHandSeat struct {
-	SeatNo uint32 `yaml:"seat-no"`
+	Seat uint32 `yaml:"seat"`
 }
 
 // ReadGameScript reads game script yaml file.
