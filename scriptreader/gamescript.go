@@ -55,13 +55,13 @@ type BotConfig struct {
 
 // Hand contains an entry in the hands array in the game script.
 type Hand struct {
-	Num           uint32       `yaml:"num"`
-	Setup         HandSetup    `yaml:"setup"`
-	PreflopAction BettingRound `yaml:"preflop-action"`
-	FlopAction    BettingRound `yaml:"flop-action"`
-	TurnAction    BettingRound `yaml:"turn-action"`
-	RiverAction   BettingRound `yaml:"river-action"`
-	Result        HandResult   `yaml:"result"`
+	Num     uint32       `yaml:"num"`
+	Setup   HandSetup    `yaml:"setup"`
+	Preflop BettingRound `yaml:"preflop"`
+	Flop    BettingRound `yaml:"flop"`
+	Turn    BettingRound `yaml:"turn"`
+	River   BettingRound `yaml:"river"`
+	Result  HandResult   `yaml:"result"`
 }
 
 // HandSetup contains the setup content in the hand config.
@@ -114,7 +114,8 @@ type BettingRound struct {
 }
 
 type SeatAction struct {
-	Action Action `yaml:"action"`
+	Action    Action    `yaml:"action"`
+	PreAction PreAction `yaml:"pre-action"`
 }
 
 type Action struct {
@@ -161,6 +162,64 @@ func (a *Action) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	a.SeatNo = uint32(seatNo)
 	a.Action = strings.Trim(tokens[1], " ")
 	a.Amount = float32(amount)
+	return nil
+}
+
+type PreAction struct {
+	SetupServerCrash SetupServerCrash       `yaml:"setup-server-crash"`
+	Verify           YourActionVerification `yaml:"verify"`
+}
+
+type SetupServerCrash struct {
+	CrashPoint string `yaml:"crash-point"`
+}
+
+type YourActionVerification struct {
+	AvailableActions []string    `yaml:"available-actions"`
+	StraddleAmount   float32     `yaml:"straddle-amount"`
+	CallAmount       float32     `yaml:"call-amount"`
+	RaiseAmount      float32     `yaml:"raise-amount"`
+	MinBetAmount     float32     `yaml:"min-bet-amount"`
+	MaxBetAmount     float32     `yaml:"max-bet-amount"`
+	MinRaiseAmount   float32     `yaml:"min-raise-amount"`
+	MaxRaiseAmount   float32     `yaml:"max-raise-amount"`
+	AllInAmount      float32     `yaml:"all-in-amount"`
+	BetOptions       []BetOption `yaml:"bet-options"`
+}
+
+type BetOption struct {
+	Text   string
+	Amount float32
+}
+
+// Custom unmarshaller for BetOption expression.
+// All-In, 500
+// Pot, 200
+func (b *BetOption) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var v interface{}
+	var err error
+	err = unmarshal(&v)
+	if err != nil {
+		return err
+	}
+	expr, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("Cannot parse BetOption expression [%v] as string", v)
+	}
+	tokens := strings.Split(expr, ",")
+	if len(tokens) != 2 {
+		return fmt.Errorf("Invalid BetOption expression string [%v]. Need 2 comma-separated tokens", v)
+	}
+
+	// Parse amount token
+	var amount float64
+	trimmed := strings.Trim(tokens[1], " ")
+	amount, err = strconv.ParseFloat(trimmed, 32)
+	if err != nil {
+		return errors.Wrapf(err, "Cannot convert second token [%s] to BetOption amount", trimmed)
+	}
+	b.Text = strings.Trim(tokens[0], " ")
+	b.Amount = float32(amount)
 	return nil
 }
 

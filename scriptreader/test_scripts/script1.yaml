@@ -59,8 +59,7 @@ hands:
           buy-in: 500
       pause: 5
 
-    # Should just call it preflop, or preflop-events?
-    preflop-action:
+    preflop:
       seat-actions:
         # seat number/action/amount
         - action: 1, CALL, 2
@@ -68,14 +67,23 @@ hands:
             setup-server-crash:
               crash-point: ON_PLAYER_ACTED_2
             verify:
+              available-actions: ["FOLD", "CALL", "RAISE", "ALLIN"]
+              straddle-amount: 3
+              call-amount: 5
+              raise-amount: 10
               min-bet-amount: 2
               max-bet-amount: 4
+              min-raise-amount: 10
+              max-raise-amount: 30
+              all-in-amount: 200
+              bet-options:
+                - Pot, 100
+                - All-In, 300
           post-action:
             - request-end-game
             - request-seat-change
 
         # seat number/action/amount
-        - action: 1, CALL, 2
         - action: 5, CALL, 2
         - action: 8, CHECK
       # verify:
