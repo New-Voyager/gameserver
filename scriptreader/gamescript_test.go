@@ -95,7 +95,7 @@ func TestReadGameScript(t *testing.T) {
 					},
 					Pause: 5,
 				},
-				PreflopAction: BettingRound{
+				Preflop: BettingRound{
 					SeatActions: []SeatAction{
 						{
 							Action: Action{
@@ -103,12 +103,31 @@ func TestReadGameScript(t *testing.T) {
 								Action: "CALL",
 								Amount: 2,
 							},
-						},
-						{
-							Action: Action{
-								SeatNo: 1,
-								Action: "CALL",
-								Amount: 2,
+							PreAction: PreAction{
+								Verify: YourActionVerification{
+									AvailableActions: []string{"FOLD", "CALL", "RAISE", "ALLIN"},
+									StraddleAmount:   3,
+									CallAmount:       5,
+									RaiseAmount:      10,
+									MinBetAmount:     2,
+									MaxBetAmount:     4,
+									MinRaiseAmount:   10,
+									MaxRaiseAmount:   30,
+									AllInAmount:      200,
+									BetOptions: []BetOption{
+										{
+											Text:   "Pot",
+											Amount: 100,
+										},
+										{
+											Text:   "All-In",
+											Amount: 300,
+										},
+									},
+								},
+								SetupServerCrash: SetupServerCrash{
+									CrashPoint: "ON_PLAYER_ACTED_2",
+								},
 							},
 						},
 						{
