@@ -19,13 +19,13 @@ game:
   action-time: 100
 
 starting-seats:
-  - seat-no: 1
+  - seat: 1
     player: yong
     buy-in: 100
-  - seat-no: 5
+  - seat: 5
     player: brian
     buy-in: 100
-  - seat-no: 8
+  - seat: 8
     player: tom
     buy-in: 100
 
@@ -40,19 +40,18 @@ hands:
       turn: Td
       river: 4s
       seat-cards:
-        # seat cards in the order players are sitting 
-        # seat 1 gets Kh Qd
-        # seat 5 gets 3s 7s
-        # seat 8 gets 9h 2s
-        - cards: ["Kh", "Qd"]
-        - cards: ["3s", "7s"]
-        - cards: ["9h", "2s"]
+        - seat: 1
+          cards: ["Kh", "Qd"]
+        - seat: 5
+          cards: ["3s", "7s"]
+        - seat: 8
+          cards: ["9h", "2s"]
       auto: true
       seat-change:
-        - seat-no: 2
+        - seat: 2
           confirm: true
       leave-game:
-        - seat-no: 6
+        - seat: 6
       wait-list:
         - player: david
           confirm: true

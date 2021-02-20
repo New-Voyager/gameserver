@@ -37,17 +37,17 @@ func TestReadGameScript(t *testing.T) {
 		},
 		StartingSeats: []StartingSeat{
 			{
-				SeatNo: 1,
+				Seat:   1,
 				Player: "yong",
 				BuyIn:  100,
 			},
 			{
-				SeatNo: 5,
+				Seat:   5,
 				Player: "brian",
 				BuyIn:  100,
 			},
 			{
-				SeatNo: 8,
+				Seat:   8,
 				Player: "tom",
 				BuyIn:  100,
 			},
@@ -65,25 +65,28 @@ func TestReadGameScript(t *testing.T) {
 					River:     "4s",
 					SeatCards: []SeatCards{
 						{
+							Seat:  1,
 							Cards: []string{"Kh", "Qd"},
 						},
 						{
+							Seat:  5,
 							Cards: []string{"3s", "7s"},
 						},
 						{
+							Seat:  8,
 							Cards: []string{"9h", "2s"},
 						},
 					},
 					Auto: true,
 					SeatChange: []SeatChange{
 						{
-							SeatNo:  2,
+							Seat:    2,
 							Confirm: true,
 						},
 					},
 					LeaveGame: []LeaveGame{
 						{
-							SeatNo: 6,
+							Seat: 6,
 						},
 					},
 					WaitLists: []WaitList{
