@@ -1,4 +1,4 @@
-module voyager.com/scriptreader
+module voyager.com/gamescript
 
 go 1.14
 
