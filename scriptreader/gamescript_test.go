@@ -16,7 +16,10 @@ func TestReadGameScript(t *testing.T) {
 	}
 
 	expectedScript := Script{
-		Club: "Manchester Club",
+		Club: Club{
+			Name:        "Bad Robots",
+			Description: "Club for testing",
+		},
 		Game: Game{
 			Create:             true,
 			Title:              "NLH Testing Game",

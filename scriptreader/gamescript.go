@@ -12,11 +12,16 @@ import (
 
 // Script contains game script YAML content.
 type Script struct {
-	Club          string         `yaml:"club"`
+	Club          Club           `yaml:"club"`
 	Game          Game           `yaml:"game"`
 	StartingSeats []StartingSeat `yaml:"starting-seats"`
 	BotConfig     BotConfig      `yaml:"bot-config"`
 	Hands         []Hand         `yaml:"hands"`
+}
+
+type Club struct {
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
 }
 
 // Game contains game configuration in the game script.
