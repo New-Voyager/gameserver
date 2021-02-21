@@ -1,4 +1,6 @@
-club: Manchester Club
+club:
+  name: Bad Robots
+  description: Club for testing
 
 game:
   create: true
