@@ -45,6 +45,7 @@ func TestReadGameScript(t *testing.T) {
 			BuyInMin:           100,
 			BuyInMax:           300,
 			ActionTime:         100,
+			Rewards:            "High Hand",
 		},
 		StartingSeats: []StartingSeat{
 			{

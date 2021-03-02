@@ -24,6 +24,7 @@ game:
   buy-in-min: 100
   buy-in-max: 300
   action-time: 100
+  rewards: High Hand
 
 starting-seats:
   - seat: 1
