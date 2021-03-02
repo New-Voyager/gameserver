@@ -19,6 +19,14 @@ func TestReadGameScript(t *testing.T) {
 		Club: Club{
 			Name:        "Bad Robots",
 			Description: "Club for testing",
+			Rewards: []Reward{
+				{
+					Name:     "High Hand",
+					Type:     "HIGH_HAND",
+					Amount:   100,
+					Schedule: "ENTIRE_GAME",
+				},
+			},
 		},
 		Game: Game{
 			Create:             true,

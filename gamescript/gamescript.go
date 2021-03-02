@@ -22,6 +22,14 @@ type Script struct {
 type Club struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
+	Rewards     []Reward
+}
+
+type Reward struct {
+	Name     string
+	Type     string
+	Amount   float32
+	Schedule string
 }
 
 // Game contains game configuration in the game script.
