@@ -15,6 +15,7 @@ type Script struct {
 	Club          Club           `yaml:"club"`
 	Game          Game           `yaml:"game"`
 	StartingSeats []StartingSeat `yaml:"starting-seats"`
+	Tester        string         `yaml:"tester"`
 	BotConfig     BotConfig      `yaml:"bot-config"`
 	Hands         []Hand         `yaml:"hands"`
 }

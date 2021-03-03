@@ -37,6 +37,8 @@ starting-seats:
     player: tom
     buy-in: 100
 
+tester: tom
+
 bot-config:
   min-action-pause-time: 500
   max-action-pause-time: 1000
