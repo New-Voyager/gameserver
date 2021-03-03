@@ -64,7 +64,8 @@ func TestReadGameScript(t *testing.T) {
 				BuyIn:  100,
 			},
 		},
-		Tester: "tom",
+		Tester:   "tom",
+		AutoPlay: true,
 		BotConfig: BotConfig{
 			MinActionPauseTime: 500,
 			MaxActionPauseTime: 1000,

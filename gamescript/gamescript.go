@@ -17,6 +17,7 @@ type Script struct {
 	StartingSeats []StartingSeat `yaml:"starting-seats"`
 	Tester        string         `yaml:"tester"`
 	BotConfig     BotConfig      `yaml:"bot-config"`
+	AutoPlay      bool           `yaml:"auto-play"`
 	Hands         []Hand         `yaml:"hands"`
 }
 

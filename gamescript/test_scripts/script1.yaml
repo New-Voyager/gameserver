@@ -38,6 +38,7 @@ starting-seats:
     buy-in: 100
 
 tester: tom
+auto-play: true
 
 bot-config:
   min-action-pause-time: 500
