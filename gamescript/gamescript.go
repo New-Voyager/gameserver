@@ -287,3 +287,30 @@ func ReadGameScript(fileName string) (*Script, error) {
 
 	return &data, nil
 }
+
+func (s *Script) IsSeatHuman(seatNo uint32) bool {
+	for _, startingSeat := range s.StartingSeats {
+		if startingSeat.Seat == seatNo {
+			return startingSeat.Player == s.Tester
+		}
+	}
+	return false
+}
+
+func (s *Script) GetSeatNoByPlayerName(playerName string) uint32 {
+	for _, startingSeat := range s.StartingSeats {
+		if startingSeat.Player == playerName {
+			return startingSeat.Seat
+		}
+	}
+	return 0
+}
+
+func (s *Script) GetInitialBuyInAmount(seatNo uint32) float32 {
+	for _, startingSeat := range s.StartingSeats {
+		if startingSeat.Seat == seatNo {
+			return startingSeat.BuyIn
+		}
+	}
+	return 0
+}
