@@ -9,8 +9,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"voyager.com/botrunner/internal/driver"
-	"voyager.com/botrunner/internal/game"
 	"voyager.com/botrunner/internal/util"
+	"voyager.com/gamescript"
 )
 
 // BotRunnerBatch is a group of BotRunner's that are given the same batch ID.
@@ -20,19 +20,21 @@ type BotRunnerBatch struct {
 	botRunnerLogDir  string
 	batchID          string
 	instances        []*driver.BotRunner
-	botRunnerScript  *game.BotRunnerConfig
+	players          *gamescript.Players
+	script           *gamescript.Script
 	launchInterval   float32
 	desiredInstances uint32
 	terminate        bool
 }
 
 // NewBotRunnerBatch creates a new instance of BotRunnerBatch.
-func NewBotRunnerBatch(batchID string, script *game.BotRunnerConfig) (*BotRunnerBatch, error) {
+func NewBotRunnerBatch(batchID string, players *gamescript.Players, script *gamescript.Script) (*BotRunnerBatch, error) {
 	b := BotRunnerBatch{
 		logger:          log.With().Str("logger_name", "BotRunnerBatch").Logger(),
 		batchID:         batchID,
 		botRunnerLogDir: filepath.Join(baseLogDir, batchID),
-		botRunnerScript: script,
+		players:         players,
+		script:          script,
 	}
 	go b.mainLoop()
 	return &b, nil
@@ -105,7 +107,7 @@ func (b *BotRunnerBatch) mainLoop() {
 		botPlayerLogger := zerolog.New(f).With().Str("logger_name", "BotPlayer").Logger()
 
 		b.logger.Info().Msgf("Launching bot runner instance [%d]. Logging to %s.", nextInstanceNo, logFileName)
-		botRunner, err := driver.NewBotRunner("", "", *b.botRunnerScript, &botRunnerLogger, &botPlayerLogger, "", "")
+		botRunner, err := driver.NewBotRunner("", "", b.script, b.players, &botRunnerLogger, &botPlayerLogger, "", "")
 		if err != nil {
 			b.logger.Error().Msgf("Error while creating a BotRunner: %s", err)
 			time.Sleep(2 * time.Second)

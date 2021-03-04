@@ -177,7 +177,7 @@ func (bp *BotPlayer) setupSeatChange() error {
 	if seatChanges != nil {
 		// using seat no, get the bot player and make seat change request
 		for _, seatChangeRequest := range seatChanges {
-			if seatChangeRequest.SeatNo == bp.seatNo {
+			if seatChangeRequest.Seat == bp.seatNo {
 				bp.logger.Info().Msgf("%s: Player [%s] requested seat change.", bp.logPrefix, bp.config.Name)
 				bp.gqlHelper.RequestSeatChange(bp.gameCode)
 				bp.requestedSeatChange = true
@@ -198,7 +198,7 @@ func (bp *BotPlayer) setupLeaveGame() error {
 	if leaveGame != nil {
 		// using seat no, get the bot player and make seat change request
 		for _, leaveGameRequest := range leaveGame {
-			if leaveGameRequest.SeatNo == bp.seatNo {
+			if leaveGameRequest.Seat == bp.seatNo {
 				// will leave in next hand
 				if bp.isSeated {
 					var err error

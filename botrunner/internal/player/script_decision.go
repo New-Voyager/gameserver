@@ -2,11 +2,9 @@ package player
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 
-	"github.com/pkg/errors"
 	"voyager.com/botrunner/internal/game"
+	"voyager.com/gamescript"
 )
 
 // ScriptBasedDecision decides the bot's next move based on the pre-defined scenario.
@@ -24,28 +22,24 @@ func (s *ScriptBasedDecision) GetNextAction(bot *BotPlayer, availableActions []g
 	handNumIdx := bot.handNum - 1
 	handScript := bot.config.Script.Hands[handNumIdx]
 	playersActed := bot.game.table.playersActed
-	var scriptSeatActions []string
+	var scriptSeatActions []gamescript.SeatAction
 	switch handStatus {
 	case game.HandStatus_PREFLOP:
-		scriptSeatActions = handScript.PreflopAction.SeatActions
+		scriptSeatActions = handScript.Preflop.SeatActions
 	case game.HandStatus_FLOP:
-		scriptSeatActions = handScript.FlopAction.SeatActions
+		scriptSeatActions = handScript.Flop.SeatActions
 	case game.HandStatus_TURN:
-		scriptSeatActions = handScript.TurnAction.SeatActions
+		scriptSeatActions = handScript.Turn.SeatActions
 	case game.HandStatus_RIVER:
-		scriptSeatActions = handScript.RiverAction.SeatActions
+		scriptSeatActions = handScript.River.SeatActions
 	}
 
 	var scriptActionEntries []scriptSeatAction
 	for _, entry := range scriptSeatActions {
-		seatNo, action, amount, err := s.parseScriptSeatActionEntry(entry)
-		if err != nil {
-			err = errors.Wrap(err, fmt.Sprintf("Unable to parse script seat action entry %s", entry))
-		}
 		scriptActionEntries = append(scriptActionEntries, scriptSeatAction{
-			seatNo: seatNo,
-			action: action,
-			amount: amount,
+			seatNo: entry.Action.SeatNo,
+			action: game.ActionStringToAction(entry.Action.Action),
+			amount: entry.Action.Amount,
 		})
 	}
 
@@ -76,33 +70,6 @@ func (s *ScriptBasedDecision) GetNextAction(bot *BotPlayer, availableActions []g
 	}
 
 	return nextAction, nextAmount, err
-}
-
-// Example input: "1, CALL, 2"
-// Exmaple output:
-//   seatNo: 1
-//   action: game.ACTION_CALL
-//   amount: 2.0
-func (s *ScriptBasedDecision) parseScriptSeatActionEntry(actionStr string) (seatNo uint32, action game.ACTION, amount float32, err error) {
-	tokens := strings.Split(actionStr, ",")
-	for i, tok := range tokens {
-		tokens[i] = strings.Trim(tok, " ")
-	}
-	seatNo64, err := strconv.ParseInt(tokens[0], 10, 32)
-	if err != nil {
-		return
-	}
-	seatNo = uint32(seatNo64)
-	action = game.ACTION(game.ACTION_value[tokens[1]])
-	if len(tokens) <= 2 {
-		return
-	}
-	f, err := strconv.ParseFloat(tokens[2], 32)
-	if err != nil {
-		return
-	}
-	amount = float32(f)
-	return
 }
 
 func (s *ScriptBasedDecision) getScriptActionsForRound(scriptActionEntries []scriptSeatAction, lastPlayerIdx int) []scriptSeatAction {

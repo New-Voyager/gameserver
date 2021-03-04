@@ -26,6 +26,7 @@ import (
 	"voyager.com/botrunner/internal/msgcheck"
 	"voyager.com/botrunner/internal/poker"
 	"voyager.com/botrunner/internal/util"
+	"voyager.com/gamescript"
 )
 
 // Config holds the configuration for a bot object.
@@ -41,7 +42,8 @@ type Config struct {
 	APIServerURL       string
 	NatsURL            string
 	GQLTimeoutSec      int
-	Script             game.BotRunnerConfig
+	Players            *gamescript.Players
+	Script             *gamescript.Script
 }
 
 // BotPlayer represents a bot user.
@@ -359,7 +361,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 		bp.handNum = message.HandNum
 		if bp.IsHost() {
-			if !bp.config.Script.IsAutoPlay() {
+			if !bp.config.Script.AutoPlay {
 				if int(message.HandNum) == len(bp.config.Script.Hands) {
 					bp.logger.Info().Msgf("%s: Last hand: %d Game will be ended in next hand", bp.logPrefix, message.HandNum)
 
@@ -809,7 +811,7 @@ func (bp *BotPlayer) JoinGame(gameCode string) error {
 	if scriptSeatNo == 0 {
 		return fmt.Errorf("%s: Unable to get the scripted seat number", bp.logPrefix)
 	}
-	scriptBuyInAmount := bp.config.Script.GetBuyInAmount(scriptSeatNo)
+	scriptBuyInAmount := bp.config.Script.GetInitialBuyInAmount(scriptSeatNo)
 	if scriptBuyInAmount == 0 {
 		return fmt.Errorf("%s: Unable to get the scripted buy-in amount", bp.logPrefix)
 	}
@@ -887,7 +889,7 @@ func (bp *BotPlayer) reload() error {
 // JoinUnscriptedGame joins a game without using the yaml script. This is used for joining
 // a human-created game where you can freely grab whatever seat available.
 func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
-	if !bp.config.Script.IsAutoPlay() {
+	if !bp.config.Script.AutoPlay {
 		return fmt.Errorf("%s: JoinUnscriptedGame called with a non-autoplay script", bp.logPrefix)
 	}
 
@@ -1002,7 +1004,7 @@ func (bp *BotPlayer) StartGame(gameCode string) error {
 	bp.logger.Info().Msgf("%s: Starting the game [%s].", bp.logPrefix, gameCode)
 
 	// setup first deck if not auto play
-	if bp.IsHost() && !bp.config.Script.IsAutoPlay() {
+	if bp.IsHost() && !bp.config.Script.AutoPlay {
 		bp.setupNextHand()
 	}
 
@@ -1059,7 +1061,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 	nextAmt := float32(0)
 	autoPlay := false
 
-	if bp.config.Script.IsAutoPlay() {
+	if bp.config.Script.AutoPlay {
 		autoPlay = true
 	} else if len(bp.config.Script.Hands) >= int(bp.game.table.handNum) {
 		handScript := bp.config.Script.Hands[bp.game.table.handNum-1]
@@ -1440,7 +1442,7 @@ func (bp *BotPlayer) setupNextHand() error {
 	return nil
 }
 
-func (bp *BotPlayer) getPlayerCardsFromConfig(seatCards []game.TestSeatCards) []PlayerCard {
+func (bp *BotPlayer) getPlayerCardsFromConfig(seatCards []gamescript.SeatCards) []PlayerCard {
 	var playerCards []PlayerCard
 	for _, seatCard := range seatCards {
 		cards := seatCard.Cards

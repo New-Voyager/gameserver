@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-	"voyager.com/botrunner/internal/game"
+	"voyager.com/gamescript"
 )
 
 var launcherLogger = log.With().Str("logger_name", "app::launcher").Logger()
@@ -42,7 +42,7 @@ type Launcher struct {
 }
 
 // ApplyToBatch schedules the requested number of games to be applied to the batch.
-func (l *Launcher) ApplyToBatch(batchID string, conf *game.BotRunnerConfig, desiredNumGames uint32, launchInterval *float32) error {
+func (l *Launcher) ApplyToBatch(batchID string, players *gamescript.Players, script *gamescript.Script, desiredNumGames uint32, launchInterval *float32) error {
 	b, exists := l.batches[batchID]
 	if exists {
 		var launchIntervalMsg string
@@ -52,16 +52,16 @@ func (l *Launcher) ApplyToBatch(batchID string, conf *game.BotRunnerConfig, desi
 		launcherLogger.Info().Msgf("Updating batch [%s]. NumGames: %d%s", batchID, desiredNumGames, launchIntervalMsg)
 		b.Apply(desiredNumGames, launchInterval)
 	} else {
-		if conf == nil {
-			return fmt.Errorf("There is no existing batch with ID [%s]. Botrunner config must be provided to start a new batch", batchID)
+		if players == nil || script == nil {
+			return fmt.Errorf("There is no existing batch with ID [%s]. Player and script config must be provided to start a new batch", batchID)
 		}
 
 		var launchIntervalMsg string
 		if launchInterval != nil {
 			launchIntervalMsg = fmt.Sprintf(", LaunchInterval: %f", *launchInterval)
 		}
-		launcherLogger.Info().Msgf("Creating batch [%s]. NumGames: %d%s, BotRunnerConfig: %+v", batchID, desiredNumGames, launchIntervalMsg, conf)
-		b, err := NewBotRunnerBatch(batchID, conf)
+		launcherLogger.Info().Msgf("Creating batch [%s]. NumGames: %d%s, Players: %+v, Script: %+v", batchID, desiredNumGames, launchIntervalMsg, players, script)
+		b, err := NewBotRunnerBatch(batchID, players, script)
 		if err != nil {
 			return errors.Wrap(err, "Unable to create a new BotRunnerBatch")
 		}
@@ -105,12 +105,12 @@ func (l *Launcher) BatchExists(batchID string) bool {
 }
 
 // JoinHumanGame starts a BotRunner that joins a human-created game.
-func (l *Launcher) JoinHumanGame(clubCode string, gameCode string, conf *game.BotRunnerConfig) error {
+func (l *Launcher) JoinHumanGame(clubCode string, gameCode string, players *gamescript.Players, script *gamescript.Script) error {
 	_, exists := l.humanGames[gameCode]
 	if exists {
 		return fmt.Errorf("There is already an existing BotRunner for game [%s]", gameCode)
 	}
-	h, err := NewHumanGame(clubCode, gameCode, conf)
+	h, err := NewHumanGame(clubCode, gameCode, players, script)
 	if err != nil {
 		return err
 	}
