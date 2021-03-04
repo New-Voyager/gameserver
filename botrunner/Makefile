@@ -17,6 +17,7 @@ DOCKER_BUILDKIT ?= 1
 
 PROJECT_ROOT := ..
 PROTO_DIR := $(PROJECT_ROOT)/proto
+PLAYERS_YAML := $(PWD)/botrunner_scripts/common/players.yaml
 
 .PHONY: install-protoc
 install-protoc:
@@ -50,7 +51,7 @@ run:
 	API_SERVER_URL=$(DEV_API_SERVER_URL) \
 	PRINT_GAME_MSG=$(PRINT_GAME_MSG) \
 	PRINT_HAND_MSG=$(PRINT_HAND_MSG) \
-	go run ./cmd/botrunner/main.go --config botrunner_scripts/$(DEV_BOT_SCRIPT)
+	go run ./cmd/botrunner/main.go --players $(PLAYERS_YAML) --script botrunner_scripts/$(DEV_BOT_SCRIPT)
 
 .PHONY: tester
 tester: CODE=$(GAME_CODE)
