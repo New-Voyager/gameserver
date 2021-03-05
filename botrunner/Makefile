@@ -51,7 +51,7 @@ run:
 	API_SERVER_URL=$(DEV_API_SERVER_URL) \
 	PRINT_GAME_MSG=$(PRINT_GAME_MSG) \
 	PRINT_HAND_MSG=$(PRINT_HAND_MSG) \
-	go run ./cmd/botrunner/main.go --players $(PLAYERS_YAML) --script botrunner_scripts/$(DEV_BOT_SCRIPT)
+	go run ./cmd/botrunner/main.go --script botrunner_scripts/$(DEV_BOT_SCRIPT)
 
 .PHONY: tester
 tester: CODE=$(GAME_CODE)
@@ -59,7 +59,7 @@ tester:
 	API_SERVER_URL=$(DEV_API_SERVER_URL) \
 	PRINT_GAME_MSG=$(PRINT_GAME_MSG) \
 	PRINT_HAND_MSG=$(PRINT_HAND_MSG) \
-	go run ./cmd/tester/main.go --players $(PLAYERS_YAML) --script botrunner_scripts/$(DEV_BOT_SCRIPT) --game-code $(CODE)
+	go run ./cmd/tester/main.go --script botrunner_scripts/$(DEV_BOT_SCRIPT) --game-code $(CODE)
 
 .PHONY: join-human-game
 join-human-game: CCODE=$(CLUB_CODE)
@@ -68,7 +68,7 @@ join-human-game:
 	API_SERVER_URL=$(DEV_API_SERVER_URL) \
 	PRINT_GAME_MSG=$(PRINT_GAME_MSG) \
 	PRINT_HAND_MSG=$(PRINT_HAND_MSG) \
-	go run ./cmd/botrunner/main.go --config botrunner_scripts/human-game.yaml --club-code $(CCODE) --game-code $(GCODE)
+	go run ./cmd/botrunner/main.go --script botrunner_scripts/human-game.yaml --club-code $(CCODE) --game-code $(GCODE)
 
 .PHONY: botrunner-server
 botrunner-server:

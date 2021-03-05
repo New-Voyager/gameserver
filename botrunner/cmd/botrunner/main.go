@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 
 	"github.com/rs/zerolog/log"
@@ -26,13 +25,9 @@ type arg struct {
 	msgDumpFile      string
 }
 
-// args
-// players config yaml
-// game script yaml
-
 func init() {
 	flag.StringVar(&cmdArgs.scriptFile, "script", "", "Game script YAML file")
-	flag.StringVar(&cmdArgs.playersFile, "players", "", "Players YAML file")
+	flag.StringVar(&cmdArgs.playersFile, "players", "botrunner_scripts/common/players.yaml", "Players YAML file")
 	flag.StringVar(&cmdArgs.clubCode, "club-code", "", "Club code to use. If not provided, a club will be created and owned by a bot.")
 	flag.StringVar(&cmdArgs.gameCode, "game-code", "", "Game code to use. If not provided, a game will be created and started by a bot.")
 	flag.StringVar(&cmdArgs.expectedMsgsFile, "expected-msgs", "", "JSON file containing expected game server messages.")
@@ -45,7 +40,9 @@ func main() {
 }
 
 func botrunner() int {
-	mainLogger.Info().Msg("Config File: " + cmdArgs.scriptFile)
+	mainLogger.Info().Msgf("Nats url: %s", util.Env.GetNatsURL())
+	mainLogger.Info().Msgf("Players Config File: %s", cmdArgs.playersFile)
+	mainLogger.Info().Msgf("Game Script File: %s", cmdArgs.scriptFile)
 	if cmdArgs.playersFile == "" {
 		mainLogger.Error().Msg("No players config file is provided.")
 		return 1
@@ -54,7 +51,6 @@ func botrunner() int {
 		mainLogger.Error().Msg("No script file is provided.")
 		return 1
 	}
-	fmt.Printf("Nats url: %s", util.Env.GetNatsURL())
 	// config, err := game.ParseYAMLConfig(cmdArgs.scriptFile)
 	// if err != nil {
 	// 	mainLogger.Error().Msgf("Error while parsing config file: %+v", err)

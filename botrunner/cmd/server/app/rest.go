@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	restLogger           = log.With().Str("logger_name", "app::rest").Logger()
-	baseLogDir           = "log"
-	humanGameScript      = "botrunner_scripts/human-game.yaml"
-	defaultPlayersConfig = "botrunner_scripts/common/players.yaml"
+	restLogger      = log.With().Str("logger_name", "app::rest").Logger()
+	baseLogDir      = "log"
+	humanGameScript = "botrunner_scripts/human-game.yaml"
+	playersConfig   = "botrunner_scripts/common/players.yaml"
 )
 
 // RunRestServer registers http endpoints and handlers and runs the server.
@@ -39,9 +39,6 @@ func RunRestServer(portNo uint, logDir string) {
 type BatchConf struct {
 	// BatchID is the unique name given to a group of BotRunners.
 	BatchID string `json:"batchId"`
-
-	// Players is the players config YAML file used by the BotRunners in this batch.
-	Players string `json:"players"`
 
 	// Script is the game script YAML file used by the BotRunners in this batch.
 	Script string `json:"script"`
@@ -93,7 +90,7 @@ func apply(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
 			return
 		}
-		players, err = gamescript.ReadPlayersConfig(payload.Players)
+		players, err = gamescript.ReadPlayersConfig(playersConfig)
 		if err != nil {
 			errMsg := fmt.Sprintf("Error while parsing players file. Error: %s", err)
 			restLogger.Error().Msg(errMsg)
@@ -172,9 +169,9 @@ func joinHumanGame(c *gin.Context) {
 	if gameCode == "" {
 		c.String(400, "Failed to read game-code param from join-hame endpoint.")
 	}
-	players, err := gamescript.ReadPlayersConfig(defaultPlayersConfig)
+	players, err := gamescript.ReadPlayersConfig(playersConfig)
 	if err != nil {
-		errMsg := fmt.Sprintf("Error while parsing players config file %s. Error: %s", defaultPlayersConfig, err)
+		errMsg := fmt.Sprintf("Error while parsing players config file %s. Error: %s", playersConfig, err)
 		restLogger.Error().Msg(errMsg)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
 		return
