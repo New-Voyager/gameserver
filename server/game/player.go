@@ -32,6 +32,7 @@ type Player struct {
 	PlayerName              string
 	PlayerID                uint64
 	SeatNo                  uint32
+	RunItTwice              bool
 	NetworkConnectionActive bool
 	// callbacks to interact with different player communication mechanism
 	delegate PlayerMessageDelegate
@@ -103,6 +104,8 @@ func (p *Player) handleHandMessage(messageBytes []byte, message HandMessage) {
 		p.onTurn(messageBytes, message)
 	} else if message.MessageType == HandRiver {
 		p.onRiver(messageBytes, message)
+	} else if message.MessageType == HandRunItTwice {
+		p.onRunItTwice(messageBytes, message)
 	} else {
 		playerLogger.Warn().
 			Uint32("club", message.ClubId).
@@ -164,6 +167,15 @@ func (p *Player) onPlayerAction(messageBytes []byte, message HandMessage) error 
 			panic(error)
 		}
 
+		seatAction := message.GetSeatAction()
+		if seatAction.AvailableActions != nil && len(seatAction.AvailableActions) >= 1 {
+			if seatAction.AvailableActions[0] == ACTION_RUN_IT_TWICE_PROMPT {
+				playerLogger.Info().
+					Uint64("game", message.GameId).
+					Msg(fmt.Sprintf("Run it twice prompt. Seat No: %d", seatAction.SeatNo))
+			}
+		}
+
 		p.delegate.HandMessageFromGame(messageBytes, &message, jsonb)
 	}
 	return nil
@@ -219,6 +231,18 @@ func (p *Player) onTurn(messageBytes []byte, message HandMessage) error {
 }
 
 func (p *Player) onRiver(messageBytes []byte, message HandMessage) error {
+	jsonb, err := protojson.Marshal(&message)
+	if err != nil {
+		return err
+	}
+
+	if p.delegate != nil {
+		p.delegate.HandMessageFromGame(messageBytes, &message, jsonb)
+	}
+	return nil
+}
+
+func (p *Player) onRunItTwice(messageBytes []byte, message HandMessage) error {
 	jsonb, err := protojson.Marshal(&message)
 	if err != nil {
 		return err
@@ -331,13 +355,14 @@ func (p *Player) StartGame(clubID uint32, gameID uint64) error {
 	return e
 }
 
-func (p *Player) JoinGame(gameID uint64, seatNo uint32, buyIn float32) error {
+func (p *Player) JoinGame(gameID uint64, seatNo uint32, buyIn float32, runItTwice bool) error {
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	if _, ok := GameManager.activeGames[gameIDStr]; !ok {
 		// game not found
 		return fmt.Errorf("Game %d is not found", gameID)
 	}
 	p.SeatNo = seatNo
+	p.RunItTwice = runItTwice
 	game, _ := GameManager.activeGames[gameIDStr]
 	game.addPlayer(p, buyIn)
 	p.game = game

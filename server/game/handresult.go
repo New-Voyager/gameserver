@@ -33,6 +33,10 @@ func (hr *HandResultProcessor) getWinners() map[uint32]*PotWinners {
 	return hr.evaluator.GetWinners()
 }
 
+func (hr *HandResultProcessor) getBoard2Winners() map[uint32]*PotWinners {
+	return hr.evaluator.GetBoard2Winners()
+}
+
 func (hr *HandResultProcessor) getPlayerBalance(playerID uint64) *HandPlayerBalance {
 	balanceBefore := float32(0)
 	balanceAfter := float32(0)
@@ -82,7 +86,10 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 		hr.evaluator.Evaluate()
 		// update winners in hand state
 		// this is also the method that calcualtes rake, balance etc
-		hr.handState.setWinners(hr.getWinners())
+		hr.handState.setWinners(hr.getWinners(), false)
+		if hr.handState.RunItTwiceConfirmed {
+			hr.handState.setWinners(hr.getBoard2Winners(), true)
+		}
 	}
 
 	// determine winners who went to showdown
@@ -134,9 +141,10 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 		fmt.Printf("\n\n================================================================\n\n")
 	}
 	handResult := &HandResult{
-		GameId:   hr.handState.GameId,
-		HandNum:  hr.handState.HandNum,
-		GameType: hr.handState.GameType,
+		GameId:     hr.handState.GameId,
+		HandNum:    hr.handState.HandNum,
+		GameType:   hr.handState.GameType,
+		RunItTwice: hr.handState.RunItTwiceConfirmed,
 	}
 
 	// update stats in the result

@@ -201,13 +201,22 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.Betting
 		}
 	}
 
+	h.waitForRunItTwicePrompt()
+	h.waitForRunItTwicePrompt()
+
 	lastHandMessage := h.getObserverLastHandMessage()
 	// if last hand message was no more downs, there will be no more actions from the players
 	if lastHandMessage.MessageType == game.HandNoMoreActions {
 		h.noMoreActions = true
 		// wait for betting round message (flop, turn, river, showdown)
 		h.gameScript.waitForObserver()
-	} else if lastHandMessage.MessageType != "RESULT" {
+	} else if lastHandMessage.MessageType == game.HandRunItTwice {
+		// verify run it twice
+		fmt.Printf("Run it twice")
+		// wait for the result
+		h.gameScript.waitForObserver()
+		return nil
+	} else if lastHandMessage.MessageType != game.HandResultMessage {
 		// wait for betting round message (flop, turn, river, showdown)
 		h.gameScript.waitForObserver()
 	}
@@ -219,6 +228,31 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.Betting
 		return err
 	}
 	return nil
+}
+
+func (h *TestHand) waitForRunItTwicePrompt() {
+	lastHandMessage := h.getObserverLastHandMessage()
+	if lastHandMessage.MessageType == game.HandPlayerAction {
+		seatAction := lastHandMessage.GetSeatAction()
+		if seatAction.AvailableActions != nil && len(seatAction.AvailableActions) >= 1 {
+			if seatAction.AvailableActions[0] == game.ACTION_RUN_IT_TWICE_PROMPT {
+				// confirm the player wants to run it twice
+				message := game.HandMessage{
+					ClubId:      h.gameScript.testGame.clubID,
+					GameId:      h.gameScript.testGame.gameID,
+					HandNum:     h.hand.Num,
+					SeatNo:      seatAction.SeatNo,
+					MessageType: game.HandPlayerActed,
+				}
+				actionType := game.ACTION_RUN_IT_TWICE_YES
+				handAction := game.HandAction{SeatNo: seatAction.SeatNo, Action: actionType}
+				message.HandMessage = &game.HandMessage_PlayerActed{PlayerActed: &handAction}
+				player := h.gameScript.playerFromSeat(seatAction.SeatNo)
+				player.player.HandProtoMessageFromAdapter(&message)
+				h.gameScript.waitForObserver()
+			}
+		}
+	}
 }
 
 func convertActions(actions []game.ACTION) []string {
@@ -335,8 +369,13 @@ func (h *TestHand) setup(t *TestDriver) error {
 	}
 	var deck *poker.Deck
 	if !h.hand.Setup.AutoDeal {
-		// arrange deck
-		deck = poker.DeckFromScript(playerCards, h.hand.Setup.Flop, poker.NewCard(h.hand.Setup.Turn), poker.NewCard(h.hand.Setup.River))
+
+		if h.hand.Setup.Board != nil {
+			deck = poker.DeckFromBoard(playerCards, h.hand.Setup.Board, h.hand.Setup.Board2, true)
+		} else {
+			// arrange deck
+			deck = poker.DeckFromScript(playerCards, h.hand.Setup.Flop, poker.NewCard(h.hand.Setup.Turn), poker.NewCard(h.hand.Setup.River), true)
+		}
 	}
 
 	// setup hand

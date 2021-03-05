@@ -88,11 +88,11 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 
 func (t *TestGame) Start(playerAtSeats []game.PlayerSeat) {
 	for _, testPlayer := range playerAtSeats {
-		t.players[testPlayer.Player].joinGame(t.gameID, testPlayer.SeatNo, testPlayer.BuyIn)
+		t.players[testPlayer.Player].joinGame(t.gameID, testPlayer.SeatNo, testPlayer.BuyIn, testPlayer.RunItTwice)
 	}
 
 	// observer joins seat 0
-	t.observer.player.JoinGame(t.gameID, 0, 0)
+	t.observer.player.JoinGame(t.gameID, 0, 0, false)
 
 	t.observer.player.StartGame(t.clubID, t.gameID)
 }

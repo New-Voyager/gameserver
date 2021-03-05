@@ -203,6 +203,12 @@ func (g *Game) onPlayerActed(message *HandMessage, handState *HandState) error {
 		return fmt.Errorf(errMsg)
 	}
 
+	// is it run it twice prompt response?
+	if handState.RunItTwicePrompt {
+		g.runItTwiceConfirmation(handState, message)
+		return nil
+	}
+
 	if handState.NextSeatAction == nil {
 		errMsg := "Invalid action. There is no next action"
 		channelGameLogger.Error().
@@ -335,6 +341,11 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 		handState.FlowState = FlowState_ONE_PLAYER_REMAINING
 		g.saveHandState(handState)
 		g.onePlayerRemaining(handState)
+	} else if g.runItTwice(handState) {
+		// run it twice prompt
+		handState.FlowState = FlowState_RUNITTWICE_UP_PROMPT
+		g.runItTwicePrompt(handState)
+		g.saveHandState(handState)
 	} else if handState.isAllActivePlayersAllIn() {
 		handState.FlowState = FlowState_ALL_PLAYERS_ALL_IN
 		g.saveHandState(handState)
@@ -622,7 +633,6 @@ func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, hand
 }
 
 func (g *Game) announceHighHand(saveResult *SaveHandResult, highHand *HighHand) {
-
 	for _, gameCode := range saveResult.HighHand.AssociatedGames {
 		gameMessage := &GameMessage{
 			GameCode:    gameCode,
@@ -633,7 +643,6 @@ func (g *Game) announceHighHand(saveResult *SaveHandResult, highHand *HighHand) 
 		}
 		g.broadcastGameMessage(gameMessage)
 	}
-
 }
 
 func (g *Game) moveToNextRound(handState *HandState) error {

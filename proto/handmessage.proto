@@ -103,8 +103,21 @@ message Showdown {
   map <uint32, float> player_balance = 4; // player balance at the showdown
 }
 
+// This message is sent when both players confirm run
+message RunItTwiceBoards {
+  repeated uint32 board_1 = 1;
+  repeated uint32 board_2 = 2;
+  HandStatus stage = 3;
+}
+
 message NoMoreActions {
   repeated SeatsInPots pots = 1;
+}
+
+message RunItTwiceResult {
+  HandStatus run_it_twice_started_at = 1; // which stage run it twice started?
+  map <uint32, PotWinners> board_1_winners = 2;   // board 1 winners 
+  map <uint32, PotWinners> board_2_winners = 3;   // board 2 winners 
 }
 
 message HandLog {
@@ -117,6 +130,8 @@ message HandLog {
   Showdown show_down = 8;   // cards shown at show down
   uint64 hand_started_at = 9;  
   uint64 hand_ended_at = 11;
+  bool run_it_twice = 12;            // run it twice
+  RunItTwiceResult run_it_twice_result = 13;
 }
 
 
@@ -154,6 +169,7 @@ message HandResult  {
   HighHand high_hand = 14;
   map<uint64, PlayerStats> player_stats = 15;
   HandStats hand_stats = 16;
+  bool run_it_twice = 17;                 // indicates the players ran it twice
 }
 
 message MsgAcknowledgement {
@@ -189,5 +205,6 @@ message HandMessage {
     CurrentHandState current_hand_state = 23;
     MsgAcknowledgement msg_ack = 24;
     HighHand high_hand = 25;      // announce high hand
+    RunItTwiceBoards run_it_twice = 26;   // to display run it twice cards
   }
 }

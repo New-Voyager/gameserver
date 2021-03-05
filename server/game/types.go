@@ -58,8 +58,9 @@ type GameConfig struct {
 }
 
 type GamePlayer struct {
-	Name string `yaml:"name"`
-	ID   uint64 `yaml:"id"`
+	Name       string `yaml:"name"`
+	ID         uint64 `yaml:"id"`
+	RunItTwice bool   `yaml:"run-it-twice"`
 }
 
 /*
@@ -81,9 +82,10 @@ take-seat:
   wait: 1
 */
 type PlayerSeat struct {
-	Player uint64  `yaml:"player"`
-	SeatNo uint32  `yaml:"seat"`
-	BuyIn  float32 `yaml:"buy-in"`
+	Player     uint64  `yaml:"player"`
+	SeatNo     uint32  `yaml:"seat"`
+	BuyIn      float32 `yaml:"buy-in"`
+	RunItTwice bool    `yaml:"run-it-twice"`
 }
 
 type SeatVerification struct {
@@ -142,6 +144,8 @@ type HandSetup struct {
 	Flop      []string             `yaml:"flop"`
 	Turn      string               `yaml:"turn"`
 	River     string               `yaml:"river"`
+	Board     []string             `yaml:"board"`
+	Board2    []string             `yaml:"board2"`
 	SeatCards []TestSeatCards      `yaml:"seat-cards"`
 	Verify    HandSetupVerfication `yaml:"verify"`
 }
@@ -173,6 +177,7 @@ type VerifyBettingRound struct {
 	Pots         []Pot         `yaml:"pots"`
 	NoMoreAction bool          `yaml:"no-more-action"`
 	Stacks       []PlayerStack `yaml:"stacks"`
+	RunItTwice   bool          `yaml:"run-it-twice"`
 }
 
 type BettingRound struct {
@@ -295,6 +300,7 @@ type SeatPlayer struct {
 	Status       PlayerStatus
 	GameToken    string
 	GameTokenInt uint64
+	RunItTwice   bool
 }
 
 /*

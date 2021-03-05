@@ -143,7 +143,65 @@ func (deck *Deck) PrettyPrint() string {
 
 type CardsInAscii []string
 
-func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, river Card) *Deck {
+func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, river Card, burnCard bool) *Deck {
+	// first we are going to create a deck
+	deck := NewDeck(nil)
+	noOfPlayers := len(playerCards)
+	for i, playerCards := range playerCards {
+		for j, cardStr := range playerCards {
+			deckIndex := i + j*noOfPlayers
+			card := NewCard(cardStr)
+			cardLoc := deck.getCardLoc(card)
+			currentCard := deck.cards[deckIndex]
+			deck.cards[deckIndex] = card
+			deck.cards[cardLoc] = currentCard
+		}
+	}
+
+	// now setup flop cards
+	deckIndex := len(playerCards) * len(playerCards[0])
+	if burnCard {
+		// burn card
+		deckIndex++
+	}
+
+	for _, cardStr := range flop {
+		card := NewCard(cardStr)
+		cardLoc := deck.getCardLoc(card)
+		currentCard := deck.cards[deckIndex]
+		deck.cards[deckIndex] = card
+		deck.cards[cardLoc] = currentCard
+		deckIndex++
+	}
+
+	if burnCard {
+		// burn card
+		deckIndex++
+	}
+
+	// turn
+	cardLoc := deck.getCardLoc(turn)
+	currentCard := deck.cards[deckIndex]
+	deck.cards[deckIndex] = turn
+	deck.cards[cardLoc] = currentCard
+	deckIndex++
+
+	if burnCard {
+		// burn card
+		deckIndex++
+	}
+
+	// river
+	cardLoc = deck.getCardLoc(river)
+	currentCard = deck.cards[deckIndex]
+	deck.cards[deckIndex] = river
+	deck.cards[cardLoc] = currentCard
+
+	return deck
+}
+
+// DeckFromBoard used for setting up player cards board cards (run it twice tests)
+func DeckFromBoard(playerCards []CardsInAscii, board CardsInAscii, board2 CardsInAscii, burnCard bool) *Deck {
 	// first we are going to create a deck
 	deck := NewDeck(nil)
 	noOfPlayers := len(playerCards)
@@ -161,10 +219,12 @@ func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, ri
 	// now setup flop cards
 	deckIndex := len(playerCards) * len(playerCards[0])
 
-	// burn card
-	deckIndex++
+	if burnCard {
+		// burn card
+		deckIndex++
+	}
 
-	for _, cardStr := range flop {
+	for _, cardStr := range board[:3] {
 		card := NewCard(cardStr)
 		cardLoc := deck.getCardLoc(card)
 		currentCard := deck.cards[deckIndex]
@@ -173,25 +233,66 @@ func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, ri
 		deckIndex++
 	}
 
-	// burn card
-	deckIndex++
+	if burnCard { // burn card
+		deckIndex++
+	}
 
 	// turn
-	cardLoc := deck.getCardLoc(turn)
+	card := NewCard(board[3])
+	cardLoc := deck.getCardLoc(card)
 	currentCard := deck.cards[deckIndex]
-	deck.cards[deckIndex] = turn
+	deck.cards[deckIndex] = card
 	deck.cards[cardLoc] = currentCard
 	deckIndex++
 
-	// burn card
-	deckIndex++
+	if burnCard { // burn card
+		deckIndex++
+	}
 
 	// river
-	cardLoc = deck.getCardLoc(river)
+	card = NewCard(board[4])
+	cardLoc = deck.getCardLoc(card)
 	currentCard = deck.cards[deckIndex]
-	deck.cards[deckIndex] = river
+	deck.cards[deckIndex] = card
 	deck.cards[cardLoc] = currentCard
+	deckIndex++
 
+	if board2 != nil {
+		for _, cardStr := range board2[:3] {
+			card := NewCard(cardStr)
+			cardLoc := deck.getCardLoc(card)
+			currentCard := deck.cards[deckIndex]
+			deck.cards[deckIndex] = card
+			deck.cards[cardLoc] = currentCard
+			deckIndex++
+		}
+
+		if burnCard {
+			// burn card
+			deckIndex++
+		}
+
+		// turn
+		card := NewCard(board2[3])
+		cardLoc := deck.getCardLoc(card)
+		currentCard := deck.cards[deckIndex]
+		deck.cards[deckIndex] = card
+		deck.cards[cardLoc] = currentCard
+		deckIndex++
+
+		if burnCard {
+			// burn card
+			deckIndex++
+		}
+
+		// river
+		card = NewCard(board2[4])
+		cardLoc = deck.getCardLoc(card)
+		currentCard = deck.cards[deckIndex]
+		deck.cards[deckIndex] = card
+		deck.cards[cardLoc] = currentCard
+		deckIndex++
+	}
 	return deck
 }
 

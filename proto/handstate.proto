@@ -7,13 +7,14 @@ import "handmessage.proto";
 
 // state used for run it twice option
 message RunItTwice {
-  repeated uint64 optedPlayers = 1;   // players who opted for run-it-twice
-  HandStatus stage = 2;         // PREFLOP, FLOP, TURN, RIVER
-  uint64 player1 = 3;   // player 1
-  uint64 player2 = 4;   // player 2
-  bool player1Confirmed = 5; // player 1 confirmed
-  bool player2Confirmed = 6; // player 2 confirmed
-  uint64 expiry_time = 7;  // unix time when the confirmation expires
+  HandStatus stage = 1;         // PREFLOP, FLOP, TURN, RIVER
+  uint32 seat1 = 2;   // seat 1
+  uint32 seat2 = 3;   // seat 2
+  bool seat1_responded = 4;
+  bool seat2_responded = 5;
+  bool seat1_confirmed = 6; // seat 1 confirmed
+  bool seat2_confirmed = 7; // seat 2 confirmed
+  uint64 expiry_time = 8;  // unix time when the confirmation expires
 }
 
 message HandState {
@@ -74,6 +75,7 @@ message HandState {
   // game type
   GameType game_type = 28;
 
+  // action waiting on players
   NextSeatAction next_seat_action = 29;
 
   // results
@@ -106,5 +108,9 @@ message HandState {
   HandStats hand_stats = 56;
 
   bool burn_cards = 57;
-  RunItTwice run_it_twice = 58;
+  bool run_it_twice_prompt = 58;      // Action waits on next seat action or run it twice prompt
+  RunItTwice run_it_twice = 59;
+  bool run_it_twice_confirmed = 60;
+  repeated bool run_it_twice_opted_players = 61;   // players who opted for run-it-twice
+  map <uint32, PotWinners> board2_winners = 62; // second board winnners
 }

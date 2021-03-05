@@ -32,6 +32,10 @@ func (h *PloWinnerEvaluate) GetWinners() map[uint32]*PotWinners {
 	return h.winners
 }
 
+func (h *PloWinnerEvaluate) GetBoard2Winners() map[uint32]*PotWinners {
+	return nil
+}
+
 func (h *PloWinnerEvaluate) Evaluate() {
 	h.evaluatePlayerBestCards()
 	for i := len(h.handState.Pots) - 1; i >= 0; i-- {
