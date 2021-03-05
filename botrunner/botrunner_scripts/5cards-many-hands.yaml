@@ -1,3 +1,55 @@
-setup-script: botrunner_scripts/setup/5card-plo-bots.yaml
+club:
+  name: 5 Card PLO
+  description: Club used for testing with the bot runner
+  rewards:
+    - name: High Hand
+      type: HIGH_HAND
+      amount: 100
+      schedule: ENTIRE_GAME
+
 game:
-  auto-play: true
+  create: true
+  title: "5 Cards PLO"
+  game-type: "FIVE_CARD_PLO"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 8
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 500
+  buy-in-max: 2000
+  action-time: 100
+  rewards: High Hand
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 1000
+  - seat: 2
+    player: brian
+    buy-in: 1000
+  - seat: 3
+    player: tom
+    buy-in: 1000
+  - seat: 4
+    player: jim
+    buy-in: 1000
+  - seat: 5
+    player: rob
+    buy-in: 1000
+  - seat: 6
+    player: rich
+    buy-in: 1000
+  - seat: 7
+    player: josh
+    buy-in: 1000
+  - seat: 8
+    player: chris
+    buy-in: 1000
+
+auto-play: true

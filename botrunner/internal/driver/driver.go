@@ -99,15 +99,15 @@ func (br *BotRunner) Run() error {
 	// 	gqlHelper.ResetDB()
 	// }
 	// Create the player bots based on the setup script.
-	for i, botConfig := range br.players.Players {
-		b, err := player.NewBotPlayer(player.Config{
-			Name:     botConfig.Name,
-			DeviceID: botConfig.DeviceID,
-			Email:    botConfig.Email,
-			Password: botConfig.Password,
+	for i, playerConfig := range br.players.Players {
+		bot, err := player.NewBotPlayer(player.Config{
+			Name:     playerConfig.Name,
+			DeviceID: playerConfig.DeviceID,
+			Email:    playerConfig.Email,
+			Password: playerConfig.Password,
 			IsHost:   (i == 0) && br.botIsGameHost, // First bot is the game host.
 			// IsHuman:            !botConfig.Bot,
-			IsHuman: false,
+			IsHuman: br.script.Tester == playerConfig.Name,
 			// BotActionPauseTime: botConfig.BotActionPauseTime,
 			BotActionPauseTime: 100,
 			APIServerURL:       util.Env.GetAPIServerURL(),
@@ -120,8 +120,8 @@ func (br *BotRunner) Run() error {
 		if err != nil {
 			return errors.Wrap(err, "Unable to create a new bot")
 		}
-		br.bots = append(br.bots, b)
-		br.botsByName[botConfig.Name] = b
+		br.bots = append(br.bots, bot)
+		br.botsByName[playerConfig.Name] = bot
 	}
 
 	// Create the observer bot. The observer will always be there
@@ -272,7 +272,6 @@ func (br *BotRunner) Run() error {
 		for _, startingSeat := range br.script.StartingSeats {
 			playerName := startingSeat.Player
 			b := br.botsByName[playerName]
-			b.ObserveGame(br.gameCode)
 			br.botsBySeat[startingSeat.Seat] = b
 			if b.IsHuman() {
 				// Let the tester join himself.

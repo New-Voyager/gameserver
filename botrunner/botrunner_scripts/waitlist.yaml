@@ -1,35 +1,84 @@
-setup-script: botrunner_scripts/setup/bots-full-table.yaml
-game-title: "Waitlist Testing"
-reset-db: true
+club:
+  name: Waitlist Testing Club
+  description: Club used for testing with the bot runner
+  rewards:
+    - name: High Hand
+      type: HIGH_HAND
+      amount: 100
+      schedule: ENTIRE_GAME
+
+game:
+  create: true
+  title: "Waitlist Testing"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 9
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 500
+  buy-in-max: 2000
+  action-time: 100
+  rewards: High Hand
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 1000
+  - seat: 2
+    player: brian
+    buy-in: 1000
+  - seat: 3
+    player: tom
+    buy-in: 1000
+  - seat: 4
+    player: jim
+    buy-in: 1000
+  - seat: 5
+    player: rob
+    buy-in: 1000
+  - seat: 6
+    player: rich
+    buy-in: 1000
+  - seat: 7
+    player: josh
+    buy-in: 1000
+  - seat: 8
+    player: chris
+    buy-in: 1000
+  - seat: 9
+    player: michael
+    buy-in: 1000
 
 # deal the following hands in the table
 hands:
-  - num: 1
-    setup:
+  - setup:
       button-pos: 1
       auto: true
       wait-list:
         - player: david
           confirm: false
-          buyIn: 500
+          buy-in: 500
 
-  - num: 2
-    setup:
+  - setup:
       pause: 10
       wait-list:
         - player: john
           confirm: true
-          buyIn: 500    
+          buy-in: 500    
       auto: true
       leave-game:
-        - seatNo: 3
+        - seat: 3
 
-  - num: 3
-    setup:
+  - setup:
       auto: true
 
-  - num: 4
-    setup:
+  - setup:
       auto: true
 
   # - num: 4
@@ -49,21 +98,21 @@ hands:
   #       - 3
   #     verify:
   #       table-pos:
-  #         - seatNo: 1
+  #         - seat: 1
   #           playerName: yong
-  #         - seatNo: 2
+  #         - seat: 2
   #           empty: true
-  #         - seatNo: 3
+  #         - seat: 3
   #           empty: tom
-  #         - seatNo: 4
+  #         - seat: 4
   #           playerName: jim
-  #         - seatNo: 5
+  #         - seat: 5
   #           playerName: rob
-  #         - seatNo: 6
+  #         - seat: 6
   #           playerName: rich
-  #         - seatNo: 7
+  #         - seat: 7
   #           playerName: josh
-  #         - seatNo: 8
+  #         - seat: 8
   #           playerName: chris
-  #         - seatNo: 9
+  #         - seat: 9
   #           playerName: michael

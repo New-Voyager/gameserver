@@ -816,6 +816,11 @@ func (bp *BotPlayer) JoinGame(gameCode string) error {
 		return fmt.Errorf("%s: Unable to get the scripted buy-in amount", bp.logPrefix)
 	}
 
+	err := bp.enterGame(gameCode)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("%s: Unable to enter game %s", bp.logPrefix, gameCode))
+	}
+
 	playerInMySeat := bp.getPlayerInSeat(scriptSeatNo)
 	if playerInMySeat != nil && playerInMySeat.Name == bp.config.Name {
 		// I was already sitting in this game and still have my seat. Just rejoining after a crash.

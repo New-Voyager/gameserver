@@ -1,59 +1,90 @@
-setup-script: botrunner_scripts/setup/plo-simple.yaml
+club:
+  name: Manchester PLO Club
+  description: Club used for testing with PLO hands
+  rewards:
+    - name: High Hand
+      type: HIGH_HAND
+      amount: 100
+      schedule: ENTIRE_GAME
+
+game:
+  create: true
+  title: "PLO Testing Game"
+  game-type: "PLO"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 9
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 100
+  buy-in-max: 300
+  action-time: 100
+  rewards: High Hand
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 100
+  - seat: 2
+    player: brian
+    buy-in: 100
+  - seat: 3
+    player: tom
+    buy-in: 100
 
 # deal the following hands in the table
 hands:
-  -
-    num: 1
-    setup:
+  - setup:
       button-pos: 1
       flop: ["Ac", "Ad", "2c"]
       turn: Td
       river: 4s
       seat-cards:
-        - 
+        - seat: 1
           cards: ["Kh", "Qd", "Jc", "Th"]
-        -
+        - seat: 2
           cards: ["3s", "7s", "4c", "5c"]
-        -
+        - seat: 3
           cards: ["9h", "2s", "Ah", "8d"]
-   
+
     # simulate pre-flop action
-    preflop-action:
+    preflop:
       seat-actions:
-        - 1, BET, 5
-        - 2, CALL, 5
-        - 3, CALL, 5
-    flop-action:
+        - action: 1, BET, 5
+        - action: 2, CALL, 5
+        - action: 3, CALL, 5
+    flop:
       seat-actions:
-        - 2, BET, 10
-        - 3, CALL, 10
-        - 1, CALL, 10
-    turn-action:
+        - action: 2, BET, 10
+        - action: 3, CALL, 10
+        - action: 1, CALL, 10
+    turn:
       seat-actions:
-        - 2, CHECK
-        - 3, CHECK
-        - 1, CHECK
-    river-action:
+        - action: 2, CHECK
+        - action: 3, CHECK
+        - action: 1, CHECK
+    river:
       seat-actions:
-        - 2, CHECK
-        - 3, CHECK
-        - 1, CHECK
+        - action: 2, CHECK
+        - action: 3, CHECK
+        - action: 1, CHECK
     result:
       winners:
-        -
-          seat: 1
+        - seat: 1
           receive: 41.0
       action-ended: SHOW_DOWN
       
       # balance indicates the player balance after the hand
       # bb player won a chip
       stacks:
-        -
-          seat: 1
+        - seat: 1
           stack: 1026
-        -
-          seat: 5
+        - seat: 5
           stack: 985
-        -
-          seat: 8
+        - seat: 8
           stack: 985
