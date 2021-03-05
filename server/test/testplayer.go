@@ -64,8 +64,8 @@ func (t *TestPlayer) setPlayer(player *game.Player) {
 	t.player = player
 }
 
-func (t *TestPlayer) joinGame(gameID uint64, seatNo uint32, buyIn float32) {
-	t.player.JoinGame(gameID, seatNo, buyIn)
+func (t *TestPlayer) joinGame(gameID uint64, seatNo uint32, buyIn float32, runItTwice bool) {
+	t.player.JoinGame(gameID, seatNo, buyIn, runItTwice)
 }
 
 func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.HandMessage, jsonb []byte) {
@@ -129,7 +129,8 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 			handMessage.MessageType == game.HandFlop ||
 			handMessage.MessageType == game.HandTurn ||
 			handMessage.MessageType == game.HandRiver ||
-			handMessage.MessageType == game.HandNoMoreActions {
+			handMessage.MessageType == game.HandNoMoreActions ||
+			handMessage.MessageType == game.HandRunItTwice {
 
 			if handMessage.MessageType != game.HandNextAction {
 				testPlayerLogger.Info().

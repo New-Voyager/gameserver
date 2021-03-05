@@ -109,7 +109,7 @@ func testStuff() {
 	players := make([]poker.CardsInAscii, 2)
 	players[0] = player1
 	players[1] = player2
-	deck := poker.DeckFromScript(players, flop, turn, river)
+	deck := poker.DeckFromScript(players, flop, turn, river, true /* burn card */)
 	//deck := poker.NewDeckNoShuffle()
 	deckStr := deck.PrettyPrint()
 	fmt.Printf("%s\n", deckStr)

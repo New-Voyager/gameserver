@@ -5,6 +5,18 @@ import "game.proto";
 import "hand.proto";
 import "handmessage.proto";
 
+// state used for run it twice option
+message RunItTwice {
+  HandStatus stage = 1;         // PREFLOP, FLOP, TURN, RIVER
+  uint32 seat1 = 2;   // seat 1
+  uint32 seat2 = 3;   // seat 2
+  bool seat1_responded = 4;
+  bool seat2_responded = 5;
+  bool seat1_confirmed = 6; // seat 1 confirmed
+  bool seat2_confirmed = 7; // seat 2 confirmed
+  uint64 expiry_time = 8;  // unix time when the confirmation expires
+}
+
 message HandState {
   uint32 club_id = 1;
 
@@ -63,6 +75,7 @@ message HandState {
   // game type
   GameType game_type = 28;
 
+  // action waiting on players
   NextSeatAction next_seat_action = 29;
 
   // results
@@ -83,9 +96,6 @@ message HandState {
   float rakePercentage = 43;
   float rakeCap = 44;
 
-  repeated uint32 flop_cards = 45;
-  uint32 turn_card = 46;
-  uint32 river_card = 47;
   map <uint64, float> rake_paid = 48;  // rake paid by players 
   float rake_collected = 49;
   float current_raise_diff = 50;     // current raise diff
@@ -96,4 +106,11 @@ message HandState {
   HandMessage action_msg_in_progress = 54;
   map<uint64, PlayerStats> player_stats = 55;
   HandStats hand_stats = 56;
+
+  bool burn_cards = 57;
+  bool run_it_twice_prompt = 58;      // Action waits on next seat action or run it twice prompt
+  RunItTwice run_it_twice = 59;
+  bool run_it_twice_confirmed = 60;
+  repeated bool run_it_twice_opted_players = 61;   // players who opted for run-it-twice
+  map <uint32, PotWinners> board2_winners = 62; // second board winnners
 }

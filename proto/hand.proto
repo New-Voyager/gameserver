@@ -14,6 +14,9 @@ enum ACTION {
   BET = 6;
   RAISE = 7;
   ALLIN = 8;
+  RUN_IT_TWICE_YES = 9;
+  RUN_IT_TWICE_NO = 10;
+  RUN_IT_TWICE_PROMPT = 11;
 }
 
 message HandAction {
@@ -21,7 +24,8 @@ message HandAction {
   ACTION    action = 2;
   float     amount = 3;
   bool timed_out = 4;
-  float stack = 5;        // player current stack (populated by game)
+  uint32 action_time = 5;
+  float stack = 6;        // player current stack (populated by game)
 }
 
 message HandActionLog {
@@ -206,6 +210,6 @@ enum FlowState {
 	ONE_PLAYER_REMAINING     = 6;
 	SHOWDOWN                 = 7;
 	HAND_ENDED               = 8;
-	HEADS_UP_PROMPT          = 9;
-	HEADS_UP_PROMPT_RESPONSE = 10;
+	RUNITTWICE_UP_PROMPT      = 9;
+	RUNITTWICE_PROMPT_RESPONSE = 10;
 }

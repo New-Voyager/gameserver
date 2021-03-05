@@ -33,6 +33,10 @@ func (hr *HandResultProcessor) getWinners() map[uint32]*PotWinners {
 	return hr.evaluator.GetWinners()
 }
 
+func (hr *HandResultProcessor) getBoard2Winners() map[uint32]*PotWinners {
+	return hr.evaluator.GetBoard2Winners()
+}
+
 func (hr *HandResultProcessor) getPlayerBalance(playerID uint64) *HandPlayerBalance {
 	balanceBefore := float32(0)
 	balanceAfter := float32(0)
@@ -53,8 +57,8 @@ func (hr *HandResultProcessor) getPlayerBalance(playerID uint64) *HandPlayerBala
 }
 
 func (hr *HandResultProcessor) populateCommunityCards(handResult *HandResult) {
-	handResult.Turn = hr.handState.TurnCard
-	handResult.River = hr.handState.RiverCard
+	handResult.Turn = uint32(hr.handState.BoardCards[3])
+	handResult.River = uint32(hr.handState.BoardCards[4])
 	if hr.handState.BoardCards != nil {
 		handResult.BoardCards = make([]uint32, len(hr.handState.BoardCards))
 		for i, card := range hr.handState.BoardCards {
@@ -64,16 +68,14 @@ func (hr *HandResultProcessor) populateCommunityCards(handResult *HandResult) {
 
 	if hr.handState.BoardCards_2 != nil {
 		handResult.BoardCards_2 = make([]uint32, len(hr.handState.BoardCards_2))
-		for i, card := range hr.handState.BoardCards {
+		for i, card := range hr.handState.BoardCards_2 {
 			handResult.BoardCards_2[i] = uint32(card)
 		}
 	}
 
-	if hr.handState.FlopCards != nil {
-		handResult.Flop = make([]uint32, len(hr.handState.FlopCards))
-		for i, card := range hr.handState.FlopCards {
-			handResult.Flop[i] = uint32(card)
-		}
+	handResult.Flop = make([]uint32, 3)
+	for i, card := range hr.handState.BoardCards[:3] {
+		handResult.Flop[i] = uint32(card)
 	}
 }
 
@@ -84,7 +86,10 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 		hr.evaluator.Evaluate()
 		// update winners in hand state
 		// this is also the method that calcualtes rake, balance etc
-		hr.handState.setWinners(hr.getWinners())
+		hr.handState.setWinners(hr.getWinners(), false)
+		if hr.handState.RunItTwiceConfirmed {
+			hr.handState.setWinners(hr.getBoard2Winners(), true)
+		}
 	}
 
 	// determine winners who went to showdown
@@ -136,9 +141,10 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 		fmt.Printf("\n\n================================================================\n\n")
 	}
 	handResult := &HandResult{
-		GameId:   hr.handState.GameId,
-		HandNum:  hr.handState.HandNum,
-		GameType: hr.handState.GameType,
+		GameId:     hr.handState.GameId,
+		HandNum:    hr.handState.HandNum,
+		GameType:   hr.handState.GameType,
+		RunItTwice: hr.handState.RunItTwiceConfirmed,
 	}
 
 	// update stats in the result
