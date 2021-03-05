@@ -101,8 +101,7 @@ curl -i -X POST http://localhost:8081/apply -H 'content-type: application/json' 
 
 # Monitor the log to verify the game ends after the current hand.
 tail -f log/default_group/botrunner_5.log
-```curl -i -X POST http://localhost:8081/apply -H 'content-type: application/json' -d'{"script": "botrunner_scripts/plo-many-hands.yaml", "numGames": 1, "launchInterval": 3.0}'
-
+```
 
 Start a separate batch of Botrunners using a different script. Botrunner batches are identified by batchId string.
 ```
