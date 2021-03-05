@@ -51,11 +51,6 @@ func botrunner() int {
 		mainLogger.Error().Msg("No script file is provided.")
 		return 1
 	}
-	// config, err := game.ParseYAMLConfig(cmdArgs.scriptFile)
-	// if err != nil {
-	// 	mainLogger.Error().Msgf("Error while parsing config file: %+v", err)
-	// 	return 1
-	// }
 	players, err := gamescript.ReadPlayersConfig(cmdArgs.playersFile)
 	if err != nil {
 		mainLogger.Error().Msgf("Error while parsing players file: %+v", err)

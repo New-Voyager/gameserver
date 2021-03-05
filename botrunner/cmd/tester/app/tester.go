@@ -77,29 +77,6 @@ func (t *Tester) Run() error {
 	return nil
 }
 
-// func (t *Tester) joinGame() error {
-// 	gameInfo, err := t.player.GetGameInfo()
-// 	seatNo := t.getSeatNo(playerConf.Name)
-// 	if seatNo == 0 {
-// 		return fmt.Errorf("Seat number cannot be 0")
-// 	}
-// 	err = t.player.JoinGame(t.gameCode, seatNo)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	buyInAmount := t.getBuyInAmount(seatNo)
-// 	if buyInAmount == 0 {
-// 		return fmt.Errorf("Buy in amount cannot be 0")
-// 	}
-
-// 	err = t.player.BuyIn(t.gameCode, buyInAmount)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
 func (t *Tester) getPlayerConfig() *gamescript.Player {
 	testerPlayerName := t.script.Tester
 	for _, player := range t.players.Players {
@@ -109,21 +86,3 @@ func (t *Tester) getPlayerConfig() *gamescript.Player {
 	}
 	return nil
 }
-
-// func (t *Tester) getSeatNo(playerName string) uint32 {
-// 	for _, sitIn := range t.config.Setup.SitIn {
-// 		if sitIn.PlayerName == playerName {
-// 			return sitIn.SeatNo
-// 		}
-// 	}
-// 	return 0
-// }
-
-// func (t *Tester) getBuyInAmount(seatNo uint32) float32 {
-// 	for _, buyIn := range t.config.Setup.BuyIn {
-// 		if buyIn.SeatNo == seatNo {
-// 			return buyIn.BuyChips
-// 		}
-// 	}
-// 	return 0
-// }

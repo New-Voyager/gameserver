@@ -98,6 +98,7 @@ func (br *BotRunner) Run() error {
 	// 	gqlHelper := gql.NewGQLHelper(gqlClient, 1000, "")
 	// 	gqlHelper.ResetDB()
 	// }
+
 	// Create the player bots based on the setup script.
 	for i, playerConfig := range br.players.Players {
 		bot, err := player.NewBotPlayer(player.Config{
@@ -282,24 +283,6 @@ func (br *BotRunner) Run() error {
 				return err
 			}
 		}
-		// for _, player := range br.players.Players {
-		// 	b := br.botsByName[player.Name]
-		// 	b.ObserveGame(br.gameCode)
-		// }
-
-		// Let the players join the game (take a seat).
-		// for _, sitIn := range br.config.Setup.SitIn {
-		// 	b := br.botsByName[sitIn.PlayerName]
-		// 	br.botsBySeat[sitIn.SeatNo] = b
-		// 	if b.IsHuman() {
-		// 		// Let the tester join himself.
-		// 		continue
-		// 	}
-		// 	err = b.JoinGame(br.gameCode)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// }
 
 		// Check if all players are seated in. Wait if necessary.
 		var playersJoined bool
