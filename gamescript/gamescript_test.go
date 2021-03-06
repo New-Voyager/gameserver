@@ -1,4 +1,4 @@
-package scriptreader
+package gamescript
 
 import (
 	"testing"
@@ -19,6 +19,14 @@ func TestReadGameScript(t *testing.T) {
 		Club: Club{
 			Name:        "Bad Robots",
 			Description: "Club for testing",
+			Rewards: []Reward{
+				{
+					Name:     "High Hand",
+					Type:     "HIGH_HAND",
+					Amount:   100,
+					Schedule: "ENTIRE_GAME",
+				},
+			},
 		},
 		Game: Game{
 			Create:             true,
@@ -37,6 +45,7 @@ func TestReadGameScript(t *testing.T) {
 			BuyInMin:           100,
 			BuyInMax:           300,
 			ActionTime:         100,
+			Rewards:            "High Hand",
 		},
 		StartingSeats: []StartingSeat{
 			{
@@ -55,6 +64,8 @@ func TestReadGameScript(t *testing.T) {
 				BuyIn:  100,
 			},
 		},
+		Tester:   "tom",
+		AutoPlay: true,
 		BotConfig: BotConfig{
 			MinActionPauseTime: 500,
 			MaxActionPauseTime: 1000,
@@ -105,7 +116,7 @@ func TestReadGameScript(t *testing.T) {
 					SeatActions: []SeatAction{
 						{
 							Action: Action{
-								SeatNo: 1,
+								Seat:   1,
 								Action: "CALL",
 								Amount: 2,
 							},
@@ -138,14 +149,14 @@ func TestReadGameScript(t *testing.T) {
 						},
 						{
 							Action: Action{
-								SeatNo: 5,
+								Seat:   5,
 								Action: "CALL",
 								Amount: 2,
 							},
 						},
 						{
 							Action: Action{
-								SeatNo: 8,
+								Seat:   8,
 								Action: "CHECK",
 							},
 						},
@@ -158,40 +169,40 @@ func TestReadGameScript(t *testing.T) {
 					SeatActions: []SeatAction{
 						{
 							Action: Action{
-								SeatNo: 5,
+								Seat:   5,
 								Action: "CHECK",
 							},
 						},
 						{
 							Action: Action{
-								SeatNo: 8,
+								Seat:   8,
 								Action: "BET",
 								Amount: 2,
 							},
 						},
 						{
 							Action: Action{
-								SeatNo: 1,
+								Seat:   1,
 								Action: "CALL",
 								Amount: 2,
 							},
 						},
 						{
 							Action: Action{
-								SeatNo: 5,
+								Seat:   5,
 								Action: "RAISE",
 								Amount: 4,
 							},
 						},
 						{
 							Action: Action{
-								SeatNo: 8,
+								Seat:   8,
 								Action: "FOLD",
 							},
 						},
 						{
 							Action: Action{
-								SeatNo: 1,
+								Seat:   1,
 								Action: "CALL",
 								Amount: 4,
 							},
@@ -205,20 +216,20 @@ func TestReadGameScript(t *testing.T) {
 					SeatActions: []SeatAction{
 						{
 							Action: Action{
-								SeatNo: 5,
+								Seat:   5,
 								Action: "CHECK",
 							},
 						},
 						{
 							Action: Action{
-								SeatNo: 1,
+								Seat:   1,
 								Action: "BET",
 								Amount: 10,
 							},
 						},
 						{
 							Action: Action{
-								SeatNo: 5,
+								Seat:   5,
 								Action: "CALL",
 								Amount: 10,
 							},
@@ -232,14 +243,14 @@ func TestReadGameScript(t *testing.T) {
 					SeatActions: []SeatAction{
 						{
 							Action: Action{
-								SeatNo: 5,
+								Seat:   5,
 								Action: "BET",
 								Amount: 10,
 							},
 						},
 						{
 							Action: Action{
-								SeatNo: 1,
+								Seat:   1,
 								Action: "CALL",
 								Amount: 10,
 							},

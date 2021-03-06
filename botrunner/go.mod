@@ -12,8 +12,11 @@ require (
 	github.com/matryer/is v1.4.0 // indirect
 	github.com/nats-io/nats-server/v2 v2.1.9 // indirect
 	github.com/nats-io/nats.go v1.10.0
-	github.com/pkg/errors v0.8.1
+	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.19.0
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v2 v2.4.0
+	voyager.com/gamescript v0.0.0-00010101000000-000000000000
 )
+
+replace voyager.com/gamescript => ../gamescript

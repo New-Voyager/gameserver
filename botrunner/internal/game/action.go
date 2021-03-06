@@ -9,3 +9,9 @@ func ActionContains(actions []ACTION, action ACTION) bool {
 	}
 	return false
 }
+
+// ActionStringToAction converts string to action enum.
+// "BET" => ACTION_BET
+func ActionStringToAction(actionStr string) ACTION {
+	return ACTION(ACTION_value[actionStr])
+}

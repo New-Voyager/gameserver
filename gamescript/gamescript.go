@@ -1,4 +1,4 @@
-package scriptreader
+package gamescript
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
@@ -15,13 +16,23 @@ type Script struct {
 	Club          Club           `yaml:"club"`
 	Game          Game           `yaml:"game"`
 	StartingSeats []StartingSeat `yaml:"starting-seats"`
+	Tester        string         `yaml:"tester"`
 	BotConfig     BotConfig      `yaml:"bot-config"`
+	AutoPlay      bool           `yaml:"auto-play"`
 	Hands         []Hand         `yaml:"hands"`
 }
 
 type Club struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
+	Rewards     []Reward
+}
+
+type Reward struct {
+	Name     string
+	Type     string
+	Amount   float32
+	Schedule string
 }
 
 // Game contains game configuration in the game script.
@@ -124,7 +135,7 @@ type SeatAction struct {
 }
 
 type Action struct {
-	SeatNo uint32  `yaml:"seat"`
+	Seat   uint32  `yaml:"seat"`
 	Action string  `yaml:"action"`
 	Amount float32 `yaml:"amount"`
 }
@@ -164,7 +175,7 @@ func (a *Action) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			return errors.Wrapf(err, "Cannot convert third token [%s] to seat number", trimmed)
 		}
 	}
-	a.SeatNo = uint32(seatNo)
+	a.Seat = uint32(seatNo)
 	a.Action = strings.Trim(tokens[1], " ")
 	a.Amount = float32(amount)
 	return nil
@@ -269,11 +280,108 @@ func ReadGameScript(fileName string) (*Script, error) {
 		return nil, errors.Wrapf(err, "Error reading game script file [%s]", fileName)
 	}
 
-	var data Script
-	err = yaml.Unmarshal(bytes, &data)
+	var script Script
+	err = yaml.Unmarshal(bytes, &script)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error parsing YAML file [%s]", fileName)
 	}
 
-	return &data, nil
+	err = script.Validate()
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error validating script [%s]", fileName)
+	}
+
+	return &script, nil
+}
+
+func (s *Script) Validate() error {
+	startingSeats := mapset.NewSet()
+	playerNames := mapset.NewSet()
+
+	// Check starting seat numbers and player names are unique.
+	for _, seat := range s.StartingSeats {
+		if startingSeats.Contains(seat.Seat) {
+			return fmt.Errorf("Duplicate seat number [%d] in starting-seats", seat.Seat)
+		}
+		startingSeats.Add(seat.Seat)
+		if playerNames.Contains(seat.Player) {
+			return fmt.Errorf("Duplicate player name [%s] in starting-seats", seat.Player)
+		}
+		playerNames.Add(seat.Player)
+	}
+
+	// Validate each hand seat numbers.
+	seatCardSeats := mapset.NewSet()
+	validSeats := startingSeats.Clone()
+	for i, hand := range s.Hands {
+		handNum := i + 1
+		// Check card setup has no duplicate seat number.
+		for _, seatCards := range hand.Setup.SeatCards {
+			if seatCardSeats.Contains(seatCards.Seat) {
+				return fmt.Errorf("Duplicate seat number [%d] in hand %d seat-cards", seatCards.Seat, handNum)
+			}
+			seatCardSeats.Add(seatCards.Seat)
+		}
+		// Check card setup contains all seat numbers.
+		if !validSeats.Equal(seatCardSeats) {
+			return fmt.Errorf("Seat numbers in hand %d seat-cards do not match the expected. Expected: %s, Provided: %s", handNum, validSeats, seatCardSeats)
+		}
+
+		// Check preflop seat numbers.
+		for _, seatAction := range hand.Preflop.SeatActions {
+			if !validSeats.Contains(seatAction.Action.Seat) {
+				return fmt.Errorf("Seat number [%d] is not valid for hand %d preflop", seatAction.Action.Seat, handNum)
+			}
+		}
+
+		// Check flop seat numbers.
+		for _, seatAction := range hand.Flop.SeatActions {
+			if !validSeats.Contains(seatAction.Action.Seat) {
+				return fmt.Errorf("Seat number [%d] is not valid for hand %d flop", seatAction.Action.Seat, handNum)
+			}
+		}
+
+		// Check turn seat numbers.
+		for _, seatAction := range hand.Turn.SeatActions {
+			if !validSeats.Contains(seatAction.Action.Seat) {
+				return fmt.Errorf("Seat number [%d] is not valid for hand %d turn", seatAction.Action.Seat, handNum)
+			}
+		}
+
+		// Check river seat numbers.
+		for _, seatAction := range hand.River.SeatActions {
+			if !validSeats.Contains(seatAction.Action.Seat) {
+				return fmt.Errorf("Seat number [%d] is not valid for hand %d river", seatAction.Action.Seat, handNum)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *Script) IsSeatHuman(seatNo uint32) bool {
+	for _, startingSeat := range s.StartingSeats {
+		if startingSeat.Seat == seatNo {
+			return startingSeat.Player == s.Tester
+		}
+	}
+	return false
+}
+
+func (s *Script) GetSeatNoByPlayerName(playerName string) uint32 {
+	for _, startingSeat := range s.StartingSeats {
+		if startingSeat.Player == playerName {
+			return startingSeat.Seat
+		}
+	}
+	return 0
+}
+
+func (s *Script) GetInitialBuyInAmount(seatNo uint32) float32 {
+	for _, startingSeat := range s.StartingSeats {
+		if startingSeat.Seat == seatNo {
+			return startingSeat.BuyIn
+		}
+	}
+	return 0
 }

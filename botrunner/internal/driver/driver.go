@@ -1,3 +1,5 @@
+// TOOD: Need some way to mark the human-controlled bots (IsHuman) in the script yaml.
+
 package driver
 
 import (
@@ -5,15 +7,14 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/machinebox/graphql"
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"voyager.com/botrunner/internal/game"
-	"voyager.com/botrunner/internal/gql"
 	"voyager.com/botrunner/internal/msgcheck"
 	"voyager.com/botrunner/internal/player"
 	"voyager.com/botrunner/internal/util"
+	"voyager.com/gamescript"
 )
 
 // BotRunner is the main driver object that sets up the bots for a game.
@@ -25,7 +26,8 @@ type BotRunner struct {
 	expectedMsgsFile string
 	clubCode         string
 	botIsClubOwner   bool
-	config           game.BotRunnerConfig
+	players          *gamescript.Players
+	script           *gamescript.Script
 	gameCode         string
 	botIsGameHost    bool
 	currentHandNum   uint32
@@ -39,7 +41,7 @@ type BotRunner struct {
 }
 
 // NewBotRunner creates new instance of BotRunner.
-func NewBotRunner(clubCode string, gameCode string, config game.BotRunnerConfig, driverLogger *zerolog.Logger, playerLogger *zerolog.Logger, expectedMsgsFile string, msgDumpFile string) (*BotRunner, error) {
+func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, players *gamescript.Players, driverLogger *zerolog.Logger, playerLogger *zerolog.Logger, expectedMsgsFile string, msgDumpFile string) (*BotRunner, error) {
 	natsURL := util.Env.GetNatsURL()
 	nc, err := natsgo.Connect(natsURL)
 	if err != nil {
@@ -64,12 +66,14 @@ func NewBotRunner(clubCode string, gameCode string, config game.BotRunnerConfig,
 		botIsClubOwner:   clubCode == "",
 		gameCode:         gameCode,
 		botIsGameHost:    gameCode == "",
-		config:           config,
-		bots:             make([]*player.BotPlayer, 0),
-		botsByName:       make(map[string]*player.BotPlayer),
-		botsBySeat:       make(map[uint32]*player.BotPlayer),
-		natsConn:         nc,
-		currentHandNum:   0,
+		// config:           config,
+		players:        players,
+		script:         script,
+		bots:           make([]*player.BotPlayer, 0),
+		botsByName:     make(map[string]*player.BotPlayer),
+		botsBySeat:     make(map[uint32]*player.BotPlayer),
+		natsConn:       nc,
+		currentHandNum: 0,
 	}
 	return &d, nil
 }
@@ -81,39 +85,44 @@ func (br *BotRunner) Terminate() {
 
 // Run sets up the game and joins the bots. Waits until the game is over.
 func (br *BotRunner) Run() error {
-	br.logger.Debug().Msgf("Config: %+v", br.config)
+	br.logger.Debug().Msgf("Players: %+v, Script: %+v", br.players, br.script)
 
-	resetDB := false
-	if br.config.ResetDB {
-		resetDB = true
-	}
+	// resetDB := false
+	// if br.config.ResetDB {
+	// 	resetDB = true
+	// }
 
-	if resetDB {
-		url := fmt.Sprintf("%s/graphql", util.Env.GetAPIServerURL())
-		gqlClient := graphql.NewClient(url)
-		gqlHelper := gql.NewGQLHelper(gqlClient, 1000, "")
-		gqlHelper.ResetDB()
-	}
+	// if resetDB {
+	// 	url := fmt.Sprintf("%s/graphql", util.Env.GetAPIServerURL())
+	// 	gqlClient := graphql.NewClient(url)
+	// 	gqlHelper := gql.NewGQLHelper(gqlClient, 1000, "")
+	// 	gqlHelper.ResetDB()
+	// }
+
 	// Create the player bots based on the setup script.
-	for i, botConfig := range br.config.Setup.Players {
-		b, err := player.NewBotPlayer(player.Config{
-			Name:               botConfig.Name,
-			DeviceID:           botConfig.DeviceID,
-			Email:              botConfig.Email,
-			Password:           botConfig.Password,
-			IsHost:             (i == 0) && br.botIsGameHost, // First bot is the game host.
-			IsHuman:            !botConfig.Bot,
-			BotActionPauseTime: botConfig.BotActionPauseTime,
+	for i, playerConfig := range br.players.Players {
+		bot, err := player.NewBotPlayer(player.Config{
+			Name:     playerConfig.Name,
+			DeviceID: playerConfig.DeviceID,
+			Email:    playerConfig.Email,
+			Password: playerConfig.Password,
+			IsHost:   (i == 0) && br.botIsGameHost, // First bot is the game host.
+			// IsHuman:            !botConfig.Bot,
+			IsHuman: br.script.Tester == playerConfig.Name,
+			// BotActionPauseTime: botConfig.BotActionPauseTime,
+			BotActionPauseTime: 100,
 			APIServerURL:       util.Env.GetAPIServerURL(),
 			NatsURL:            util.Env.GetNatsURL(),
 			GQLTimeoutSec:      300,
-			Script:             br.config,
+			// Script:             br.config,
+			Script:  br.script,
+			Players: br.players,
 		}, br.playerLogger, br.msgCollector)
 		if err != nil {
 			return errors.Wrap(err, "Unable to create a new bot")
 		}
-		br.bots = append(br.bots, b)
-		br.botsByName[botConfig.Name] = b
+		br.bots = append(br.bots, bot)
+		br.botsByName[playerConfig.Name] = bot
 	}
 
 	// Create the observer bot. The observer will always be there
@@ -128,7 +137,8 @@ func (br *BotRunner) Run() error {
 		APIServerURL:       util.Env.GetAPIServerURL(),
 		NatsURL:            util.Env.GetNatsURL(),
 		GQLTimeoutSec:      30,
-		Script:             br.config,
+		Script:             br.script,
+		Players:            br.players,
 	}, br.playerLogger, br.msgCollector)
 	if err != nil {
 		return errors.Wrap(err, "Unable to create observer bot")
@@ -147,19 +157,19 @@ func (br *BotRunner) Run() error {
 		br.logger.Info().Msgf("Using an existing club [%s]", br.clubCode)
 	} else {
 		// if there is a club with the same name, just use the club-code
-		clubCode, err := br.bots[0].GetClubCode(br.config.Setup.Club.Name)
+		clubCode, err := br.bots[0].GetClubCode(br.script.Club.Name)
 		if clubCode == "" {
 			// First bot creates the club. First bot is always the club owner. It is also responsible for
 			// starting the game once all players are ready.
-			clubCode, err = br.bots[0].CreateClub(br.config.Setup.Club.Name, br.config.Setup.Club.Description)
+			clubCode, err = br.bots[0].CreateClub(br.script.Club.Name, br.script.Club.Description)
 			if err != nil {
 				return err
 			}
 		}
 		br.clubCode = clubCode
 		// create rewards for the club
-		if len(br.config.Setup.Club.Rewards) > 0 {
-			for _, reward := range br.config.Setup.Club.Rewards {
+		if len(br.script.Club.Rewards) > 0 {
+			for _, reward := range br.script.Club.Rewards {
 				_, err = br.bots[0].CreateClubReward(clubCode, reward.Name, reward.Type, reward.Schedule, reward.Amount)
 			}
 		}
@@ -222,34 +232,31 @@ func (br *BotRunner) Run() error {
 	}
 
 	rewardIds := make([]uint32, 0)
-	if br.config.Setup.Game.Rewards != "" {
+	if br.script.Game.Rewards != "" {
 		// rewards can be listed with comma delimited string
-		rewardID := br.bots[0].RewardsNameToId[br.config.Setup.Game.Rewards]
+		rewardID := br.bots[0].RewardsNameToId[br.script.Game.Rewards]
 		rewardIds = append(rewardIds, rewardID)
 	}
 
-	gameTitle := br.config.Setup.Game.Title
-	if br.config.GameTitle != "" {
-		gameTitle = br.config.GameTitle
-	}
+	gameTitle := br.script.Game.Title
 	if br.gameCode == "" {
 		// First bot creates the game.
 		gameCode, err := br.bots[0].CreateGame(game.GameCreateOpt{
 			Title:              gameTitle,
-			GameType:           br.config.Setup.Game.GameType,
-			SmallBlind:         br.config.Setup.Game.SmallBlind,
-			BigBlind:           br.config.Setup.Game.BigBlind,
-			UtgStraddleAllowed: br.config.Setup.Game.UtgStraddleAllowed,
-			StraddleBet:        br.config.Setup.Game.StraddleBet,
-			MinPlayers:         br.config.Setup.Game.MinPlayers,
-			MaxPlayers:         br.config.Setup.Game.MaxPlayers,
-			GameLength:         br.config.Setup.Game.GameLength,
-			BuyInApproval:      br.config.Setup.Game.BuyInApproval,
-			RakePercentage:     br.config.Setup.Game.RakePercentage,
-			RakeCap:            br.config.Setup.Game.RakeCap,
-			BuyInMin:           br.config.Setup.Game.BuyInMin,
-			BuyInMax:           br.config.Setup.Game.BuyInMax,
-			ActionTime:         br.config.Setup.Game.ActionTime,
+			GameType:           br.script.Game.GameType,
+			SmallBlind:         br.script.Game.SmallBlind,
+			BigBlind:           br.script.Game.BigBlind,
+			UtgStraddleAllowed: br.script.Game.UtgStraddleAllowed,
+			StraddleBet:        br.script.Game.StraddleBet,
+			MinPlayers:         br.script.Game.MinPlayers,
+			MaxPlayers:         br.script.Game.MaxPlayers,
+			GameLength:         br.script.Game.GameLength,
+			BuyInApproval:      br.script.Game.BuyInApproval,
+			RakePercentage:     br.script.Game.RakePercentage,
+			RakeCap:            br.script.Game.RakeCap,
+			BuyInMin:           br.script.Game.BuyInMin,
+			BuyInMax:           br.script.Game.BuyInMax,
+			ActionTime:         br.script.Game.ActionTime,
 			RewardIds:          rewardIds,
 		})
 		if err != nil {
@@ -262,15 +269,11 @@ func (br *BotRunner) Run() error {
 	br.observerBot.ObserveGame(br.gameCode)
 
 	if br.botIsGameHost {
-		for _, player := range br.config.Setup.Players {
-			b := br.botsByName[player.Name]
-			b.ObserveGame(br.gameCode)
-		}
-
-		// Let the players join the game (take a seat).
-		for _, sitIn := range br.config.Setup.SitIn {
-			b := br.botsByName[sitIn.PlayerName]
-			br.botsBySeat[sitIn.SeatNo] = b
+		// This is a bot-created game. Use the config script to sit the bots.
+		for _, startingSeat := range br.script.StartingSeats {
+			playerName := startingSeat.Player
+			b := br.botsByName[playerName]
+			br.botsBySeat[startingSeat.Seat] = b
 			if b.IsHuman() {
 				// Let the tester join himself.
 				continue
@@ -289,11 +292,11 @@ func (br *BotRunner) Run() error {
 			if err != nil {
 				return err
 			}
-			for _, sitIn := range br.config.Setup.SitIn {
-				if !br.isSitIn(sitIn.SeatNo, sitIn.PlayerName, playersInSeat) {
+			for _, startingSeat := range br.script.StartingSeats {
+				if !br.isSitIn(startingSeat.Seat, startingSeat.Player, playersInSeat) {
 					playersJoined = false
 					if waitAttempts%3 == 0 {
-						br.logger.Info().Msgf("Waiting for player [%s] to join. Game Code: *** %s ***", sitIn.PlayerName, br.gameCode)
+						br.logger.Info().Msgf("Waiting for player [%s] to join. Game Code: *** %s ***", startingSeat.Player, br.gameCode)
 					}
 				}
 			}
@@ -310,11 +313,11 @@ func (br *BotRunner) Run() error {
 			if err != nil {
 				return err
 			}
-			for _, buyIn := range br.config.Setup.BuyIn {
-				if !br.isBoughtIn(buyIn.SeatNo, buyIn.BuyChips, playersInSeat) {
+			for _, startingSeat := range br.script.StartingSeats {
+				if !br.isBoughtIn(startingSeat.Seat, startingSeat.BuyIn, playersInSeat) {
 					playersBoughtIn = false
 					if waitAttempts%3 == 0 {
-						br.logger.Info().Msgf("Waiting for seat [%d] to buy in.", buyIn.SeatNo)
+						br.logger.Info().Msgf("Waiting for seat [%d] to buy in.", startingSeat.Seat)
 					}
 				}
 			}

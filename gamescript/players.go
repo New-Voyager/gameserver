@@ -1,4 +1,4 @@
-package scriptreader
+package gamescript
 
 import (
 	"fmt"

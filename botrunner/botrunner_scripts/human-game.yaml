@@ -1,4 +1,5 @@
 # This script is used to join a game created by human.
-setup-script: botrunner_scripts/setup/human-game.yaml
+club:
 game:
-  auto-play: true
+starting-seats: []
+auto-play: true

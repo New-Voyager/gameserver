@@ -1,9 +1,48 @@
-setup-script: botrunner_scripts/setup/3-bots-reward-tracking.yaml
+# TODO: This script does not work.
+# For some reason the server starts YOUR_ACTION from seat 2 instead of seat 1.
+
+club:
+  name: High Hand Club
+  description: Club used for testing with the bot runner
+  rewards:
+    - name: High Hand
+      type: HIGH_HAND
+      amount: 100
+      schedule: ENTIRE_GAME
+
+game:
+  create: true
+  title: "High Hand Reward Game"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 3
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 100
+  buy-in-max: 300
+  action-time: 100
+  rewards: High Hand
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 100
+  - seat: 2
+    player: brian
+    buy-in: 100
+  - seat: 3
+    player: tom
+    buy-in: 100
 
 # deal the following hands in the table
 hands:
-  - num: 1
-    setup:
+  - setup:
       button-pos: 1
       flop: ["Ac", "Ad", "2c"]
       turn: 7d
@@ -13,67 +52,48 @@ hands:
         - cards: ["5c", "6c"]
         - cards: ["As", "Th"]
         - cards: ["2d", "2s"]
-      # here the game engine sends the cards to the players
-      verify:
-        button: 1
-        sb: 2
-        bb: 3
-        next-action-pos: 1
-        state: PREFLOP
-        dealt-cards:
-          - seat-no: 2
-            cards: ["5c", "6c"]
-          - seat-no: 3
-            cards: ["As", "Th"]
-          - seat-no: 1
-            cards: ["2d", "2s"]
-   
+
     # simulate pre-flop action
-    preflop-action:
+    preflop:
       seat-actions:
         # seat number/action/amount
-        - 1, CALL, 2
-        - 2, CALL, 2
-        - 3, CHECK
+        - action: 1, CALL, 2
+        - action: 2, CALL, 2
+        - action: 3, CHECK
+
+    flop:
       verify:
-        state: FLOP
         board: ["Ac", "Ad", "2c"]
-
-    flop-action:
       seat-actions:
-        - 2, CHECK
-        - 3, BET, 2
-        - 1, CALL, 2
-        - 2, RAISE, 4
-        - 3, CALL, 4
-        - 1, CALL, 4
+        - action: 2, CHECK
+        - action: 3, BET, 2
+        - action: 1, CALL, 2
+        - action: 2, RAISE, 4
+        - action: 3, CALL, 4
+        - action: 1, CALL, 4
+
+    turn:
       verify:
-        state: TURN
         board: ["Ac", "Ad", "2c", "7d"]
-
-    turn-action:
       seat-actions:
-        - 2, CHECK
-        - 3, CHECK
-        - 1, BET, 10
-        - 2, CALL, 10
-        - 3, CALL, 10
+        - action: 2, CHECK
+        - action: 3, CHECK
+        - action: 1, BET, 10
+        - action: 2, CALL, 10
+        - action: 3, CALL, 10
+
+    river:
       verify:
-        state: RIVER
         board: ["Ac", "Ad", "2c", "7d", "7c"]
-
-    river-action:
       seat-actions:
-        - 2, BET, 10
-        - 3, CALL, 10
-        - 1, CALL, 10
-      verify:
-        state: RESULT
+        - action: 2, BET, 10
+        - action: 3, CALL, 10
+        - action: 1, CALL, 10
 
     result:
       winners:
         - seat: 3
           receive: 56.0
       high-hand:
-        - seat-no: 1
+        - seat: 1
       action-ended: SHOW_DOWN

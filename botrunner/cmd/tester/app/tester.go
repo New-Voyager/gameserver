@@ -6,9 +6,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-	"voyager.com/botrunner/internal/game"
 	_player "voyager.com/botrunner/internal/player"
 	"voyager.com/botrunner/internal/util"
+	"voyager.com/gamescript"
 )
 
 var (
@@ -17,15 +17,17 @@ var (
 
 // Tester is the object that drives the tester application.
 type Tester struct {
-	config   game.BotRunnerConfig
+	players  *gamescript.Players
+	script   *gamescript.Script
 	gameCode string
 	player   *_player.BotPlayer
 }
 
 // NewTester creates new instance of Tester.
-func NewTester(config game.BotRunnerConfig, gameCode string) (*Tester, error) {
+func NewTester(players *gamescript.Players, script *gamescript.Script, gameCode string) (*Tester, error) {
 	t := Tester{
-		config:   config,
+		players:  players,
+		script:   script,
 		gameCode: gameCode,
 	}
 
@@ -34,7 +36,7 @@ func NewTester(config game.BotRunnerConfig, gameCode string) (*Tester, error) {
 
 // Run joins the game and follows it to the end.
 func (t *Tester) Run() error {
-	logger.Debug().Msgf("Config: %+v", t.config)
+	logger.Debug().Msgf("Players: %+v, Script: %+v", t.players, t.script)
 	playerConf := t.getPlayerConfig()
 	if playerConf == nil {
 		return fmt.Errorf("No player found in the setup script")
@@ -46,11 +48,12 @@ func (t *Tester) Run() error {
 		DeviceID:      playerConf.DeviceID,
 		Email:         playerConf.Email,
 		Password:      playerConf.Password,
-		IsHuman:       !playerConf.Bot,
+		IsHuman:       true,
 		APIServerURL:  util.Env.GetAPIServerURL(),
 		NatsURL:       util.Env.GetNatsURL(),
 		GQLTimeoutSec: 10,
-		Script:        t.config,
+		Script:        t.script,
+		Players:       t.players,
 	}, &playerLogger, nil)
 	if err != nil {
 		return err
@@ -74,52 +77,12 @@ func (t *Tester) Run() error {
 	return nil
 }
 
-// func (t *Tester) joinGame() error {
-// 	gameInfo, err := t.player.GetGameInfo()
-// 	seatNo := t.getSeatNo(playerConf.Name)
-// 	if seatNo == 0 {
-// 		return fmt.Errorf("Seat number cannot be 0")
-// 	}
-// 	err = t.player.JoinGame(t.gameCode, seatNo)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	buyInAmount := t.getBuyInAmount(seatNo)
-// 	if buyInAmount == 0 {
-// 		return fmt.Errorf("Buy in amount cannot be 0")
-// 	}
-
-// 	err = t.player.BuyIn(t.gameCode, buyInAmount)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
-func (t *Tester) getPlayerConfig() *game.PlayerConfig {
-	for _, player := range t.config.Setup.Players {
-		if !player.Bot {
+func (t *Tester) getPlayerConfig() *gamescript.Player {
+	testerPlayerName := t.script.Tester
+	for _, player := range t.players.Players {
+		if player.Name == testerPlayerName {
 			return &player
 		}
 	}
 	return nil
 }
-
-// func (t *Tester) getSeatNo(playerName string) uint32 {
-// 	for _, sitIn := range t.config.Setup.SitIn {
-// 		if sitIn.PlayerName == playerName {
-// 			return sitIn.SeatNo
-// 		}
-// 	}
-// 	return 0
-// }
-
-// func (t *Tester) getBuyInAmount(seatNo uint32) float32 {
-// 	for _, buyIn := range t.config.Setup.BuyIn {
-// 		if buyIn.SeatNo == seatNo {
-// 			return buyIn.BuyChips
-// 		}
-// 	}
-// 	return 0
-// }
