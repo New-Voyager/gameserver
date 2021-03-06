@@ -37,7 +37,7 @@ func (s *ScriptBasedDecision) GetNextAction(bot *BotPlayer, availableActions []g
 	var scriptActionEntries []scriptSeatAction
 	for _, entry := range scriptSeatActions {
 		scriptActionEntries = append(scriptActionEntries, scriptSeatAction{
-			seatNo: entry.Action.SeatNo,
+			seatNo: entry.Action.Seat,
 			action: game.ActionStringToAction(entry.Action.Action),
 			amount: entry.Action.Amount,
 		})
