@@ -42,6 +42,7 @@ message PlayerAtTableState {
   float buy_in = 3;
   float current_balance = 4;
   PlayerStatus status = 5;
+  bool run_it_twice = 6;
 }
 
 message GameDealHandMessage {

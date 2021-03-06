@@ -54,6 +54,55 @@ func (h *HandState) initializeBettingRound() {
 	h.resetPlayerActions()
 }
 
+func (h *HandState) board(deck *poker.Deck) []byte {
+	board := make([]byte, 5)
+	// setup board 1
+	if h.BurnCards {
+		deck.Draw(1)
+		h.DeckIndex++
+	}
+
+	cards := deck.Draw(3)
+	h.DeckIndex += 3
+	//fmt.Printf("Flop Cards: ")
+	for i, card := range cards {
+		board[i] = card.GetByte()
+		fmt.Printf("%s", poker.CardToString(uint32(card.GetByte())))
+	}
+	fmt.Printf("\n")
+
+	var burnCard uint32
+	if h.BurnCards {
+		// burn card
+		cards = deck.Draw(1)
+		burnCard = uint32(cards[0].GetByte())
+		fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
+		h.DeckIndex++
+	}
+
+	// turn card
+	cards = deck.Draw(1)
+	h.DeckIndex++
+	board[3] = cards[0].GetByte()
+	//fmt.Printf("Turn card: %s\n", poker.CardToString(cards[0]))
+
+	// burn card
+	if h.BurnCards {
+		cards = deck.Draw(1)
+		h.DeckIndex++
+		burnCard = uint32(cards[0].GetByte())
+		fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
+	}
+
+	// river card
+	cards = deck.Draw(1)
+	h.DeckIndex++
+	board[4] = cards[0].GetByte()
+	//fmt.Printf("River card: %s\n", poker.CardToString(board[4]))
+
+	return board
+}
+
 func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonPos uint32, moveButton bool, playersInSeats []SeatPlayer) {
 	// settle players in the seats
 	h.PlayersInSeats = make([]uint64, gameConfig.MaxPlayers+1) // seat 0 is dealer
@@ -86,6 +135,7 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 	h.ButtonPos = buttonPos
 	h.PlayersActed = make([]*PlayerActRound, h.MaxSeats+1)
 	h.BringIn = float32(gameConfig.BringIn)
+	h.BurnCards = true
 
 	// if the players don't have money less than the blinds
 	// don't let them play
@@ -102,6 +152,7 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 	h.SmallBlindPos, h.BigBlindPos = h.getBlindPos()
 
 	h.BalanceBeforeHand = make([]*PlayerBalance, 0)
+	h.RunItTwiceOptedPlayers = make([]bool, int(h.MaxSeats))
 	// also populate current balance of the players in the table
 	for seatNo, player := range h.PlayersInSeats {
 		if player == 0 {
@@ -111,6 +162,9 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 		playerInSeat := playersInSeats[seatNo]
 		h.BalanceBeforeHand = append(h.BalanceBeforeHand,
 			&PlayerBalance{SeatNo: playerInSeat.SeatNo, PlayerId: playerInSeat.PlayerID, Balance: playerInSeat.Stack})
+		if playerInSeat.RunItTwice {
+			h.RunItTwiceOptedPlayers[seatNo] = true
+		}
 	}
 
 	h.Deck = deck.GetBytes()
@@ -122,40 +176,9 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 	h.Pots = append(h.Pots, mainPot)
 	h.RakePaid = make(map[uint64]float32, 0)
 
-	deck.Draw(1)
-	h.DeckIndex++
-	cards := deck.Draw(3)
-	h.DeckIndex += 3
-	h.FlopCards = make([]uint32, 3)
-	fmt.Printf("Flop Cards: ")
-	for i, card := range cards {
-		h.FlopCards[i] = uint32(card.GetByte())
-		fmt.Printf("%s", poker.CardToString(uint32(card.GetByte())))
-	}
-	fmt.Printf("\n")
-
-	// burn card
-	cards = deck.Draw(1)
-	burnCard := uint32(cards[0].GetByte())
-	fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
-	h.DeckIndex++
-	// turn card
-	cards = deck.Draw(1)
-	h.DeckIndex++
-	h.TurnCard = uint32(cards[0].GetByte())
-	fmt.Printf("Turn card: %s\n", poker.CardToString(h.TurnCard))
-
-	// burn card
-	cards = deck.Draw(1)
-	h.DeckIndex++
-	burnCard = uint32(cards[0].GetByte())
-	fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
-
-	// river card
-	cards = deck.Draw(1)
-	h.DeckIndex++
-	h.RiverCard = uint32(cards[0].GetByte())
-	fmt.Printf("River card: %s\n", poker.CardToString(h.RiverCard))
+	// board cards
+	h.BoardCards = h.board(deck)
+	fmt.Printf("Board1: %s", poker.CardsToString(h.BoardCards))
 
 	// setup data structure to handle betting rounds
 	h.initializeBettingRound()
@@ -837,22 +860,16 @@ func (h *HandState) setupNextRound(state HandStatus) {
 	}
 }
 
-func (h *HandState) setupFlop(board []uint32) {
+func (h *HandState) setupFlop() {
 	h.setupNextRound(HandStatus_FLOP)
-	h.BoardCards = make([]byte, 3)
-	for i, card := range board {
-		h.BoardCards[i] = uint8(card)
-	}
 }
 
-func (h *HandState) setupTurn(turnCard uint32) {
+func (h *HandState) setupTurn() {
 	h.setupNextRound(HandStatus_TURN)
-	h.BoardCards = append(h.BoardCards, uint8(turnCard))
 }
 
-func (h *HandState) setupRiver(riverCard uint32) {
+func (h *HandState) setupRiver() {
 	h.setupNextRound(HandStatus_RIVER)
-	h.BoardCards = append(h.BoardCards, uint8(riverCard))
 }
 
 func (h *HandState) adjustToBringIn(amount float32) float32 {
@@ -1075,70 +1092,77 @@ func (h *HandState) everyOneFoldedWinners() {
 		handWinners = append(handWinners, handWinner)
 		potWinners[uint32(i)] = &PotWinners{HiWinners: handWinners}
 	}
-	h.setWinners(potWinners)
+	h.setWinners(potWinners, false)
 }
 
-func (h *HandState) setWinners(potWinners map[uint32]*PotWinners) {
-	h.PotWinners = potWinners
-	h.CurrentState = HandStatus_RESULT
+func (h *HandState) setWinners(potWinners map[uint32]*PotWinners, board2 bool) {
 
-	// we will always take rake from the main pot for simplicity
-	rakePaid := make(map[uint64]float32, 0)
-	rake := float32(0.0)
-	rakeFromPlayer := float32(0.0)
-	mainPotWinners := potWinners[0]
-	if h.RakePercentage > 0.0 {
-		mainPot := h.Pots[0].Pot
-		rake = float32(int(mainPot * (h.RakePercentage / 100)))
-		if rake > h.RakeCap {
-			rake = h.RakeCap
+	if !board2 {
+		h.PotWinners = potWinners
+		h.CurrentState = HandStatus_RESULT
+
+		// we will always take rake from the main pot for simplicity
+		rakePaid := make(map[uint64]float32, 0)
+		rake := float32(0.0)
+		rakeFromPlayer := float32(0.0)
+		mainPotWinners := potWinners[0]
+		if h.RakePercentage > 0.0 {
+			mainPot := h.Pots[0].Pot
+			rake = float32(int(mainPot * (h.RakePercentage / 100)))
+			if rake > h.RakeCap {
+				rake = h.RakeCap
+			}
+
+			// take rake from main pot winners evenly
+			winnersCount := len(mainPotWinners.HiWinners)
+			if potWinners[0].LowWinners != nil {
+				winnersCount = winnersCount + len(mainPotWinners.LowWinners)
+			}
+
+			rakeFromPlayer = float32(int(rake / float32(winnersCount)))
+			if rakeFromPlayer == 0.0 {
+				rakeFromPlayer = 1.0
+			}
 		}
 
-		// take rake from main pot winners evenly
-		winnersCount := len(mainPotWinners.HiWinners)
-		if potWinners[0].LowWinners != nil {
-			winnersCount = winnersCount + len(mainPotWinners.LowWinners)
+		if float32(rakeFromPlayer) > 0.0 {
+			totalRakeCollected := float32(0)
+			for _, handWinner := range mainPotWinners.HiWinners {
+				if totalRakeCollected == rake {
+					break
+				}
+				seatNo := handWinner.SeatNo
+				playerID := h.GetPlayersInSeats()[seatNo]
+				if _, ok := rakePaid[playerID]; !ok {
+					rakePaid[playerID] = float32(rakeFromPlayer)
+				} else {
+					rakePaid[playerID] += float32(rakeFromPlayer)
+				}
+				totalRakeCollected += rakeFromPlayer
+				handWinner.Amount -= rakeFromPlayer
+			}
+			for _, handWinner := range mainPotWinners.LowWinners {
+				if totalRakeCollected == rake {
+					break
+				}
+				seatNo := handWinner.SeatNo
+				playerID := h.GetPlayersInSeats()[seatNo]
+				if _, ok := rakePaid[playerID]; !ok {
+					rakePaid[playerID] = float32(rakeFromPlayer)
+				} else {
+					rakePaid[playerID] += float32(rakeFromPlayer)
+				}
+				totalRakeCollected += rakeFromPlayer
+				handWinner.Amount -= rakeFromPlayer
+			}
+			h.RakePaid = rakePaid
+			h.RakeCollected = totalRakeCollected
 		}
-
-		rakeFromPlayer = float32(int(rake / float32(winnersCount)))
-		if rakeFromPlayer == 0.0 {
-			rakeFromPlayer = 1.0
-		}
+	} else {
+		// board2
+		h.Board2Winners = potWinners
 	}
 
-	if float32(rakeFromPlayer) > 0.0 {
-		totalRakeCollected := float32(0)
-		for _, handWinner := range mainPotWinners.HiWinners {
-			if totalRakeCollected == rake {
-				break
-			}
-			seatNo := handWinner.SeatNo
-			playerID := h.GetPlayersInSeats()[seatNo]
-			if _, ok := rakePaid[playerID]; !ok {
-				rakePaid[playerID] = float32(rakeFromPlayer)
-			} else {
-				rakePaid[playerID] += float32(rakeFromPlayer)
-			}
-			totalRakeCollected += rakeFromPlayer
-			handWinner.Amount -= rakeFromPlayer
-		}
-		for _, handWinner := range mainPotWinners.LowWinners {
-			if totalRakeCollected == rake {
-				break
-			}
-			seatNo := handWinner.SeatNo
-			playerID := h.GetPlayersInSeats()[seatNo]
-			if _, ok := rakePaid[playerID]; !ok {
-				rakePaid[playerID] = float32(rakeFromPlayer)
-			} else {
-				rakePaid[playerID] += float32(rakeFromPlayer)
-			}
-			totalRakeCollected += rakeFromPlayer
-			handWinner.Amount -= rakeFromPlayer
-		}
-		h.RakePaid = rakePaid
-		h.RakeCollected = totalRakeCollected
-	}
 	// update player balance
 	for _, pot := range potWinners {
 		for _, handWinner := range pot.HiWinners {
@@ -1178,6 +1202,15 @@ func (h *HandState) getLog() *HandLog {
 	handResult.HandStartedAt = h.HandStartedAt
 	handResult.HandEndedAt = h.HandEndedAt
 	handResult.HandEndedAt = uint64(time.Now().Unix())
+
+	if h.RunItTwiceConfirmed {
+		handResult.RunItTwice = true
+		handResult.RunItTwiceResult = &RunItTwiceResult{
+			RunItTwiceStartedAt: h.RunItTwice.Stage,
+			Board_1Winners:      h.PotWinners,
+			Board_2Winners:      h.Board2Winners,
+		}
+	}
 	return handResult
 }
 
@@ -1335,4 +1368,24 @@ func (h *HandState) raiseOptions(seatNo uint32, minRaiseAmount float32, maxRaise
 		}
 	}
 	return options
+}
+
+func (h *HandState) activeSeatsCount() int {
+	count := 0
+	for _, playerID := range h.ActiveSeats {
+		if playerID != 0 {
+			count++
+		}
+	}
+	return count
+}
+
+func (h *HandState) allinCount() int {
+	count := 0
+	for _, playerID := range h.AllInPlayers {
+		if playerID != 0 {
+			count++
+		}
+	}
+	return count
 }

@@ -53,6 +53,7 @@ const (
 	HandTurn             string = "TURN"
 	HandRiver            string = "RIVER"
 	HandShowDown         string = "SHOWDOWN"
+	HandRunItTwice       string = "RUN_IT_TWICE"
 	HandResultMessage    string = "RESULT"
 	HandEnded            string = "END"
 	HandPlayerActed      string = "PLAYER_ACTED"

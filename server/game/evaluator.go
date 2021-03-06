@@ -65,4 +65,5 @@ type HandEvaluator interface {
 	GetBestPlayerCards() map[uint32]*EvaluatedCards
 	GetHighHandCards() map[uint32]*EvaluatedCards
 	GetWinners() map[uint32]*PotWinners
+	GetBoard2Winners() map[uint32]*PotWinners
 }
