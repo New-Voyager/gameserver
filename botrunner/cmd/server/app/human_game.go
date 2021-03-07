@@ -9,25 +9,27 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"voyager.com/botrunner/internal/driver"
-	"voyager.com/botrunner/internal/game"
+	"voyager.com/gamescript"
 )
 
 // HumanGame manages an instance of a BotRunner that joins to a human-created game.
 type HumanGame struct {
 	logger          zerolog.Logger
 	botRunnerLogDir string
-	botRunnerScript *game.BotRunnerConfig
+	players         *gamescript.Players
+	script          *gamescript.Script
 	clubCode        string
 	gameCode        string
 	instance        *driver.BotRunner
 }
 
 // NewHumanGame creates a new instance of HumanGame.
-func NewHumanGame(clubCode string, gameCode string, script *game.BotRunnerConfig) (*HumanGame, error) {
+func NewHumanGame(clubCode string, gameCode string, players *gamescript.Players, script *gamescript.Script) (*HumanGame, error) {
 	b := HumanGame{
 		logger:          log.With().Str("logger_name", "HumanGame").Logger(),
 		botRunnerLogDir: filepath.Join(baseLogDir, "human_game"),
-		botRunnerScript: script,
+		players:         players,
+		script:          script,
 		clubCode:        clubCode,
 		gameCode:        gameCode,
 	}
@@ -50,7 +52,7 @@ func (b *HumanGame) Launch() error {
 	botPlayerLogger := zerolog.New(f).With().Str("logger_name", "BotPlayer").Logger()
 
 	b.logger.Info().Msgf("Launching bot runner to join a human game. Logging to %s", logFileName)
-	botRunner, err := driver.NewBotRunner(b.clubCode, b.gameCode, *b.botRunnerScript, &botRunnerLogger, &botPlayerLogger, "", "")
+	botRunner, err := driver.NewBotRunner(b.clubCode, b.gameCode, b.script, b.players, &botRunnerLogger, &botPlayerLogger, "", "")
 	if err != nil {
 		errors.Wrap(err, "Error while creating a BotRunner")
 	}

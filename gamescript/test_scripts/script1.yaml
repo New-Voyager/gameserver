@@ -1,6 +1,11 @@
 club:
   name: Bad Robots
   description: Club for testing
+  rewards:
+    - name: High Hand
+      type: HIGH_HAND
+      amount: 100
+      schedule: ENTIRE_GAME
 
 game:
   create: true
@@ -19,6 +24,7 @@ game:
   buy-in-min: 100
   buy-in-max: 300
   action-time: 100
+  rewards: High Hand
 
 starting-seats:
   - seat: 1
@@ -30,6 +36,9 @@ starting-seats:
   - seat: 8
     player: tom
     buy-in: 100
+
+tester: tom
+auto-play: true
 
 bot-config:
   min-action-pause-time: 500
