@@ -135,7 +135,7 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 	h.ButtonPos = buttonPos
 	h.PlayersActed = make([]*PlayerActRound, h.MaxSeats+1)
 	h.BringIn = float32(gameConfig.BringIn)
-	h.BurnCards = true
+	h.BurnCards = false
 
 	// if the players don't have money less than the blinds
 	// don't let them play
@@ -152,7 +152,7 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 	h.SmallBlindPos, h.BigBlindPos = h.getBlindPos()
 
 	h.BalanceBeforeHand = make([]*PlayerBalance, 0)
-	h.RunItTwiceOptedPlayers = make([]bool, int(h.MaxSeats))
+	h.RunItTwiceOptedPlayers = make([]bool, int(h.MaxSeats)+1) // +1 for dealer or empty seat
 	// also populate current balance of the players in the table
 	for seatNo, player := range h.PlayersInSeats {
 		if player == 0 {
@@ -545,6 +545,8 @@ func (h *HandState) actionReceived(action *HandAction) error {
 	amount := action.Amount
 	if action.Action == ACTION_ALLIN {
 		amount = bettingState.PlayerBalance[action.SeatNo] + playerBetSoFar
+		action.Amount = amount
+		diff = action.Amount - playerBetSoFar
 	}
 
 	if amount > h.CurrentRaise {
@@ -634,7 +636,7 @@ func (h *HandState) actionReceived(action *HandAction) error {
 			action.Action = ACTION_ALLIN
 			h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, action.Amount)
 			h.AllInPlayers[action.SeatNo] = 1
-			bettingState.PlayerBalance[action.SeatNo] = 0
+			//bettingState.PlayerBalance[action.SeatNo] = 0
 		}
 		//else {
 		//	bettingState.PlayerBalance[action.SeatNo] -= diff
@@ -664,7 +666,9 @@ func (h *HandState) actionReceived(action *HandAction) error {
 		h.CurrentRaise = action.Amount
 		h.ActionCompleteAtSeat = action.SeatNo
 	}
+
 	bettingState.PlayerBalance[action.SeatNo] = bettingState.PlayerBalance[action.SeatNo] - diff
+	action.Stack = bettingState.PlayerBalance[action.SeatNo]
 	// add the action to the log
 	log.Actions = append(log.Actions, action)
 	log.Pot = log.Pot + diff

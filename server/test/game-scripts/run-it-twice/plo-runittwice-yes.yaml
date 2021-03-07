@@ -1,8 +1,8 @@
-disabled: true
+disabled: false
 game-config:
-  type: HOLDEM
-  max-players: 9
-  min-players: 3
+  type: PLO
+  max-players: 3
+  min-players: 2
   min-buyin: 60.0
   max-buyin: 300.0
   auto-start: false
@@ -10,6 +10,8 @@ game-config:
   title: 3 players playing
   sb: 1.0
   bb: 2.0
+  rake-percentage: 10
+  rake-cap: 5
 
 # players in the game
 players:
@@ -28,16 +30,19 @@ take-seat:
       player: 1
       buy-in: 50
       run-it-twice: true
+      run-it-twice-prompt: yes
     -
-      seat: 5 
+      seat: 2
       player: 2
       buy-in: 50
       run-it-twice: true
+      run-it-twice-prompt: yes
     -
-      seat: 8 
+      seat: 3 
       player: 3
       buy-in: 50
       run-it-twice: true
+      run-it-twice-prompt: yes
 
   wait: 1
 
@@ -50,11 +55,11 @@ take-seat:
           player: 1
           stack: 50
         -
-          seat: 5 
+          seat: 2 
           player: 2
           stack: 50
         -
-          seat: 8 
+          seat: 3 
           player: 3
           stack: 50
 
@@ -65,54 +70,53 @@ hands:
     setup:
       button-pos: 1
       board: ["Ac", "Ad", "2c", "Td", "4s"]
-      board2: ["6c", "7d", "4c", "8d", "8s"]
+      board2: ["8d", "8s"]
       seat-cards:
         - 
-          cards: ["Kh", "Qd"]     # 5
+          cards: ["Kh", "Qd", "Jc", "Th"]
         -
-          cards: ["3s", "7s"]     # 8
+          cards: ["3s", "7s", "4s", "5c"]
         -
-          cards: ["9h", "2s"]     # 1
-      verify:
-        # verify button, sb, bb positions
-        # verify next action seat position
-        # verify current hand state
-        button: 1
-        sb: 5
-        bb: 8
-        next-action-pos: 1
-        state: PREFLOP
-        dealt-cards:
-          -
-            seat-no: 5
-            cards: ["Kh", "Qd"]
-          -
-            seat-no: 8
-            cards: ["3s", "7s"]
-          -
-            seat-no: 1
-            cards: ["9h", "2s"]
+          cards: ["9h", "2s", "Ah", "8c"]
    
     # simulate pre-flop action
     preflop-action:
-      actions:
-        -
-          seat: 1
-          action: FOLD
-        - 
-          seat: 5
-          action: ALLIN
-        - 
-          seat: 8
-          action: ALLIN
+      seat-actions:
+        - 1, BET, 5
+        - 2, CALL, 5
+        - 3, CALL, 5
+    flop-action:
+      seat-actions:
+        - 2, BET, 15
+        - 3, FOLD
+        - 1, ALLIN
+        - 2, ALLIN
 
-      # verify preflop-action result
-      # since both players folded, the round ended with a hand result
       verify:
         run-it-twice: true
         no-more-actions: true
-        state: FLOP
+        state: RESULT
         pots:
           -
-            pot: 100.0
-            seats: [5, 8]
+            pot: 105.0
+            seats: [1, 2]
+
+    result:
+      winners:
+        -
+          seat: 1
+          receive: 47.0
+      action-ended: SHOW_DOWN
+      
+      # balance indicates the player balance after the hand
+      # bb player won a chip
+      stacks:
+        -
+          seat: 1
+          stack: 100.0
+        -
+          seat: 2
+          stack: 0
+        -
+          seat: 3
+          stack: 45

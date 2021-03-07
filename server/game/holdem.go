@@ -54,6 +54,7 @@ func (h *HoldemWinnerEvaluate) Evaluate() {
 		h.evaluatePlayerBestCards(boardCards)
 
 		for i := len(pots) - 1; i >= 0; i-- {
+
 			pot := pots[i]
 			potWinners := &PotWinners{}
 			potWinners.HiWinners = h.determineHandWinners(pot, boardCards)
