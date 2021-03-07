@@ -95,8 +95,28 @@ hands:
       verify:
         run-it-twice: true
         no-more-actions: true
-        state: FLOP
+        state: RESULT
         pots:
           -
             pot: 105.0
             seats: [1, 2]
+
+    result:
+      winners:
+        -
+          seat: 1
+          receive: 47.0
+      action-ended: SHOW_DOWN
+      
+      # balance indicates the player balance after the hand
+      # bb player won a chip
+      stacks:
+        -
+          seat: 1
+          stack: 100.0
+        -
+          seat: 2
+          stack: 0
+        -
+          seat: 3
+          stack: 45

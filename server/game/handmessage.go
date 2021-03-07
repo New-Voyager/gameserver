@@ -302,19 +302,6 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 
 	// Send player's current stack to be updated in the UI
 	seatNo := message.GetPlayerActed().GetSeatNo()
-	var stack float32
-	if bettingState, ok := handState.RoundState[uint32(handState.CurrentState)]; ok {
-		stack = bettingState.PlayerBalance[seatNo]
-	}
-
-	if stack == 0 {
-		// get it from playerState
-		playerID := handState.PlayersInSeats[seatNo]
-		if playerID != 0 {
-			stack = handState.PlayersState[playerID].Balance
-		}
-	}
-
 	playerAction := handState.PlayersActed[seatNo]
 	if playerAction.State != PlayerActState_PLAYER_ACT_FOLDED {
 		message.GetPlayerActed().Amount = playerAction.Amount
@@ -324,7 +311,6 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 		message.GetPlayerActed().Amount = 0
 	}
 	message.HandNum = handState.HandNum
-	message.GetPlayerActed().Stack = stack
 	// broadcast this message to all the players
 	message.MessageId = 0
 	g.broadcastHandMessage(message)

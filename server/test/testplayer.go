@@ -26,6 +26,7 @@ type TestPlayer struct {
 	lastGameMessage *game.GameMessage
 	actionChange    *game.HandMessage
 	noMoreActions   *game.HandMessage
+	runItTwice      *game.HandMessage
 	yourAction      *game.HandMessage
 
 	// current hand message
@@ -154,6 +155,10 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 			// used for pot validation
 			if handMessage.MessageType == game.HandNoMoreActions {
 				t.noMoreActions = handMessage
+			}
+
+			if handMessage.MessageType == game.HandRunItTwice {
+				t.runItTwice = handMessage
 			}
 
 			logged = true

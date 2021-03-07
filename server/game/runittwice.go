@@ -246,8 +246,22 @@ func (g *Game) handleRunItTwice(h *HandState) {
 
 			fmt.Printf("Board1: %s, Board2: %s\n", poker.CardsToString(boardCards), poker.CardsToString(boardCards2))
 
+			pots := make([]*SeatsInPots, 0)
+			for _, pot := range h.Pots {
+				if pot.Pot != 0 {
+					pots = append(pots, pot)
+				}
+			}
+
 			// send the two boards to the app
-			runItTwiceMessage := &RunItTwiceBoards{Board_1: boardCards, Board_2: boardCards2, Stage: h.RunItTwice.Stage}
+			runItTwiceMessage := &RunItTwiceBoards{
+				Board_1:   boardCards,
+				Board_2:   boardCards2,
+				Stage:     h.RunItTwice.Stage,
+				Seat1:     h.RunItTwice.Seat1,
+				Seat2:     h.RunItTwice.Seat2,
+				SeatsPots: pots,
+			}
 			handMessage := &HandMessage{ClubId: g.config.ClubId,
 				GameId:      g.config.GameId,
 				HandNum:     h.HandNum,

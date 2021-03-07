@@ -215,7 +215,6 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.Betting
 		fmt.Printf("Run it twice")
 		// wait for the result
 		h.gameScript.waitForObserver()
-		return nil
 	} else if lastHandMessage.MessageType != game.HandResultMessage {
 		// wait for betting round message (flop, turn, river, showdown)
 		h.gameScript.waitForObserver()
@@ -549,6 +548,10 @@ func (h *TestHand) verifyBettingRound(t *TestDriver, verify *game.VerifyBettingR
 			gamePots = h.gameScript.observer.noMoreActions.GetNoMoreActions().Pots
 		}
 
+		if h.gameScript.observer.runItTwice != nil {
+			gamePots = h.gameScript.observer.runItTwice.GetRunItTwice().SeatsPots
+		}
+
 		if len(verify.Pots) != len(gamePots) {
 			e := fmt.Errorf("Pot count does not match. Expected: %d actual: %d", len(verify.Pots), len(gamePots))
 			h.gameScript.result.addError(e)
@@ -580,6 +583,13 @@ func (h *TestHand) verifyBettingRound(t *TestDriver, verify *game.VerifyBettingR
 					}
 				}
 			}
+		}
+	}
+
+	if verify.RunItTwice {
+		if h.gameScript.observer.runItTwice == nil {
+			e := fmt.Errorf("Expected to run it twice")
+			h.gameScript.result.addError(e)
 		}
 	}
 

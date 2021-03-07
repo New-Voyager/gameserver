@@ -108,6 +108,9 @@ message RunItTwiceBoards {
   repeated uint32 board_1 = 1;
   repeated uint32 board_2 = 2;
   HandStatus stage = 3;
+  repeated SeatsInPots seats_pots = 4; // seats that participate in the pots
+  uint32 seat1 = 5;
+  uint32 seat2 = 6;
 }
 
 message NoMoreActions {
