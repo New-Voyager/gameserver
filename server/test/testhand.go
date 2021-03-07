@@ -245,9 +245,13 @@ func (h *TestHand) waitForRunItTwicePrompt() {
 					MessageType: game.HandPlayerActed,
 				}
 				actionType := game.ACTION_RUN_IT_TWICE_YES
+				player := h.gameScript.playerFromSeat(seatAction.SeatNo)
+				if !player.player.RunItTwicePromptResponse {
+					actionType = game.ACTION_RUN_IT_TWICE_NO
+				}
+
 				handAction := game.HandAction{SeatNo: seatAction.SeatNo, Action: actionType}
 				message.HandMessage = &game.HandMessage_PlayerActed{PlayerActed: &handAction}
-				player := h.gameScript.playerFromSeat(seatAction.SeatNo)
 				player.player.HandProtoMessageFromAdapter(&message)
 				h.gameScript.waitForObserver()
 			}
