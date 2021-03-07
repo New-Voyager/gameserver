@@ -3,6 +3,7 @@ package poker
 import (
 	crypto_rand "crypto/rand"
 	"encoding/binary"
+	"fmt"
 	"math/rand"
 )
 
@@ -258,41 +259,54 @@ func DeckFromBoard(playerCards []CardsInAscii, board CardsInAscii, board2 CardsI
 	deckIndex++
 
 	if board2 != nil {
-		for _, cardStr := range board2[:3] {
-			card := NewCard(cardStr)
+		index := 0
+		if len(board2) == 5 {
+			for _, cardStr := range board2[:3] {
+				card := NewCard(cardStr)
+				cardLoc := deck.getCardLoc(card)
+				currentCard := deck.cards[deckIndex]
+				deck.cards[deckIndex] = card
+				deck.cards[cardLoc] = currentCard
+				deckIndex++
+				index++
+			}
+
+			if burnCard {
+				// burn card
+				deckIndex++
+			}
+		}
+
+		if len(board2) >= 2 {
+			// turn
+			card := NewCard(board2[index])
 			cardLoc := deck.getCardLoc(card)
 			currentCard := deck.cards[deckIndex]
 			deck.cards[deckIndex] = card
 			deck.cards[cardLoc] = currentCard
 			deckIndex++
+			index++
+
+			if burnCard {
+				// burn card
+				deckIndex++
+			}
 		}
 
-		if burnCard {
-			// burn card
+		if len(board2) >= 1 {
+			// river
+			card = NewCard(board2[index])
+			index++
+			cardLoc = deck.getCardLoc(card)
+			currentCard = deck.cards[deckIndex]
+			deck.cards[deckIndex] = card
+			deck.cards[cardLoc] = currentCard
 			deckIndex++
 		}
-
-		// turn
-		card := NewCard(board2[3])
-		cardLoc := deck.getCardLoc(card)
-		currentCard := deck.cards[deckIndex]
-		deck.cards[deckIndex] = card
-		deck.cards[cardLoc] = currentCard
-		deckIndex++
-
-		if burnCard {
-			// burn card
-			deckIndex++
-		}
-
-		// river
-		card = NewCard(board2[4])
-		cardLoc = deck.getCardLoc(card)
-		currentCard = deck.cards[deckIndex]
-		deck.cards[deckIndex] = card
-		deck.cards[cardLoc] = currentCard
-		deckIndex++
 	}
+
+	fmt.Printf("Deck: %s\n", CardsToString(deck.GetBytes()))
+
 	return deck
 }
 

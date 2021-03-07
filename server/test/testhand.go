@@ -375,10 +375,10 @@ func (h *TestHand) setup(t *TestDriver) error {
 	if !h.hand.Setup.AutoDeal {
 
 		if h.hand.Setup.Board != nil {
-			deck = poker.DeckFromBoard(playerCards, h.hand.Setup.Board, h.hand.Setup.Board2, true)
+			deck = poker.DeckFromBoard(playerCards, h.hand.Setup.Board, h.hand.Setup.Board2, false)
 		} else {
 			// arrange deck
-			deck = poker.DeckFromScript(playerCards, h.hand.Setup.Flop, poker.NewCard(h.hand.Setup.Turn), poker.NewCard(h.hand.Setup.River), true)
+			deck = poker.DeckFromScript(playerCards, h.hand.Setup.Flop, poker.NewCard(h.hand.Setup.Turn), poker.NewCard(h.hand.Setup.River), false)
 		}
 	}
 

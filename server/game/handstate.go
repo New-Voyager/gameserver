@@ -135,7 +135,7 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 	h.ButtonPos = buttonPos
 	h.PlayersActed = make([]*PlayerActRound, h.MaxSeats+1)
 	h.BringIn = float32(gameConfig.BringIn)
-	h.BurnCards = true
+	h.BurnCards = false
 
 	// if the players don't have money less than the blinds
 	// don't let them play
@@ -152,7 +152,7 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 	h.SmallBlindPos, h.BigBlindPos = h.getBlindPos()
 
 	h.BalanceBeforeHand = make([]*PlayerBalance, 0)
-	h.RunItTwiceOptedPlayers = make([]bool, int(h.MaxSeats))
+	h.RunItTwiceOptedPlayers = make([]bool, int(h.MaxSeats)+1) // +1 for dealer or empty seat
 	// also populate current balance of the players in the table
 	for seatNo, player := range h.PlayersInSeats {
 		if player == 0 {

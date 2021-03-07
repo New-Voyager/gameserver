@@ -14,8 +14,8 @@ func (g *Game) runItTwice(h *HandState) bool {
 	}
 
 	// we run it twice only for headsup and one of the players went all in
-	if h.allinCount() <= 2 || h.activeSeatsCount() == 2 {
-
+	allInPlayers := h.allinCount()
+	if allInPlayers != 0 && allInPlayers <= 2 && h.activeSeatsCount() == 2 {
 		// if both players opted for run-it-twice, then we will prompt
 		prompt := true
 		for seatNo, playerID := range h.ActiveSeats {
@@ -148,7 +148,6 @@ func (g *Game) runItTwiceConfirmation(h *HandState, message *HandMessage) {
 
 		// we need to acknowledge message
 	}
-
 	g.handleRunItTwice(h)
 
 	g.saveHandState(h)
@@ -156,6 +155,12 @@ func (g *Game) runItTwiceConfirmation(h *HandState, message *HandMessage) {
 
 func (g *Game) handleRunItTwice(h *HandState) {
 	runItTwice := h.RunItTwice
+
+	boardCards := make([]uint32, 5)
+	for i, card := range h.BoardCards {
+		boardCards[i] = uint32(card)
+	}
+	fmt.Printf("Board1: %s\n", poker.CardsToString(boardCards))
 
 	if runItTwice.Seat1Responded && runItTwice.Seat2Responded {
 		if runItTwice.Seat1Confirmed && runItTwice.Seat2Confirmed {
@@ -167,7 +172,10 @@ func (g *Game) handleRunItTwice(h *HandState) {
 			h.RunItTwiceConfirmed = true
 
 			deck := poker.DeckFromBytes(h.Deck)
-			deck.Draw(int(h.DeckIndex))
+			fmt.Printf("Deck: %s\n", poker.CardsToString(deck.GetBytes()))
+
+			otherCards := deck.Draw(int(h.DeckIndex))
+			fmt.Printf("Other Cards: %s\n", poker.CardsToString(otherCards))
 
 			board2 := make([]byte, 0)
 			flop := false
@@ -182,13 +190,14 @@ func (g *Game) handleRunItTwice(h *HandState) {
 				river = true
 			} else if h.RunItTwice.Stage == HandStatus_FLOP {
 				turn = true
+				river = true
 				// turn card and river card
-				board2 = h.BoardCards[:3]
+				board2 = append(board2, h.BoardCards[:3]...)
 			} else if h.RunItTwice.Stage == HandStatus_TURN {
 				river = true
 				// river card
 				// turn card and river card
-				board2 = h.BoardCards[:4]
+				board2 = append(board2, h.BoardCards[:4]...)
 			}
 
 			if flop {
@@ -208,6 +217,7 @@ func (g *Game) handleRunItTwice(h *HandState) {
 				}
 				cards := deck.Draw(1)
 				h.DeckIndex++
+				fmt.Printf("Cards: %s\n", poker.CardsToString(cards))
 				for _, card := range cards {
 					board2 = append(board2, card.GetByte())
 				}
@@ -220,6 +230,7 @@ func (g *Game) handleRunItTwice(h *HandState) {
 					h.DeckIndex++
 				}
 				cards := deck.Draw(1)
+				fmt.Printf("Cards: %s\n", poker.CardsToString(cards))
 				h.DeckIndex++
 				for _, card := range cards {
 					board2 = append(board2, card.GetByte())
@@ -227,11 +238,6 @@ func (g *Game) handleRunItTwice(h *HandState) {
 			}
 
 			h.BoardCards_2 = board2
-
-			boardCards := make([]uint32, 5)
-			for i, card := range h.BoardCards {
-				boardCards[i] = uint32(card)
-			}
 
 			boardCards2 := make([]uint32, 5)
 			for i, card := range h.BoardCards_2 {
