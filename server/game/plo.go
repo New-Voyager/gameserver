@@ -14,6 +14,7 @@ type PloWinnerEvaluate struct {
 	includeHighHand     bool
 	playerResult        map[uint32]poker.OmahaResult
 	hiLo                bool
+	board2Winners       map[uint32]*PotWinners // winners of the second board
 }
 
 func NewPloWinnerEvaluate(handState *HandState, includeHighHand bool, lowWinner bool, maxSeats uint32) *PloWinnerEvaluate {
@@ -21,6 +22,7 @@ func NewPloWinnerEvaluate(handState *HandState, includeHighHand bool, lowWinner 
 		handState:           handState,
 		activeSeatBestCombo: make(map[uint32]*EvaluatedCards, maxSeats),
 		winners:             make(map[uint32]*PotWinners),
+		board2Winners:       make(map[uint32]*PotWinners),
 		highHandCombo:       make(map[uint32]*EvaluatedCards, maxSeats),
 		includeHighHand:     includeHighHand,
 		playerResult:        make(map[uint32]poker.OmahaResult, 0),

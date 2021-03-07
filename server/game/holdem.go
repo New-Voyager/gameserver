@@ -11,7 +11,6 @@ type HoldemWinnerEvaluate struct {
 	board2Winners       map[uint32]*PotWinners     // winners of the second board
 	highHandCombo       map[uint32]*EvaluatedCards // seatno is the key, evaluated cards for high hand
 	includeHighHand     bool
-	runItTwice          bool
 }
 
 func NewHoldemWinnerEvaluate(handState *HandState, includeHighHand bool, maxSeats uint32) *HoldemWinnerEvaluate {
