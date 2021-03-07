@@ -27,12 +27,14 @@ var TotalBase64BytesReceived = 0
 // This virtual player cannot exist in the system without a club/game id
 //
 type Player struct {
-	ClubID                  uint32
-	GameID                  uint64
-	PlayerName              string
-	PlayerID                uint64
-	SeatNo                  uint32
-	RunItTwice              bool
+	ClubID                   uint32
+	GameID                   uint64
+	PlayerName               string
+	PlayerID                 uint64
+	SeatNo                   uint32
+	RunItTwice               bool
+	RunItTwicePromptResponse bool
+
 	NetworkConnectionActive bool
 	// callbacks to interact with different player communication mechanism
 	delegate PlayerMessageDelegate
@@ -355,7 +357,7 @@ func (p *Player) StartGame(clubID uint32, gameID uint64) error {
 	return e
 }
 
-func (p *Player) JoinGame(gameID uint64, seatNo uint32, buyIn float32, runItTwice bool) error {
+func (p *Player) JoinGame(gameID uint64, seatNo uint32, buyIn float32, runItTwice bool, runItTwicePromptResponse bool) error {
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	if _, ok := GameManager.activeGames[gameIDStr]; !ok {
 		// game not found
@@ -363,6 +365,7 @@ func (p *Player) JoinGame(gameID uint64, seatNo uint32, buyIn float32, runItTwic
 	}
 	p.SeatNo = seatNo
 	p.RunItTwice = runItTwice
+	p.RunItTwicePromptResponse = runItTwicePromptResponse
 	game, _ := GameManager.activeGames[gameIDStr]
 	game.addPlayer(p, buyIn)
 	p.game = game

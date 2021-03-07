@@ -63,6 +63,10 @@ func (n *NextSeatAction) PrettyPrint(h *HandState, playersInSeats []SeatPlayer) 
 			fmt.Fprintf(&b, "{ALL_IN, allInAmount: %f},", n.AllInAmount)
 		case ACTION_STRADDLE:
 			fmt.Fprintf(&b, "{STRADDLE, straddleAmount: %f},", n.StraddleAmount)
+		case ACTION_RUN_IT_TWICE_YES:
+			fmt.Fprintf(&b, "{RUN_IT_TWICE, YES},")
+		case ACTION_RUN_IT_TWICE_NO:
+			fmt.Fprintf(&b, "{RUN_IT_TWICE, NO},")
 		}
 	}
 	return b.String()
@@ -111,6 +115,10 @@ func (a *HandAction) Print(h *HandState, playersInSeats []SeatPlayer) string {
 		action = "RAISE"
 	case ACTION_BET:
 		action = "BET"
+	case ACTION_RUN_IT_TWICE_YES:
+		action = "RUN_IT_TWICE: YES"
+	case ACTION_RUN_IT_TWICE_NO:
+		action = "RUN_IT_TWICE: NO"
 	}
 
 	seatNo := a.SeatNo

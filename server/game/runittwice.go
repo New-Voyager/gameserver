@@ -117,12 +117,25 @@ func (g *Game) runItTwiceConfirmation(h *HandState, message *HandMessage) {
 		Msgf("Run it twice confirmation: %d", message.GetPlayerActed().Action)
 	action := message.GetPlayerActed().Action
 	runItTwice := h.RunItTwice
+
+	var log *HandActionLog
+	switch runItTwice.Stage {
+	case HandStatus_PREFLOP:
+		log = h.PreflopActions
+	case HandStatus_FLOP:
+		log = h.FlopActions
+	case HandStatus_TURN:
+		log = h.TurnActions
+	case HandStatus_RIVER:
+		log = h.RiverActions
+	}
+
 	if runItTwice.Seat1 == message.SeatNo {
 		runItTwice.Seat1Responded = true
 		if action == ACTION_RUN_IT_TWICE_YES {
 			runItTwice.Seat1Confirmed = true
 		}
-
+		log.Actions = append(log.Actions, message.GetPlayerActed())
 		// we need to acknowledge message
 	}
 
@@ -131,6 +144,7 @@ func (g *Game) runItTwiceConfirmation(h *HandState, message *HandMessage) {
 		if action == ACTION_RUN_IT_TWICE_YES {
 			runItTwice.Seat2Confirmed = true
 		}
+		log.Actions = append(log.Actions, message.GetPlayerActed())
 
 		// we need to acknowledge message
 	}

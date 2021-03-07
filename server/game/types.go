@@ -82,10 +82,11 @@ take-seat:
   wait: 1
 */
 type PlayerSeat struct {
-	Player     uint64  `yaml:"player"`
-	SeatNo     uint32  `yaml:"seat"`
-	BuyIn      float32 `yaml:"buy-in"`
-	RunItTwice bool    `yaml:"run-it-twice"`
+	Player                   uint64  `yaml:"player"`
+	SeatNo                   uint32  `yaml:"seat"`
+	BuyIn                    float32 `yaml:"buy-in"`
+	RunItTwice               bool    `yaml:"run-it-twice"`
+	RunItTwicePromptResponse bool    `yaml:"run-it-twice-prompt"`
 }
 
 type SeatVerification struct {
