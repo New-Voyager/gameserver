@@ -382,6 +382,11 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 				}
 			}
 		}
+
+		if bp.IsHost() {
+			bp.pauseGameIfNeeded()
+		}
+
 		// setup seat change requests
 		bp.setupSeatChange()
 
@@ -505,7 +510,11 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		}
 
 	case game.HandEnded:
-		bp.logger.Info().Msgf("%s: handNum: %d ended", bp.logPrefix, message.HandNum)
+		bp.logger.Info().Msgf("%s: IsHost: %d handNum: %d ended", bp.logPrefix, bp.IsHost(), message.HandNum)
+		if bp.IsHost() {
+			// process post hand steps if specified
+			bp.processPostHandSteps()
+		}
 
 	case game.HandQueryCurrentHand:
 		currentState := message.GetCurrentHandState()

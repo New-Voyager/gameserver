@@ -519,6 +519,44 @@ func (g *GQLHelper) ResetDB() error {
 	return nil
 }
 
+// PauseGame pauses the game in next hand
+func (g *GQLHelper) PauseGame(gameCode string) error {
+	req := graphql.NewRequest(PauseGameGQL)
+
+	req.Var("gameCode", gameCode)
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", g.authToken)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+	var resp interface{}
+	err := g.client.Run(ctx, req, &resp)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ResumeGame pauses the game in next hand
+func (g *GQLHelper) ResumeGame(gameCode string) error {
+	req := graphql.NewRequest(ResumeGameGQL)
+
+	req.Var("gameCode", gameCode)
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", g.authToken)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+	var resp interface{}
+	err := g.client.Run(ctx, req, &resp)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GameInfoGQL is the gql query string for gameinfo api.
 const GameInfoGQL = `query game_info($gameCode: String!) {
     gameInfo(gameCode: $gameCode) {
@@ -880,6 +918,18 @@ type JoinWaitListResp struct {
 
 const DeclineWaitListGQL = `mutation declineWaitlistSeat($gameCode: String!) {
 	confirmed: declineWaitlistSeat(
+		gameCode: $gameCode
+	)
+}`
+
+const PauseGameGQL = `mutation pauseGame($gameCode: String!) {
+	pauseGame(
+		gameCode: $gameCode
+	)
+}`
+
+const ResumeGameGQL = `mutation resumeGame($gameCode: String!) {
+	resumeGame(
 		gameCode: $gameCode
 	)
 }`

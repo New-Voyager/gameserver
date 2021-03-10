@@ -17,8 +17,8 @@
         "PRINT_HAND_MSG": "false"
       },
       "args": [
-        "--config",
-        "botrunner_scripts/waitlist.yaml"
+        "-script",
+        "botrunner_scripts/host-seatchange.yaml"
       ]
     },
     {

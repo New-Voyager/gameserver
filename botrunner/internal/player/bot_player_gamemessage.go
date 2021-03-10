@@ -3,6 +3,7 @@ package player
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -183,6 +184,42 @@ func (bp *BotPlayer) setupSeatChange() error {
 				bp.requestedSeatChange = true
 				bp.confirmSeatChange = seatChangeRequest.Confirm
 			}
+		}
+	}
+	return nil
+}
+
+func (bp *BotPlayer) pauseGameIfNeeded() error {
+	if int(bp.handNum) >= len(bp.config.Script.Hands) {
+		return nil
+	}
+
+	currentHand := bp.config.Script.Hands[bp.handNum-1]
+	if currentHand.PauseGame {
+		bp.logger.Info().Msgf("%s: Player [%s] requested to pause the game.", bp.logPrefix, bp.config.Name)
+		bp.gqlHelper.PauseGame(bp.gameCode)
+	}
+	return nil
+}
+
+func (bp *BotPlayer) processPostHandSteps() error {
+	if int(bp.handNum) >= len(bp.config.Script.Hands) {
+		return nil
+	}
+
+	currentHand := bp.config.Script.Hands[bp.handNum-1]
+	if len(currentHand.PostHandSteps) == 0 {
+		bp.logger.Info().Msgf("%s: No post hand steps.", bp.logPrefix)
+		return nil
+	}
+
+	for _, step := range currentHand.PostHandSteps {
+		if step.Sleep != 0 {
+			time.Sleep(time.Duration(step.Sleep) * time.Second)
+		}
+		if step.ResumeGame {
+			// resume game
+			bp.gqlHelper.ResumeGame(bp.gameCode)
 		}
 	}
 	return nil
