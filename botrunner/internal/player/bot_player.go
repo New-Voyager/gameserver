@@ -361,6 +361,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 		bp.handNum = message.HandNum
 		if bp.IsHost() {
+			bp.logger.Info().Msgf("A new hand is started. Hand Num: %d", message.HandNum)
 			if !bp.config.Script.AutoPlay {
 				if int(message.HandNum) == len(bp.config.Script.Hands) {
 					bp.logger.Info().Msgf("%s: Last hand: %d Game will be ended in next hand", bp.logPrefix, message.HandNum)

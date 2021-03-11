@@ -206,6 +206,7 @@ func (bp *BotPlayer) processPostHandSteps() error {
 	if int(bp.handNum) >= len(bp.config.Script.Hands) {
 		return nil
 	}
+	bp.logger.Info().Msgf("%s: Running post hand steps.", bp.logPrefix)
 
 	currentHand := bp.config.Script.Hands[bp.handNum-1]
 	if len(currentHand.PostHandSteps) == 0 {
@@ -215,13 +216,17 @@ func (bp *BotPlayer) processPostHandSteps() error {
 
 	for _, step := range currentHand.PostHandSteps {
 		if step.Sleep != 0 {
+			bp.logger.Info().Msgf("%s: Post hand step: Sleeping %d", bp.logPrefix, step.Sleep)
 			time.Sleep(time.Duration(step.Sleep) * time.Second)
+			bp.logger.Info().Msgf("%s: Post hand step: Sleeping %d done", bp.logPrefix, step.Sleep)
 		}
 		if step.ResumeGame {
+			bp.logger.Info().Msgf("%s: Post hand step: Resume game %s", bp.logPrefix, bp.gameCode)
 			// resume game
-			bp.gqlHelper.ResumeGame(bp.gameCode)
+			go bp.gqlHelper.ResumeGame(bp.gameCode)
 		}
 	}
+	bp.logger.Info().Msgf("%s: Running post hand steps done", bp.logPrefix)
 	return nil
 }
 
