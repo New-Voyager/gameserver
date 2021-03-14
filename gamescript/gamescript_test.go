@@ -92,7 +92,7 @@ func TestReadGameScript(t *testing.T) {
 						},
 					},
 					Auto: true,
-					SeatChange: []SeatChange{
+					SeatChange: []SeatChangeConfirm{
 						{
 							Seat:    2,
 							Confirm: true,

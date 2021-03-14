@@ -407,6 +407,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		if bp.IsHuman() || bp.IsObserver() {
 			bp.logger.Info().Msgf("%s: Flop cards shown: %s", bp.logPrefix, message.GetFlop().GetCardsStr())
 		}
+		bp.verifyBoard()
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 
 	case game.HandTurn:
@@ -416,6 +417,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		if bp.IsHuman() || bp.IsObserver() {
 			bp.logger.Info().Msgf("%s: Turn cards shown: %s", bp.logPrefix, message.GetTurn().GetCardsStr())
 		}
+		bp.verifyBoard()
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 
 	case game.HandRiver:
@@ -425,6 +427,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		if bp.IsHuman() || bp.IsObserver() {
 			bp.logger.Info().Msgf("%s: River cards shown: %s", bp.logPrefix, message.GetRiver().GetCardsStr())
 		}
+		bp.verifyBoard()
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 
 	case game.HandPlayerAction:
@@ -538,6 +541,49 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 			// YOUR_ACTION message you already missed while you were out.
 			bp.act(nextSeatAction)
 		}
+	}
+}
+
+func (bp *BotPlayer) verifyBoard() {
+	var expectedBoard []string
+	var currentBoard []uint32
+	scriptCurrentHand := bp.config.Script.GetHand(bp.handNum)
+	switch bp.game.table.handStatus {
+	case game.HandStatus_FLOP:
+		expectedBoard = scriptCurrentHand.Flop.Verify.Board
+		currentBoard = bp.game.table.flopCards
+	case game.HandStatus_TURN:
+		expectedBoard = scriptCurrentHand.Turn.Verify.Board
+		currentBoard = bp.game.table.turnCards
+	case game.HandStatus_RIVER:
+		expectedBoard = scriptCurrentHand.River.Verify.Board
+		currentBoard = bp.game.table.riverCards
+	}
+	if len(expectedBoard) == 0 {
+		// No verify in yaml.
+		return
+	}
+	expectedBoardCards := make([]poker.Card, 0)
+	currentBoardCards := make([]poker.Card, 0)
+	for _, c := range expectedBoard {
+		expectedBoardCards = append(expectedBoardCards, poker.NewCard(c))
+	}
+	for _, c := range currentBoard {
+		currentBoardCards = append(currentBoardCards, poker.NewCardFromByte(uint8(c)))
+	}
+	match := true
+	if len(expectedBoardCards) != len(currentBoardCards) {
+		match = false
+	}
+	for i := 0; i < len(expectedBoardCards); i++ {
+		if currentBoardCards[i] != expectedBoardCards[i] {
+			match = false
+			break
+		}
+	}
+
+	if !match {
+		bp.logger.Panic().Msgf("%s: Hand %d %s verify failed. Board does not match the expected. Current board: %v. Expected board: %v.", bp.logPrefix, bp.handNum, bp.game.table.handStatus, currentBoardCards, expectedBoardCards)
 	}
 }
 
