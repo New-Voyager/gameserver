@@ -13,6 +13,11 @@ build:
 	$(MAKE) -C $(BOTRUNNER_DIR) build
 	$(MAKE) -C $(SYSTEM_TEST_DIR) build
 
+.PHONY: test
+test:
+	$(MAKE) -C gamescript test
+	$(MAKE) -C server test
+
 .PHONY: system_test
 system_test:
 	$(MAKE) -C $(SYSTEM_TEST_DIR) docker-test
