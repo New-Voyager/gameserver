@@ -511,7 +511,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		}
 
 	case game.HandEnded:
-		bp.logger.Info().Msgf("%s: IsHost: %d handNum: %d ended", bp.logPrefix, bp.IsHost(), message.HandNum)
+		bp.logger.Info().Msgf("%s: IsHost: %v handNum: %d ended", bp.logPrefix, bp.IsHost(), message.HandNum)
 		if bp.IsHost() {
 			// process post hand steps if specified
 			bp.processPostHandSteps()

@@ -63,7 +63,7 @@ hands:
       auto: true
     pause-game: true
     post-hand:
-      - sleep: 3      # wait for the pause game to kick in
+      - sleep: 6      # wait for the pause game to kick in
       - host-seat-change:
           seat-change: true
           changes:

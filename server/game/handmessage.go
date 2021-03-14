@@ -555,6 +555,10 @@ func (g *Game) handEnded(handState *HandState) error {
 		GameId:      g.config.GameId,
 		MessageType: GameMoveToNextHand,
 	}
+
+	handState.FlowState = FlowState_MOVE_TO_NEXT_HAND
+	g.saveHandState(handState)
+
 	go g.SendGameMessageToChannel(gameMessage)
 
 	return nil
