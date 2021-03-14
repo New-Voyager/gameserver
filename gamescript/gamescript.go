@@ -418,3 +418,7 @@ func (s *Script) GetInitialBuyInAmount(seatNo uint32) float32 {
 	}
 	return 0
 }
+
+func (s *Script) GetHand(handNum uint32) Hand {
+	return s.Hands[handNum-1]
+}

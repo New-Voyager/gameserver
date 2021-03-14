@@ -126,7 +126,7 @@ func (gm *GameManager) SetupDeck(setupDeck SetupDeck) {
 			setupDeck.Flop,
 			poker.NewCard(setupDeck.Turn),
 			poker.NewCard(setupDeck.River),
-			true /* burn card */)
+			false /* burn card */)
 		natsGame.setupDeck(deck.GetBytes(), setupDeck.ButtonPos, setupDeck.Pause)
 	} else {
 		//deck := poker.NewDeck(nil)

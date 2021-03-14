@@ -414,9 +414,9 @@ func (h *HandState) getPlayersCards(deck *poker.Deck) map[uint32][]byte {
 		seatNo := h.ButtonPos
 		for {
 			seatNo = h.getNextActivePlayer(seatNo)
-			card := deck.Draw(1)
+			cards := deck.Draw(1)
 			h.DeckIndex++
-			playerCards[seatNo] = append(playerCards[seatNo], card[0].GetByte())
+			playerCards[seatNo] = append(playerCards[seatNo], cards[0].GetByte())
 			if seatNo == h.ButtonPos {
 				// next round of cards
 				break
