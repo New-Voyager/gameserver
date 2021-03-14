@@ -96,6 +96,13 @@ func (g *Game) onPendingUpdatesDone(message *GameMessage) error {
 	// move to next hand
 	if g.Status == GameStatus_ACTIVE && g.TableStatus == TableStatus_GAME_RUNNING {
 		// deal next hand
+		handState, err := g.loadHandState()
+		if err != nil {
+			return err
+		}
+		handState.FlowState = FlowState_DEAL_HAND
+		g.saveHandState(handState)
+
 		gameMessage := &GameMessage{
 			GameId:      g.config.GameId,
 			MessageType: GameDealHand,
@@ -106,6 +113,18 @@ func (g *Game) onPendingUpdatesDone(message *GameMessage) error {
 }
 
 func (g *Game) onMoveToNextHand(message *GameMessage) error {
+	handState, err := g.loadHandState()
+	if err != nil {
+		return err
+	}
+	return g.moveToNextHand(handState)
+}
+
+func (g *Game) moveToNextHand(handState *HandState) error {
+	expectedState := FlowState_MOVE_TO_NEXT_HAND
+	if handState.FlowState != expectedState {
+		return fmt.Errorf("moveToNextHand called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+	}
 
 	if !RunningTests {
 		time.Sleep(time.Duration(g.delays.OnMoveToNextHand) * time.Millisecond)
@@ -130,6 +149,10 @@ func (g *Game) onMoveToNextHand(message *GameMessage) error {
 		g.inProcessPendingUpdates = true
 		go processPendingUpdates(g.apiServerUrl, g.config.GameId)
 	} else {
+		// Save Flow State.
+		handState.FlowState = FlowState_DEAL_HAND
+		g.saveHandState(handState)
+
 		gameMessage := &GameMessage{
 			GameId:      g.config.GameId,
 			MessageType: GameDealHand,
@@ -163,7 +186,14 @@ func (g *Game) onStatusChanged(message *GameMessage) error {
 	g.Status = gameStatusChanged.NewStatus
 
 	if g.Status == GameStatus_ACTIVE {
-		g.startGame()
+		if g.inProcessPendingUpdates {
+			// Game status changed from paused -> active as part of the pending updates processing.
+			// Don't need to do anything.
+		} else {
+			// Game status changed from configured -> active. This is the trigger for the game server to start the game.
+			// Go ahead and start the game.
+			g.startGame()
+		}
 	}
 
 	return nil

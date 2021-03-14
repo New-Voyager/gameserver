@@ -69,15 +69,42 @@ type BotConfig struct {
 	MaxActionPauseTime uint32 `yaml:"max-action-pause-time"`
 }
 
+/*
+   - host-seat-change:
+       seat-change: true
+       changes:
+         - seat: 1
+           move: 3
+         - seat: 4
+           move: 5
+*/
+
+type SeatChange struct {
+	Seat uint32
+	Move uint32
+}
+type HostSeatChange struct {
+	SeatChange bool         `yaml:"seat-change"`
+	Changes    []SeatChange `yaml:"changes"`
+}
+
+type PostHandStep struct {
+	HostSeatChange HostSeatChange `yaml:"host-seat-change"`
+	ResumeGame     bool           `yaml:"resume-game"`
+	Sleep          uint32         `yaml:"sleep"`
+}
+
 // Hand contains an entry in the hands array in the game script.
 type Hand struct {
-	Num     uint32       `yaml:"num"`
-	Setup   HandSetup    `yaml:"setup"`
-	Preflop BettingRound `yaml:"preflop"`
-	Flop    BettingRound `yaml:"flop"`
-	Turn    BettingRound `yaml:"turn"`
-	River   BettingRound `yaml:"river"`
-	Result  HandResult   `yaml:"result"`
+	Num           uint32         `yaml:"num"`
+	Setup         HandSetup      `yaml:"setup"`
+	Preflop       BettingRound   `yaml:"preflop"`
+	Flop          BettingRound   `yaml:"flop"`
+	Turn          BettingRound   `yaml:"turn"`
+	River         BettingRound   `yaml:"river"`
+	Result        HandResult     `yaml:"result"`
+	PauseGame     bool           `yaml:"pause-game"`
+	PostHandSteps []PostHandStep `yaml:"post-hand"`
 }
 
 // HandSetup contains the setup content in the hand config.
@@ -89,7 +116,7 @@ type HandSetup struct {
 	SeatCards  []SeatCards          `yaml:"seat-cards"`
 	Verify     HandSetupVerfication `yaml:"verify"`
 	Auto       bool                 `yaml:"auto"`
-	SeatChange []SeatChange         `yaml:"seat-change"` // players requesting seat-change
+	SeatChange []SeatChangeConfirm  `yaml:"seat-change"` // players requesting seat-change
 	LeaveGame  []LeaveGame          `yaml:"leave-game"`
 	WaitLists  []WaitList           `yaml:"wait-list"`
 	Pause      uint32               `yaml:"pause"` // bot runner pauses and waits before next hand
@@ -109,7 +136,7 @@ type HandSetupVerfication struct {
 	DealtCards    []SeatCards `yaml:"dealt-cards"`
 }
 
-type SeatChange struct {
+type SeatChangeConfirm struct {
 	Seat    uint32 `yaml:"seat"`
 	Confirm bool   `yaml:"confirm"`
 }
@@ -315,6 +342,12 @@ func (s *Script) Validate() error {
 	validSeats := startingSeats.Clone()
 	for i, hand := range s.Hands {
 		handNum := i + 1
+
+		if hand.Setup.Auto {
+			// no validation required
+			continue
+		}
+
 		// Check card setup has no duplicate seat number.
 		for _, seatCards := range hand.Setup.SeatCards {
 			if seatCardSeats.Contains(seatCards.Seat) {

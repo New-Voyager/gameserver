@@ -270,6 +270,8 @@ func (g *Game) resumeGame(handState *HandState) error {
 		Msgf("Restarting hand at flow state [%s].", handState.FlowState)
 
 	switch handState.FlowState {
+	case FlowState_DEAL_HAND:
+		return g.dealNewHand()
 	case FlowState_WAIT_FOR_NEXT_ACTION:
 		// We're relying on the client to resend the action message.
 		break
@@ -287,6 +289,8 @@ func (g *Game) resumeGame(handState *HandState) error {
 		return g.showdown(handState)
 	case FlowState_HAND_ENDED:
 		return g.handEnded(handState)
+	case FlowState_MOVE_TO_NEXT_HAND:
+		return g.moveToNextHand(handState)
 	default:
 		return fmt.Errorf("Unhandled flow state: %s", handState.FlowState)
 	}

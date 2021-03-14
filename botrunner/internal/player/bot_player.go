@@ -361,6 +361,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 		bp.handNum = message.HandNum
 		if bp.IsHost() {
+			bp.logger.Info().Msgf("A new hand is started. Hand Num: %d", message.HandNum)
 			if !bp.config.Script.AutoPlay {
 				if int(message.HandNum) == len(bp.config.Script.Hands) {
 					bp.logger.Info().Msgf("%s: Last hand: %d Game will be ended in next hand", bp.logPrefix, message.HandNum)
@@ -382,6 +383,11 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 				}
 			}
 		}
+
+		if bp.IsHost() {
+			bp.pauseGameIfNeeded()
+		}
+
 		// setup seat change requests
 		bp.setupSeatChange()
 
@@ -505,7 +511,11 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		}
 
 	case game.HandEnded:
-		bp.logger.Info().Msgf("%s: handNum: %d ended", bp.logPrefix, message.HandNum)
+		bp.logger.Info().Msgf("%s: IsHost: %v handNum: %d ended", bp.logPrefix, bp.IsHost(), message.HandNum)
+		if bp.IsHost() {
+			// process post hand steps if specified
+			bp.processPostHandSteps()
+		}
 
 	case game.HandQueryCurrentHand:
 		currentState := message.GetCurrentHandState()
