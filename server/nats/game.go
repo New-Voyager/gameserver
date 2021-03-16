@@ -332,6 +332,7 @@ func (n *NatsGame) tableUpdate(gameID uint64, update *TableUpdate) {
 				Name:       move.Name,
 				OldSeatNo:  move.OldSeatNo,
 				NewSeatNo:  move.NewSeatNo,
+				Stack:      float32(move.Stack),
 			}
 		}
 		natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
