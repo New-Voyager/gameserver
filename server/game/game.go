@@ -345,6 +345,7 @@ func (g *Game) dealNewHand() error {
 	var err error
 
 	gameType := g.config.GameType
+	playersInSeats := make(map[uint32]*PlayerInSeatState)
 
 	if !RunningTests {
 		// we are not running tests
@@ -366,6 +367,10 @@ func (g *Game) dealNewHand() error {
 		for _, playerInSeat := range newHandInfo.PlayersInSeats {
 			if playerInSeat.SeatNo < uint32(g.config.MaxPlayers) {
 				g.PlayersInSeats[playerInSeat.SeatNo] = playerInSeat
+			}
+			playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
+				Status:  playerInSeat.Status,
+				Balance: playerInSeat.Stack,
 			}
 		}
 
@@ -427,6 +432,7 @@ func (g *Game) dealNewHand() error {
 		BringIn:        handState.BringIn,
 		Straddle:       handState.Straddle,
 		Pause:          g.pauseBeforeNextHand,
+		PlayersInSeats: playersInSeats,
 	}
 
 	//newHand.PlayerCards = playersCards

@@ -64,12 +64,11 @@ hands:
     pause-game: true
     post-hand:
       - host-seat-change:
-          seat-change: true
           changes:
-            - seat: 1
-              move: 3
-            - seat: 4
-              move: 5
+            - seat1: 1
+              seat2: 3
+            - seat1: 4
+              seat2: 5
       - resume-game: true
   - setup:
       button-pos: 1

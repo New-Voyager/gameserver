@@ -52,13 +52,8 @@ message NextSeatAction {
   repeated BetRaiseOption betOptions = 11; // bet/raise options
 }
 
-message HandPlayerState {
-  enum Status {
-    ACTIVE = 0;
-    FOLDED = 1;
-    SAT_OUT = 2;
-  }
-  Status status = 1;
+message PlayerInSeatState {
+  PlayerStatus status = 1;
   float balance = 2;
   HandStatus round = 3;
   float playerReceived = 4;
@@ -136,6 +131,7 @@ message SeatBetting {
   repeated float seat_bet  = 1;
 }
 
+
 message RoundState {
   SeatBetting betting = 1;
   map<uint32, float> player_balance = 2;
@@ -163,7 +159,6 @@ message CurrentHandState {
   float small_blind = 9;
   float straddle = 10;
 
-  map <uint32, HandPlayerState> players_state = 11; // seat no, player status
   map<uint32, PlayerActRound> players_acted = 12;   // seat no, player action in this round
 
   repeated uint32 board_cards = 13;

@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"voyager.com/botrunner/internal/game"
+	"voyager.com/gamescript"
 )
 
 func (bp *BotPlayer) handleGameMessage(message *game.GameMessage) {
@@ -113,6 +114,11 @@ func (bp *BotPlayer) onTableUpdate(message *game.GameMessage) {
 		fmt.Printf("%s", string(data))
 
 		bp.seatWaitList(message.GetTableUpdate())
+	} else if tableUpdate.Type == game.TableUpdateHostSeatChangeMove ||
+		tableUpdate.Type == game.TableUpdateHostSeatChangeInProcessStart ||
+		tableUpdate.Type == game.TableUpdateHostSeatChangeInProcessEnd {
+		data, _ := protojson.Marshal(message)
+		fmt.Printf("%s", string(data))
 	}
 }
 
@@ -236,6 +242,7 @@ func (bp *BotPlayer) processPostHandSteps() error {
 			bp.logger.Info().Msgf("%s: Post hand step: Sleeping %d", bp.logPrefix, step.Sleep)
 			time.Sleep(time.Duration(step.Sleep) * time.Second)
 			bp.logger.Info().Msgf("%s: Post hand step: Sleeping %d done", bp.logPrefix, step.Sleep)
+			continue
 		}
 		if step.ResumeGame {
 			bp.logger.Info().Msgf("%s: Post hand step: Resume game %s", bp.logPrefix, bp.gameCode)
@@ -244,9 +251,47 @@ func (bp *BotPlayer) processPostHandSteps() error {
 			if err != nil {
 				bp.logger.Error().Msgf("%s: Error while resuming game %s: %s", bp.logPrefix, bp.gameCode, err)
 			}
+			continue
+		}
+
+		if len(step.HostSeatChange.Changes) > 0 {
+			// initiate host seat change process
+			bp.hostSeatChange(&step.HostSeatChange)
+			continue
 		}
 	}
 	bp.logger.Info().Msgf("%s: Running post hand steps done", bp.logPrefix)
+	return nil
+}
+
+func (bp *BotPlayer) hostSeatChange(hostSeatChange *gamescript.HostSeatChange) error {
+	// initiate seat change process
+	bp.logger.Error().Msgf("%s: Initiating host seat change process game %s: %s", bp.logPrefix, bp.gameCode)
+	_, err := bp.gqlHelper.HostRequestSeatChange(bp.gameCode)
+	if err != nil {
+		bp.logger.Error().Msgf("%s: Error setting up host seat change process game %s: %s", bp.logPrefix, bp.gameCode, err)
+		return err
+	}
+	time.Sleep(2 * time.Second)
+	// make seat changes
+	for _, change := range hostSeatChange.Changes {
+		bp.logger.Error().Msgf("%s: game %s: Swapping seat: %d to seat2: %d", bp.logPrefix, bp.gameCode, change.Seat1, change.Seat2)
+		_, err := bp.gqlHelper.HostRequestSeatChangeSwap(bp.gameCode, change.Seat1, change.Seat2)
+		time.Sleep(1 * time.Second)
+		if err != nil {
+			bp.logger.Error().Msgf("%s: Error swapping seat1: %d to seat2: %d failed. game %s: %s", bp.logPrefix, change.Seat1, change.Seat2, bp.gameCode, err)
+			return err
+		}
+	}
+
+	time.Sleep(2 * time.Second)
+	bp.logger.Error().Msgf("%s: game %s: Completing seat change updates", bp.logPrefix, bp.gameCode)
+	// complete seat change process
+	_, err = bp.gqlHelper.HostRequestSeatChangeComplete(bp.gameCode)
+	if err != nil {
+		bp.logger.Error().Msgf("%s: Error completing host seat change process game %s: %s", bp.logPrefix, bp.gameCode, err)
+		return err
+	}
 	return nil
 }
 

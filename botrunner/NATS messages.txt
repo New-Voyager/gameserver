@@ -1,0 +1,8 @@
+Host Seat Change
+{"gameId":"47", "gameCode":"CG-JEET2IZOABJG28O", "messageType":"TABLE_UPDATE", "tableUpdate":{"type":"HostSeatChangeInProcessStart", "seatChangeHost":"354"}}
+{"gameId":"47", "gameCode":"CG-JEET2IZOABJG28O", "messageType":"TABLE_UPDATE", "tableUpdate":{"type":"HostSeatChangeMove", "seatMoves":[{"playerId":"358", "playerUuid":"5cd96779-c6b2-4dba-a814-f365b6b48aeb", "name":"rob", "oldSeatNo":5, "newSeatNo":4}, {"playerId":"357", "playerUuid":"52f59bab-02eb-43d8-9dce-69e57aed7f7d", "name":"jim", "oldSeatNo":4, "newSeatNo":5}]}}{"gameId":"47", "gameCode":"CG-JEET2IZOABJG28O", "messageType":"TABLE_UPDATE", "tableUpdate":{"type":"HostSeatChangeMove", "seatMoves":[{"playerId":"358", "playerUuid":"5cd96779-c6b2-4dba-a814-f365b6b48aeb", "name":"rob", "oldSeatNo":5, "newSeatNo":4}, {"playerId":"357", "playerUuid":"52f59bab-02eb-43d8-9dce-69e57aed7f7d", "name":"jim", "oldSeatNo":4, "newSeatNo":5}]}}
+{"gameId":"47", "gameCode":"CG-JEET2IZOABJG28O", "messageType":"TABLE_UPDATE", "tableUpdate":{"type":"HostSeatChangeInProcessEnd", "seatChangeHost":"354"}}
+
+
+New Hand
+{"clubId":25,"gameId":"48","gameCode":"CG-G3ATQIGJ2277PPW","handNum":1,"messageType":"NEW_HAND","handStatus":"PREFLOP","newHand":{"buttonPos":1,"sbPos":2,"bbPos":3,"nextActionSeat":4,"gameType":"PLO","noCards":4,"smallBlind":1,"bigBlind":2,"straddle":4,"playersInSeats":{"1":{"status":"PLAYING","balance":100},"2":{"status":"PLAYING","balance":100},"3":{"status":"PLAYING","balance":100},"4":{"status":"PLAYING","balance":100},"5":{"status":"PLAYING","balance":100},"6":{"status":"PLAYING","balance":100},"7":{"status":"PLAYING","balance":100},"8":{"status":"PLAYING","balance":100},"9":{"status":"PLAYING","balance":100}}}}

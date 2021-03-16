@@ -45,6 +45,7 @@ message NewHand {
   float bring_in = 10;
   float straddle = 11;
   uint32 pause = 12;      // the hand will pause for specified seconds
+  map <uint32, PlayerInSeatState> players_in_seats = 13; // seat no, player status
 }
 
 //HandDealCards message is sent to each player when cards dealt to the player
