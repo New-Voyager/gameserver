@@ -214,6 +214,23 @@ func (bp *BotPlayer) processPostHandSteps() error {
 		return nil
 	}
 
+	// we need to process post hand steps only after the game is paused
+	var isGamePaused bool
+	var err error
+	for !isGamePaused {
+		isGamePaused, err = bp.isGamePaused()
+		if err != nil {
+			bp.logger.Error().Msgf("Getting game info failed. Error: %s", err.Error())
+			panic(fmt.Sprintf("Getting game info failed. Error: %s", err.Error()))
+		}
+		if !isGamePaused {
+			bp.logger.Info().Msgf("Game Info: Game pause status: %v. Waiting for a second", isGamePaused)
+			time.Sleep(1 * time.Second)
+		} else {
+			bp.logger.Info().Msgf("Game Info: Game pause status: %v", isGamePaused)
+		}
+	}
+
 	for _, step := range currentHand.PostHandSteps {
 		if step.Sleep != 0 {
 			bp.logger.Info().Msgf("%s: Post hand step: Sleeping %d", bp.logPrefix, step.Sleep)

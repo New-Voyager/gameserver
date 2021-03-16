@@ -1523,6 +1523,17 @@ func (bp *BotPlayer) storeGameInfo() error {
 	return nil
 }
 
+func (bp *BotPlayer) isGamePaused() (bool, error) {
+	gi, err := bp.GetGameInfo(bp.gameCode)
+	if err != nil {
+		return false, errors.Wrap(err, fmt.Sprintf("%s: Unable to get game info %s", bp.logPrefix, bp.gameCode))
+	}
+	if gi.Status == game.GameStatus_PAUSED.String() {
+		return true, nil
+	}
+	return false, nil
+}
+
 func (bp *BotPlayer) getPlayerNameBySeatNo(seatNo uint32) string {
 	for _, p := range bp.gameInfo.SeatInfo.PlayersInSeats {
 		if p.SeatNo == seatNo {
