@@ -361,7 +361,10 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 		bp.handNum = message.HandNum
 		if bp.IsHost() {
-			bp.logger.Info().Msgf("A new hand is started. Hand Num: %d", message.HandNum)
+			data, _ := protojson.Marshal(message)
+			fmt.Printf("%s", string(data))
+
+			bp.logger.Info().Msgf("A new hand is started. Hand Num: %d, message: %s", message.HandNum, string(data))
 			if !bp.config.Script.AutoPlay {
 				if int(message.HandNum) == len(bp.config.Script.Hands) {
 					bp.logger.Info().Msgf("%s: Last hand: %d Game will be ended in next hand", bp.logPrefix, message.HandNum)
@@ -1561,4 +1564,17 @@ func (bp *BotPlayer) GetClubCode(name string) (string, error) {
 		return "", nil
 	}
 	return clubCode, nil
+}
+
+// HostRequestSeatChange schedules to end the game after the current hand is finished.
+func (bp *BotPlayer) HostRequestSeatChange(gameCode string) error {
+	bp.logger.Info().Msgf("%s: Host is requesting to make seat changes in game [%s].", bp.logPrefix, gameCode)
+
+	status, err := bp.gqlHelper.HostRequestSeatChange(gameCode)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("%s: Error while host is requesting to make seat changes  [%s]", bp.logPrefix, gameCode))
+	}
+
+	bp.logger.Info().Msgf("%s: Successfully requested to make seat changes. Status: [%s]", bp.logPrefix, gameCode, status)
+	return nil
 }

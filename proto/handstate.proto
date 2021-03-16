@@ -69,7 +69,7 @@ message HandState {
   uint32 big_blind_pos = 25;
 
   // key is player id
-  map <uint64, HandPlayerState> players_state = 26;
+  map <uint64, PlayerInSeatState> players_state = 26;
   float next_min_raise = 27;
 
   // game type

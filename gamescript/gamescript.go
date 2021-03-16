@@ -80,12 +80,11 @@ type BotConfig struct {
 */
 
 type SeatChange struct {
-	Seat uint32
-	Move uint32
+	Seat1 uint32
+	Seat2 uint32
 }
 type HostSeatChange struct {
-	SeatChange bool         `yaml:"seat-change"`
-	Changes    []SeatChange `yaml:"changes"`
+	Changes []SeatChange `yaml:"changes"`
 }
 
 type PostHandStep struct {

@@ -557,6 +557,78 @@ func (g *GQLHelper) ResumeGame(gameCode string) error {
 	return nil
 }
 
+// HostRequestSeatChange initiates host seat change process
+func (g *GQLHelper) HostRequestSeatChange(gameCode string) (bool, error) {
+	req := graphql.NewRequest(HostSeatChangeRequestGQL)
+
+	//var respData EndGameResp
+	req.Var("gameCode", gameCode)
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", g.authToken)
+	var resp struct {
+		SeatChange bool `json:"seatChange"`
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+
+	err := g.client.Run(ctx, req, &resp)
+	if err != nil {
+		return false, err
+	}
+
+	return resp.SeatChange, nil
+}
+
+// HostRequestSeatChangeComplete completes the seat change process
+func (g *GQLHelper) HostRequestSeatChangeComplete(gameCode string) (bool, error) {
+	req := graphql.NewRequest(HostSeatChangeCompleteRequestGQL)
+
+	//var respData EndGameResp
+	req.Var("gameCode", gameCode)
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", g.authToken)
+	var resp struct {
+		SeatChange bool `json:"seatChange"`
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+
+	err := g.client.Run(ctx, req, &resp)
+	if err != nil {
+		return false, err
+	}
+
+	return resp.SeatChange, nil
+}
+
+// HostRequestSeatChangeSwap requests two swap seats between two players
+func (g *GQLHelper) HostRequestSeatChangeSwap(gameCode string, seat1 uint32, seat2 uint32) (bool, error) {
+	req := graphql.NewRequest(HostSeatChangeSwapGQL)
+
+	//var respData EndGameResp
+	req.Var("gameCode", gameCode)
+	req.Var("seatNo1", seat1)
+	req.Var("seatNo2", seat2)
+
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", g.authToken)
+	var resp struct {
+		SeatChange bool `json:"seatChange"`
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+
+	err := g.client.Run(ctx, req, &resp)
+	if err != nil {
+		return false, err
+	}
+
+	return resp.SeatChange, nil
+}
+
 // GameInfoGQL is the gql query string for gameinfo api.
 const GameInfoGQL = `query game_info($gameCode: String!) {
     gameInfo(gameCode: $gameCode) {
@@ -963,4 +1035,24 @@ const MyClubsGQL = `query  {
 
 const ResetDBGQL = `mutation {
 	reset: resetDB
+}`
+
+const HostSeatChangeRequestGQL = `mutation beginHostSeatChange($gameCode: String!) {
+	seatChange: beginHostSeatChange(
+		gameCode: $gameCode
+	)
+}`
+
+const HostSeatChangeCompleteRequestGQL = `mutation seatChangeComplete($gameCode: String!) {
+	seatChange: seatChangeComplete(
+		gameCode: $gameCode
+	)
+}`
+
+const HostSeatChangeSwapGQL = `mutation seatChangeSwapSeats($gameCode: String!, $seatNo1: Int!, $seatNo2: Int!) {
+	seatChange: seatChangeSwapSeats(
+		gameCode: $gameCode
+		seatNo1: $seatNo1
+		seatNo2: $seatNo2
+	)
 }`

@@ -48,7 +48,10 @@ const (
 
 // Table update messages
 const (
-	TableUpdateOpenSeat          string = "OpenSeat"
-	TableUpdateWaitlistSeating   string = "WaitlistSeating"
-	TableUpdateSeatChangeProcess string = "SeatChangeInProgress"
+	TableUpdateOpenSeat                     string = "OpenSeat"
+	TableUpdateWaitlistSeating              string = "WaitlistSeating"
+	TableUpdateSeatChangeProcess            string = "SeatChangeInProgress"
+	TableUpdateHostSeatChangeInProcessStart string = "HostSeatChangeInProcessStart"
+	TableUpdateHostSeatChangeMove           string = "HostSeatChangeMove"
+	TableUpdateHostSeatChangeInProcessEnd   string = "HostSeatChangeInProcessEnd"
 )
