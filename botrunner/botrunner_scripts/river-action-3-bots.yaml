@@ -94,7 +94,8 @@ hands:
     result:
       winners:
         - seat: 1
-          receive: 56.0
+          receive: 54.0
+          rank: Two Pair
       action-ended: SHOW_DOWN
       
       # balance indicates the player balance after the hand

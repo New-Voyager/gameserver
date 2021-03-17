@@ -14,6 +14,7 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/google/go-cmp/cmp"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/looplab/fsm"
 	"github.com/machinebox/graphql"
@@ -501,6 +502,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		/* MessageType: RESULT */
 		bp.game.table.handStatus = message.GetHandStatus()
 		bp.game.table.handResult = message.GetHandResult()
+		bp.verifyResult()
 		if bp.IsObserver() {
 			bp.PrintHandResult()
 		}
@@ -587,6 +589,46 @@ func (bp *BotPlayer) verifyBoard() {
 
 	if !match {
 		bp.logger.Panic().Msgf("%s: Hand %d %s verify failed. Board does not match the expected. Current board: %v. Expected board: %v.", bp.logPrefix, bp.handNum, bp.game.table.handStatus, currentBoardCards, expectedBoardCards)
+	}
+}
+
+func (bp *BotPlayer) verifyResult() {
+	scriptResult := bp.config.Script.GetHand(bp.handNum).Result
+	expectedWonAt := scriptResult.ActionEndedAt
+	wonAt := bp.GetHandResult().GetHandLog().GetWonAt()
+	if expectedWonAt != "" {
+		if expectedWonAt != wonAt.String() {
+			bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Won at: %s. Expected won at: %s.", bp.logPrefix, bp.handNum, wonAt, expectedWonAt)
+		}
+	}
+	if len(scriptResult.Winners) == 0 {
+		// No verify
+		return
+	}
+	type winner struct {
+		SeatNo  uint32
+		Amount  float32
+		RankStr string
+	}
+	expectedWinnersBySeat := make(map[uint32]winner)
+	for _, expectedWinner := range scriptResult.Winners {
+		expectedWinnersBySeat[expectedWinner.Seat] = winner{
+			SeatNo:  expectedWinner.Seat,
+			Amount:  expectedWinner.Receive,
+			RankStr: expectedWinner.RankStr,
+		}
+	}
+	actualWinnersBySeat := make(map[uint32]winner)
+	pots := bp.GetHandResult().GetHandLog().GetPotWinners()
+	for _, w := range pots[0].HiWinners {
+		actualWinnersBySeat[w.GetSeatNo()] = winner{
+			SeatNo:  w.GetSeatNo(),
+			Amount:  w.GetAmount(),
+			RankStr: w.GetRankStr(),
+		}
+	}
+	if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
+		bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.handNum, actualWinnersBySeat, expectedWinnersBySeat)
 	}
 }
 
