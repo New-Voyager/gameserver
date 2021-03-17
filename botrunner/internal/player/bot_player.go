@@ -363,7 +363,9 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		bp.handNum = message.HandNum
 		if bp.IsHost() {
 			data, _ := protojson.Marshal(message)
-			fmt.Printf("%s", string(data))
+			fmt.Printf("==========================\n")
+			fmt.Printf("%s\n", string(data))
+			fmt.Printf("==========================\n")
 
 			bp.logger.Info().Msgf("A new hand is started. Hand Num: %d, message: %s", message.HandNum, string(data))
 			if !bp.config.Script.AutoPlay {
@@ -386,10 +388,30 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 					bp.setupNextHand()
 				}
 			}
+			bp.pauseGameIfNeeded()
+
+			currentHand := bp.config.Script.Hands[message.HandNum-1]
+			if len(currentHand.Setup.Verify.Seats) > 0 {
+				for _, seat := range currentHand.Setup.Verify.Seats {
+					seatPlayer := newHand.PlayersInSeats[seat.Seat]
+					if seatPlayer.Name != seat.Player {
+						bp.logger.Error().Msgf("Player %s should be in seat %d, but found another player: %s", seatPlayer.Name, seat.Seat, seat.Player)
+						panic(fmt.Sprintf("Player %s should be in seat %d, but found another player: %s", seatPlayer.Name, seat.Seat, seat.Player))
+					}
+				}
+			}
 		}
 
-		if bp.IsHost() {
-			bp.pauseGameIfNeeded()
+		// update seat number
+		for seatNo, player := range newHand.PlayersInSeats {
+			if player.PlayerId == bp.PlayerID {
+				if bp.seatNo != seatNo {
+					bp.logger.Info().Msgf("%s: Player: %s changed seat from %d to %d", bp.logPrefix, player.Name, bp.seatNo, seatNo)
+					bp.seatNo = seatNo
+					bp.updateLogPrefix()
+				}
+				break
+			}
 		}
 
 		// setup seat change requests

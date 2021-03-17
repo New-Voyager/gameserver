@@ -49,7 +49,7 @@ func (bp *BotPlayer) handleGameMessage(message *game.GameMessage) {
 		if playerUpdateMsg.GetNewUpdate() == game.NewUpdate_SWITCH_SEAT {
 			if playerID == bp.PlayerID {
 				data, _ := json.Marshal(message)
-				fmt.Printf("%s", string(data))
+				fmt.Printf("%s\n", string(data))
 
 				bp.game.table.me = p
 				bp.seatNo = p.seatNo
@@ -101,7 +101,7 @@ func (bp *BotPlayer) onTableUpdate(message *game.GameMessage) {
 	tableUpdate := message.GetTableUpdate()
 	if tableUpdate.Type == game.TableUpdateSeatChangeProcess {
 		data, _ := protojson.Marshal(message)
-		fmt.Printf("%s", string(data))
+		fmt.Printf("%s\n", string(data))
 		// open seat
 		// do i want to change seat??
 		if bp.requestedSeatChange && bp.confirmSeatChange {
@@ -111,14 +111,21 @@ func (bp *BotPlayer) onTableUpdate(message *game.GameMessage) {
 		}
 	} else if tableUpdate.Type == game.TableUpdateWaitlistSeating {
 		data, _ := protojson.Marshal(message)
-		fmt.Printf("%s", string(data))
+		fmt.Printf("%s\n", string(data))
 
 		bp.seatWaitList(message.GetTableUpdate())
 	} else if tableUpdate.Type == game.TableUpdateHostSeatChangeMove ||
 		tableUpdate.Type == game.TableUpdateHostSeatChangeInProcessStart ||
 		tableUpdate.Type == game.TableUpdateHostSeatChangeInProcessEnd {
 		data, _ := protojson.Marshal(message)
-		fmt.Printf("%s", string(data))
+
+		if tableUpdate.Type == game.TableUpdateHostSeatChangeInProcessEnd {
+			fmt.Printf("==========================\n")
+			fmt.Printf("%s\n", string(data))
+			fmt.Printf("==========================\n")
+		} else {
+			fmt.Printf("%s\n", string(data))
+		}
 	}
 }
 
