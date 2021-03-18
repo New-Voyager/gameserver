@@ -169,7 +169,7 @@ func gameUpdateStatus(c *gin.Context) {
 		return
 	}
 	log.Info().Uint64("gameId", gameStatus.GameId).Msg(fmt.Sprintf("New game status: %d", gameStatus.GameStatus))
-	natsGameManager.GameStatusChanged(gameStatus.GameId, game.GameStatus(gameStatus.GameStatus))
+	natsGameManager.GameStatusChanged(gameStatus.GameId, gameStatus)
 }
 
 func gamePendingUpdates(c *gin.Context) {

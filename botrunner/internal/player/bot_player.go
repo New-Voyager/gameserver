@@ -574,6 +574,12 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 func (bp *BotPlayer) verifyBoard() {
 	var expectedBoard []string
 	var currentBoard []uint32
+
+	// if the script is configured to auto play, return
+	if bp.config.Script.AutoPlay {
+		return
+	}
+
 	scriptCurrentHand := bp.config.Script.GetHand(bp.handNum)
 	switch bp.game.table.handStatus {
 	case game.HandStatus_FLOP:
@@ -615,6 +621,11 @@ func (bp *BotPlayer) verifyBoard() {
 }
 
 func (bp *BotPlayer) verifyResult() {
+
+	// don't verify result for auto play
+	if bp.config.Script.AutoPlay {
+		return
+	}
 	scriptResult := bp.config.Script.GetHand(bp.handNum).Result
 	expectedWonAt := scriptResult.ActionEndedAt
 	wonAt := bp.GetHandResult().GetHandLog().GetWonAt()

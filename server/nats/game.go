@@ -112,15 +112,26 @@ func (n *NatsGame) cleanup() {
 }
 
 // message sent from apiserver to game
-func (n *NatsGame) gameStatusChanged(gameID uint64, newStatus game.GameStatus) {
+func (n *NatsGame) gameStatusChanged(gameID uint64, newStatus GameStatus) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
-		Msg(fmt.Sprintf("APIServer->Game: Status changed. GameID: %d, NewStatus: %s", gameID, game.GameStatus_name[int32(newStatus)]))
+		Msg(fmt.Sprintf("APIServer->Game: Status changed. GameID: %d, NewStatus: %s", gameID, game.GameStatus_name[int32(newStatus.GameStatus)]))
+
+	var statusChangeMessage game.GameMessage
+	statusChangeMessage.GameId = gameID
+	statusChangeMessage.MessageType = game.GameStatusChanged
+	statusChangeMessage.GameMessage = &game.GameMessage_StatusChange{StatusChange: &game.GameStatusChangeMessage{NewStatus: newStatus.GameStatus}}
+
+	n.serverGame.SendGameMessageToChannel(&statusChangeMessage)
+	n.BroadcastGameMessage(&statusChangeMessage)
+
 	var message game.GameMessage
 	message.GameId = gameID
-	message.MessageType = game.GameStatusChanged
-	message.GameMessage = &game.GameMessage_StatusChange{StatusChange: &game.GameStatusChangeMessage{NewStatus: newStatus}}
+	message.GameCode = n.gameCode
+	message.MessageType = game.GameCurrentStatus
+	message.GameMessage = &game.GameMessage_Status{Status: &game.GameStatusMessage{Status: newStatus.GameStatus, TableStatus: newStatus.TableStatus}}
 
-	n.serverGame.SendGameMessageToChannel(&message)
+	//n.serverGame.SendGameMessageToChannel(&message)
+	n.BroadcastGameMessage(&message)
 }
 
 // message sent from apiserver to game
@@ -213,6 +224,7 @@ func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 		Msg(fmt.Sprintf("Game->AllPlayers: %s", message.MessageType))
 	// let send this to all players
 	data, _ := protojson.Marshal(message)
+	fmt.Printf("%s\n", string(data))
 
 	if message.GameCode != n.gameCode {
 		// TODO: send to the other games
