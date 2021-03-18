@@ -1,6 +1,6 @@
 syntax = "proto3";
 package game;
-option go_package = "game";
+option go_package = "./game";
 import "game.proto";
 
 
