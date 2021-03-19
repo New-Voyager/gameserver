@@ -140,7 +140,7 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 		if playerID == 0 {
 			continue
 		}
-		currentHandState.PlayersStack[uint64(seatNo)] = playerState[playerID].Balance
+		currentHandState.PlayersStack[uint64(seatNo)] = playerState[playerID].Stack
 	}
 
 	handStateMsg := &HandMessage{
@@ -408,7 +408,7 @@ func (g *Game) gotoFlop(handState *HandState) {
 			continue
 		}
 		if playerState, ok := handState.PlayersState[playerID]; ok {
-			balance[uint32(seatNo)] = playerState.Balance
+			balance[uint32(seatNo)] = playerState.Stack
 		}
 	}
 
@@ -457,7 +457,7 @@ func (g *Game) gotoTurn(handState *HandState) {
 			continue
 		}
 		if playerState, ok := handState.PlayersState[playerID]; ok {
-			balance[uint32(seatNo)] = playerState.Balance
+			balance[uint32(seatNo)] = playerState.Stack
 		}
 	}
 
@@ -505,7 +505,7 @@ func (g *Game) gotoRiver(handState *HandState) {
 			continue
 		}
 		if playerState, ok := handState.PlayersState[playerID]; ok {
-			balance[uint32(seatNo)] = playerState.Balance
+			balance[uint32(seatNo)] = playerState.Stack
 		}
 	}
 

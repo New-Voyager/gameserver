@@ -20,8 +20,9 @@ var logger = log.With().Str("logger_name", "server::apiserver").Logger()
 var apiServerUrl = ""
 
 type GameStatus struct {
-	GameId     uint64 `json:"gameId"`
-	GameStatus uint32 `json:"gameStatus"`
+	GameId      uint64           `json:"gameId"`
+	GameStatus  game.GameStatus  `json:"gameStatus"`
+	TableStatus game.TableStatus `json:"tableStatus"`
 }
 
 type PlayerUpdate struct {

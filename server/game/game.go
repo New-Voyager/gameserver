@@ -364,13 +364,30 @@ func (g *Game) dealNewHand() error {
 			g.PlayersInSeats[seatNo] = SeatPlayer{}
 		}
 
+		/*
+			type SeatPlayer struct {
+				SeatNo       uint32
+				OpenSeat     bool
+				PlayerID     uint64 `json:"playerId"`
+				PlayerUUID   string `json:"playerUuid"`
+				Name         string
+				BuyIn        float32
+				Stack        float32
+				Status       PlayerStatus
+				GameToken    string
+				GameTokenInt uint64
+				RunItTwice   bool
+			}
+		*/
 		for _, playerInSeat := range newHandInfo.PlayersInSeats {
 			if playerInSeat.SeatNo < uint32(g.config.MaxPlayers) {
 				g.PlayersInSeats[playerInSeat.SeatNo] = playerInSeat
 			}
 			playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
-				Status:  playerInSeat.Status,
-				Balance: playerInSeat.Stack,
+				Status:   playerInSeat.Status,
+				Stack:    playerInSeat.Stack,
+				PlayerId: playerInSeat.PlayerID,
+				Name:     playerInSeat.Name,
 			}
 		}
 

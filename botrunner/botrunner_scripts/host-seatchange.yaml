@@ -73,23 +73,23 @@ hands:
   - setup:
       button-pos: 1
       auto: true
-
-  # - setup:
-  #     button-pos: 2
-  #     auto: true
-
-  #   # pause the game, and make seat changes
-  #   # pause-game: true
-  #   # post-hand:
-  #   #   - host-seat-change:
-  #   #       seat-change: true
-  #   #       changes:
-  #   #         - seat: 1
-  #   #           move: 3
-  #   #         - seat: 4
-  #   #           move: 5
-  #   #   - resume-game: true
-
-  #  - setup:
-  #     button-pos: 3
-  #     auto: true
+      verify:
+        seats:
+          - seat: 1
+            player: tom
+          - seat: 2
+            player: brian
+          - seat: 3
+            player: yong
+          - seat: 4
+            player: rob
+          - seat: 5
+            player: jim
+          - seat: 6
+            player: john
+          - seat: 7
+            player: michael
+          - seat: 8
+            player: bill
+          - seat: 9
+            player: david

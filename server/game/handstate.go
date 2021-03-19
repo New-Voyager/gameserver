@@ -195,8 +195,10 @@ func (h *HandState) copyPlayersState(maxSeats uint32, playersInSeats []SeatPlaye
 			continue
 		}
 		handPlayerState[player.PlayerID] = &PlayerInSeatState{
-			Status:  PlayerStatus_PLAYING,
-			Balance: player.Stack,
+			PlayerId: player.PlayerID,
+			Name:     player.Name,
+			Status:   PlayerStatus_PLAYING,
+			Stack:    player.Stack,
 		}
 	}
 	return handPlayerState
@@ -210,7 +212,7 @@ func (h *HandState) setupRound(state HandStatus) {
 			continue
 		}
 		state := h.PlayersState[playerID]
-		roundState.PlayerBalance[uint32(seatNo)] = state.Balance
+		roundState.PlayerBalance[uint32(seatNo)] = state.Stack
 	}
 }
 
@@ -636,12 +638,7 @@ func (h *HandState) actionReceived(action *HandAction) error {
 			action.Action = ACTION_ALLIN
 			h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_ALL_IN, action.Amount)
 			h.AllInPlayers[action.SeatNo] = 1
-			//bettingState.PlayerBalance[action.SeatNo] = 0
 		}
-		//else {
-		//	bettingState.PlayerBalance[action.SeatNo] -= diff
-		//}
-
 		bettingRound.SeatBet[action.SeatNo] = action.Amount
 	} else if action.Action == ACTION_SB ||
 		action.Action == ACTION_BB ||
@@ -740,7 +737,7 @@ func (h *HandState) settleRound() {
 		if playerID == 0 {
 			continue
 		}
-		h.PlayersState[playerID].Balance -= bet
+		h.PlayersState[playerID].Stack -= bet
 	}
 
 	// if only one player is active, then this hand is concluded
@@ -784,7 +781,7 @@ func (h *HandState) settleRound() {
 		}
 		if maxBet != 0 && secondMaxBet != 0 && maxBetPos > 0 {
 			playerID := h.PlayersInSeats[maxBetPos]
-			h.PlayersState[playerID].Balance += (maxBet - secondMaxBet)
+			h.PlayersState[playerID].Stack += (maxBet - secondMaxBet)
 		}
 	}
 
@@ -1172,13 +1169,13 @@ func (h *HandState) setWinners(potWinners map[uint32]*PotWinners, board2 bool) {
 		for _, handWinner := range pot.HiWinners {
 			seatNo := handWinner.SeatNo
 			playerID := h.GetPlayersInSeats()[seatNo]
-			h.PlayersState[playerID].Balance += handWinner.Amount
+			h.PlayersState[playerID].Stack += handWinner.Amount
 			h.PlayersState[playerID].PlayerReceived += handWinner.Amount
 		}
 		for _, handWinner := range pot.LowWinners {
 			seatNo := handWinner.SeatNo
 			playerID := h.GetPlayersInSeats()[seatNo]
-			h.PlayersState[playerID].Balance += handWinner.Amount
+			h.PlayersState[playerID].Stack += handWinner.Amount
 			h.PlayersState[playerID].PlayerReceived += handWinner.Amount
 		}
 	}
@@ -1191,7 +1188,7 @@ func (h *HandState) setWinners(potWinners map[uint32]*PotWinners, board2 bool) {
 		}
 		state := h.GetPlayersState()[player]
 		h.BalanceAfterHand = append(h.BalanceAfterHand,
-			&PlayerBalance{SeatNo: uint32(seatNo), PlayerId: player, Balance: state.Balance})
+			&PlayerBalance{SeatNo: uint32(seatNo), PlayerId: player, Balance: state.Stack})
 	}
 }
 

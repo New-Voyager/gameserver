@@ -66,11 +66,11 @@ func (gm *GameManager) EndNatsGame(clubID uint32, gameID uint64) {
 	}
 }
 
-func (gm *GameManager) GameStatusChanged(gameID uint64, newStatus game.GameStatus) {
+func (gm *GameManager) GameStatusChanged(gameID uint64, newStatus GameStatus) {
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	if game, ok := gm.activeGames[gameIDStr]; ok {
 		// if game ended, remove natsgame and game
-		if newStatus == GAMESTATUS_ENDED {
+		if newStatus.GameStatus == GAMESTATUS_ENDED {
 			delete(gm.activeGames, gameIDStr)
 			delete(gm.gameCodes, gameIDStr)
 			game.gameEnded()

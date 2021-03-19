@@ -53,10 +53,12 @@ message NextSeatAction {
 }
 
 message PlayerInSeatState {
-  PlayerStatus status = 1;
-  float balance = 2;
-  HandStatus round = 3;
-  float playerReceived = 4;
+  uint64 player_id = 1;
+  string name = 2;
+  PlayerStatus status = 3;
+  float stack = 4;
+  HandStatus round = 5;
+  float playerReceived = 6;
 }
 
 message PlayerBalance {

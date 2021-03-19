@@ -26,13 +26,13 @@ func (h *HandState) PrintTable(players map[uint64]string) string {
 			playerCards, _ := h.PlayersCards[uint32(seatNo)]
 			cardString := poker.CardsToString(playerCards)
 			if uint32(seatNo) == h.ButtonPos {
-				fmt.Fprintf(&b, " {%d: %s, %f, %s, BUTTON} ", seatNo, player, playerState.Balance, cardString)
+				fmt.Fprintf(&b, " {%d: %s, %f, %s, BUTTON} ", seatNo, player, playerState.Stack, cardString)
 			} else if uint32(seatNo) == h.SmallBlindPos {
-				fmt.Fprintf(&b, " {%d: %s, %f, %s, SB} ", seatNo, player, playerState.Balance, cardString)
+				fmt.Fprintf(&b, " {%d: %s, %f, %s, SB} ", seatNo, player, playerState.Stack, cardString)
 			} else if uint32(seatNo) == h.BigBlindPos {
-				fmt.Fprintf(&b, " {%d: %s, %f, %s, BB} ", seatNo, player, playerState.Balance, cardString)
+				fmt.Fprintf(&b, " {%d: %s, %f, %s, BB} ", seatNo, player, playerState.Stack, cardString)
 			} else {
-				fmt.Fprintf(&b, " {%d: %s, %f, %s} ", seatNo, player, playerState.Balance, cardString)
+				fmt.Fprintf(&b, " {%d: %s, %f, %s} ", seatNo, player, playerState.Stack, cardString)
 			}
 		}
 	}
@@ -47,7 +47,7 @@ func (n *NextSeatAction) PrettyPrint(h *HandState, playersInSeats []SeatPlayer) 
 	player := playersInSeats[seatNo]
 	var b strings.Builder
 	b.Grow(32)
-	fmt.Fprintf(&b, " Next Action: {Seat No: %d, Player: %s, balance: %f}, ", seatNo, player.Name, playerState.Balance)
+	fmt.Fprintf(&b, " Next Action: {Seat No: %d, Player: %s, balance: %f}, ", seatNo, player.Name, playerState.Stack)
 	fmt.Fprintf(&b, " Available actions: [")
 	for _, action := range n.AvailableActions {
 		switch action {

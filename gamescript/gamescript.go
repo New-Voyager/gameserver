@@ -63,6 +63,12 @@ type StartingSeat struct {
 	BuyIn  float32 `yaml:"buy-in"`
 }
 
+// VerifySeat verifies seat position in a new hand
+type VerifySeat struct {
+	Seat   uint32 `yaml:"seat"`
+	Player string `yaml:"player"`
+}
+
 // BotConfig contains botConfig content in the game script.
 type BotConfig struct {
 	MinActionPauseTime uint32 `yaml:"min-action-pause-time"`
@@ -127,12 +133,13 @@ type SeatCards struct {
 }
 
 type HandSetupVerfication struct {
-	Button        uint32      `yaml:"button"`
-	SB            uint32      `yaml:"sb"`
-	BB            uint32      `yaml:"bb"`
-	NextActionPos uint32      `yaml:"next-action-pos"`
-	State         string      `yaml:"state"`
-	DealtCards    []SeatCards `yaml:"dealt-cards"`
+	Button        uint32       `yaml:"button"`
+	SB            uint32       `yaml:"sb"`
+	BB            uint32       `yaml:"bb"`
+	NextActionPos uint32       `yaml:"next-action-pos"`
+	State         string       `yaml:"state"`
+	DealtCards    []SeatCards  `yaml:"dealt-cards"`
+	Seats         []VerifySeat `yaml:"seats"`
 }
 
 type SeatChangeConfirm struct {
