@@ -390,13 +390,15 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 			}
 			bp.pauseGameIfNeeded()
 
-			currentHand := bp.config.Script.Hands[message.HandNum-1]
-			if len(currentHand.Setup.Verify.Seats) > 0 {
-				for _, seat := range currentHand.Setup.Verify.Seats {
-					seatPlayer := newHand.PlayersInSeats[seat.Seat]
-					if seatPlayer.Name != seat.Player {
-						bp.logger.Error().Msgf("Player %s should be in seat %d, but found another player: %s", seatPlayer.Name, seat.Seat, seat.Player)
-						panic(fmt.Sprintf("Player %s should be in seat %d, but found another player: %s", seatPlayer.Name, seat.Seat, seat.Player))
+			if !bp.config.Script.AutoPlay {
+				currentHand := bp.config.Script.Hands[message.HandNum-1]
+				if len(currentHand.Setup.Verify.Seats) > 0 {
+					for _, seat := range currentHand.Setup.Verify.Seats {
+						seatPlayer := newHand.PlayersInSeats[seat.Seat]
+						if seatPlayer.Name != seat.Player {
+							bp.logger.Error().Msgf("Player %s should be in seat %d, but found another player: %s", seatPlayer.Name, seat.Seat, seat.Player)
+							panic(fmt.Sprintf("Player %s should be in seat %d, but found another player: %s", seatPlayer.Name, seat.Seat, seat.Player))
+						}
 					}
 				}
 			}
