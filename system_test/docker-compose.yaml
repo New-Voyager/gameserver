@@ -1,12 +1,8 @@
 version: '3'
 
-# This docker-compose launches all components except game server and botrunner.
-# Game server and botrunner will be launched separtely by the system test.
-
 services:
   nats:
     image: ${NATS_SERVER_IMAGE}
-    restart: always
     ports:
       - 4222:4222
       - 8222:8222
@@ -18,40 +14,70 @@ services:
 
   redis:
     image: ${REDIS_IMAGE}
-    restart: always
     ports:
       - 6379:6379
 
-  api-server:
-    image: ${API_SERVER_IMAGE}
-    restart: always
-    ports:
-      - 9501:9501
-    depends_on:
-      - postgres
-      - nats
-    command:
-      - "/bin/sh"
-      - "-c"
-      - "sleep 5 && yarn run-docker"
-    environment:
-      NATS_URL: nats://nats:4222
-      BOTRUNNER_URL: http://botrunner:8081
-
   postgres:
     image: ${POSTGRES_IMAGE}
-    restart: always
-    volumes:
-      - db-data:/var/lib/postgresql/data
     ports:
       - 5432:5432
     environment:
       POSTGRES_USER: 'game'
       POSTGRES_PASSWORD: 'game'
 
-volumes:
-  db-data:
-      
+  api-server:
+    image: ${API_SERVER_IMAGE}
+    ports:
+      - 9501:9501
+    depends_on:
+      - postgres
+      - nats
+      - redis
+    command:
+      - "/bin/sh"
+      - "-c"
+      - "sleep 5 && yarn run-docker"
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      NATS_URL: nats://nats:4222
+      BOTRUNNER_URL: http://botrunner:8081
+
+  game-server:
+    image: ${GAME_SERVER_IMAGE}
+    tty: true
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      - nats
+      - api-server
+    environment:
+      PERSIST_METHOD: redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      API_SERVER_URL: http://api-server:9501
+    command:
+      - "/bin/sh"
+      - "-c"
+      - "sleep 10 && /app/game-server --server"
+
+  botrunner:
+    image: ${BOTRUNNER_IMAGE}
+    tty: true
+    ports:
+      - 8081:8081
+    depends_on:
+      - api-server
+      - game-server
+    environment:
+      API_SERVER_URL: http://api-server:9501
+      PERSIST_METHOD: redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+
 networks:
   default:
     external:

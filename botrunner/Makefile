@@ -29,12 +29,12 @@ install-protoc:
 .PHONY: compile-proto
 compile-proto:
 	#go get -u github.com/golang/protobuf/protoc-gen-go
-	protoc -I=$(PROTO_DIR) --go_out=./internal/game $(PROTO_DIR)/game.proto
-	protoc -I=$(PROTO_DIR) --go_out=./internal/game $(PROTO_DIR)/hand.proto
-	protoc -I=$(PROTO_DIR) --go_out=./internal/game $(PROTO_DIR)/gamestate.proto
-	protoc -I=$(PROTO_DIR) --go_out=./internal/game $(PROTO_DIR)/handstate.proto
-	protoc -I=$(PROTO_DIR) --go_out=./internal/game $(PROTO_DIR)/gamemessage.proto
-	protoc -I=$(PROTO_DIR) --go_out=./internal/game $(PROTO_DIR)/handmessage.proto
+	protoc -I=$(PROTO_DIR) --go_out=./internal/ $(PROTO_DIR)/game.proto
+	protoc -I=$(PROTO_DIR) --go_out=./internal/ $(PROTO_DIR)/hand.proto
+	protoc -I=$(PROTO_DIR) --go_out=./internal/ $(PROTO_DIR)/gamestate.proto
+	protoc -I=$(PROTO_DIR) --go_out=./internal/ $(PROTO_DIR)/handstate.proto
+	protoc -I=$(PROTO_DIR) --go_out=./internal/ $(PROTO_DIR)/gamemessage.proto
+	protoc -I=$(PROTO_DIR) --go_out=./internal/ $(PROTO_DIR)/handmessage.proto
 
 .PHONY: docker-build
 docker-build: compile-proto

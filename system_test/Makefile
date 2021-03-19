@@ -7,10 +7,14 @@ GCR_REGISTRY := gcr.io/voyager-01-285603
 DO_REGISTRY := registry.digitalocean.com/voyager
 REGISTRY := $(DO_REGISTRY)
 
-API_SERVER_IMAGE := $(REGISTRY)/api-server:0.2.7
+API_SERVER_IMAGE := $(REGISTRY)/api-server:0.2.18
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
 REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
 POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5
+
+# These images are built locally.
+GAME_SERVER_IMAGE=game-server:latest
+BOTRUNNER_IMAGE=botrunner:latest
 
 DOCKER_BUILDKIT ?= 1
 
@@ -23,13 +27,10 @@ DEV_API_SERVER_URL := http://localhost:9501
 build:
 	go build -o test
 
-# Build the docker image used for system test.
 .PHONY: docker-build
 docker-build:
-	# Compile protobuf files for game server and botrunner.
-	$(MAKE) -C $(PROJECT_ROOT) compile-proto
-	# Build context is the root directory, so that the game server and the botrunner are included.
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build $(PROJECT_ROOT) -f ./Dockerfile -t $(TEST_DOCKER_IMAGE)
+	$(MAKE) -C $(PROJECT_ROOT)/server docker-build
+	$(MAKE) -C $(PROJECT_ROOT)/botrunner docker-build
 
 .PHONY: create-network
 create-network:
@@ -43,6 +44,8 @@ login:
 env:
 	> .env && \
 		echo "API_SERVER_IMAGE=$(API_SERVER_IMAGE)" >> .env && \
+		echo "GAME_SERVER_IMAGE=$(GAME_SERVER_IMAGE)" >> .env && \
+		echo "BOTRUNNER_IMAGE=$(BOTRUNNER_IMAGE)" >> .env && \
 		echo "NATS_SERVER_IMAGE=$(NATS_SERVER_IMAGE)" >> .env && \
 		echo "REDIS_IMAGE=$(REDIS_IMAGE)" >> .env && \
 		echo "POSTGRES_IMAGE=$(POSTGRES_IMAGE)" >> .env && \
