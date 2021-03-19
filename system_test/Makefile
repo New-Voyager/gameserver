@@ -7,7 +7,7 @@ GCR_REGISTRY := gcr.io/voyager-01-285603
 DO_REGISTRY := registry.digitalocean.com/voyager
 REGISTRY := $(DO_REGISTRY)
 
-API_SERVER_IMAGE := $(REGISTRY)/api-server:0.2.18
+API_SERVER_IMAGE := $(REGISTRY)/api-server:0.2.20
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
 REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
 POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5
@@ -64,25 +64,5 @@ stack-down: env
 	docker-compose down
 
 .PHONY: docker-test
-docker-test: docker-build stack-down stack-up
-	docker run -t --rm \
-		--name=systest \
-		--network=$(TEST_DOCKER_NET) \
-		-e PERSIST_METHOD=redis \
-		-e REDIS_HOST=redis \
-		-e REDIS_PORT=6379 \
-		-e REDIS_DB=0 \
-		-e API_SERVER_URL=http://api-server:9501 \
-		$(TEST_DOCKER_IMAGE) \
-		"./docker-test.sh"
-
-# Run the system test locally.
-# The dependent components (api server, nats, redis, postgres) must be launched manually.
-.PHONY: test
-test: export PERSIST_METHOD=redis
-test: export REDIS_HOST=localhost
-test: export REDIS_PORT=6379
-test: export REDIS_DB=0
-test: export API_SERVER_URL=http://localhost:9501
-test:
-	./test --config config.yaml --game-server-dir=$(PROJECT_ROOT)/server --botrunner-dir=$(PROJECT_ROOT)/botrunner
+system-test: docker-build stack-down stack-up
+	./docker-test.sh
