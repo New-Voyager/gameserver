@@ -39,7 +39,11 @@ compile-proto:
 .PHONY: docker-build
 docker-build: compile-proto
 	mkdir -p build
-	rsync -avu --delete $(PROJECT_ROOT)/gamescript/ build/gamescript
+	if [ "${CIRCLECI}" = "true" ]; then \
+		[ -d build/gamescript ] || cp -r $(PROJECT_ROOT)/gamescript build/gamescript; \
+	else \
+		rsync -avu --delete $(PROJECT_ROOT)/gamescript/ build/gamescript; \
+	fi
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t botrunner
 
 .PHONY: build
