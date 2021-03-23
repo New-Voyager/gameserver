@@ -9,12 +9,13 @@ type gameView struct {
 	status      game.GameStatus
 	tableStatus game.TableStatus
 	table       *tableView
+	handNum     uint32
+	handStatus  game.HandStatus
+	handResult  *game.HandResult
 }
 
 // The state of the game table from the player's point of view.
 type tableView struct {
-	handNum        uint32
-	handStatus     game.HandStatus
 	nextActionSeat uint32
 	buttonPos      uint32
 	sbPos          uint32
@@ -29,11 +30,9 @@ type tableView struct {
 	riverCards []uint32
 
 	// The moves from myself and other players that have been played so far at each hand stage.
-	actionsRecord *game.HandActionRecord
+	actionTracker *game.HandActionTracker
 
 	playersActed map[uint32]*game.PlayerActRound
-
-	handResult *game.HandResult
 }
 
 type player struct {

@@ -11,16 +11,20 @@ compile-proto:
 build:
 	$(MAKE) -C $(SERVER_DIR) build
 	$(MAKE) -C $(BOTRUNNER_DIR) build
-	$(MAKE) -C $(SYSTEM_TEST_DIR) build
+
+.PHONY: docker-build
+docker-build:
+	$(MAKE) -C $(SERVER_DIR) docker-build
+	$(MAKE) -C $(BOTRUNNER_DIR) docker-build
 
 .PHONY: test
 test:
 	$(MAKE) -C gamescript test
 	$(MAKE) -C server test
 
-.PHONY: system_test
-system_test:
-	$(MAKE) -C $(SYSTEM_TEST_DIR) docker-test
+.PHONY: system-test
+system-test:
+	$(MAKE) -C $(SYSTEM_TEST_DIR) system-test
 
 # Delegate the other targets to the game server Makefile for now.
 .PHONY: %

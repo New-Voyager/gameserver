@@ -4,9 +4,9 @@ import (
 	"sync"
 )
 
-// HandActionRecord is meant for remembering who did what at each stage of a hand.
+// HandActionTracker is meant for remembering who did what at each stage of a hand.
 // I.e., during pre-flop, seat 1 raised by 4, then seat 3 folded, etc.
-type HandActionRecord struct {
+type HandActionTracker struct {
 	data map[HandStatus][]SeatAction
 	sync.RWMutex
 }
@@ -19,16 +19,16 @@ type SeatAction struct {
 	TimedOut bool
 }
 
-// NewHandActionRecord creates an instance of HandActionRecord.
-func NewHandActionRecord() *HandActionRecord {
+// NewHandActionTracker creates an instance of HandActionRecord.
+func NewHandActionTracker() *HandActionTracker {
 	d := make(map[HandStatus][]SeatAction)
-	return &HandActionRecord{
+	return &HandActionTracker{
 		data: d,
 	}
 }
 
-// RecordAction stores the action into the record.
-func (h *HandActionRecord) RecordAction(seatNo uint32, action ACTION, amount float32, timedOut bool, handStatus HandStatus) {
+// RecordAction stores the action into the tracker.
+func (h *HandActionTracker) RecordAction(seatNo uint32, action ACTION, amount float32, timedOut bool, handStatus HandStatus) {
 	h.Lock()
 	defer h.Unlock()
 	actions, ok := h.data[handStatus]
@@ -45,7 +45,7 @@ func (h *HandActionRecord) RecordAction(seatNo uint32, action ACTION, amount flo
 }
 
 // GetActions returns all the seat actions that has been recorded so far for the requested handStatus.
-func (h *HandActionRecord) GetActions(handStatus HandStatus) []SeatAction {
+func (h *HandActionTracker) GetActions(handStatus HandStatus) []SeatAction {
 	h.Lock()
 	defer h.Unlock()
 	actions, ok := h.data[handStatus]
@@ -56,7 +56,7 @@ func (h *HandActionRecord) GetActions(handStatus HandStatus) []SeatAction {
 }
 
 // GetActionsForSeat returns all the seat actions for one seat.
-func (h *HandActionRecord) GetActionsForSeat(seatNo uint32, handStatus HandStatus) []SeatAction {
+func (h *HandActionTracker) GetActionsForSeat(seatNo uint32, handStatus HandStatus) []SeatAction {
 	h.RLock()
 	defer h.RUnlock()
 	seatActions := make([]SeatAction, 0)

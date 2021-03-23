@@ -3,10 +3,6 @@ version: '3'
 services:
   nats:
     image: ${NATS_SERVER_IMAGE}
-    ports:
-      - 4222:4222
-      - 8222:8222
-      - 9222:9222
     command:
       - "/bin/sh"
       - "-c"
@@ -14,21 +10,15 @@ services:
 
   redis:
     image: ${REDIS_IMAGE}
-    ports:
-      - 6379:6379
 
   postgres:
     image: ${POSTGRES_IMAGE}
-    ports:
-      - 5432:5432
     environment:
       POSTGRES_USER: 'game'
       POSTGRES_PASSWORD: 'game'
 
   api-server:
     image: ${API_SERVER_IMAGE}
-    ports:
-      - 9501:9501
     depends_on:
       - postgres
       - nats
@@ -47,8 +37,6 @@ services:
     image: ${GAME_SERVER_IMAGE}
     tty: true
     restart: always
-    ports:
-      - 8080:8080
     depends_on:
       - nats
       - api-server
@@ -66,8 +54,6 @@ services:
   botrunner:
     image: ${BOTRUNNER_IMAGE}
     tty: true
-    ports:
-      - 8081:8081
     depends_on:
       - api-server
       - game-server
