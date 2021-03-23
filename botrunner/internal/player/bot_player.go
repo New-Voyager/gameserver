@@ -59,7 +59,7 @@ type BotPlayer struct {
 	gameCode        string
 	gameID          uint64
 	PlayerID        uint64
-	RewardsNameToId map[string]uint32
+	RewardsNameToID map[string]uint32
 
 	// state of the bot
 	sm *fsm.FSM
@@ -163,7 +163,7 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger, msgCollector *msg
 		printHandMsg:    util.Env.ShouldPrintHandMsg(),
 		printStateMsg:   util.Env.ShouldPrintStateMsg(),
 		msgCollector:    msgCollector,
-		RewardsNameToId: make(map[string]uint32),
+		RewardsNameToID: make(map[string]uint32),
 		ackMaxWait:      30,
 	}
 
@@ -353,7 +353,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 
 	case game.HandNewHand:
 		/* MessageType: NEW_HAND */
-		bp.game.table.handStatus = message.GetHandStatus()
+		bp.game.handStatus = message.GetHandStatus()
 		newHand := message.GetNewHand()
 		bp.game.table.buttonPos = newHand.GetButtonPos()
 		bp.game.table.sbPos = newHand.GetSbPos()
@@ -430,7 +430,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 
 	case game.HandFlop:
 		/* MessageType: FLOP */
-		bp.game.table.handStatus = message.GetHandStatus()
+		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.flopCards = message.GetFlop().GetBoard()
 		if bp.IsHuman() || bp.IsObserver() {
 			bp.logger.Info().Msgf("%s: Flop cards shown: %s", bp.logPrefix, message.GetFlop().GetCardsStr())
@@ -440,7 +440,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 
 	case game.HandTurn:
 		/* MessageType: TURN */
-		bp.game.table.handStatus = message.GetHandStatus()
+		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.turnCards = message.GetTurn().GetBoard()
 		if bp.IsHuman() || bp.IsObserver() {
 			bp.logger.Info().Msgf("%s: Turn cards shown: %s", bp.logPrefix, message.GetTurn().GetCardsStr())
@@ -450,7 +450,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 
 	case game.HandRiver:
 		/* MessageType: RIVER */
-		bp.game.table.handStatus = message.GetHandStatus()
+		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.riverCards = message.GetRiver().GetBoard()
 		if bp.IsHuman() || bp.IsObserver() {
 			bp.logger.Info().Msgf("%s: River cards shown: %s", bp.logPrefix, message.GetRiver().GetCardsStr())
@@ -461,7 +461,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 	case game.HandPlayerAction:
 		/* MessageType: YOUR_ACTION */
 		bp.event(BotEvent__RECEIVE_YOUR_ACTION)
-		bp.game.table.handStatus = message.GetHandStatus()
+		bp.game.handStatus = message.GetHandStatus()
 		seatAction := message.GetSeatAction()
 		seatNo := seatAction.GetSeatNo()
 		if bp.IsObserver() && bp.config.Script.IsSeatHuman(seatNo) {
@@ -471,12 +471,12 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 			// It's not my turn.
 			break
 		}
-		bp.game.table.handNum = message.HandNum
+		bp.game.handNum = message.HandNum
 		bp.act(seatAction)
 
 	case game.HandPlayerActed:
 		/* MessageType: PLAYER_ACTED */
-		bp.game.table.handNum = message.HandNum
+		bp.game.handNum = message.HandNum
 		playerActed := message.GetPlayerActed()
 		seatNo := playerActed.GetSeatNo()
 		action := playerActed.GetAction()
@@ -487,13 +487,13 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 			timedout = " (TIMED OUT)"
 		}
 		actedPlayerName := bp.getPlayerNameBySeatNo(seatNo)
-		bp.rememberPlayerAction(seatNo, action, amount, isTimedOut, bp.game.table.handStatus)
+		bp.rememberPlayerAction(seatNo, action, amount, isTimedOut, bp.game.handStatus)
 		if bp.IsObserver() {
 			actedPlayerType := "bot"
 			if bp.config.Script.IsSeatHuman(seatNo) {
 				actedPlayerType = "human"
 			}
-			bp.logger.Info().Msgf("%s: Seat %d (%s/%s) acted [%s %f] Stage:%s.", bp.logPrefix, seatNo, actedPlayerName, actedPlayerType, action, amount, bp.game.table.handStatus)
+			bp.logger.Info().Msgf("%s: Seat %d (%s/%s) acted [%s %f] Stage:%s.", bp.logPrefix, seatNo, actedPlayerName, actedPlayerType, action, amount, bp.game.handStatus)
 		}
 		if bp.IsHuman() && seatNo != bp.seatNo {
 			// I'm a human and I see another player acted.
@@ -524,14 +524,14 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 
 	case game.HandResultMessage:
 		/* MessageType: RESULT */
-		bp.game.table.handStatus = message.GetHandStatus()
-		bp.game.table.handResult = message.GetHandResult()
+		bp.game.handStatus = message.GetHandStatus()
+		bp.game.handResult = message.GetHandResult()
 		bp.verifyResult()
 		if bp.IsObserver() {
 			bp.PrintHandResult()
 		}
 
-		result := bp.game.table.handResult
+		result := bp.game.handResult
 		for seatNo, player := range result.Players {
 			if seatNo == bp.seatNo {
 				if player.Balance.After == 0.0 {
@@ -556,10 +556,10 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		playersActed := currentState.GetPlayersActed()
 		nextSeatAction := currentState.GetNextSeatAction()
 		actionSeatNo := nextSeatAction.GetSeatNo()
-		bp.game.table.handStatus = handStatus
+		bp.game.handStatus = handStatus
 		bp.game.table.nextActionSeat = actionSeatNo
 		bp.game.table.playersActed = playersActed
-		bp.game.table.handNum = message.HandNum
+		bp.game.handNum = message.HandNum
 
 		if actionSeatNo != bp.seatNo {
 			return
@@ -583,7 +583,7 @@ func (bp *BotPlayer) verifyBoard() {
 	}
 
 	scriptCurrentHand := bp.config.Script.GetHand(bp.handNum)
-	switch bp.game.table.handStatus {
+	switch bp.game.handStatus {
 	case game.HandStatus_FLOP:
 		expectedBoard = scriptCurrentHand.Flop.Verify.Board
 		currentBoard = bp.game.table.flopCards
@@ -618,7 +618,7 @@ func (bp *BotPlayer) verifyBoard() {
 	}
 
 	if !match {
-		bp.logger.Panic().Msgf("%s: Hand %d %s verify failed. Board does not match the expected. Current board: %v. Expected board: %v.", bp.logPrefix, bp.handNum, bp.game.table.handStatus, currentBoardCards, expectedBoardCards)
+		bp.logger.Panic().Msgf("%s: Hand %d %s verify failed. Board does not match the expected. Current board: %v. Expected board: %v.", bp.logPrefix, bp.handNum, bp.game.handStatus, currentBoardCards, expectedBoardCards)
 	}
 }
 
@@ -772,7 +772,7 @@ func (bp *BotPlayer) CreateClubReward(clubCode string, name string, rewardType s
 			return 0, errors.Wrap(err, fmt.Sprintf("%s: Unable to create a new club", bp.logPrefix))
 		}
 	}
-	bp.RewardsNameToId[name] = rewardID
+	bp.RewardsNameToID[name] = rewardID
 	bp.logger.Info().Msgf("%s: Successfully created a new club reward. Club Code: [%s], rewardId: %d, name: %s, type: %s",
 		bp.logPrefix, clubCode, rewardID, name, rewardType)
 	return rewardID, nil
@@ -903,7 +903,7 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 	bp.game = &gameView{
 		table: &tableView{
 			playersBySeat: make(map[uint32]*player),
-			actionsRecord: game.NewHandActionRecord(),
+			actionTracker: game.NewHandActionTracker(),
 			playersActed:  make(map[uint32]*game.PlayerActRound),
 		},
 	}
@@ -1204,8 +1204,8 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 
 	if bp.config.Script.AutoPlay {
 		autoPlay = true
-	} else if len(bp.config.Script.Hands) >= int(bp.game.table.handNum) {
-		handScript := bp.config.Script.Hands[bp.game.table.handNum-1]
+	} else if len(bp.config.Script.Hands) >= int(bp.game.handNum) {
+		handScript := bp.config.Script.GetHand(bp.game.handNum)
 		if handScript.Setup.Auto {
 			autoPlay = true
 		}
@@ -1306,7 +1306,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 	}
 
 	if bp.IsHuman() {
-		bp.logger.Info().Msgf("%s: Seat %d: Your Turn. Press ENTER to continue with [%s %f] (Hand Status: %s)...", bp.logPrefix, bp.seatNo, nextAction, nextAmt, bp.game.table.handStatus)
+		bp.logger.Info().Msgf("%s: Seat %d: Your Turn. Press ENTER to continue with [%s %f] (Hand Status: %s)...", bp.logPrefix, bp.seatNo, nextAction, nextAmt, bp.game.handStatus)
 		bufio.NewReader(os.Stdin).ReadBytes('\n')
 	}
 
@@ -1325,7 +1325,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 	actionMsg := game.HandMessage{
 		ClubId:      uint32(bp.clubID),
 		GameId:      bp.gameID,
-		HandNum:     bp.game.table.handNum,
+		HandNum:     bp.game.handNum,
 		PlayerId:    bp.PlayerID,
 		MessageType: msgType,
 		MessageId:   msgID,
@@ -1384,7 +1384,7 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 }
 
 func (bp *BotPlayer) rememberPlayerAction(seatNo uint32, action game.ACTION, amount float32, timedOut bool, handStatus game.HandStatus) {
-	bp.game.table.actionsRecord.RecordAction(seatNo, action, amount, timedOut, handStatus)
+	bp.game.table.actionTracker.RecordAction(seatNo, action, amount, timedOut, handStatus)
 
 	state := game.ActionToActionState(action)
 	bp.game.table.playersActed[seatNo] = &game.PlayerActRound{
@@ -1433,7 +1433,7 @@ func (bp *BotPlayer) GetErrorMsg() string {
 
 // GetHandResult returns the hand result received from the server.
 func (bp *BotPlayer) GetHandResult() *game.HandResult {
-	return bp.game.table.handResult
+	return bp.game.handResult
 }
 
 // PrintHandResult prints the hand winners to console.
