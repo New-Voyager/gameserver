@@ -1298,11 +1298,13 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 		}
 	} else {
 		var err error
-		nextAction, nextAmt, err = bp.decision.GetNextAction(bp, availableActions)
+		scriptAction, err := bp.decision.GetNextAction(bp, availableActions)
 		if err != nil {
 			bp.logger.Error().Msgf("%s: Unable to get the next action %+v", bp.logPrefix, err)
 			return
 		}
+		nextAction = game.ActionStringToAction(scriptAction.Action.Action)
+		nextAmt = scriptAction.Action.Amount
 	}
 
 	if bp.IsHuman() {
