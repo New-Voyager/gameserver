@@ -60,6 +60,7 @@ enum NewUpdate {
   SIT_BACK = 5;
   LEFT_THE_GAME = 6;
   EMPTY_STACK = 7;
+  NEW_BUYIN = 8;
 }
 
 // Player update comes from the API server
