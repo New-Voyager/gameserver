@@ -18,7 +18,7 @@ type scriptSeatAction struct {
 
 // GetNextAction returns the bot's next move based on the bot's script.
 func (s *ScriptBasedDecision) GetNextAction(bot *BotPlayer, availableActions []game.ACTION) (game.ACTION, float32, error) {
-	handStatus := bot.game.table.handStatus
+	handStatus := bot.game.handStatus
 	handNumIdx := bot.handNum - 1
 	handScript := bot.config.Script.Hands[handNumIdx]
 	playersActed := bot.game.table.playersActed

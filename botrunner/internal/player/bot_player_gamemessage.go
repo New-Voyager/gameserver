@@ -174,7 +174,7 @@ func (bp *BotPlayer) seatWaitList(tableUpdate *game.TableUpdate) {
 			if bp.buyInAmount != 0 {
 				bp.BuyIn(bp.gameCode, float32(bp.buyInAmount))
 				bp.logger.Info().Msgf("%s: [%s] Player bought in for: %d. Current hand num: %d",
-					bp.logPrefix, bp.gameCode, bp.buyInAmount, bp.game.table.handNum)
+					bp.logPrefix, bp.gameCode, bp.buyInAmount, bp.game.handNum)
 				bp.event(BotEvent__SUCCEED_BUYIN)
 			}
 		}
