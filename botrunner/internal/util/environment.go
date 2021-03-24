@@ -25,6 +25,7 @@ type environment struct {
 	RedisPW       string
 	RedisDB       string
 	APIServerURL  string
+	GameServerURL string
 	PrintGameMsg  string
 	PrintHandMsg  string
 	PrintStateMsg string
@@ -37,6 +38,7 @@ var Env = &environment{
 	RedisPW:       "REDIS_PW",
 	RedisDB:       "REDIS_DB",
 	APIServerURL:  "API_SERVER_URL",
+	GameServerURL: "GAME_SERVER_URL",
 	PrintGameMsg:  "PRINT_GAME_MSG",
 	PrintHandMsg:  "PRINT_HAND_MSG",
 	PrintStateMsg: "PRINT_STATE_MSG",
@@ -118,13 +120,23 @@ func (e *environment) GetRedisDB() int {
 }
 
 func (e *environment) GetAPIServerURL() string {
-	host := os.Getenv(e.APIServerURL)
-	if host == "" {
+	url := os.Getenv(e.APIServerURL)
+	if url == "" {
 		msg := fmt.Sprintf("%s is not defined", e.APIServerURL)
 		environmentLogger.Error().Msg(msg)
 		panic(msg)
 	}
-	return host
+	return url
+}
+
+func (e *environment) GetGameServerURL() string {
+	url := os.Getenv(e.GameServerURL)
+	if url == "" {
+		msg := fmt.Sprintf("%s is not defined", e.GameServerURL)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	return url
 }
 
 func (e *environment) GetPrintHandMsg() string {

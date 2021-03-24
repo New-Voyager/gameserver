@@ -41,6 +41,7 @@ type Config struct {
 	IsHost             bool
 	BotActionPauseTime uint32
 	APIServerURL       string
+	GameServerURL      string
 	NatsURL            string
 	GQLTimeoutSec      int
 	Players            *gamescript.Players
@@ -1305,6 +1306,8 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 		}
 		nextAction = game.ActionStringToAction(scriptAction.Action.Action)
 		nextAmt = scriptAction.Action.Amount
+		preActions := scriptAction.PreActions
+		bp.processPreActions(preActions)
 	}
 
 	if bp.IsHuman() {
@@ -1503,6 +1506,7 @@ func (bp *BotPlayer) GetJWT(playerUUID string, deviceID string) (string, error) 
 	if err != nil {
 		return "", errors.Wrap(err, "Login request failed")
 	}
+	defer response.Body.Close()
 
 	type JwtResp struct {
 		Jwt string
@@ -1531,6 +1535,32 @@ func (bp *BotPlayer) GetJWT(playerUUID string, deviceID string) (string, error) 
 		bp.logger.Error().Msgf("%s: Error while processing jwt: %s", bp.logPrefix, err)
 	}
 	return jwtData.Jwt, nil
+}
+
+func (bp *BotPlayer) setupServerCrash(crashPoint string) error {
+	type payload struct {
+		CrashPoint string `json:"crashPoint"`
+	}
+	data := payload{
+		CrashPoint: crashPoint,
+	}
+	jsonBytes, err := json.Marshal(data)
+	if err != nil {
+		return errors.Wrap(err, "Unable to marshal payload")
+	}
+	url := fmt.Sprintf("%s/setup-crash", bp.config.GameServerURL)
+
+	bp.logger.Info().Msgf("Setting up game server crash. URL: %s, Payload: %s", url, jsonBytes)
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		return errors.Wrap(err, "Post failed")
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Game server returned http %d: %s", resp.StatusCode, string(body))
+	}
+	return nil
 }
 
 func (bp *BotPlayer) getPlayerInSeat(seatNo uint32) *game.SeatInfo {

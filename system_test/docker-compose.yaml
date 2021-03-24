@@ -59,6 +59,7 @@ services:
       - game-server
     environment:
       API_SERVER_URL: http://api-server:9501
+      GAME_SERVER_URL: http://game-server:8080
       PERSIST_METHOD: redis
       REDIS_HOST: redis
       REDIS_PORT: 6379

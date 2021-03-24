@@ -50,6 +50,7 @@ func (t *Tester) Run() error {
 		Password:      playerConf.Password,
 		IsHuman:       true,
 		APIServerURL:  util.Env.GetAPIServerURL(),
+		GameServerURL: util.Env.GetGameServerURL(),
 		NatsURL:       util.Env.GetNatsURL(),
 		GQLTimeoutSec: 10,
 		Script:        t.script,
