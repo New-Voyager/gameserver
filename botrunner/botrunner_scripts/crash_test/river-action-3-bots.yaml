@@ -1,15 +1,10 @@
 club:
-  name: Bad Robots
-  description: Club for testing
-  rewards:
-    - name: High Hand
-      type: HIGH_HAND
-      amount: 100
-      schedule: ENTIRE_GAME
+  name: Crash Test
+  description: Club used for crash testing
 
 game:
   create: true
-  title: "NLH Testing Game"
+  title: "Crash Test 1 - WAIT_FOR_NEXT_ACTION_1"
   game-type: "HOLDEM"
   small-blind: 1.0
   big-blind: 2.0
@@ -24,7 +19,6 @@ game:
   buy-in-min: 100
   buy-in-max: 300
   action-time: 100
-  rewards: High Hand
 
 starting-seats:
   - seat: 1
@@ -37,13 +31,14 @@ starting-seats:
     player: tom
     buy-in: 100
 
-tester: tom
-auto-play: true
+tester:
+auto-play: false
 
 bot-config:
   min-action-pause-time: 500
   max-action-pause-time: 1000
 
+# deal the following hands in the table
 hands:
   - setup:
       button-pos: 1
@@ -51,45 +46,25 @@ hands:
       turn: Td
       river: 4s
       seat-cards:
+        # seat cards in the order players are sitting 
+        # seat 1 gets Kh Qd
+        # seat 5 gets 3s 7s
+        # seat 8 gets 9h 2s
         - seat: 1
           cards: ["Kh", "Qd"]
         - seat: 5
           cards: ["3s", "7s"]
         - seat: 8
           cards: ["9h", "2s"]
-      auto: true
-      seat-change:
-        - seat: 2
-          confirm: true
-      leave-game:
-        - seat: 6
-      wait-list:
-        - player: david
-          confirm: true
-          buy-in: 500
-      pause: 5
 
+    # simulate pre-flop action
     preflop:
       seat-actions:
         # seat number/action/amount
         - action: 1, CALL, 2
           pre-action:
             - setup-server-crash:
-                crash-point: ON_PLAYER_ACTED_2
-            - verify:
-                available-actions: ["FOLD", "CALL", "RAISE", "ALLIN"]
-                straddle-amount: 3
-                call-amount: 5
-                raise-amount: 10
-                min-bet-amount: 2
-                max-bet-amount: 4
-                min-raise-amount: 10
-                max-raise-amount: 30
-                all-in-amount: 200
-                bet-options:
-                  - Pot, 100
-                  - All-In, 300
-
+                crash-point: WAIT_FOR_NEXT_ACTION_1
         - action: 5, CALL, 2
         - action: 8, CHECK
 
@@ -122,13 +97,12 @@ hands:
     result:
       winners:
         - seat: 1
-          receive: 56.0
+          receive: 54.0
           rank: Two Pair
-        - seat: 5
-          receive: 12.0
       action-ended: SHOW_DOWN
-
-      # player balance after the hand
+      
+      # balance indicates the player balance after the hand
+      # bb player won a chip
       stacks:
         - seat: 1
           stack: 84
@@ -136,5 +110,3 @@ hands:
           stack: 120
         - seat: 8
           stack: 96
-      high-hand:
-        - seat: 1

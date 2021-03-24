@@ -120,30 +120,34 @@ func TestReadGameScript(t *testing.T) {
 								Action: "CALL",
 								Amount: 2,
 							},
-							PreAction: PreAction{
-								Verify: YourActionVerification{
-									AvailableActions: []string{"FOLD", "CALL", "RAISE", "ALLIN"},
-									StraddleAmount:   3,
-									CallAmount:       5,
-									RaiseAmount:      10,
-									MinBetAmount:     2,
-									MaxBetAmount:     4,
-									MinRaiseAmount:   10,
-									MaxRaiseAmount:   30,
-									AllInAmount:      200,
-									BetOptions: []BetOption{
-										{
-											Text:   "Pot",
-											Amount: 100,
-										},
-										{
-											Text:   "All-In",
-											Amount: 300,
-										},
+							PreActions: []PreAction{
+								{
+									SetupServerCrash: SetupServerCrash{
+										CrashPoint: "ON_PLAYER_ACTED_2",
 									},
 								},
-								SetupServerCrash: SetupServerCrash{
-									CrashPoint: "ON_PLAYER_ACTED_2",
+								{
+									Verify: YourActionVerification{
+										AvailableActions: []string{"FOLD", "CALL", "RAISE", "ALLIN"},
+										StraddleAmount:   3,
+										CallAmount:       5,
+										RaiseAmount:      10,
+										MinBetAmount:     2,
+										MaxBetAmount:     4,
+										MinRaiseAmount:   10,
+										MaxRaiseAmount:   30,
+										AllInAmount:      200,
+										BetOptions: []BetOption{
+											{
+												Text:   "Pot",
+												Amount: 100,
+											},
+											{
+												Text:   "All-In",
+												Amount: 300,
+											},
+										},
+									},
 								},
 							},
 						},

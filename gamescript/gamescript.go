@@ -163,8 +163,8 @@ type BettingRound struct {
 }
 
 type SeatAction struct {
-	Action    Action    `yaml:"action"`
-	PreAction PreAction `yaml:"pre-action"`
+	Action     Action      `yaml:"action"`
+	PreActions []PreAction `yaml:"pre-action"`
 }
 
 type Action struct {
