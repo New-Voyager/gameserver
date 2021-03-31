@@ -6,7 +6,6 @@ PROTO_VER := v3.7.1
 PROTOC_ZIP := protoc-3.7.1-linux-x86_64.zip
 
 DEV_API_SERVER_URL ?= http://localhost:9501
-DEV_GAME_SERVER_URL ?= http://localhost:8080
 PRINT_GAME_MSG ?= false
 PRINT_HAND_MSG ?= false
 
@@ -56,7 +55,6 @@ build: compile-proto
 .PHONY: run
 run:
 	API_SERVER_URL=$(DEV_API_SERVER_URL) \
-	GAME_SERVER_URL=$(DEV_GAME_SERVER_URL) \
 	PRINT_GAME_MSG=$(PRINT_GAME_MSG) \
 	PRINT_HAND_MSG=$(PRINT_HAND_MSG) \
 	go run ./cmd/botrunner/main.go --script botrunner_scripts/$(DEV_BOT_SCRIPT)
@@ -65,7 +63,6 @@ run:
 tester: CODE=$(GAME_CODE)
 tester:
 	API_SERVER_URL=$(DEV_API_SERVER_URL) \
-	GAME_SERVER_URL=$(DEV_GAME_SERVER_URL) \
 	PRINT_GAME_MSG=$(PRINT_GAME_MSG) \
 	PRINT_HAND_MSG=$(PRINT_HAND_MSG) \
 	go run ./cmd/tester/main.go --script botrunner_scripts/$(DEV_BOT_SCRIPT) --game-code $(CODE)
@@ -75,7 +72,6 @@ join-human-game: CCODE=$(CLUB_CODE)
 join-human-game: GCODE=$(GAME_CODE)
 join-human-game:
 	API_SERVER_URL=$(DEV_API_SERVER_URL) \
-	GAME_SERVER_URL=$(DEV_GAME_SERVER_URL) \
 	PRINT_GAME_MSG=$(PRINT_GAME_MSG) \
 	PRINT_HAND_MSG=$(PRINT_HAND_MSG) \
 	go run ./cmd/botrunner/main.go --script botrunner_scripts/human-game.yaml --club-code $(CCODE) --game-code $(GCODE)
@@ -83,7 +79,6 @@ join-human-game:
 .PHONY: botrunner-server
 botrunner-server:
 	API_SERVER_URL=$(DEV_API_SERVER_URL) \
-	GAME_SERVER_URL=$(DEV_GAME_SERVER_URL) \
 	PRINT_GAME_MSG=$(PRINT_GAME_MSG) \
 	PRINT_HAND_MSG=$(PRINT_HAND_MSG) \
 	go run ./cmd/server/main.go

@@ -41,7 +41,6 @@ type Config struct {
 	IsHost             bool
 	BotActionPauseTime uint32
 	APIServerURL       string
-	GameServerURL      string
 	NatsURL            string
 	GQLTimeoutSec      int
 	Players            *gamescript.Players
@@ -1548,7 +1547,7 @@ func (bp *BotPlayer) setupServerCrash(crashPoint string) error {
 	if err != nil {
 		return errors.Wrap(err, "Unable to marshal payload")
 	}
-	url := fmt.Sprintf("%s/setup-crash", bp.config.GameServerURL)
+	url := fmt.Sprintf("%s/setup-crash", util.Env.GetGameServerURL2(bp.gameCode))
 
 	bp.logger.Info().Msgf("Setting up game server crash. URL: %s, Payload: %s", url, jsonBytes)
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBytes))

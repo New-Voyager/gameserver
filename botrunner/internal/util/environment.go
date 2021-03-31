@@ -25,7 +25,6 @@ type environment struct {
 	RedisPW       string
 	RedisDB       string
 	APIServerURL  string
-	GameServerURL string
 	PrintGameMsg  string
 	PrintHandMsg  string
 	PrintStateMsg string
@@ -38,7 +37,6 @@ var Env = &environment{
 	RedisPW:       "REDIS_PW",
 	RedisDB:       "REDIS_DB",
 	APIServerURL:  "API_SERVER_URL",
-	GameServerURL: "GAME_SERVER_URL",
 	PrintGameMsg:  "PRINT_GAME_MSG",
 	PrintHandMsg:  "PRINT_HAND_MSG",
 	PrintStateMsg: "PRINT_STATE_MSG",
@@ -129,14 +127,34 @@ func (e *environment) GetAPIServerURL() string {
 	return url
 }
 
-func (e *environment) GetGameServerURL() string {
-	url := os.Getenv(e.GameServerURL)
-	if url == "" {
-		msg := fmt.Sprintf("%s is not defined", e.GameServerURL)
-		environmentLogger.Error().Msg(msg)
-		panic(msg)
+func (e *environment) GetGameServerURL2(gameCode string) string {
+	// get from the API server
+	type payload struct {
+		Server struct {
+			URL string `json:"url"`
+		} `json:"server"`
 	}
-	return url
+
+	url := fmt.Sprintf("%s/internal/get-game-server/game_num/%s", e.GetAPIServerURL(), gameCode)
+	response, err := http.Get(url)
+	if err != nil {
+		panic(fmt.Sprintf("HTTP GET %s returned an error: %s", url, err))
+	}
+	defer response.Body.Close()
+	data, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to read response body from %s: %s", url, err))
+	}
+	body := string(data)
+	if strings.Contains(body, "errors") {
+		panic(fmt.Sprintf("Response from %s contains errors. Response: %s", url, body))
+	}
+	var p payload
+	json.Unmarshal(data, &p)
+	if p.Server.URL == "" {
+		environmentLogger.Error().Msgf("Unable to parse game server URL from response: %s", body)
+	}
+	return p.Server.URL
 }
 
 func (e *environment) GetPrintHandMsg() string {
