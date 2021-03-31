@@ -4,7 +4,6 @@ set -e
 
 num_games=${1:-2}
 export API_SERVER_URL=${API_SERVER_URL:-"http://localhost:9501"}
-export GAME_SERVER_URL=${GAME_SERVER_URL:-"http://localhost:8080"}
 export NATS_URL=${NATS_URL:-'nats://localhost:4222'}
 export PRINT_GAME_MSG=${PRINT_GAME_MSG:-false}
 export PRINT_HAND_MSG=${PRINT_HAND_MSG:-false}

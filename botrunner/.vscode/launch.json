@@ -13,7 +13,6 @@
       "cwd": "${workspaceFolder}",
       "env": {
         "API_SERVER_URL": "http://localhost:9501",
-        "GAME_SERVER_URL": "http://localhost:8080",
         "PRINT_GAME_MSG": "false",
         "PRINT_HAND_MSG": "false"
       },
@@ -31,7 +30,6 @@
       "cwd": "${workspaceFolder}",
       "env": {
         "API_SERVER_URL": "http://localhost:9501",
-        "GAME_SERVER_URL": "http://localhost:8080",
         "PRINT_GAME_MSG": "false",
         "PRINT_HAND_MSG": "false"
       },
@@ -51,7 +49,6 @@
       "cwd": "${workspaceFolder}",
       "env": {
         "API_SERVER_URL": "http://localhost:9501",
-        "GAME_SERVER_URL": "http://localhost:8080",
         "PRINT_GAME_MSG": "false",
         "PRINT_HAND_MSG": "false"
       },
