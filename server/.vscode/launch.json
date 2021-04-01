@@ -15,7 +15,8 @@
         "REDIS_HOST": "localhost",
         "REDIS_PORT": "6379",
         "REDIS_DB": "0",
-        "API_SERVER_URL": "http://localhost:9501"
+        "API_SERVER_URL": "http://localhost:9501",
+        "DISABLE_DELAYS": "1"
       },
       "args": ["--script-tests"]
     },

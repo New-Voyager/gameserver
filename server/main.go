@@ -62,7 +62,6 @@ func runWithNats() {
 		mainLogger.Error().Msg(fmt.Sprintf("Error connecting to NATS server, error: %v", err))
 		return
 	}
-	//game.RunningTests = true
 	natsGameManager, err := nats.NewGameManager(nc)
 	// initialize nats game manager
 	if err != nil {

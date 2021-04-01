@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"voyager.com/server/poker"
+	"voyager.com/server/util"
 )
 
 func (g *Game) handleGameMessage(message *GameMessage) {
@@ -126,7 +127,7 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 		return fmt.Errorf("moveToNextHand called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
 
-	if !RunningTests {
+	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.OnMoveToNextHand) * time.Millisecond)
 	}
 

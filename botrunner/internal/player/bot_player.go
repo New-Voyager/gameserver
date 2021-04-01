@@ -1314,7 +1314,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 		bufio.NewReader(os.Stdin).ReadBytes('\n')
 	}
 
-	if !bp.IsHuman() {
+	if !bp.IsHuman() && !util.Env.ShouldDisableDelays() {
 		// Pause to think for some time to be realistic.
 		time.Sleep(time.Duration(bp.config.BotActionPauseTime) * time.Millisecond)
 	}

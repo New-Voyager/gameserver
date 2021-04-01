@@ -20,5 +20,4 @@ COPY --from=builder /build/test/game-scripts /app/test/game-scripts
 COPY ./delays.yaml /app/delays.yaml
 
 WORKDIR /app
-# CMD ["/app/game-server", "--script-tests", "/app/test/game-scripts"]
 CMD ["/app/game-server", "--server"]

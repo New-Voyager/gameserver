@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"voyager.com/server/crashtest"
 	"voyager.com/server/poker"
+	"voyager.com/server/util"
 )
 
 func (g *Game) handleHandMessage(message *HandMessage) {
@@ -317,7 +318,7 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 
 	crashtest.Hit(crashtest.CrashPoint_PREPARE_NEXT_ACTION_3)
 
-	if !RunningTests {
+	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.PlayerActed) * time.Millisecond)
 	}
 
@@ -429,7 +430,7 @@ func (g *Game) gotoFlop(handState *HandState) {
 		HandStatus:  handState.CurrentState}
 	handMessage.HandMessage = &HandMessage_Flop{Flop: flopMessage}
 	g.broadcastHandMessage(handMessage)
-	if !RunningTests {
+	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.GoToFlop) * time.Millisecond)
 	}
 }
@@ -478,7 +479,7 @@ func (g *Game) gotoTurn(handState *HandState) {
 		HandStatus:  handState.CurrentState}
 	handMessage.HandMessage = &HandMessage_Turn{Turn: turnMessage}
 	g.broadcastHandMessage(handMessage)
-	if !RunningTests {
+	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.GoToTurn) * time.Millisecond)
 	}
 }
@@ -525,7 +526,7 @@ func (g *Game) gotoRiver(handState *HandState) {
 		HandStatus:  handState.CurrentState}
 	handMessage.HandMessage = &HandMessage_River{River: riverMessage}
 	g.broadcastHandMessage(handMessage)
-	if !RunningTests {
+	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.GoToRiver) * time.Millisecond)
 	}
 }
@@ -538,7 +539,7 @@ func (g *Game) handEnded(handState *HandState) error {
 
 	// wait 5 seconds to show the result
 	// send a message to game to start new hand
-	if !RunningTests {
+	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.MoveToNextHand) * time.Millisecond)
 	}
 

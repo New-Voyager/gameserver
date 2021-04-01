@@ -28,6 +28,7 @@ type environment struct {
 	PrintGameMsg  string
 	PrintHandMsg  string
 	PrintStateMsg string
+	DisableDelays string
 }
 
 // Env is a helper object for accessing environment variables.
@@ -40,6 +41,7 @@ var Env = &environment{
 	PrintGameMsg:  "PRINT_GAME_MSG",
 	PrintHandMsg:  "PRINT_HAND_MSG",
 	PrintStateMsg: "PRINT_STATE_MSG",
+	DisableDelays: "DISABLE_DELAYS",
 }
 
 func (e *environment) GetNatsURL() string {
@@ -181,6 +183,14 @@ func (e *environment) GetPrintStateMsg() string {
 	return v
 }
 
+func (e *environment) GetDisableDelays() string {
+	v := os.Getenv(e.DisableDelays)
+	if v == "" {
+		return "false"
+	}
+	return v
+}
+
 func (e *environment) ShouldPrintGameMsg() bool {
 	return e.GetPrintGameMsg() == "1" || strings.ToLower(e.GetPrintGameMsg()) == "true"
 }
@@ -191,4 +201,8 @@ func (e *environment) ShouldPrintHandMsg() bool {
 
 func (e *environment) ShouldPrintStateMsg() bool {
 	return e.GetPrintStateMsg() == "1" || strings.ToLower(e.GetPrintStateMsg()) == "true"
+}
+
+func (e *environment) ShouldDisableDelays() bool {
+	return e.GetDisableDelays() == "1" || strings.ToLower(e.GetDisableDelays()) == "true"
 }
