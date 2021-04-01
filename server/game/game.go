@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/proto"
 	"voyager.com/server/poker"
+	"voyager.com/server/util"
 )
 
 /**
@@ -455,7 +456,7 @@ func (g *Game) dealNewHand() error {
 	//newHand.PlayerCards = playersCards
 	handMessage.HandMessage = &HandMessage_NewHand{NewHand: &newHand}
 	g.broadcastHandMessage(&handMessage)
-	if !RunningTests {
+	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.BeforeDeal) * time.Millisecond)
 	}
 
@@ -517,7 +518,7 @@ func (g *Game) dealNewHand() error {
 			g.allPlayers[player.PlayerID].chHand <- b
 		}
 	}
-	if !RunningTests {
+	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(cardAnimationTime * time.Millisecond)
 	}
 

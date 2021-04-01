@@ -23,6 +23,7 @@ type gameServerEnvironment struct {
 	RedisDB       string
 	APIServerUrl  string
 	PlayTimeout   string
+	DisableDelays string
 }
 
 // GameServerEnvironment is a helper object for accessing environment variables.
@@ -34,6 +35,7 @@ var GameServerEnvironment = &gameServerEnvironment{
 	RedisDB:       "REDIS_DB",
 	APIServerUrl:  "API_SERVER_URL",
 	PlayTimeout:   "PLAY_TIMEOUT",
+	DisableDelays: "DISABLE_DELAYS",
 }
 
 func (g *gameServerEnvironment) GetNatsURL() string {
@@ -144,4 +146,16 @@ func (g *gameServerEnvironment) GetPlayTimeout() int {
 		panic(msg)
 	}
 	return timeoutSec
+}
+
+func (g *gameServerEnvironment) GetDisableDelays() string {
+	v := os.Getenv(g.DisableDelays)
+	if v == "" {
+		return "false"
+	}
+	return v
+}
+
+func (g *gameServerEnvironment) ShouldDisableDelays() bool {
+	return g.GetDisableDelays() == "1" || strings.ToLower(g.GetDisableDelays()) == "true"
 }

@@ -75,6 +75,7 @@ script-test: export PERSIST_METHOD=redis
 script-test: export REDIS_HOST=$(DEV_REDIS_HOST)
 script-test: export REDIS_PORT=$(DEV_REDIS_PORT)
 script-test: export REDIS_DB=$(DEV_REDIS_DB)
+script-test: export DISABLE_DELAYS=1
 script-test: run-redis
 	go run main.go --script-tests
 
@@ -110,10 +111,12 @@ docker-test: create-network run-redis
 	docker run -t --rm \
 		--name gameserver \
 		--network $(DEFAULT_DOCKER_NET) \
+		-e PERSIST_METHOD=redis \
 		-e REDIS_HOST=redis \
 		-e REDIS_PORT=6379 \
 		-e REDIS_DB=0 \
-		game-server sh -c "PERSIST_METHOD=redis /app/game-server --script-tests"
+		-e DISABLE_DELAYS=1 \
+		game-server sh -c "/app/game-server --script-tests"
 
 .PHONY: stop
 stop:

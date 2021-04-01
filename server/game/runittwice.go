@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"voyager.com/server/poker"
+	"voyager.com/server/util"
 )
 
 func (g *Game) runItTwice(h *HandState) bool {
@@ -269,7 +270,7 @@ func (g *Game) handleRunItTwice(h *HandState) {
 				HandStatus:  h.RunItTwice.Stage}
 			handMessage.HandMessage = &HandMessage_RunItTwice{RunItTwice: runItTwiceMessage}
 			g.broadcastHandMessage(handMessage)
-			if !RunningTests {
+			if !util.GameServerEnvironment.ShouldDisableDelays() {
 				time.Sleep(time.Duration(g.delays.GoToFlop) * time.Millisecond)
 			}
 
