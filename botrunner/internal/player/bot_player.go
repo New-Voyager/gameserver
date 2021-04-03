@@ -487,7 +487,13 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 			timedout = " (TIMED OUT)"
 		}
 		actedPlayerName := bp.getPlayerNameBySeatNo(seatNo)
-		bp.rememberPlayerAction(seatNo, action, amount, isTimedOut, bp.game.handStatus)
+		lastActedSeat := bp.getLastActedSeatFromTracker()
+		if lastActedSeat == seatNo {
+			// This is a duplicate PLAYER_ACTED message (possibly from the game server crash & resume).
+			// Don't add to the tracker.
+		} else {
+			bp.rememberPlayerAction(seatNo, action, amount, isTimedOut, bp.game.handStatus)
+		}
 		if bp.IsObserver() {
 			actedPlayerType := "bot"
 			if bp.config.Script.IsSeatHuman(seatNo) {
@@ -1395,6 +1401,14 @@ func (bp *BotPlayer) rememberPlayerAction(seatNo uint32, action game.ACTION, amo
 		State:  state,
 		Amount: amount,
 	}
+}
+
+func (bp *BotPlayer) getLastActedSeatFromTracker() uint32 {
+	actionHistory := bp.game.table.actionTracker.GetActions(bp.game.handStatus)
+	if len(actionHistory) == 0 {
+		return 0
+	}
+	return actionHistory[len(actionHistory)-1].SeatNo
 }
 
 // IsObserver returns true if this bot is an observer bot.
