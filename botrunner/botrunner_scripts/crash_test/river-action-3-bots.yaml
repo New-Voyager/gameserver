@@ -66,13 +66,22 @@ hands:
             - setup-server-crash:
                 crash-point: WAIT_FOR_NEXT_ACTION_1
         - action: 5, CALL, 2
+          pre-action:
+            - setup-server-crash:
+                crash-point: WAIT_FOR_NEXT_ACTION_2
         - action: 8, CHECK
+          pre-action:
+            - setup-server-crash:
+                crash-point: PREPARE_NEXT_ACTION_1
 
     flop:
       verify:
         board: ["Ac", "Ad", "2c"]
       seat-actions:
         - action: 5, CHECK
+          pre-action:
+            - setup-server-crash:
+                crash-point: PREPARE_NEXT_ACTION_2
         - action: 8, BET, 2
         - action: 1, CALL, 2
         - action: 5, RAISE, 4
