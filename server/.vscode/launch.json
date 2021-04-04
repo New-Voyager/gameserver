@@ -31,7 +31,12 @@
         "REDIS_HOST": "localhost",
         "REDIS_PORT": "6379",
         "REDIS_DB": "0",
-        "API_SERVER_URL": "http://localhost:9501"
+        "API_SERVER_URL": "http://localhost:9501",
+        "POSTGRES_HOST": "localhost",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_DB": "game",
+        "POSTGRES_USER": "game",
+        "POSTGRES_PASSWORD": "game"
       },
       "args": ["--server"]
     },

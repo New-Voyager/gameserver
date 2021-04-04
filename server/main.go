@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"time"
 
+	_ "github.com/lib/pq"
 	natsgo "github.com/nats-io/nats.go"
 
 	"voyager.com/server/game"

@@ -7,7 +7,7 @@ GCR_REGISTRY := gcr.io/voyager-01-285603
 DO_REGISTRY := registry.digitalocean.com/voyager
 REGISTRY := $(DO_REGISTRY)
 
-API_SERVER_IMAGE := $(REGISTRY)/api-server:0.2.22
+API_SERVER_IMAGE := $(REGISTRY)/api-server:0.2.23
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
 REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
 POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5
@@ -63,6 +63,10 @@ stack-logs:
 stack-down: env
 	docker-compose down
 
-.PHONY: docker-test
+.PHONY: system-test
 system-test: docker-build stack-down stack-up
 	./docker-test.sh
+
+.PHONY: system-test-logs
+system-test-logs:
+	docker-compose logs -f

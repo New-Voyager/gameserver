@@ -87,6 +87,7 @@ func RunRestServer(gameManager *nats.GameManager) {
 
 func setupCrash(c *gin.Context) {
 	type Payload struct {
+		GameCode   string `json:"gameCode"`
 		CrashPoint string `json:"crashPoint"`
 	}
 	var payload Payload
@@ -102,7 +103,7 @@ func setupCrash(c *gin.Context) {
 	}
 
 	restLogger.Info().Msgf("Received request to crash the server at [%s]", payload.CrashPoint)
-	err = crashtest.Set(crashtest.CrashPoint(payload.CrashPoint))
+	err = crashtest.Set(payload.GameCode, crashtest.CrashPoint(payload.CrashPoint))
 	if err != nil {
 		restLogger.Error().Msgf("Unable to setup server for crash. Error: %v", err)
 		c.IndentedJSON(http.StatusInternalServerError, appError{

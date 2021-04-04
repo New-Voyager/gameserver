@@ -46,6 +46,11 @@ services:
       REDIS_PORT: 6379
       REDIS_DB: 0
       API_SERVER_URL: http://api-server:9501
+      POSTGRES_HOST: 'postgres'
+      POSTGRES_PORT: '5432'
+      POSTGRES_USER: 'game'
+      POSTGRES_PASSWORD: 'game'
+      POSTGRES_DB: 'game'
       DISABLE_DELAYS: 1
     command:
       - "/bin/sh"

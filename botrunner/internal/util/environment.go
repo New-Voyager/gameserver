@@ -129,7 +129,7 @@ func (e *environment) GetAPIServerURL() string {
 	return url
 }
 
-func (e *environment) GetGameServerURL2(gameCode string) string {
+func (e *environment) GetGameServerURL(gameCode string) string {
 	// get from the API server
 	type payload struct {
 		Server struct {

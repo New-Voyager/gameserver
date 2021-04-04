@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
+	"voyager.com/server/util"
 )
 
 // CrashPoint is an enum representing different points in the code that the server can crash.
@@ -32,26 +34,62 @@ func (cp CrashPoint) IsValid() bool {
 	return false
 }
 
-var crashTestLogger = log.With().Str("logger_name", "crashtest::crashtest").Logger()
-var crashAt CrashPoint = CrashPoint_NO_CRASH
+var (
+	crashGameCode string
+	crashPoint    CrashPoint = CrashPoint_NO_CRASH
+
+	crashTestLogger = log.With().Str("logger_name", "crashtest::crashtest").Logger()
+)
 
 // Set schedules for crashing at the specified point.
 // If cp == CrashPoint_NOW, the function will crash immediately without returning.
-func Set(cp CrashPoint) error {
+func Set(gameCode string, cp CrashPoint) error {
 	if !cp.IsValid() {
 		return fmt.Errorf("Invalid crash point enum: [%s]", cp)
 	}
-	crashAt = cp
+	crashGameCode = gameCode
+	crashPoint = cp
 	if cp == CrashPoint_NOW {
-		Hit(CrashPoint_NOW)
+		Hit(gameCode, cp)
 	}
 	return nil
 }
 
 // Hit will crash the process if cp matches the crash point scheduled by Set.
-func Hit(cp CrashPoint) {
-	if cp == crashAt {
-		fmt.Printf("CRASHTEST: %s\n", cp)
-		os.Exit(ExitCode)
+func Hit(gameCode string, cp CrashPoint) {
+	if cp != crashPoint {
+		return
 	}
+	fmt.Printf("CRASHTEST: %s %s\n", gameCode, cp)
+	// Save to the crash tracking trable.
+	err := saveToTracker(gameCode, cp)
+	if err != nil {
+		fmt.Printf("Error while inserting crash record. Game Code: %s, Crash Point: %s, Error: %s\n", gameCode, cp, err)
+	}
+	os.Exit(ExitCode)
+}
+
+func saveToTracker(gameCode string, cp CrashPoint) error {
+	db := sqlx.MustConnect("postgres", getConnStr())
+	defer db.Close()
+	result := db.MustExec("INSERT INTO crash_test (game_code, crash_point) VALUES ($1, $2)", gameCode, string(cp))
+	numRows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if numRows != 1 {
+		return fmt.Errorf("Rows inserted != 1")
+	}
+	return nil
+}
+
+func getConnStr() string {
+	return fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		util.GameServerEnvironment.GetPostgresHost(),
+		util.GameServerEnvironment.GetPostgresPort(),
+		util.GameServerEnvironment.GetPostgresUser(),
+		util.GameServerEnvironment.GetPostgresPW(),
+		util.GameServerEnvironment.GetPostgresDB(),
+	)
 }

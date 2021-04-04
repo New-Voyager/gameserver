@@ -1552,18 +1552,20 @@ func (bp *BotPlayer) GetJWT(playerUUID string, deviceID string) (string, error) 
 
 func (bp *BotPlayer) setupServerCrash(crashPoint string) error {
 	type payload struct {
+		GameCode   string `json:"gameCode"`
 		CrashPoint string `json:"crashPoint"`
 	}
 	data := payload{
+		GameCode:   bp.gameCode,
 		CrashPoint: crashPoint,
 	}
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
 		return errors.Wrap(err, "Unable to marshal payload")
 	}
-	url := fmt.Sprintf("%s/setup-crash", util.Env.GetGameServerURL2(bp.gameCode))
+	url := fmt.Sprintf("%s/setup-crash", util.Env.GetGameServerURL(bp.gameCode))
 
-	bp.logger.Info().Msgf("Setting up game server crash. URL: %s, Payload: %s", url, jsonBytes)
+	bp.logger.Info().Msgf("%s: Setting up game server crash. URL: %s, Payload: %s", bp.logPrefix, url, jsonBytes)
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBytes))
 	if err != nil {
 		return errors.Wrap(err, "Post failed")
@@ -1573,6 +1575,7 @@ func (bp *BotPlayer) setupServerCrash(crashPoint string) error {
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Game server returned http %d: %s", resp.StatusCode, string(body))
 	}
+	bp.logger.Info().Msgf("%s: Successfully setup game server crash.", bp.logPrefix)
 	return nil
 }
 

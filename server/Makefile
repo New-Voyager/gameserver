@@ -9,6 +9,11 @@ DEV_REDIS_HOST := localhost
 DEV_REDIS_PORT := 6379
 DEV_REDIS_DB := 0
 DEV_API_SERVER_URL := http://localhost:9501
+DEV_POSTGRES_HOST := localhost
+DEV_POSTGRES_PORT := 5432
+DEV_POSTGRES_DB := game
+DEV_POSTGRES_USER := game
+DEV_POSTGRES_PASSWORD := game
 
 NATS_VERSION := 2.1.7-alpine3.11
 REDIS_VERSION := 6.0.9
@@ -103,6 +108,11 @@ run-server: export REDIS_HOST=$(DEV_REDIS_HOST)
 run-server: export REDIS_PORT=$(DEV_REDIS_PORT)
 run-server: export REDIS_DB=$(DEV_REDIS_DB)
 run-server: export API_SERVER_URL=$(DEV_API_SERVER_URL)
+run-server: export POSTGRES_HOST=$(DEV_POSTGRES_HOST)
+run-server: export POSTGRES_PORT=$(DEV_POSTGRES_PORT)
+run-server: export POSTGRES_DB=$(DEV_POSTGRES_DB)
+run-server: export POSTGRES_USER=$(DEV_POSTGRES_USER)
+run-server: export POSTGRES_PASSWORD=$(DEV_POSTGRES_PASSWORD)
 run-server:
 	go run ./main.go --server
 
