@@ -165,7 +165,7 @@ func (g *Game) onPlayerActed(message *HandMessage, handState *HandState) error {
 		Str("message", message.MessageType).
 		Msg(fmt.Sprintf("%v", message))
 
-	crashtest.Hit(crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_1)
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_1)
 
 	if messageSeatNo == 0 && !RunningTests {
 		errMsg := fmt.Sprintf("Invalid seat number [%d] for player ID %d. Ignoring the action message.", messageSeatNo, message.PlayerId)
@@ -262,7 +262,7 @@ func (g *Game) onPlayerActed(message *HandMessage, handState *HandState) error {
 	handState.ActionMsgInProgress = message
 	g.acknowledgeMsg(message)
 
-	crashtest.Hit(crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_2)
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_2)
 
 	handState.FlowState = FlowState_PREPARE_NEXT_ACTION
 	g.saveHandState(handState)
@@ -286,7 +286,7 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 		return fmt.Errorf(errMsg)
 	}
 
-	crashtest.Hit(crashtest.CrashPoint_PREPARE_NEXT_ACTION_1)
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_1)
 
 	var err error
 	err = handState.actionReceived(message.GetPlayerActed())
@@ -299,7 +299,7 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 		return err
 	}
 
-	crashtest.Hit(crashtest.CrashPoint_PREPARE_NEXT_ACTION_2)
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_2)
 
 	// Send player's current stack to be updated in the UI
 	seatNo := message.GetPlayerActed().GetSeatNo()
@@ -316,13 +316,13 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 	message.MessageId = 0
 	g.broadcastHandMessage(message)
 
-	crashtest.Hit(crashtest.CrashPoint_PREPARE_NEXT_ACTION_3)
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3)
 
 	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.PlayerActed) * time.Millisecond)
 	}
 
-	crashtest.Hit(crashtest.CrashPoint_PREPARE_NEXT_ACTION_4)
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_4)
 
 	if handState.NoActiveSeats == 1 {
 		handState.FlowState = FlowState_ONE_PLAYER_REMAINING

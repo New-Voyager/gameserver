@@ -24,6 +24,11 @@ type gameServerEnvironment struct {
 	APIServerUrl  string
 	PlayTimeout   string
 	DisableDelays string
+	PostgresHost  string
+	PostgresPort  string
+	PostgresDB    string
+	PostgresUser  string
+	PostgresPW    string
 }
 
 // GameServerEnvironment is a helper object for accessing environment variables.
@@ -36,6 +41,11 @@ var GameServerEnvironment = &gameServerEnvironment{
 	APIServerUrl:  "API_SERVER_URL",
 	PlayTimeout:   "PLAY_TIMEOUT",
 	DisableDelays: "DISABLE_DELAYS",
+	PostgresHost:  "POSTGRES_HOST",
+	PostgresPort:  "POSTGRES_PORT",
+	PostgresDB:    "POSTGRES_DB",
+	PostgresUser:  "POSTGRES_USER",
+	PostgresPW:    "POSTGRES_PASSWORD",
 }
 
 func (g *gameServerEnvironment) GetNatsURL() string {
@@ -121,6 +131,62 @@ func (g *gameServerEnvironment) GetRedisDB() int {
 		panic(msg)
 	}
 	return dbNum
+}
+
+func (g *gameServerEnvironment) GetPostgresHost() string {
+	host := os.Getenv(g.PostgresHost)
+	if host == "" {
+		msg := fmt.Sprintf("%s is not defined", g.PostgresHost)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	return host
+}
+
+func (g *gameServerEnvironment) GetPostgresPort() int {
+	portStr := os.Getenv(g.PostgresPort)
+	if portStr == "" {
+		msg := fmt.Sprintf("%s is not defined", g.PostgresPort)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	portNum, err := strconv.Atoi(portStr)
+	if err != nil {
+		msg := fmt.Sprintf("Invalid Postgres port %s", portStr)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	return portNum
+}
+
+func (g *gameServerEnvironment) GetPostgresUser() string {
+	v := os.Getenv(g.PostgresUser)
+	if v == "" {
+		msg := fmt.Sprintf("%s is not defined", g.PostgresUser)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	return v
+}
+
+func (g *gameServerEnvironment) GetPostgresPW() string {
+	v := os.Getenv(g.PostgresPW)
+	if v == "" {
+		msg := fmt.Sprintf("%s is not defined", g.PostgresPW)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	return v
+}
+
+func (g *gameServerEnvironment) GetPostgresDB() string {
+	v := os.Getenv(g.PostgresDB)
+	if v == "" {
+		msg := fmt.Sprintf("%s is not defined", g.PostgresDB)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	return v
 }
 
 func (g *gameServerEnvironment) GetApiServerUrl() string {
