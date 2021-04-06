@@ -274,8 +274,7 @@ func (g *Game) resumeGame(handState *HandState) error {
 	case FlowState_DEAL_HAND:
 		return g.dealNewHand()
 	case FlowState_WAIT_FOR_NEXT_ACTION:
-		// We're relying on the client to resend the action message.
-		break
+		return g.onPlayerActed(nil, handState)
 	case FlowState_PREPARE_NEXT_ACTION:
 		return g.prepareNextAction(handState)
 	case FlowState_MOVE_TO_NEXT_ACTION:
@@ -295,7 +294,6 @@ func (g *Game) resumeGame(handState *HandState) error {
 	default:
 		return fmt.Errorf("Unhandled flow state: %s", handState.FlowState)
 	}
-	return nil
 }
 
 func (g *Game) maskCards(playerCards []byte, gameToken uint64) ([]uint32, uint64) {
