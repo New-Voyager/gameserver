@@ -157,6 +157,24 @@ func (g *Game) onQueryCurrentHand(message *HandMessage) error {
 }
 
 func (g *Game) onPlayerActed(message *HandMessage, handState *HandState) error {
+	if message == nil {
+		// Game server is replaying this code after a crash.
+		if handState.ActionMsgInProgress == nil {
+			// There is no saved message. We crashed before saving the
+			// message. We rely on the client to retry the message in this case.
+			channelGameLogger.Info().
+				Uint32("club", g.config.ClubId).
+				Str("game", g.config.GameCode).
+				Msg("Game server restarted with no saved action message. Relying on the client to resend the action.")
+			return nil
+		}
+		channelGameLogger.Info().
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
+			Msg("Restoring action message from hand state.")
+		message = handState.ActionMsgInProgress
+	}
+
 	messageSeatNo := message.GetPlayerActed().GetSeatNo()
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
@@ -260,6 +278,8 @@ func (g *Game) onPlayerActed(message *HandMessage, handState *HandState) error {
 	}
 
 	handState.ActionMsgInProgress = message
+	g.saveHandState(handState)
+
 	g.acknowledgeMsg(message)
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_2)
@@ -350,6 +370,8 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 		g.saveHandState(handState)
 		g.moveToNextAction(handState)
 	}
+
+	handState.ActionMsgInProgress = nil
 
 	return nil
 }

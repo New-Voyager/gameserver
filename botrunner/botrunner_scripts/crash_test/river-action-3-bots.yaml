@@ -66,9 +66,9 @@ hands:
             - setup-server-crash:
                 crash-point: WAIT_FOR_NEXT_ACTION_1
         - action: 5, CALL, 2
-          # pre-action:
-          #   - setup-server-crash:
-          #       crash-point: WAIT_FOR_NEXT_ACTION_2
+          pre-action:
+            - setup-server-crash:
+                crash-point: WAIT_FOR_NEXT_ACTION_2
         - action: 8, CHECK
           pre-action:
             - setup-server-crash:
