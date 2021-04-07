@@ -28,6 +28,7 @@ type BotRunner struct {
 	botIsClubOwner   bool
 	players          *gamescript.Players
 	script           *gamescript.Script
+	waitStart        bool
 	gameCode         string
 	botIsGameHost    bool
 	currentHandNum   uint32
@@ -41,7 +42,7 @@ type BotRunner struct {
 }
 
 // NewBotRunner creates new instance of BotRunner.
-func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, players *gamescript.Players, driverLogger *zerolog.Logger, playerLogger *zerolog.Logger, expectedMsgsFile string, msgDumpFile string) (*BotRunner, error) {
+func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, players *gamescript.Players, waitStart bool, driverLogger *zerolog.Logger, playerLogger *zerolog.Logger, expectedMsgsFile string, msgDumpFile string) (*BotRunner, error) {
 	natsURL := util.Env.GetNatsURL()
 	nc, err := natsgo.Connect(natsURL)
 	if err != nil {
@@ -66,14 +67,14 @@ func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, p
 		botIsClubOwner:   clubCode == "",
 		gameCode:         gameCode,
 		botIsGameHost:    gameCode == "",
-		// config:           config,
-		players:        players,
-		script:         script,
-		bots:           make([]*player.BotPlayer, 0),
-		botsByName:     make(map[string]*player.BotPlayer),
-		botsBySeat:     make(map[uint32]*player.BotPlayer),
-		natsConn:       nc,
-		currentHandNum: 0,
+		players:          players,
+		script:           script,
+		waitStart:        waitStart,
+		bots:             make([]*player.BotPlayer, 0),
+		botsByName:       make(map[string]*player.BotPlayer),
+		botsBySeat:       make(map[uint32]*player.BotPlayer),
+		natsConn:         nc,
+		currentHandNum:   0,
 	}
 	return &d, nil
 }
@@ -327,9 +328,11 @@ func (br *BotRunner) Run() error {
 		}
 
 		// Have the owner bot start the game.
-		err = br.bots[0].StartGame(br.gameCode)
-		if err != nil {
-			return err
+		if !br.waitStart {
+			err = br.bots[0].StartGame(br.gameCode)
+			if err != nil {
+				return err
+			}
 		}
 	} else {
 		// This is not a bot-created game. Ignore the script and just fill in all the empty seats.
