@@ -50,6 +50,9 @@ type BatchConf struct {
 
 	// Number of seconds (in float) to pause between launching BotRunners.
 	LaunchInterval *float32 `json:"launchInterval"`
+
+	// Bot should launch the game but should not start it. Instead it shoudl wait for some human to manually start it.
+	WaitStart bool `json:"waitStart"`
 }
 
 func apply(c *gin.Context) {
@@ -101,7 +104,7 @@ func apply(c *gin.Context) {
 		}
 	}
 
-	err = launcher.ApplyToBatch(payload.BatchID, players, script, *payload.NumGames, payload.LaunchInterval)
+	err = launcher.ApplyToBatch(payload.BatchID, players, script, *payload.NumGames, payload.LaunchInterval, payload.WaitStart)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error while applying config. Error: %s", err)
 		restLogger.Error().Msg(errMsg)
