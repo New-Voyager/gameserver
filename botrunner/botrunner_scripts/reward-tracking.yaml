@@ -49,9 +49,12 @@ hands:
       river: 7c
       seat-cards:
         # seat cards in the order players are sitting 
-        - cards: ["5c", "6c"]
-        - cards: ["As", "Th"]
-        - cards: ["2d", "2s"]
+        - seat: 1
+          cards: ["5c", "6c"]
+        - seat: 2
+          cards: ["As", "Th"]
+        - seat: 3
+          cards: ["2d", "2s"]
 
     # simulate pre-flop action
     preflop:

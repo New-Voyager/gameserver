@@ -17,3 +17,6 @@ msgs_dump.json
 
 # Temporary build files
 build/
+
+# VS Code debugger
+__debug_bin
