@@ -46,9 +46,12 @@ hands:
         # seat 1 gets Kh Qd
         # seat 5 gets 3s 7s
         # seat 8 gets 9h 2s
-        - cards: ["Kh", "Qd"]
-        - cards: ["3s", "7s"]
-        - cards: ["9h", "2s"]
+        - seat: 1
+          cards: ["Kh", "Qd"]
+        - seat: 5
+          cards: ["3s", "7s"]
+        - seat: 8
+          cards: ["9h", "2s"]
 
     # simulate pre-flop action
     preflop:

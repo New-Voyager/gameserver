@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"voyager.com/botrunner/internal/util"
 	"voyager.com/gamescript"
@@ -31,6 +32,7 @@ func RunRestServer(portNo uint, logDir string) {
 	r.POST("/delete-all", deleteAll)
 	r.POST("/join-human-game", joinHumanGame)
 	r.POST("/delete-human-game", deleteHumanGame)
+	r.GET("/list-scripts", listBotrunnerScripts)
 	r.Run(fmt.Sprintf(":%d", portNo))
 }
 
@@ -158,6 +160,41 @@ func validateApplyPayload(payload BatchConf) error {
 		return fmt.Errorf(strings.Join(errors, "\n"))
 	}
 	return nil
+}
+
+func listBotrunnerScripts(c *gin.Context) {
+	fileNames, err := util.GetFilesInDir("botrunner_scripts")
+	if err != nil {
+		errMsg := fmt.Sprintf("Error while listing files in botrunner_scripts directory. Error: %s", err)
+		restLogger.Error().Msg(errMsg)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
+		return
+	}
+	type listItem struct {
+		GameTitle  string
+		ScriptFile string
+	}
+	var scripts []listItem
+	for _, fileName := range fileNames {
+		scriptFile := "botrunner_scripts/" + fileName
+		gameTitle, err := getGameTitle(scriptFile)
+		if err != nil {
+			errMsg := fmt.Sprintf("Error while parsing game title for script %s. Error: %s", scriptFile, err)
+			restLogger.Error().Msg(errMsg)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
+			return
+		}
+		scripts = append(scripts, listItem{ScriptFile: scriptFile, GameTitle: gameTitle})
+	}
+	c.JSON(http.StatusOK, gin.H{"scripts": scripts})
+}
+
+func getGameTitle(scriptFile string) (string, error) {
+	script, err := gamescript.ReadGameScript(scriptFile)
+	if err != nil {
+		return "", errors.Wrap(err, "Error while parsing script file")
+	}
+	return script.Game.Title, nil
 }
 
 func joinHumanGame(c *gin.Context) {
