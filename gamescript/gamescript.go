@@ -54,6 +54,7 @@ type Game struct {
 	BuyInMax           float32 `yaml:"buy-in-max"`
 	ActionTime         int     `yaml:"action-time"`
 	Rewards            string  `yaml:"rewards"`
+	DontStart          bool    `yaml:"dont-start"`
 }
 
 // StartingSeat contains an entry in the StartingSeats array in the game script.

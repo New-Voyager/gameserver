@@ -16,9 +16,10 @@ var NatsURL string
 // However, this game manager active NatsGame objects.
 // This will cleanup a NatsGame object and removes when the game ends.
 type GameManager struct {
-	activeGames map[string]*NatsGame
-	gameCodes   map[string]string
-	nc          *natsgo.Conn
+	activeGames  map[string]*NatsGame
+	gameCodes    map[string]string
+	gameCodeToId map[string]string
+	nc           *natsgo.Conn
 }
 
 const (
@@ -39,9 +40,10 @@ func NewGameManager(nc *natsgo.Conn) (*GameManager, error) {
 	}
 
 	return &GameManager{
-		nc:          nc,
-		activeGames: make(map[string]*NatsGame),
-		gameCodes:   make(map[string]string),
+		nc:           nc,
+		activeGames:  make(map[string]*NatsGame),
+		gameCodes:    make(map[string]string),
+		gameCodeToId: make(map[string]string),
 	}, nil
 }
 
@@ -54,6 +56,7 @@ func (gm *GameManager) NewGame(clubID uint32, gameID uint64, config *game.GameCo
 	}
 	gm.activeGames[gameIDStr] = game
 	gm.gameCodes[gameIDStr] = config.GameCode
+	gm.gameCodeToId[config.GameCode] = gameIDStr
 	return game, nil
 }
 
@@ -103,6 +106,9 @@ func (gm *GameManager) PendingUpdatesDone(gameID uint64) {
 func (gm *GameManager) SetupDeck(setupDeck SetupDeck) {
 	// first check whether the game is hosted by this game server
 	gameIDStr := fmt.Sprintf("%d", setupDeck.GameId)
+	if setupDeck.GameId == 0 {
+		gameIDStr = gm.gameCodeToId[setupDeck.GameCode]
+	}
 	var natsGame *NatsGame
 	var ok bool
 	if natsGame, ok = gm.activeGames[gameIDStr]; !ok {
@@ -137,6 +143,9 @@ func (gm *GameManager) SetupDeck(setupDeck SetupDeck) {
 func (gm *GameManager) GetCurrentHandLog(gameID uint64, gameCode string) *map[string]interface{} {
 	// first check whether the game is hosted by this game server
 	gameIDStr := fmt.Sprintf("%d", gameID)
+	if gameID == 0 {
+		gameIDStr = gm.gameCodeToId[gameCode]
+	}
 	var natsGame *NatsGame
 	var ok bool
 	if natsGame, ok = gm.activeGames[gameIDStr]; !ok {

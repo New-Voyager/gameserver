@@ -1167,6 +1167,17 @@ func (bp *BotPlayer) StartGame(gameCode string) error {
 	return nil
 }
 
+// SetupNextHand setups next hand.
+func (bp *BotPlayer) SetupNextHand(gameCode string) error {
+	bp.logger.Info().Msgf("%s: Setting up next hand game [%s].", bp.logPrefix, gameCode)
+
+	// setup first deck if not auto play
+	if bp.IsHost() && !bp.config.Script.AutoPlay {
+		bp.setupNextHand()
+	}
+	return nil
+}
+
 // RequestEndGame schedules to end the game after the current hand is finished.
 func (bp *BotPlayer) RequestEndGame(gameCode string) error {
 	bp.logger.Info().Msgf("%s: Requesting to end the game [%s] after the current hand.", bp.logPrefix, gameCode)

@@ -18,7 +18,7 @@
       },
       "args": [
         "-script",
-        "botrunner_scripts/host-seatchange.yaml"
+        "botrunner_scripts/run-it-twice.yaml"
       ]
     },
     {

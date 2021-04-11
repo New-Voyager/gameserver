@@ -328,11 +328,15 @@ func (br *BotRunner) Run() error {
 		}
 
 		// Have the owner bot start the game.
-		if !br.waitStart {
+		if !br.waitStart && !br.script.Game.DontStart {
+			// Have the owner bot start the game.
 			err = br.bots[0].StartGame(br.gameCode)
 			if err != nil {
 				return err
 			}
+		} else {
+			// setup first deck if not auto play
+			br.bots[0].SetupNextHand(br.gameCode)
 		}
 	} else {
 		// This is not a bot-created game. Ignore the script and just fill in all the empty seats.

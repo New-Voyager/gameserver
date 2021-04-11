@@ -45,6 +45,7 @@ type GameInfo struct {
 	HandToAllChannel    string
 	PlayerToHandChannel string
 	HandToPlayerChannel string
+	Start               bool
 }
 
 // SeatInfo is the info about a player sitting in a game.
