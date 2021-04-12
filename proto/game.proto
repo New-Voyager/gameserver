@@ -63,6 +63,7 @@ enum NewUpdate {
   EMPTY_STACK = 7;
   NEW_BUYIN = 8;
   BUYIN_TIMEDOUT = 9;
+  WAIT_FOR_BUYIN_APPROVAL = 10;
 }
 
 // Player update comes from the API server

@@ -33,6 +33,7 @@ type PlayerUpdate struct {
 	Status    game.PlayerStatus `json:"status"`
 	BuyIn     float64           `json:"buyIn"`
 	GameToken string            `json:"gameToken"`
+	OldSeatNo uint64            `json:"oldSeatNo"`
 	NewUpdate game.NewUpdate    `json:"newUpdate"`
 }
 

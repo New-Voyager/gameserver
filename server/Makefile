@@ -33,7 +33,7 @@ PROTO_DIR := $(PROJECT_ROOT)/proto
 # -VV                              Verbose trace (traces system account as well)
 # -DV                              Debug and trace
 # -DVV                             Debug and verbose trace (traces system account as well)
-NATS_OPTS ?=
+NATS_OPTS ?= -DV
 
 .PHONY: pull
 pull:

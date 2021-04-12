@@ -150,6 +150,7 @@ func (n *NatsGame) playerUpdate(gameID uint64, update *PlayerUpdate) {
 		Stack:     float32(update.Stack),
 		BuyIn:     float32(update.BuyIn),
 		GameToken: update.GameToken,
+		OldSeat:   uint32(update.OldSeatNo),
 		NewUpdate: game.NewUpdate(update.NewUpdate),
 	}
 
