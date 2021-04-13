@@ -23,6 +23,12 @@ DEV_REDIS_PORT := 6379
 DEV_REDIS_DB := 0
 DEV_API_SERVER_URL := http://localhost:9501
 
+ifndef CIRCLECI
+    COMPOSE := docker-compose -f docker-compose.yaml -f docker-compose-local.yaml
+else
+    COMPOSE := docker-compose -f docker-compose.yaml
+endif
+
 .PHONY: build
 build:
 	go build -o test
@@ -53,15 +59,15 @@ env:
 
 .PHONY: stack-up
 stack-up: create-network login env
-	docker-compose up -d
+	$(COMPOSE) up -d
 
 .PHONY: stack-logs
 stack-logs:
-	docker-compose logs -f
+	$(COMPOSE) logs -f
 
 .PHONY: stack-down
 stack-down: env
-	docker-compose down
+	$(COMPOSE) down
 
 .PHONY: system-test
 system-test: docker-build stack-down stack-up
@@ -69,4 +75,4 @@ system-test: docker-build stack-down stack-up
 
 .PHONY: system-test-logs
 system-test-logs:
-	docker-compose logs -f
+	$(COMPOSE) logs -f
