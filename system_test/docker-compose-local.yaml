@@ -1,0 +1,33 @@
+version: '3'
+
+services:
+  nats:
+    ports:
+      - 4222:4222
+      - 8222:8222
+      - 9222:9222
+
+  redis:
+    ports:
+      - 6379:6379
+
+  postgres:
+    ports:
+      - 5432:5432
+
+  api-server:
+    ports:
+      - 9501:9501
+
+  game-server:
+    ports:
+      - 8080:8080
+
+  botrunner:
+    ports:
+      - 8081:8081
+
+networks:
+  default:
+    external:
+      name: ${TEST_DOCKER_NET}
