@@ -376,6 +376,8 @@ func (g *Game) dealNewHand() error {
 				GameToken    string
 				GameTokenInt uint64
 				RunItTwice   bool
+				BuyInTimeExpAt string
+				BreakTimeExpAt string
 			}
 		*/
 		for _, playerInSeat := range newHandInfo.PlayersInSeats {
@@ -383,10 +385,12 @@ func (g *Game) dealNewHand() error {
 				g.PlayersInSeats[playerInSeat.SeatNo] = playerInSeat
 			}
 			playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
-				Status:   playerInSeat.Status,
-				Stack:    playerInSeat.Stack,
-				PlayerId: playerInSeat.PlayerID,
-				Name:     playerInSeat.Name,
+				Status:       playerInSeat.Status,
+				Stack:        playerInSeat.Stack,
+				PlayerId:     playerInSeat.PlayerID,
+				Name:         playerInSeat.Name,
+				BuyInExpTime: playerInSeat.BuyInTimeExpAt,
+				BreakExpTime: playerInSeat.BreakTimeExpAt,
 			}
 		}
 

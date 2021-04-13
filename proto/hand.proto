@@ -59,6 +59,8 @@ message PlayerInSeatState {
   float stack = 4;
   HandStatus round = 5;
   float playerReceived = 6;
+  string buy_in_exp_time = 7;
+  string break_exp_time = 8;
 }
 
 message PlayerBalance {
