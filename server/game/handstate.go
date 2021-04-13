@@ -115,13 +115,14 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 
 	// update active seats with players who are playing
 	for _, player := range playersInSeats {
+		h.PlayersInSeats[int(player.SeatNo)] = 0
 		if player.SeatNo == 0 {
 			continue
 		}
-		h.PlayersInSeats[int(player.SeatNo)] = player.PlayerID
 		if player.Status != PlayerStatus_PLAYING {
 			continue
 		}
+		h.PlayersInSeats[int(player.SeatNo)] = player.PlayerID
 		h.PlayerStats[player.PlayerID] = &PlayerStats{InPreflop: true}
 		h.NoActiveSeats++
 	}
@@ -160,6 +161,9 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 			continue
 		}
 		playerInSeat := playersInSeats[seatNo]
+		if playerInSeat.Status != PlayerStatus_PLAYING {
+			continue
+		}
 		h.BalanceBeforeHand = append(h.BalanceBeforeHand,
 			&PlayerBalance{SeatNo: playerInSeat.SeatNo, PlayerId: playerInSeat.PlayerID, Balance: playerInSeat.Stack})
 		if playerInSeat.RunItTwice {
@@ -191,13 +195,10 @@ func (h *HandState) copyPlayersState(maxSeats uint32, playersInSeats []SeatPlaye
 	handPlayerState := make(map[uint64]*PlayerInSeatState, 0)
 	for seatNo := 1; seatNo <= int(maxSeats); seatNo++ {
 		player := playersInSeats[seatNo]
-		if player.Status != PlayerStatus_PLAYING {
-			continue
-		}
 		handPlayerState[player.PlayerID] = &PlayerInSeatState{
 			PlayerId: player.PlayerID,
 			Name:     player.Name,
-			Status:   PlayerStatus_PLAYING,
+			Status:   player.Status,
 			Stack:    player.Stack,
 		}
 	}
@@ -211,8 +212,17 @@ func (h *HandState) setupRound(state HandStatus) {
 		if seatNo == 0 || playerID == 0 {
 			continue
 		}
-		state := h.PlayersState[playerID]
-		roundState.PlayerBalance[uint32(seatNo)] = state.Stack
+		if player, ok := h.PlayersState[playerID]; ok {
+			if player.Status != PlayerStatus_PLAYING {
+				continue
+			}
+		} else {
+			continue
+		}
+
+		if state, ok := h.PlayersState[playerID]; ok {
+			roundState.PlayerBalance[uint32(seatNo)] = state.Stack
+		}
 	}
 }
 
@@ -408,6 +418,14 @@ func (h *HandState) getPlayersCards(deck *poker.Deck) map[uint32][]byte {
 	playerCards := make(map[uint32][]byte)
 	for seatNo, playerID := range h.GetPlayersInSeats() {
 		if playerID != 0 {
+			if state, ok := h.GetPlayersState()[playerID]; ok {
+				if state.Status != PlayerStatus_PLAYING {
+					continue
+				}
+			} else {
+				continue
+			}
+
 			playerCards[uint32(seatNo)] = make([]byte, 0, 4)
 		}
 	}
@@ -462,6 +480,8 @@ func (h *HandState) getNextActivePlayer(seatNo uint32) uint32 {
 			if state.Status != PlayerStatus_PLAYING {
 				continue
 			}
+		} else {
+			continue
 		}
 
 		if h.ActiveSeats[seatNo] == 0 {

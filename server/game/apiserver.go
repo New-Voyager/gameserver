@@ -60,6 +60,7 @@ func (g *Game) getNewHandInfo() (*NewHandInfo, error) {
 		if err != nil {
 			channelGameLogger.Error().Msgf("[%s] Cannot get new hand information", g.config.GameCode)
 		}
+		fmt.Printf("=================== \n%s===================n", string(bodyBytes))
 		var newHandInfo NewHandInfo
 		json.Unmarshal(bodyBytes, &newHandInfo)
 		return &newHandInfo, nil
