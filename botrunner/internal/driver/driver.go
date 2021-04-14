@@ -101,9 +101,9 @@ func (br *BotRunner) Run() error {
 			BotActionPauseTime: 100,
 			APIServerURL:       util.Env.GetAPIServerURL(),
 			NatsURL:            util.Env.GetNatsURL(),
-			GQLTimeoutSec:      300,
 			Script:  br.script,
 			Players: br.players,
+			GQLTimeoutSec:      3,
 		}, br.playerLogger, br.msgCollector)
 		if err != nil {
 			return errors.Wrap(err, "Unable to create a new bot")
@@ -123,7 +123,7 @@ func (br *BotRunner) Run() error {
 		BotActionPauseTime: 0,
 		APIServerURL:       util.Env.GetAPIServerURL(),
 		NatsURL:            util.Env.GetNatsURL(),
-		GQLTimeoutSec:      30,
+		GQLTimeoutSec:      3,
 		Script:             br.script,
 		Players:            br.players,
 	}, br.playerLogger, br.msgCollector)
