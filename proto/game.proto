@@ -15,6 +15,12 @@ enum PlayerStatus {
   BLOCKED = 8;
   LOST_CONNECTION = 9;
   WAIT_FOR_BUYIN = 10;
+  LEAVING_GAME = 11;
+  TAKING_BREAK = 12;
+  JOINING = 13;
+  WAITLIST_SEATING = 14;
+  PENDING_UPDATES = 15;
+  WAIT_FOR_BUYIN_APPROVAL = 16;
 }
 
 message PlayerState {
@@ -63,7 +69,8 @@ enum NewUpdate {
   EMPTY_STACK = 7;
   NEW_BUYIN = 8;
   BUYIN_TIMEDOUT = 9;
-  WAIT_FOR_BUYIN_APPROVAL = 10;
+  NEWUPDATE_WAIT_FOR_BUYIN_APPROVAL = 10;
+  BUYIN_DENIED = 11;
 }
 
 // Player update comes from the API server
