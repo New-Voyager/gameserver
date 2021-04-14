@@ -88,36 +88,22 @@ func (br *BotRunner) Terminate() {
 func (br *BotRunner) Run() error {
 	br.logger.Debug().Msgf("Players: %+v, Script: %+v", br.players, br.script)
 
-	// resetDB := false
-	// if br.config.ResetDB {
-	// 	resetDB = true
-	// }
-
-	// if resetDB {
-	// 	url := fmt.Sprintf("%s/graphql", util.Env.GetAPIServerURL())
-	// 	gqlClient := graphql.NewClient(url)
-	// 	gqlHelper := gql.NewGQLHelper(gqlClient, 1000, "")
-	// 	gqlHelper.ResetDB()
-	// }
-
 	// Create the player bots based on the setup script.
 	for i, playerConfig := range br.players.Players {
 		bot, err := player.NewBotPlayer(player.Config{
-			Name:     playerConfig.Name,
-			DeviceID: playerConfig.DeviceID,
-			Email:    playerConfig.Email,
-			Password: playerConfig.Password,
-			IsHost:   (i == 0) && br.botIsGameHost, // First bot is the game host.
-			// IsHuman:            !botConfig.Bot,
-			IsHuman: br.script.Tester == playerConfig.Name,
-			// BotActionPauseTime: botConfig.BotActionPauseTime,
-			BotActionPauseTime: 100,
+			Name:               playerConfig.Name,
+			DeviceID:           playerConfig.DeviceID,
+			Email:              playerConfig.Email,
+			Password:           playerConfig.Password,
+			IsHost:             (i == 0) && br.botIsGameHost, // First bot is the game host.
+			IsHuman:            br.script.Tester == playerConfig.Name,
+			MinActionPauseTime: br.script.BotConfig.MinActionPauseTime,
+			MaxActionPauseTime: br.script.BotConfig.MaxActionPauseTime,
 			APIServerURL:       util.Env.GetAPIServerURL(),
 			NatsURL:            util.Env.GetNatsURL(),
-			GQLTimeoutSec:      300,
-			// Script:             br.config,
-			Script:  br.script,
-			Players: br.players,
+			GQLTimeoutSec:      3,
+			Script:             br.script,
+			Players:            br.players,
 		}, br.playerLogger, br.msgCollector)
 		if err != nil {
 			return errors.Wrap(err, "Unable to create a new bot")
@@ -134,10 +120,11 @@ func (br *BotRunner) Run() error {
 		Email:              "observer@gmail.com",
 		Password:           "mypassword",
 		IsObserver:         true,
-		BotActionPauseTime: 0,
+		MinActionPauseTime: 0,
+		MaxActionPauseTime: 0,
 		APIServerURL:       util.Env.GetAPIServerURL(),
 		NatsURL:            util.Env.GetNatsURL(),
-		GQLTimeoutSec:      30,
+		GQLTimeoutSec:      3,
 		Script:             br.script,
 		Players:            br.players,
 	}, br.playerLogger, br.msgCollector)

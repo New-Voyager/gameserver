@@ -14,6 +14,11 @@ func GetRandomInt(min int, max int) int {
 	return rand.Intn(max-min+1) + min
 }
 
+// GetRandomUint32 returns a random integer in range [min, max].
+func GetRandomUint32(min uint32, max uint32) uint32 {
+	return min + rand.Uint32()%(max-min+1)
+}
+
 // GetRandomFloat32 returns a random float32 in range [min, max).
 func GetRandomFloat32(min float32, max float32) float32 {
 	return min + rand.Float32()*(max-min)
