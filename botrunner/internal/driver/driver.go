@@ -96,14 +96,14 @@ func (br *BotRunner) Run() error {
 			Email:    playerConfig.Email,
 			Password: playerConfig.Password,
 			IsHost:   (i == 0) && br.botIsGameHost, // First bot is the game host.
-			IsHuman: br.script.Tester == playerConfig.Name,
+			IsHuman:  br.script.Tester == playerConfig.Name,
 			// BotActionPauseTime: botConfig.BotActionPauseTime,
 			BotActionPauseTime: 100,
 			APIServerURL:       util.Env.GetAPIServerURL(),
 			NatsURL:            util.Env.GetNatsURL(),
-			Script:  br.script,
-			Players: br.players,
 			GQLTimeoutSec:      3,
+			Script:             br.script,
+			Players:            br.players,
 		}, br.playerLogger, br.msgCollector)
 		if err != nil {
 			return errors.Wrap(err, "Unable to create a new bot")
