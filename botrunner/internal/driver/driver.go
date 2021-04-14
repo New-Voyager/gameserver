@@ -91,14 +91,14 @@ func (br *BotRunner) Run() error {
 	// Create the player bots based on the setup script.
 	for i, playerConfig := range br.players.Players {
 		bot, err := player.NewBotPlayer(player.Config{
-			Name:     playerConfig.Name,
-			DeviceID: playerConfig.DeviceID,
-			Email:    playerConfig.Email,
-			Password: playerConfig.Password,
-			IsHost:   (i == 0) && br.botIsGameHost, // First bot is the game host.
-			IsHuman:  br.script.Tester == playerConfig.Name,
-			// BotActionPauseTime: botConfig.BotActionPauseTime,
-			BotActionPauseTime: 100,
+			Name:               playerConfig.Name,
+			DeviceID:           playerConfig.DeviceID,
+			Email:              playerConfig.Email,
+			Password:           playerConfig.Password,
+			IsHost:             (i == 0) && br.botIsGameHost, // First bot is the game host.
+			IsHuman:            br.script.Tester == playerConfig.Name,
+			MinActionPauseTime: br.script.BotConfig.MinActionPauseTime,
+			MaxActionPauseTime: br.script.BotConfig.MaxActionPauseTime,
 			APIServerURL:       util.Env.GetAPIServerURL(),
 			NatsURL:            util.Env.GetNatsURL(),
 			GQLTimeoutSec:      3,
@@ -120,7 +120,8 @@ func (br *BotRunner) Run() error {
 		Email:              "observer@gmail.com",
 		Password:           "mypassword",
 		IsObserver:         true,
-		BotActionPauseTime: 0,
+		MinActionPauseTime: 0,
+		MaxActionPauseTime: 0,
 		APIServerURL:       util.Env.GetAPIServerURL(),
 		NatsURL:            util.Env.GetNatsURL(),
 		GQLTimeoutSec:      3,

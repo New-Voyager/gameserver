@@ -39,7 +39,8 @@ type Config struct {
 	IsHuman            bool
 	IsObserver         bool
 	IsHost             bool
-	BotActionPauseTime uint32
+	MinActionPauseTime uint32
+	MaxActionPauseTime uint32
 	APIServerURL       string
 	NatsURL            string
 	GQLTimeoutSec      int
@@ -1333,7 +1334,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 
 	if !bp.IsHuman() && !util.Env.ShouldDisableDelays() {
 		// Pause to think for some time to be realistic.
-		time.Sleep(time.Duration(bp.config.BotActionPauseTime) * time.Millisecond)
+		time.Sleep(bp.getActionTime())
 	}
 
 	handAction := game.HandAction{
@@ -1354,6 +1355,11 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 	}
 
 	go bp.publishAndWaitForAck(bp.meToHand, &actionMsg)
+}
+
+func (bp *BotPlayer) getActionTime() time.Duration {
+	randomMilli := util.GetRandomUint32(bp.config.MinActionPauseTime, bp.config.MaxActionPauseTime)
+	return time.Duration(randomMilli) * time.Millisecond
 }
 
 func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
