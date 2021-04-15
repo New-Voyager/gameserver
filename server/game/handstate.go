@@ -188,7 +188,7 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 	h.initializeBettingRound()
 
 	// setup hand for preflop
-	h.setupPreflob()
+	h.setupPreflop()
 }
 
 func (h *HandState) copyPlayersState(maxSeats uint32, playersInSeats []SeatPlayer) map[uint64]*PlayerInSeatState {
@@ -226,7 +226,7 @@ func (h *HandState) setupRound(state HandStatus) {
 	}
 }
 
-func (h *HandState) setupPreflob() {
+func (h *HandState) setupPreflop() {
 	h.CurrentState = HandStatus_PREFLOP
 
 	// set next action information

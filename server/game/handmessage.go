@@ -206,6 +206,10 @@ func (g *Game) onPlayerActed(message *HandMessage, handState *HandState) error {
 			Str("game", g.config.GameCode).
 			Uint32("hand", handState.GetHandNum()).
 			Msg(errMsg)
+		if !message.GetPlayerActed().GetTimedOut() {
+			// Acknowledge so that the client stops retrying.
+			g.acknowledgeMsg(message)
+		}
 		return fmt.Errorf(errMsg)
 	}
 
