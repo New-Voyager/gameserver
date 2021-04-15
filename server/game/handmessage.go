@@ -194,6 +194,21 @@ func (g *Game) onPlayerActed(message *HandMessage, handState *HandState) error {
 		return fmt.Errorf(errMsg)
 	}
 
+	if handState.NextSeatAction != nil && (message.GetPlayerActed().GetSeatNo() != handState.NextSeatAction.SeatNo) {
+		// Unexpected seat acted.
+		// One scenario this can happen is when a player made a last-second action and the timeout
+		// was triggered at the same time. We get two actions in that case - one last-minute action
+		// from the player, and the other default action created by the timeout handler on behalf
+		// of the player. We are discarding whichever action that came last in that case.
+		errMsg := fmt.Sprintf("Invalid seat %d made action. Ignored. The next valid action seat is: %d",
+			message.GetPlayerActed().GetSeatNo(), handState.NextSeatAction.SeatNo)
+		channelGameLogger.Error().
+			Str("game", g.config.GameCode).
+			Uint32("hand", handState.GetHandNum()).
+			Msg(errMsg)
+		return fmt.Errorf(errMsg)
+	}
+
 	if !message.GetPlayerActed().GetTimedOut() {
 		if message.MessageId == 0 && !RunningTests {
 			errMsg := fmt.Sprintf("Invalid message ID [0] for player ID %d Seat %d. Ignoring the action message.", message.PlayerId, messageSeatNo)
