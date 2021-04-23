@@ -55,25 +55,39 @@ starting-seats:
     player: michael
     buy-in: 1000
 
+observers:
+  - player: david
+    waitlist: true
+    confirm: true
+    buy-in: 500
+  - player: olivia
+    waitlist: true
+    confirm: true
+    buy-in: 500
+  - player: emma
+    waitlist: true
+    confirm: true
+    buy-in: 500
+
 # deal the following hands in the table
 hands:
   - setup:
       button-pos: 1
       auto: true
-      wait-list:
-        - player: david
-          confirm: false
-          buy-in: 500
+      leave-game:
+        - seat: 5
 
   - setup:
       pause: 10
-      wait-list:
-        - player: john
-          confirm: true
-          buy-in: 500    
       auto: true
       leave-game:
         - seat: 3
+
+  - setup:
+      pause: 10
+      auto: true
+      leave-game:
+        - seat: 2
 
   - setup:
       auto: true

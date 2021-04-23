@@ -421,7 +421,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		bp.setupSeatChange()
 
 		// setup waitlist requests
-		bp.setupWaitList()
+		// bp.setupWaitList()
 
 		// process any leave game requests
 		// the player will after this hand
@@ -1718,5 +1718,17 @@ func (bp *BotPlayer) HostRequestSeatChange(gameCode string) error {
 	}
 
 	bp.logger.Info().Msgf("%s: Successfully requested to make seat changes. Status: [%s]", bp.logPrefix, gameCode, status)
+	return nil
+}
+
+// CreateClub creates a new club.
+func (bp *BotPlayer) ResetDB() error {
+	bp.logger.Info().Msgf("%s: Resetting database for testing [%s].", bp.logPrefix)
+
+	err := bp.gqlHelper.ResetDB()
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("%s: Resetting database failed", bp.logPrefix))
+	}
+
 	return nil
 }

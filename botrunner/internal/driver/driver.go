@@ -36,6 +36,7 @@ type BotRunner struct {
 	observerBot      *player.BotPlayer
 	botsByName       map[string]*player.BotPlayer
 	botsBySeat       map[uint32]*player.BotPlayer
+	observerBots     map[string]*player.BotPlayer // these players are observing the game and waiting in the waitlist
 	apiServerURL     string
 	natsConn         *natsgo.Conn
 	shouldTerminate  bool
@@ -73,6 +74,7 @@ func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, p
 		bots:             make([]*player.BotPlayer, 0),
 		botsByName:       make(map[string]*player.BotPlayer),
 		botsBySeat:       make(map[uint32]*player.BotPlayer),
+		observerBots:     make(map[string]*player.BotPlayer),
 		natsConn:         nc,
 		currentHandNum:   0,
 	}
@@ -132,6 +134,10 @@ func (br *BotRunner) Run() error {
 		return errors.Wrap(err, "Unable to create observer bot")
 	}
 	br.observerBot = b
+	err = br.observerBot.ResetDB()
+	if err != nil {
+		panic("Resetting database failed")
+	}
 
 	// Register bots to the poker service.
 	for _, b := range append(br.bots, br.observerBot) {
@@ -261,15 +267,27 @@ func (br *BotRunner) Run() error {
 		for _, startingSeat := range br.script.StartingSeats {
 			playerName := startingSeat.Player
 			b := br.botsByName[playerName]
-			br.botsBySeat[startingSeat.Seat] = b
-			if b.IsHuman() {
-				// Let the tester join himself.
-				continue
+
+			if startingSeat.Seat != 0 {
+				br.botsBySeat[startingSeat.Seat] = b
+				if b.IsHuman() {
+					// Let the tester join himself.
+					continue
+				}
+				err = b.JoinGame(br.gameCode)
+				if err != nil {
+					return err
+				}
+			} else {
+				// observers
 			}
-			err = b.JoinGame(br.gameCode)
-			if err != nil {
-				return err
-			}
+		}
+		for _, observer := range br.script.Observers {
+			playerName := observer.Player
+			b := br.botsByName[playerName]
+			b.ObserveGame(br.gameCode)
+			br.observerBots[playerName] = b
+			br.logger.Info().Msgf("Player [%s] is observing. Game Code: *** %s ***", playerName, br.gameCode)
 		}
 
 		// Check if all players are seated in. Wait if necessary.
@@ -320,6 +338,16 @@ func (br *BotRunner) Run() error {
 			err = br.bots[0].StartGame(br.gameCode)
 			if err != nil {
 				return err
+			}
+
+			// add the players who are in waitlist
+			for _, observer := range br.script.Observers {
+				playerName := observer.Player
+				b := br.botsByName[playerName]
+				if observer.Waitlist {
+					b.JoinWaitlist(&observer)
+					br.logger.Info().Msgf("Player [%s] is in waitlist. Game Code: *** %s ***", playerName, br.gameCode)
+				}
 			}
 		} else {
 			// setup first deck if not auto play

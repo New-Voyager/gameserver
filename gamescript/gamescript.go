@@ -20,6 +20,7 @@ type Script struct {
 	BotConfig     BotConfig      `yaml:"bot-config"`
 	AutoPlay      bool           `yaml:"auto-play"`
 	Hands         []Hand         `yaml:"hands"`
+	Observers     []Observer     `yaml:"observers"`
 }
 
 type Club struct {
@@ -62,6 +63,14 @@ type StartingSeat struct {
 	Seat   uint32  `yaml:"seat"`
 	Player string  `yaml:"player"`
 	BuyIn  float32 `yaml:"buy-in"`
+}
+
+// Observer contains entries of observers of game
+type Observer struct {
+	Player   string  `yaml:"player"`
+	Waitlist bool    `yaml:"waitlist"`
+	BuyIn    float32 `yaml:"buy-in"`
+	Confirm  bool    `yaml:"confirm"`
 }
 
 // VerifySeat verifies seat position in a new hand

@@ -112,6 +112,11 @@ func (g *Game) runGame() {
 	ended := false
 	for !ended {
 		if !g.running {
+			channelGameLogger.Info().
+				Uint32("club", g.config.ClubId).
+				Str("game", g.config.GameCode).
+				Msg(fmt.Sprintf("Starting the game"))
+
 			started, err := g.startGame()
 			if err != nil {
 				channelGameLogger.Error().
@@ -381,7 +386,7 @@ func (g *Game) dealNewHand() error {
 			}
 		*/
 		for _, playerInSeat := range newHandInfo.PlayersInSeats {
-			if playerInSeat.SeatNo < uint32(g.config.MaxPlayers) {
+			if playerInSeat.SeatNo <= uint32(g.config.MaxPlayers) {
 				g.PlayersInSeats[playerInSeat.SeatNo] = playerInSeat
 			}
 			playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
@@ -664,7 +669,18 @@ func (g *Game) getGameInfo(apiServerURL string, gameCode string, retryDelay uint
 	url := fmt.Sprintf("%s/internal/game-info/game_num/%s", apiServerURL, gameCode)
 
 	retry := true
+
+	// debug flag
+	ignore := false
 	for retry {
+		// SOMA: I added this for debugging
+		// I delete games (resetDB) when testing from the app
+		// I want the game server to ignore the games that don't exist
+		if ignore {
+			time.Sleep(time.Duration(6000000))
+			continue
+		}
+
 		resp, err := http.Get(url)
 		if resp == nil {
 			channelGameLogger.Error().Msgf("Connection to API server is lost. Waiting for %.3f seconds before retrying", float32(retryDelay)/1000)
@@ -673,9 +689,12 @@ func (g *Game) getGameInfo(apiServerURL string, gameCode string, retryDelay uint
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
-			channelGameLogger.Fatal().
+			channelGameLogger.Error().
 				Str("gameCode", gameCode).
 				Msgf("Failed to fetch game info from api server (%s). Error: %d", apiServerURL, resp.StatusCode)
+			time.Sleep(time.Duration(retryDelay) * time.Millisecond)
+			ignore = true
+			continue
 		}
 
 		body, err := ioutil.ReadAll(resp.Body)

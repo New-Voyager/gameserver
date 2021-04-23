@@ -327,6 +327,15 @@ func (bp *BotPlayer) setupLeaveGame() error {
 	return nil
 }
 
+func (bp *BotPlayer) JoinWaitlist(observer *gamescript.Observer) error {
+	_, err := bp.gqlHelper.JoinWaitList(bp.gameCode)
+	if err == nil {
+		bp.confirmWaitlist = observer.Confirm
+		bp.buyInAmount = uint32(observer.BuyIn)
+	}
+	return err
+}
+
 func (bp *BotPlayer) setupWaitList() error {
 	if int(bp.handNum) >= len(bp.config.Script.Hands) {
 		return nil
