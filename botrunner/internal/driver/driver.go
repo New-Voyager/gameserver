@@ -40,10 +40,11 @@ type BotRunner struct {
 	apiServerURL     string
 	natsConn         *natsgo.Conn
 	shouldTerminate  bool
+	resetDB          bool
 }
 
 // NewBotRunner creates new instance of BotRunner.
-func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, players *gamescript.Players, waitStart bool, driverLogger *zerolog.Logger, playerLogger *zerolog.Logger, expectedMsgsFile string, msgDumpFile string) (*BotRunner, error) {
+func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, players *gamescript.Players, waitStart bool, driverLogger *zerolog.Logger, playerLogger *zerolog.Logger, expectedMsgsFile string, msgDumpFile string, resetDB bool) (*BotRunner, error) {
 	natsURL := util.Env.GetNatsURL()
 	nc, err := natsgo.Connect(natsURL)
 	if err != nil {
@@ -77,6 +78,7 @@ func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, p
 		observerBots:     make(map[string]*player.BotPlayer),
 		natsConn:         nc,
 		currentHandNum:   0,
+		resetDB:          resetDB,
 	}
 	return &d, nil
 }
@@ -134,9 +136,12 @@ func (br *BotRunner) Run() error {
 		return errors.Wrap(err, "Unable to create observer bot")
 	}
 	br.observerBot = b
-	err = br.observerBot.ResetDB()
-	if err != nil {
-		panic("Resetting database failed")
+
+	if br.resetDB {
+		err = br.observerBot.ResetDB()
+		if err != nil {
+			panic("Resetting database failed")
+		}
 	}
 
 	// Register bots to the poker service.

@@ -63,7 +63,7 @@ func botrunner() int {
 	}
 	driverLogger := log.With().Str("logger_name", "BotRunner").Logger()
 	playerLogger := log.With().Str("logger_name", "BotPlayer").Logger()
-	botRunner, err := driver.NewBotRunner(cmdArgs.clubCode, cmdArgs.gameCode, script, players, false, &driverLogger, &playerLogger, cmdArgs.expectedMsgsFile, cmdArgs.msgDumpFile)
+	botRunner, err := driver.NewBotRunner(cmdArgs.clubCode, cmdArgs.gameCode, script, players, false, &driverLogger, &playerLogger, cmdArgs.expectedMsgsFile, cmdArgs.msgDumpFile, true)
 	if err != nil {
 		mainLogger.Error().Msgf("Error while creating a bot runner %+v", err)
 		return 1
