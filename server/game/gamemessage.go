@@ -33,9 +33,6 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 	case GameJoin:
 		g.onJoinGame(message)
 
-	// case PlayerUpdate:
-	// 	g.onPlayerUpdate(message)
-
 	case GameMoveToNextHand:
 		g.onMoveToNextHand(message)
 
