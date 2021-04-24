@@ -182,18 +182,6 @@ func (g *Game) onPlayerInSeats(message *GameMessage) error {
 func (g *Game) onStatusChanged(message *GameMessage) error {
 	gameStatusChanged := message.GetStatusChange()
 	g.Status = gameStatusChanged.NewStatus
-
-	if g.Status == GameStatus_ACTIVE {
-		if g.inProcessPendingUpdates {
-			// Game status changed from paused -> active as part of the pending updates processing.
-			// Don't need to do anything.
-		} else {
-			// Game status changed from configured -> active. This is the trigger for the game server to start the game.
-			// Go ahead and start the game.
-			g.startGame()
-		}
-	}
-
 	return nil
 }
 
