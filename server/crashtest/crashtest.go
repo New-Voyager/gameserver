@@ -21,6 +21,10 @@ const (
 	CrashPoint_PREPARE_NEXT_ACTION_2  CrashPoint = "PREPARE_NEXT_ACTION_2"
 	CrashPoint_PREPARE_NEXT_ACTION_3  CrashPoint = "PREPARE_NEXT_ACTION_3"
 	CrashPoint_PREPARE_NEXT_ACTION_4  CrashPoint = "PREPARE_NEXT_ACTION_4"
+	CrashPoint_MOVE_TO_NEXT_ACTION_1  CrashPoint = "MOVE_TO_NEXT_ACTION_1"
+	CrashPoint_MOVE_TO_NEXT_ACTION_2  CrashPoint = "MOVE_TO_NEXT_ACTION_2"
+	CrashPoint_MOVE_TO_NEXT_ACTION_3  CrashPoint = "MOVE_TO_NEXT_ACTION_3"
+	CrashPoint_MOVE_TO_NEXT_ACTION_4  CrashPoint = "MOVE_TO_NEXT_ACTION_4"
 
 	ExitCode int = 66
 )
@@ -28,7 +32,7 @@ const (
 // IsValid checks if cp is a valid enum value for CrashPoint.
 func (cp CrashPoint) IsValid() bool {
 	switch cp {
-	case CrashPoint_NO_CRASH, CrashPoint_NOW, CrashPoint_WAIT_FOR_NEXT_ACTION_1, CrashPoint_WAIT_FOR_NEXT_ACTION_2, CrashPoint_PREPARE_NEXT_ACTION_1, CrashPoint_PREPARE_NEXT_ACTION_2, CrashPoint_PREPARE_NEXT_ACTION_3, CrashPoint_PREPARE_NEXT_ACTION_4:
+	case CrashPoint_NO_CRASH, CrashPoint_NOW, CrashPoint_WAIT_FOR_NEXT_ACTION_1, CrashPoint_WAIT_FOR_NEXT_ACTION_2, CrashPoint_PREPARE_NEXT_ACTION_1, CrashPoint_PREPARE_NEXT_ACTION_2, CrashPoint_PREPARE_NEXT_ACTION_3, CrashPoint_PREPARE_NEXT_ACTION_4, CrashPoint_MOVE_TO_NEXT_ACTION_1, CrashPoint_MOVE_TO_NEXT_ACTION_2, CrashPoint_MOVE_TO_NEXT_ACTION_3, CrashPoint_MOVE_TO_NEXT_ACTION_4:
 		return true
 	}
 	return false

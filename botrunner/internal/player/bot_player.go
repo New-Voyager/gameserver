@@ -226,11 +226,12 @@ func (bp *BotPlayer) enterState(e *fsm.Event) {
 	}
 }
 
-func (bp *BotPlayer) event(event string) {
+func (bp *BotPlayer) event(event string) error {
 	err := bp.sm.Event(event)
 	if err != nil {
-		bp.logger.Error().Msgf("%s: Error from state machine: %s", bp.logPrefix, err.Error())
+		bp.logger.Warn().Msgf("%s: Error from state machine: %s", bp.logPrefix, err.Error())
 	}
+	return err
 }
 
 func (bp *BotPlayer) queueGameMsg(msg *natsgo.Msg) {
@@ -461,7 +462,13 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 
 	case game.HandPlayerAction:
 		/* MessageType: YOUR_ACTION */
-		bp.event(BotEvent__RECEIVE_YOUR_ACTION)
+		err := bp.event(BotEvent__RECEIVE_YOUR_ACTION)
+		if err != nil {
+			// State transition failed due to unexpected YOUR_ACTION message. Possible cause is game server sent a duplicate
+			// YOUR_ACTION message as part of the crash recovery. Ignore the message.
+			bp.logger.Info().Msgf("%s: Ignoring unexpected %s message.", bp.logPrefix, game.HandPlayerAction)
+			break
+		}
 		bp.game.handStatus = message.GetHandStatus()
 		seatAction := message.GetSeatAction()
 		seatNo := seatAction.GetSeatNo()
