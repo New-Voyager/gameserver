@@ -683,6 +683,8 @@ func (g *Game) moveToNextRound(handState *HandState) error {
 		return fmt.Errorf("moveToNextRound called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
 
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ROUND_1)
+
 	if handState.LastState == HandStatus_DEAL {
 		// How do we get here?
 		return nil
@@ -699,9 +701,13 @@ func (g *Game) moveToNextRound(handState *HandState) error {
 		g.gotoRiver(handState)
 	}
 
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ROUND_2)
+
 	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 	g.saveHandState(handState)
 	g.moveToNextAction(handState)
+
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ROUND_3)
 
 	return nil
 }
