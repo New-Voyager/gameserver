@@ -16,7 +16,7 @@ COPY --from=builder /build/botrunner/botrunner /app/
 COPY --from=builder /build/botrunner/tester /app/
 COPY --from=builder /build/botrunner/server /app/
 COPY --from=builder /build/botrunner/botrunner_scripts /app/botrunner_scripts
-COPY run_many_games.sh /app/
+COPY run_many_games.sh system_test.sh /app/
 
 WORKDIR /app
 

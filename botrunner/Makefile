@@ -132,7 +132,7 @@ endif
 
 .PHONY: system-test
 system-test: system-test-build system-test-down system-test-up
-	./system_test.sh
+	docker exec -t system_test_botrunner_1 bash -c "./system_test.sh"
 
 .PHONY: system-test-build
 system-test-build:

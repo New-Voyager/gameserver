@@ -22,20 +22,16 @@ done
 echo "Test Scripts: ${test_scripts[@]}"
 
 for script in "${test_scripts[@]}"; do
+    while ! curl -s ${API_SERVER_URL} >/dev/null; do
+        echo Waiting for API server ${API_SERVER_URL}
+        sleep 1
+    done
+    while ! curl -s ${GAME_SERVER_URL} >/dev/null; do
+        echo Waiting for game server ${GAME_SERVER_URL}
+        sleep 1
+    done
     exit_code=0
-    docker exec -t system_test_botrunner_1 bash -c "\
-        while ! curl -s \${API_SERVER_URL} >/dev/null; do \
-            echo Waiting for API server \${API_SERVER_URL}; \
-            sleep 1; \
-        done \
-        && \
-        while ! curl -s \${GAME_SERVER_URL} >/dev/null; do \
-            echo Waiting for game server \${GAME_SERVER_URL}; \
-            sleep 1; \
-        done \
-        && \
-        ./botrunner --script ${script} \
-    " || exit_code=$?
+    ./botrunner --script ${script} || exit_code=$?
     if [ $exit_code -ne 0 ]; then
         echo "System test failed on script ${script}"
         exit $exit_code
