@@ -380,7 +380,7 @@ func (br *BotRunner) Run() error {
 				time.Sleep(1000 * time.Second)
 				continue
 			}
-			time.Sleep(util.GetRandomMilliseconds(200, 500))
+			// time.Sleep(util.GetRandomMilliseconds(200, 500))
 			nextBotIdx++
 		}
 
