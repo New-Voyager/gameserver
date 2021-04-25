@@ -20,3 +20,6 @@ build/
 
 # VS Code debugger
 __debug_bin
+
+# docker-compose env file
+.env

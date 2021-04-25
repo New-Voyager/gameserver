@@ -10,6 +10,16 @@ test_scripts=(
     'botrunner_scripts/crash_test/river-action-3-bots-move-to-next-round.yaml'
 )
 
+generated_dir='botrunner_scripts/crash_test/generated/'
+mkdir -p "${generated_dir}"
+for seq in {1..8}; do
+    out_file="${generated_dir}/3-bots-all-players-all-in-${seq}.yaml"
+    sed "s/{{SEQ}}/${seq}/g" 'botrunner_scripts/crash_test/template/3-bots-all-players-all-in-template.yaml' > ${out_file} && \
+    test_scripts+=(${out_file})
+done
+
+echo "Test Scripts: ${test_scripts[@]}"
+
 for script in "${test_scripts[@]}"; do
     docker exec -t system_test_botrunner_1 bash -c "\
         while ! curl -s \${API_SERVER_URL} >/dev/null; do \

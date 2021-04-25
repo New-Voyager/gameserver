@@ -1,6 +1,5 @@
 SERVER_DIR := server
 BOTRUNNER_DIR := botrunner
-SYSTEM_TEST_DIR := system_test
 
 .PHONY: compile-proto
 compile-proto:
@@ -24,7 +23,7 @@ test:
 
 .PHONY: system-test
 system-test:
-	$(MAKE) -C $(SYSTEM_TEST_DIR) system-test
+	$(MAKE) -C $(BOTRUNNER_DIR) system-test
 
 # Delegate the other targets to the game server Makefile for now.
 .PHONY: %
