@@ -5,7 +5,9 @@ set -e
 # YAML file paths are relative to the botrunner.
 test_scripts=(
     'botrunner_scripts/river-action-3-bots.yaml'
-    'botrunner_scripts/crash_test/river-action-3-bots.yaml'
+    'botrunner_scripts/crash_test/river-action-3-bots-wait-for-next-action.yaml'
+    'botrunner_scripts/crash_test/river-action-3-bots-move-to-next-action.yaml'
+    'botrunner_scripts/crash_test/river-action-3-bots-move-to-next-round.yaml'
 )
 
 for script in "${test_scripts[@]}"; do
