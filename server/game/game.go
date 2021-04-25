@@ -297,7 +297,7 @@ func (g *Game) resumeGame(handState *HandState) error {
 	case FlowState_MOVE_TO_NEXT_HAND:
 		return g.moveToNextHand(handState)
 	default:
-		return fmt.Errorf("Unhandled flow state: %s", handState.FlowState)
+		return fmt.Errorf("Unhandled flow state in resumeGame: %s", handState.FlowState)
 	}
 }
 

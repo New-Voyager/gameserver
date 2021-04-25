@@ -716,6 +716,8 @@ func (g *Game) moveToNextAction(handState *HandState) error {
 		return fmt.Errorf("moveToNextAct called when handState.NextSeatAction == nil")
 	}
 
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ACTION_1)
+
 	// tell the next player to act
 	nextSeatMessage := &HandMessage{
 		ClubId:      g.config.ClubId,
@@ -736,6 +738,8 @@ func (g *Game) moveToNextAction(handState *HandState) error {
 	playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
 	g.sendHandMessageToPlayer(nextSeatMessage, playerID)
 	g.resetTimer(handState.NextSeatAction.SeatNo, playerID, canCheck)
+
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ACTION_2)
 
 	pots := make([]float32, 0)
 	for _, pot := range handState.Pots {
@@ -773,8 +777,12 @@ func (g *Game) moveToNextAction(handState *HandState) error {
 	message.HandMessage = &HandMessage_ActionChange{ActionChange: actionChange}
 	g.broadcastHandMessage(message)
 
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ACTION_3)
+
 	handState.FlowState = FlowState_WAIT_FOR_NEXT_ACTION
 	g.saveHandState(handState)
+
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ACTION_4)
 
 	return nil
 }
