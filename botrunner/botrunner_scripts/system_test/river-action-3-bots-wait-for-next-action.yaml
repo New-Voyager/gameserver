@@ -4,7 +4,7 @@ club:
 
 game:
   create: true
-  title: "Crash Test - MOVE_TO_NEXT_ACTION"
+  title: "Crash Test - WAIT_FOR_NEXT_ACTION"
   game-type: "HOLDEM"
   small-blind: 1.0
   big-blind: 2.0
@@ -35,8 +35,8 @@ tester:
 auto-play: false
 
 bot-config:
-  min-action-pause-time: 500
-  max-action-pause-time: 1000
+  min-action-pause-time: 0
+  max-action-pause-time: 0
 
 # deal the following hands in the table
 hands:
@@ -64,15 +64,15 @@ hands:
         - action: 1, CALL, 2
           pre-action:
             - setup-server-crash:
-                crash-point: MOVE_TO_NEXT_ACTION_1
+                crash-point: WAIT_FOR_NEXT_ACTION_1
         - action: 5, CALL, 2
           pre-action:
             - setup-server-crash:
-                crash-point: MOVE_TO_NEXT_ACTION_2
+                crash-point: WAIT_FOR_NEXT_ACTION_2
         - action: 8, CHECK
           pre-action:
             - setup-server-crash:
-                crash-point: MOVE_TO_NEXT_ACTION_3
+                crash-point: PREPARE_NEXT_ACTION_1
 
     flop:
       verify:
@@ -81,9 +81,15 @@ hands:
         - action: 5, CHECK
           pre-action:
             - setup-server-crash:
-                crash-point: MOVE_TO_NEXT_ACTION_4
+                crash-point: PREPARE_NEXT_ACTION_2
         - action: 8, BET, 2
+          pre-action:
+            - setup-server-crash:
+                crash-point: PREPARE_NEXT_ACTION_3
         - action: 1, CALL, 2
+          pre-action:
+            - setup-server-crash:
+                crash-point: PREPARE_NEXT_ACTION_4
         - action: 5, RAISE, 4
         - action: 8, FOLD
         - action: 1, CALL, 4

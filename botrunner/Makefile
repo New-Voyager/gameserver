@@ -2,6 +2,7 @@ BUILD_NO := $(shell cat build_number.txt)
 GCP_PROJECT_ID := voyager-01-285603
 DO_REGISTRY := registry.digitalocean.com/voyager
 GCP_REGISTRY := gcr.io/$(GCP_PROJECT_ID)
+REGISTRY := $(DO_REGISTRY)
 PROTO_VER := v3.7.1
 PROTOC_ZIP := protoc-3.7.1-linux-x86_64.zip
 
@@ -105,3 +106,62 @@ publish-botrunner:
 do-login:
 	docker login --username 69bf6de23225d8abd358d7c5c2dac07d64a7f6c0bd97d5a5a974847269f99455 --password 69bf6de23225d8abd358d7c5c2dac07d64a7f6c0bd97d5a5a974847269f99455 registry.digitalocean.com
 
+
+
+
+#################
+## System Test ##
+#################
+
+TEST_DOCKER_NET := poker_test
+
+# These images are downloaded.
+API_SERVER_IMAGE := $(REGISTRY)/api-server:0.2.29
+NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
+REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
+POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5
+
+# These images are built from local code.
+GAME_SERVER_IMAGE=game-server:latest
+BOTRUNNER_IMAGE=botrunner:latest
+
+COMPOSE_SYSTEM_TEST := docker-compose -p system_test -f docker-compose-systest.yaml
+ifndef CIRCLECI
+    COMPOSE_SYSTEM_TEST := $(COMPOSE_SYSTEM_TEST) -f docker-compose-systest-local.yaml
+endif
+
+.PHONY: system-test
+system-test: system-test-build system-test-down system-test-up
+	docker exec -t system_test_botrunner_1 bash -c "./system_test.sh"
+
+.PHONY: system-test-build
+system-test-build:
+	$(MAKE) -C $(PROJECT_ROOT)/server docker-build
+	$(MAKE) -C $(PROJECT_ROOT)/botrunner docker-build
+
+.PHONY: system-test-down
+system-test-down: system-test-generate-env
+	$(COMPOSE_SYSTEM_TEST) down
+
+.PHONY: system-test-up
+system-test-up: system-test-create-network do-login system-test-generate-env
+	$(COMPOSE_SYSTEM_TEST) up -d
+
+.PHONY: system-test-logs
+system-test-logs:
+	$(COMPOSE_SYSTEM_TEST) logs -f
+
+.PHONY: system-test-create-network
+system-test-create-network:
+	@docker network create $(TEST_DOCKER_NET) 2>/dev/null || true
+
+.PHONY: system-test-generate-env
+system-test-generate-env:
+	> .env && \
+		echo "API_SERVER_IMAGE=$(API_SERVER_IMAGE)" >> .env && \
+		echo "GAME_SERVER_IMAGE=$(GAME_SERVER_IMAGE)" >> .env && \
+		echo "BOTRUNNER_IMAGE=$(BOTRUNNER_IMAGE)" >> .env && \
+		echo "NATS_SERVER_IMAGE=$(NATS_SERVER_IMAGE)" >> .env && \
+		echo "REDIS_IMAGE=$(REDIS_IMAGE)" >> .env && \
+		echo "POSTGRES_IMAGE=$(POSTGRES_IMAGE)" >> .env && \
+		echo "TEST_DOCKER_NET=$(TEST_DOCKER_NET)" >> .env

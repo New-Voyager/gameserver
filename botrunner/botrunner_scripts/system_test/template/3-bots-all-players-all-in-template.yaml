@@ -1,0 +1,86 @@
+club:
+  name: Crash Test
+  description: Club used for crash testing
+
+game:
+  create: true
+  title: "Crash Test - ALL_PLAYERS_ALL_IN_{{SEQ}}"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 9
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 30
+  buy-in-max: 300
+  action-time: 100
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 50
+  - seat: 5
+    player: brian
+    buy-in: 50
+  - seat: 8
+    player: tom
+    buy-in: 50
+
+tester:
+auto-play: false
+
+bot-config:
+  min-action-pause-time: 0
+  max-action-pause-time: 0
+
+# deal the following hands in the table
+hands:
+  - setup:
+      button-pos: 1
+      flop: ["Ac", "Ad", "2c"]
+      turn: Td
+      river: 4s
+      seat-cards:
+        # seat cards in the order players are sitting 
+        # seat 1 gets Kh Qd
+        # seat 5 gets 3s 7s
+        # seat 8 gets 9h 2s
+        - seat: 1
+          cards: ["Kh", "Qd"]
+        - seat: 5
+          cards: ["3s", "7s"]
+        - seat: 8
+          cards: ["9h", "2s"]
+
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 1, ALLIN
+        - action: 5, ALLIN
+        - action: 8, ALLIN
+          pre-action:
+            - setup-server-crash:
+                crash-point: ALL_PLAYERS_ALL_IN_{{SEQ}}
+
+    result:
+      winners:
+        - seat: 1
+          receive: 145.0
+          rank: Two Pair
+      action-ended: SHOW_DOWN
+      
+      # balance indicates the player balance after the hand
+      # bb player won a chip
+      stacks:
+        - seat: 1
+          stack: 150
+        - seat: 5
+          stack: 0
+        - seat: 8
+          stack: 0

@@ -799,6 +799,8 @@ func (g *Game) allPlayersAllIn(handState *HandState) error {
 		return fmt.Errorf("allPlayersAllIn called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
 
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_1)
+
 	_, seatsInPots := g.getPots(handState)
 
 	// broadcast the players no more actions
@@ -814,23 +816,36 @@ func (g *Game) allPlayersAllIn(handState *HandState) error {
 	}
 	message.HandMessage = &HandMessage_NoMoreActions{NoMoreActions: handMessage}
 	g.broadcastHandMessage(message)
+
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_2)
+
 	for handState.CurrentState != HandStatus_SHOW_DOWN {
 		switch handState.CurrentState {
 		case HandStatus_FLOP:
 			g.gotoFlop(handState)
+			crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_3)
 			handState.CurrentState = HandStatus_TURN
 		case HandStatus_TURN:
 			g.gotoTurn(handState)
+			crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_4)
 			handState.CurrentState = HandStatus_RIVER
 		case HandStatus_RIVER:
 			g.gotoRiver(handState)
+			crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_5)
 			handState.CurrentState = HandStatus_SHOW_DOWN
 		}
 	}
 
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_6)
+
 	handState.FlowState = FlowState_SHOWDOWN
 	g.saveHandState(handState)
+
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_7)
+
 	g.showdown(handState)
+
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_8)
 
 	return nil
 }
