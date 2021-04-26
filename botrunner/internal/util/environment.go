@@ -24,6 +24,11 @@ type environment struct {
 	RedisPort     string
 	RedisPW       string
 	RedisDB       string
+	PostgresHost  string
+	PostgresPort  string
+	PostgresUser  string
+	PostgresPW    string
+	PostgresDB    string
 	APIServerURL  string
 	PrintGameMsg  string
 	PrintHandMsg  string
@@ -37,6 +42,11 @@ var Env = &environment{
 	RedisPort:     "REDIS_PORT",
 	RedisPW:       "REDIS_PW",
 	RedisDB:       "REDIS_DB",
+	PostgresHost:  "POSTGRES_HOST",
+	PostgresPort:  "POSTGRES_PORT",
+	PostgresUser:  "POSTGRES_USER",
+	PostgresPW:    "POSTGRES_PASSWORD",
+	PostgresDB:    "POSTGRES_DB",
 	APIServerURL:  "API_SERVER_URL",
 	PrintGameMsg:  "PRINT_GAME_MSG",
 	PrintHandMsg:  "PRINT_HAND_MSG",
@@ -117,6 +127,68 @@ func (e *environment) GetRedisDB() int {
 		panic(msg)
 	}
 	return dbNum
+}
+
+func (e *environment) GetPostgresHost() string {
+	v := os.Getenv(e.PostgresHost)
+	if v == "" {
+		msg := fmt.Sprintf("%s is not defined", e.PostgresHost)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	return v
+}
+
+func (e *environment) GetPostgresPort() int {
+	v := os.Getenv(e.PostgresPort)
+	if v == "" {
+		msg := fmt.Sprintf("%s is not defined", e.PostgresPort)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	portNum, err := strconv.Atoi(v)
+	if err != nil {
+		msg := fmt.Sprintf("Invalid Postgres port %s", v)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	return portNum
+}
+
+func (e *environment) GetPostgresUser() string {
+	v := os.Getenv(e.PostgresUser)
+	if v == "" {
+		msg := fmt.Sprintf("%s is not defined", e.PostgresUser)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	return v
+}
+
+func (e *environment) GetPostgresPW() string {
+	v := os.Getenv(e.PostgresPW)
+	return v
+}
+
+func (e *environment) GetPostgresDB() string {
+	v := os.Getenv(e.PostgresDB)
+	if v == "" {
+		msg := fmt.Sprintf("%s is not defined", e.PostgresDB)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	return v
+}
+
+func (e *environment) GetPostgresConnStr() string {
+	return fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		e.GetPostgresHost(),
+		e.GetPostgresPort(),
+		e.GetPostgresUser(),
+		e.GetPostgresPW(),
+		e.GetPostgresDB(),
+	)
 }
 
 func (e *environment) GetAPIServerURL() string {

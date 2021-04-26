@@ -13,6 +13,11 @@
       "cwd": "${workspaceFolder}",
       "env": {
         "API_SERVER_URL": "http://localhost:9501",
+        "POSTGRES_HOST": "localhost",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_USER": "game",
+        "POSTGRES_PASSWORD": "game",
+        "POSTGRES_DB": "game",
         "PRINT_GAME_MSG": "false",
         "PRINT_HAND_MSG": "false"
       },
