@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/jmoiron/sqlx"
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
@@ -413,6 +415,12 @@ func (br *BotRunner) Run() error {
 		br.logBotErrors()
 	}
 
+	// Verify game-server crashed as requested.
+	err = br.verifyGameServerCrashLog()
+	if err != nil {
+		return err
+	}
+
 	if br.msgDumpFile != "" {
 		fmt.Printf("Dumping collected game/hand messages to %s\n", br.msgDumpFile)
 		jsonStr, err := br.msgCollector.ToPrettyJSONString()
@@ -430,6 +438,39 @@ func (br *BotRunner) Run() error {
 		}
 	}
 
+	return nil
+}
+
+func (br *BotRunner) verifyGameServerCrashLog() error {
+	var expectedCrashPoints []string
+	for _, hand := range br.script.Hands {
+		rounds := []gamescript.BettingRound{hand.Preflop, hand.Flop, hand.Turn, hand.River}
+		for _, round := range rounds {
+			for _, seatAction := range round.SeatActions {
+				for _, preaction := range seatAction.PreActions {
+					cp := preaction.SetupServerCrash.CrashPoint
+					if cp != "" {
+						expectedCrashPoints = append(expectedCrashPoints, cp)
+					}
+				}
+			}
+		}
+	}
+
+	db := sqlx.MustConnect("postgres", util.Env.GetPostgresConnStr())
+	defer db.Close()
+	var crashPoints []string
+	query := fmt.Sprintf("SELECT crash_point FROM crash_test WHERE game_code = '%s' ORDER BY \"createdAt\" ASC", br.gameCode)
+	err := db.Select(&crashPoints, query)
+	if err != nil {
+		return errors.Wrapf(err, "Error from sqlx. Query: [%s]", query)
+	}
+
+	fmt.Printf("Expected Crash Points: %v\n", expectedCrashPoints)
+	fmt.Printf("Actual Crash Points  : %v\n", crashPoints)
+	if !cmp.Equal(crashPoints, expectedCrashPoints) {
+		return fmt.Errorf("Game server crash log does not match the expected. Crashed: %v, Expected: %v", crashPoints, expectedCrashPoints)
+	}
 	return nil
 }
 

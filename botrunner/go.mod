@@ -5,9 +5,11 @@ go 1.14
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-gonic/gin v1.6.3
-	github.com/golang/protobuf v1.4.3
+	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/google/go-cmp v0.5.4
+	github.com/jmoiron/sqlx v1.3.3
 	github.com/json-iterator/go v1.1.10
+	github.com/lib/pq v1.2.0
 	github.com/looplab/fsm v0.2.0
 	github.com/machinebox/graphql v0.2.2
 	github.com/matryer/is v1.4.0 // indirect

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 
+	_ "github.com/lib/pq"
 	"github.com/rs/zerolog/log"
 	"voyager.com/botrunner/internal/driver"
 	"voyager.com/botrunner/internal/util"
