@@ -8,6 +8,7 @@ test_scripts=(
     'botrunner_scripts/system_test/river-action-3-bots-wait-for-next-action.yaml'
     'botrunner_scripts/system_test/river-action-3-bots-move-to-next-action.yaml'
     'botrunner_scripts/system_test/river-action-3-bots-move-to-next-round.yaml'
+    'botrunner_scripts/system_test/3-bots-move-to-next-hand-no-pending-updates.yaml'
 )
 
 # Generate additional scripts based on templates.
