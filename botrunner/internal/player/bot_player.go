@@ -362,6 +362,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		bp.game.table.bbPos = newHand.GetBbPos()
 		bp.game.table.nextActionSeat = newHand.GetNextActionSeat()
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
+		bp.game.table.actionTracker = game.NewHandActionTracker()
 		bp.handNum = message.HandNum
 		if bp.IsHost() {
 			data, _ := protojson.Marshal(message)
