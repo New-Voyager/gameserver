@@ -1,0 +1,14 @@
+syntax = "proto3";
+package game;
+option go_package = "./game";
+
+message TestHandSetup {
+  bytes deck = 1;
+  uint32 button_pos = 2;
+  uint32 pause = 3;
+  bool auto_deal = 4;
+}
+
+message TestHandsSetup {
+  repeated TestHandSetup hands = 1;
+}

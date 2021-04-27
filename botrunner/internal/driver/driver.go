@@ -356,9 +356,6 @@ func (br *BotRunner) Run() error {
 					br.logger.Info().Msgf("Player [%s] is in waitlist. Game Code: *** %s ***", playerName, br.gameCode)
 				}
 			}
-		} else {
-			// setup first deck if not auto play
-			br.bots[0].SetupNextHand(br.gameCode)
 		}
 	} else {
 		// This is not a bot-created game. Ignore the script and just fill in all the empty seats.

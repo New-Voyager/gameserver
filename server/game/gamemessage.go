@@ -200,6 +200,19 @@ func (g *Game) onNextHandSetup(message *GameMessage) error {
 		g.testDeckToUse = poker.NewDeck(nil)
 	}
 	g.pauseBeforeNextHand = setupNextHand.Pause
+
+	// Also persist the next deck in Redis to enable crash testing between hands.
+	t := TestHandsSetup{
+		Hands: []*TestHandSetup{
+			{
+				Deck:      setupNextHand.Deck,
+				ButtonPos: setupNextHand.ButtonPos,
+				Pause:     setupNextHand.Pause,
+				AutoDeal:  setupNextHand.AutoDeal,
+			},
+		},
+	}
+	g.handSetupPersist.Save(g.config.GameCode, &t)
 	return nil
 }
 

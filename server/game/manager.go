@@ -8,14 +8,16 @@ type Manager struct {
 	apiServerUrl     string
 	delays           Delays
 	handStatePersist PersistHandState
+	handSetupPersist *RedisHandsSetupTracker
 	activeGames      map[string]*Game
 }
 
-func NewGameManager(apiServerUrl string, handPersist PersistHandState, delays Delays) *Manager {
+func NewGameManager(apiServerUrl string, handPersist PersistHandState, handSetupPersist *RedisHandsSetupTracker, delays Delays) *Manager {
 	return &Manager{
 		apiServerUrl:     apiServerUrl,
 		delays:           delays,
 		handStatePersist: handPersist,
+		handSetupPersist: handSetupPersist,
 		activeGames:      make(map[string]*Game),
 	}
 }
@@ -28,6 +30,7 @@ func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver, config *G
 		gm.delays,
 		autoDeal,
 		gm.handStatePersist,
+		gm.handSetupPersist,
 		gm.apiServerUrl)
 	gm.activeGames[gameIDStr] = game
 

@@ -362,6 +362,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		bp.game.table.bbPos = newHand.GetBbPos()
 		bp.game.table.nextActionSeat = newHand.GetNextActionSeat()
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
+		bp.game.table.actionTracker = game.NewHandActionTracker()
 		bp.handNum = message.HandNum
 		if bp.IsHost() {
 			data, _ := protojson.Marshal(message)
@@ -1172,17 +1173,6 @@ func (bp *BotPlayer) StartGame(gameCode string) error {
 	}
 
 	bp.logger.Info().Msgf("%s: Successfully started the game [%s]. Status: [%s]", bp.logPrefix, gameCode, status)
-	return nil
-}
-
-// SetupNextHand setups next hand.
-func (bp *BotPlayer) SetupNextHand(gameCode string) error {
-	bp.logger.Info().Msgf("%s: Setting up next hand game [%s].", bp.logPrefix, gameCode)
-
-	// setup first deck if not auto play
-	if bp.IsHost() && !bp.config.Script.AutoPlay {
-		bp.setupNextHand()
-	}
 	return nil
 }
 

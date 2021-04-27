@@ -13,17 +13,20 @@ func CreateGameManager(apiServerUrl string, delays Delays) *Manager {
 		return GameManager
 	}
 
+	var redisHost = util.GameServerEnvironment.GetRedisHost()
+	var redisPort = util.GameServerEnvironment.GetRedisPort()
+	var redisPW = util.GameServerEnvironment.GetRedisPW()
+	var redisDB = util.GameServerEnvironment.GetRedisDB()
+	handSetupPersist := NewRedisHandsSetupTracker(fmt.Sprintf("%s:%d", redisHost, redisPort), redisPW, redisDB)
+
 	var handPersist PersistHandState
 	var persistMethod = util.GameServerEnvironment.GetPersistMethod()
 	if persistMethod == "redis" {
-		var redisHost = util.GameServerEnvironment.GetRedisHost()
-		var redisPort = util.GameServerEnvironment.GetRedisPort()
-		var redisPW = util.GameServerEnvironment.GetRedisPW()
-		var redisDB = util.GameServerEnvironment.GetRedisDB()
 		handPersist = NewRedisHandStateTracker(fmt.Sprintf("%s:%d", redisHost, redisPort), redisPW, redisDB)
 	} else {
 		handPersist = NewMemoryHandStateTracker()
 	}
-	GameManager = NewGameManager(apiServerUrl, handPersist, delays)
+
+	GameManager = NewGameManager(apiServerUrl, handPersist, handSetupPersist, delays)
 	return GameManager
 }
