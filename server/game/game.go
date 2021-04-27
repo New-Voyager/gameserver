@@ -52,6 +52,8 @@ type Game struct {
 	prevHandNum   uint32
 	scriptTest    bool
 
+	handSetupPersist *RedisHandsSetupTracker
+
 	pauseBeforeNextHand     uint32
 	inProcessPendingUpdates bool
 	config                  *GameConfig
@@ -67,7 +69,7 @@ type Game struct {
 }
 
 func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver,
-	config *GameConfig, delays Delays, autoDeal bool, handStatePersist PersistHandState,
+	config *GameConfig, delays Delays, autoDeal bool, handStatePersist PersistHandState, handSetupPersist *RedisHandsSetupTracker,
 	apiServerUrl string) (*Game, error) {
 	g := Game{
 		manager:          gameManager,
@@ -76,6 +78,7 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver,
 		delays:           delays,
 		autoDeal:         autoDeal,
 		testButtonPos:    -1,
+		handSetupPersist: handSetupPersist,
 		apiServerUrl:     apiServerUrl,
 		retryDelayMillis: 500,
 	}
@@ -343,6 +346,7 @@ func (g *Game) NumCards(gameType GameType) uint32 {
 
 func (g *Game) dealNewHand() error {
 	var handState *HandState
+	var handSetup *TestHandSetup
 	moveButton := true
 	newHandNum := g.prevHandNum + 1
 	var newHandInfo *NewHandInfo
@@ -350,6 +354,13 @@ func (g *Game) dealNewHand() error {
 
 	gameType := g.config.GameType
 	playersInSeats := make(map[uint32]*PlayerInSeatState)
+
+	testHandsSetup, err := g.handSetupPersist.Load(g.config.GameCode)
+	if err == nil {
+		// We're only setting up the very next hand for now.
+		// We'll setup multiple hands in the future if necessary.
+		handSetup = testHandsSetup.Hands[0]
+	}
 
 	if !RunningTests {
 		// we are not running tests
@@ -408,6 +419,9 @@ func (g *Game) dealNewHand() error {
 	if g.testButtonPos > 0 {
 		g.ButtonPos = uint32(g.testButtonPos)
 		moveButton = false
+	} else if handSetup != nil && handSetup.ButtonPos > 0 {
+		g.ButtonPos = handSetup.ButtonPos
+		moveButton = false
 	}
 
 	handState = &HandState{
@@ -421,7 +435,11 @@ func (g *Game) dealNewHand() error {
 
 	deck := g.testDeckToUse
 	if deck == nil || deck.Empty() {
-		deck = poker.NewDeck(nil).Shuffle()
+		if handSetup != nil {
+			deck = poker.DeckFromBytes(handSetup.Deck)
+		} else {
+			deck = poker.NewDeck(nil).Shuffle()
+		}
 	}
 
 	handState.initialize(g.config, deck, g.ButtonPos, moveButton, g.PlayersInSeats)
