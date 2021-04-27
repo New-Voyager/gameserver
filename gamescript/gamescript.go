@@ -354,9 +354,9 @@ func (s *Script) Validate() error {
 	}
 
 	// Validate each hand seat numbers.
-	seatCardSeats := mapset.NewSet()
-	validSeats := startingSeats.Clone()
 	for i, hand := range s.Hands {
+		seatCardSeats := mapset.NewSet()
+		validSeats := startingSeats.Clone()
 		handNum := i + 1
 
 		if hand.Setup.Auto {
