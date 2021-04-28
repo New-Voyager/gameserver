@@ -26,6 +26,7 @@ var RunningTests bool
 type GameMessageReceiver interface {
 	BroadcastGameMessage(message *GameMessage)
 	BroadcastHandMessage(message *HandMessage)
+	BroadcastCombinedHandMessage(message *HandMessageCombined)
 	SendHandMessageToPlayer(message *HandMessage, playerID uint64)
 	SendGameMessageToPlayer(message *GameMessage, playerID uint64)
 }
@@ -278,30 +279,32 @@ func (g *Game) resumeGame(handState *HandState) error {
 		Str("game", g.config.GameCode).
 		Msgf("Restarting hand at flow state [%s].", handState.FlowState)
 
+	var err error
 	switch handState.FlowState {
 	case FlowState_DEAL_HAND:
-		return g.dealNewHand()
+		err = g.dealNewHand()
 	case FlowState_WAIT_FOR_NEXT_ACTION:
-		return g.onPlayerActed(nil, handState)
+		err = g.onPlayerActed(nil, handState)
 	case FlowState_PREPARE_NEXT_ACTION:
-		return g.prepareNextAction(handState)
+		_, err = g.prepareNextAction(handState)
 	case FlowState_MOVE_TO_NEXT_ACTION:
-		return g.moveToNextAction(handState)
+		_, err = g.moveToNextAction(handState)
 	case FlowState_MOVE_TO_NEXT_ROUND:
-		return g.moveToNextRound(handState)
+		_, err = g.moveToNextRound(handState)
 	case FlowState_ALL_PLAYERS_ALL_IN:
-		return g.allPlayersAllIn(handState)
+		_, err = g.allPlayersAllIn(handState)
 	case FlowState_ONE_PLAYER_REMAINING:
-		return g.onePlayerRemaining(handState)
+		_, err = g.onePlayerRemaining(handState)
 	case FlowState_SHOWDOWN:
-		return g.showdown(handState)
+		_, err = g.showdown(handState)
 	case FlowState_HAND_ENDED:
-		return g.handEnded(handState)
+		_, err = g.handEnded(handState)
 	case FlowState_MOVE_TO_NEXT_HAND:
-		return g.moveToNextHand(handState)
+		err = g.moveToNextHand(handState)
 	default:
-		return fmt.Errorf("Unhandled flow state in resumeGame: %s", handState.FlowState)
+		err = fmt.Errorf("Unhandled flow state in resumeGame: %s", handState.FlowState)
 	}
+	return err
 }
 
 func (g *Game) maskCards(playerCards []byte, gameToken uint64) ([]uint32, uint64) {
@@ -556,7 +559,19 @@ func (g *Game) dealNewHand() error {
 
 	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 	g.saveHandState(handState)
-	g.moveToNextAction(handState)
+	messages, err := g.moveToNextAction(handState)
+	if err != nil {
+		return err
+	}
+	combinedMessage := HandMessageCombined{
+		ClubId:      g.config.ClubId,
+		GameId:      g.config.GameId,
+		HandNum:     handState.HandNum,
+		MessageType: HandNextStep,
+		HandStatus:  handState.CurrentState,
+		Messages:    messages,
+	}
+	g.broadcastCombinedMessage(&combinedMessage)
 	return nil
 }
 
@@ -584,6 +599,24 @@ func (g *Game) broadcastHandMessage(message *HandMessage) {
 			time.Sleep(time.Duration(g.delays.GlobalBroadcastDelay) * time.Millisecond)
 		}
 		(*g.messageReceiver).BroadcastHandMessage(message)
+		if !RunningTests {
+			time.Sleep(time.Duration(g.delays.GlobalBroadcastDelay) * time.Millisecond)
+		}
+	} else {
+		b, _ := proto.Marshal(message)
+		for _, player := range g.allPlayers {
+			player.chHand <- b
+		}
+	}
+}
+
+func (g *Game) broadcastCombinedMessage(message *HandMessageCombined) {
+	message.GameCode = g.config.GameCode
+	if *g.messageReceiver != nil {
+		if !RunningTests {
+			time.Sleep(time.Duration(g.delays.GlobalBroadcastDelay) * time.Millisecond)
+		}
+		(*g.messageReceiver).BroadcastCombinedHandMessage(message)
 		if !RunningTests {
 			time.Sleep(time.Duration(g.delays.GlobalBroadcastDelay) * time.Millisecond)
 		}

@@ -212,3 +212,18 @@ message HandMessage {
     RunItTwiceBoards run_it_twice = 26;   // to display run it twice cards
   }
 }
+
+message HandMessageCombined {
+  string version = 1;
+  uint32 club_id = 2;
+  uint64 game_id = 3;
+  string game_code = 4;
+  uint32 hand_num = 5;
+  uint32 seat_no = 6;       // if this message is targeted to a specific player
+  string message_type = 7;
+  uint64 player_id = 8;
+  uint32 message_id = 9;
+  string game_token = 10;    // game token assigned to a player for this game
+  HandStatus hand_status = 11;
+  repeated HandMessage messages = 12;
+}

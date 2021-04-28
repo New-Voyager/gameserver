@@ -44,6 +44,7 @@ const (
 	HandPlayerActed      string = "PLAYER_ACTED"
 	HandNoMoreActions    string = "NO_MORE_ACTIONS"
 	HandQueryCurrentHand string = "QUERY_CURRENT_HAND"
+	HandNextStep         string = "NEXT_STEP"
 )
 
 // Table update messages

@@ -305,14 +305,30 @@ func (g *Game) onPlayerActed(message *HandMessage, handState *HandState) error {
 
 	handState.FlowState = FlowState_PREPARE_NEXT_ACTION
 	g.saveHandState(handState)
-	g.prepareNextAction(handState)
+	allMessages, err := g.prepareNextAction(handState)
+	if err != nil {
+		return err
+	}
+
+	// Combine messages.
+	combinedMessage := HandMessageCombined{
+		ClubId:      g.config.ClubId,
+		GameId:      g.config.GameId,
+		HandNum:     handState.HandNum,
+		MessageType: HandNextStep,
+		HandStatus:  handState.CurrentState,
+		Messages:    allMessages,
+	}
+
+	g.broadcastCombinedMessage(&combinedMessage)
+
 	return nil
 }
 
-func (g *Game) prepareNextAction(handState *HandState) error {
+func (g *Game) prepareNextAction(handState *HandState) ([]*HandMessage, error) {
 	expectedState := FlowState_PREPARE_NEXT_ACTION
 	if handState.FlowState != expectedState {
-		return fmt.Errorf("prepareNextAction called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+		return nil, fmt.Errorf("prepareNextAction called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
 
 	message := handState.ActionMsgInProgress
@@ -322,20 +338,17 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 			Uint32("club", g.config.ClubId).
 			Str("game", g.config.GameCode).
 			Msg(errMsg)
-		return fmt.Errorf(errMsg)
+		return nil, fmt.Errorf(errMsg)
 	}
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_1)
 
+	var allMessages []*HandMessage
+	var messages []*HandMessage
 	var err error
 	err = handState.actionReceived(message.GetPlayerActed())
 	if err != nil {
-		return errors.Wrap(err, "Error while updating handstate from action")
-	}
-
-	if err != nil {
-		// This is retryable (redis connection temporarily down?). Don't acknowledge and force the client to resend.
-		return err
+		return nil, errors.Wrap(err, "Error while updating handstate from action")
 	}
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_2)
@@ -355,6 +368,8 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 	message.MessageId = 0
 	g.broadcastHandMessage(message)
 
+	allMessages = append(allMessages, message)
+
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3)
 
 	if !util.GameServerEnvironment.ShouldDisableDelays() {
@@ -366,33 +381,40 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 	if handState.NoActiveSeats == 1 {
 		handState.FlowState = FlowState_ONE_PLAYER_REMAINING
 		g.saveHandState(handState)
-		g.onePlayerRemaining(handState)
+		messages, err = g.onePlayerRemaining(handState)
 	} else if g.runItTwice(handState) {
 		// run it twice prompt
 		handState.FlowState = FlowState_RUNITTWICE_UP_PROMPT
-		g.runItTwicePrompt(handState)
 		g.saveHandState(handState)
+		messages, err = g.runItTwicePrompt(handState)
 	} else if handState.isAllActivePlayersAllIn() {
 		handState.FlowState = FlowState_ALL_PLAYERS_ALL_IN
 		g.saveHandState(handState)
-		g.allPlayersAllIn(handState)
+		messages, err = g.allPlayersAllIn(handState)
 	} else if handState.CurrentState == HandStatus_SHOW_DOWN {
 		handState.FlowState = FlowState_SHOWDOWN
 		g.saveHandState(handState)
-		g.showdown(handState)
+		messages, err = g.showdown(handState)
 	} else if handState.LastState != handState.CurrentState {
 		handState.FlowState = FlowState_MOVE_TO_NEXT_ROUND
 		g.saveHandState(handState)
-		g.moveToNextRound(handState)
+		messages, err = g.moveToNextRound(handState)
 	} else {
 		handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 		g.saveHandState(handState)
-		g.moveToNextAction(handState)
+		messages, err = g.moveToNextAction(handState)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range messages {
+		allMessages = append(allMessages, m)
 	}
 
 	handState.ActionMsgInProgress = nil
 
-	return nil
+	return allMessages, nil
 }
 
 func (g *Game) acknowledgeMsg(message *HandMessage) {
@@ -432,7 +454,7 @@ func (g *Game) getPots(handState *HandState) ([]float32, []*SeatsInPots) {
 	return pots, seatsInPots
 }
 
-func (g *Game) gotoFlop(handState *HandState) {
+func (g *Game) gotoFlop(handState *HandState) ([]*HandMessage, error) {
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
@@ -474,9 +496,11 @@ func (g *Game) gotoFlop(handState *HandState) {
 	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.GoToFlop) * time.Millisecond)
 	}
+
+	return []*HandMessage{handMessage}, nil
 }
 
-func (g *Game) gotoTurn(handState *HandState) {
+func (g *Game) gotoTurn(handState *HandState) ([]*HandMessage, error) {
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
@@ -523,9 +547,11 @@ func (g *Game) gotoTurn(handState *HandState) {
 	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.GoToTurn) * time.Millisecond)
 	}
+
+	return []*HandMessage{handMessage}, nil
 }
 
-func (g *Game) gotoRiver(handState *HandState) {
+func (g *Game) gotoRiver(handState *HandState) ([]*HandMessage, error) {
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
@@ -570,12 +596,14 @@ func (g *Game) gotoRiver(handState *HandState) {
 	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.GoToRiver) * time.Millisecond)
 	}
+
+	return []*HandMessage{handMessage}, nil
 }
 
-func (g *Game) handEnded(handState *HandState) error {
+func (g *Game) handEnded(handState *HandState) ([]*HandMessage, error) {
 	expectedState := FlowState_HAND_ENDED
 	if handState.FlowState != expectedState {
-		return fmt.Errorf("handEnded called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+		return nil, fmt.Errorf("handEnded called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
 
 	// wait 5 seconds to show the result
@@ -603,10 +631,10 @@ func (g *Game) handEnded(handState *HandState) error {
 
 	go g.SendGameMessageToChannel(gameMessage)
 
-	return nil
+	return []*HandMessage{handMessage}, nil
 }
 
-func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, handResult *HandResult) {
+func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, handResult *HandResult) ([]*HandMessage, error) {
 
 	// now send the data to users
 	handMessage := &HandMessage{
@@ -662,6 +690,8 @@ func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, hand
 	}
 	handMessage.HandMessage = &HandMessage_HandResult{HandResult: handResult}
 	g.broadcastHandMessage(handMessage)
+
+	return []*HandMessage{handMessage}, nil
 }
 
 func (g *Game) announceHighHand(saveResult *SaveHandResult, highHand *HighHand) {
@@ -677,50 +707,68 @@ func (g *Game) announceHighHand(saveResult *SaveHandResult, highHand *HighHand) 
 	}
 }
 
-func (g *Game) moveToNextRound(handState *HandState) error {
+func (g *Game) moveToNextRound(handState *HandState) ([]*HandMessage, error) {
 	expectedState := FlowState_MOVE_TO_NEXT_ROUND
 	if handState.FlowState != expectedState {
-		return fmt.Errorf("moveToNextRound called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+		return nil, fmt.Errorf("moveToNextRound called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ROUND_1)
 
 	if handState.LastState == HandStatus_DEAL {
 		// How do we get here?
-		return nil
+		return []*HandMessage{}, nil
 	}
 
 	// remove folded players from the pots
 	handState.removeFoldedPlayersFromPots()
 
+	var allMessages []*HandMessage
+	var messages []*HandMessage
+	var err error
+
 	if handState.LastState == HandStatus_PREFLOP && handState.CurrentState == HandStatus_FLOP {
-		g.gotoFlop(handState)
+		messages, err = g.gotoFlop(handState)
 	} else if handState.LastState == HandStatus_FLOP && handState.CurrentState == HandStatus_TURN {
-		g.gotoTurn(handState)
+		messages, err = g.gotoTurn(handState)
 	} else if handState.LastState == HandStatus_TURN && handState.CurrentState == HandStatus_RIVER {
-		g.gotoRiver(handState)
+		messages, err = g.gotoRiver(handState)
+	}
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range messages {
+		allMessages = append(allMessages, m)
 	}
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ROUND_2)
 
 	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 	g.saveHandState(handState)
-	g.moveToNextAction(handState)
+	messages, err = g.moveToNextAction(handState)
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range messages {
+		allMessages = append(allMessages, m)
+	}
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ROUND_3)
 
-	return nil
+	return allMessages, nil
 }
 
-func (g *Game) moveToNextAction(handState *HandState) error {
+func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessage, error) {
 	expectedState := FlowState_MOVE_TO_NEXT_ACTION
 	if handState.FlowState != expectedState {
-		return fmt.Errorf("moveToNextAction called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+		return nil, fmt.Errorf("moveToNextAction called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
 
 	if handState.NextSeatAction == nil {
-		return fmt.Errorf("moveToNextAct called when handState.NextSeatAction == nil")
+		return nil, fmt.Errorf("moveToNextAct called when handState.NextSeatAction == nil")
 	}
+
+	var allMessages []*HandMessage
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ACTION_1)
 
@@ -744,6 +792,7 @@ func (g *Game) moveToNextAction(handState *HandState) error {
 	playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
 	g.sendHandMessageToPlayer(nextSeatMessage, playerID)
 	g.resetTimer(handState.NextSeatAction.SeatNo, playerID, canCheck)
+	allMessages = append(allMessages, nextSeatMessage)
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ACTION_2)
 
@@ -782,6 +831,7 @@ func (g *Game) moveToNextAction(handState *HandState) error {
 	}
 	message.HandMessage = &HandMessage_ActionChange{ActionChange: actionChange}
 	g.broadcastHandMessage(message)
+	allMessages = append(allMessages, message)
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ACTION_3)
 
@@ -790,16 +840,20 @@ func (g *Game) moveToNextAction(handState *HandState) error {
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ACTION_4)
 
-	return nil
+	return allMessages, nil
 }
 
-func (g *Game) allPlayersAllIn(handState *HandState) error {
+func (g *Game) allPlayersAllIn(handState *HandState) ([]*HandMessage, error) {
 	expectedState := FlowState_ALL_PLAYERS_ALL_IN
 	if handState.FlowState != expectedState {
-		return fmt.Errorf("allPlayersAllIn called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+		return nil, fmt.Errorf("allPlayersAllIn called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_1)
+
+	var allMessages []*HandMessage
+	var messages []*HandMessage
+	var err error
 
 	_, seatsInPots := g.getPots(handState)
 
@@ -817,22 +871,30 @@ func (g *Game) allPlayersAllIn(handState *HandState) error {
 	message.HandMessage = &HandMessage_NoMoreActions{NoMoreActions: handMessage}
 	g.broadcastHandMessage(message)
 
+	allMessages = append(allMessages, message)
+
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_2)
 
 	for handState.CurrentState != HandStatus_SHOW_DOWN {
 		switch handState.CurrentState {
 		case HandStatus_FLOP:
-			g.gotoFlop(handState)
+			messages, err = g.gotoFlop(handState)
 			crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_3)
 			handState.CurrentState = HandStatus_TURN
 		case HandStatus_TURN:
-			g.gotoTurn(handState)
+			messages, err = g.gotoTurn(handState)
 			crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_4)
 			handState.CurrentState = HandStatus_RIVER
 		case HandStatus_RIVER:
-			g.gotoRiver(handState)
+			messages, err = g.gotoRiver(handState)
 			crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_5)
 			handState.CurrentState = HandStatus_SHOW_DOWN
+		}
+		if err != nil {
+			return nil, err
+		}
+		for _, m := range messages {
+			allMessages = append(allMessages, m)
 		}
 	}
 
@@ -843,17 +905,23 @@ func (g *Game) allPlayersAllIn(handState *HandState) error {
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_7)
 
-	g.showdown(handState)
+	messages, err = g.showdown(handState)
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range messages {
+		allMessages = append(allMessages, m)
+	}
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_8)
 
-	return nil
+	return allMessages, nil
 }
 
-func (g *Game) showdown(handState *HandState) error {
+func (g *Game) showdown(handState *HandState) ([]*HandMessage, error) {
 	expectedState := FlowState_SHOWDOWN
 	if handState.FlowState != expectedState {
-		return fmt.Errorf("showdown called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+		return nil, fmt.Errorf("showdown called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
 	// update hand stats
 	handState.HandStats.EndedAtShowdown = true
@@ -868,18 +936,34 @@ func (g *Game) showdown(handState *HandState) error {
 	handState.removeFoldedPlayersFromPots()
 	handState.removeEmptyPots()
 	handState.HandCompletedAt = HandStatus_SHOW_DOWN
-	g.generateAndSendResult(handState)
+
+	var messages []*HandMessage
+	var allMessages []*HandMessage
+	var err error
+	messages, err = g.generateAndSendResult(handState)
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range messages {
+		allMessages = append(allMessages, m)
+	}
 
 	handState.FlowState = FlowState_HAND_ENDED
 	g.saveHandState(handState)
-	g.handEnded(handState)
-	return nil
+	messages, err = g.handEnded(handState)
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range messages {
+		allMessages = append(allMessages, m)
+	}
+	return allMessages, nil
 }
 
-func (g *Game) onePlayerRemaining(handState *HandState) error {
+func (g *Game) onePlayerRemaining(handState *HandState) ([]*HandMessage, error) {
 	expectedState := FlowState_ONE_PLAYER_REMAINING
 	if handState.FlowState != expectedState {
-		return fmt.Errorf("onePlayerRemaining called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+		return nil, fmt.Errorf("onePlayerRemaining called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
 	switch handState.CurrentState {
 	case HandStatus_DEAL:
@@ -894,15 +978,31 @@ func (g *Game) onePlayerRemaining(handState *HandState) error {
 	// every one folded except one player, send the pot to the player
 	handState.everyOneFoldedWinners()
 	handState.CurrentState = HandStatus_HAND_CLOSED
-	g.generateAndSendResult(handState)
+
+	var allMessages []*HandMessage
+	var messages []*HandMessage
+	var err error
+	messages, err = g.generateAndSendResult(handState)
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range messages {
+		allMessages = append(allMessages, m)
+	}
 
 	handState.FlowState = FlowState_HAND_ENDED
 	g.saveHandState(handState)
-	g.handEnded(handState)
-	return nil
+	messages, err = g.handEnded(handState)
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range messages {
+		allMessages = append(allMessages, m)
+	}
+	return allMessages, nil
 }
 
-func (g *Game) generateAndSendResult(handState *HandState) error {
+func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessage, error) {
 	handResultProcessor := NewHandResultProcessor(handState, uint32(g.config.MaxPlayers), g.config.RewardTrackingIds)
 
 	// send the hand to the database to store first
@@ -917,7 +1017,10 @@ func (g *Game) generateAndSendResult(handState *HandState) error {
 		g.PlayersInSeats[seatNo].Stack = player.Balance.After
 	}
 
-	g.sendResult(handState, saveResult, handResult)
+	messages, err := g.sendResult(handState, saveResult, handResult)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil
+	return messages, nil
 }

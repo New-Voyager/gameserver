@@ -35,7 +35,7 @@ func (g *Game) runItTwice(h *HandState) bool {
 	return false
 }
 
-func (g *Game) runItTwicePrompt(h *HandState) bool {
+func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessage, error) {
 
 	h.RunItTwicePrompt = true
 
@@ -68,6 +68,8 @@ func (g *Game) runItTwicePrompt(h *HandState) bool {
 		ExpiryTime: uint64(expiryTime.Unix()),
 	}
 
+	var messages []*HandMessage
+
 	// prompt player 1
 	nextSeatMessage := &HandMessage{
 		GameId:      h.GameId,
@@ -84,6 +86,8 @@ func (g *Game) runItTwicePrompt(h *HandState) bool {
 	nextSeatMessage.HandMessage = &HandMessage_SeatAction{SeatAction: seatAction}
 	g.sendHandMessageToPlayer(nextSeatMessage, player1)
 
+	messages = append(messages, nextSeatMessage)
+
 	// prompt player 2
 	nextSeatMessage = &HandMessage{
 		GameId:      h.GameId,
@@ -99,10 +103,12 @@ func (g *Game) runItTwicePrompt(h *HandState) bool {
 	nextSeatMessage.HandMessage = &HandMessage_SeatAction{SeatAction: seatAction}
 	g.sendHandMessageToPlayer(nextSeatMessage, player2)
 
+	messages = append(messages, nextSeatMessage)
+
 	// run a timer for the prompt
 	g.runItTwiceTimer(player1Seat, player1, player2Seat, player2)
 
-	return true
+	return messages, nil
 }
 
 func (g *Game) handleRunitTwiceTimeout(h *HandState) bool {
@@ -154,7 +160,7 @@ func (g *Game) runItTwiceConfirmation(h *HandState, message *HandMessage) {
 	g.saveHandState(h)
 }
 
-func (g *Game) handleRunItTwice(h *HandState) {
+func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessage, error) {
 	runItTwice := h.RunItTwice
 
 	boardCards := make([]uint32, 5)
@@ -162,6 +168,8 @@ func (g *Game) handleRunItTwice(h *HandState) {
 		boardCards[i] = uint32(card)
 	}
 	fmt.Printf("Board1: %s\n", poker.CardsToString(boardCards))
+
+	var allMessages []*HandMessage
 
 	if runItTwice.Seat1Responded && runItTwice.Seat2Responded {
 		if runItTwice.Seat1Confirmed && runItTwice.Seat2Confirmed {
@@ -270,13 +278,20 @@ func (g *Game) handleRunItTwice(h *HandState) {
 				HandStatus:  h.RunItTwice.Stage}
 			handMessage.HandMessage = &HandMessage_RunItTwice{RunItTwice: runItTwiceMessage}
 			g.broadcastHandMessage(handMessage)
+			allMessages = append(allMessages, handMessage)
 			if !util.GameServerEnvironment.ShouldDisableDelays() {
 				time.Sleep(time.Duration(g.delays.GoToFlop) * time.Millisecond)
 			}
 
 			h.FlowState = FlowState_SHOWDOWN
 			g.saveHandState(h)
-			g.showdown(h)
+			messages, err := g.showdown(h)
+			if err != nil {
+				return nil, err
+			}
+			for _, m := range messages {
+				allMessages = append(allMessages, m)
+			}
 		} else {
 			// one of the players didn't confirm
 			channelGameLogger.Info().
@@ -287,8 +302,14 @@ func (g *Game) handleRunItTwice(h *HandState) {
 
 			// run a single board
 			h.FlowState = FlowState_ALL_PLAYERS_ALL_IN
-			g.allPlayersAllIn(h)
-			return
+			messages, err := g.allPlayersAllIn(h)
+			if err != nil {
+				return nil, err
+			}
+			for _, m := range messages {
+				allMessages = append(allMessages, m)
+			}
 		}
 	}
+	return allMessages, nil
 }

@@ -60,6 +60,7 @@ const (
 	HandNoMoreActions    string = "NO_MORE_ACTIONS"
 	HandQueryCurrentHand string = "QUERY_CURRENT_HAND"
 	HandDealStarted      string = "DEAL_STARTED" // used for animations
+	HandNextStep         string = "NEXT_STEP"
 )
 
 // sub message types used in TableUpdate message

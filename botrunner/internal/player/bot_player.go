@@ -259,13 +259,34 @@ func (bp *BotPlayer) queueHandMsg(msg *natsgo.Msg) {
 	var message game.HandMessage
 	err := protojson.Unmarshal(msg.Data, &message)
 	if err != nil {
+		bp.queueCombinedMsg(msg)
+	} else {
+		if message.MessageType == game.HandDeal ||
+			message.MessageType == game.HandNewHand ||
+			message.MessageType == game.HandMsgAck ||
+			message.MessageType == game.HandQueryCurrentHand {
+			// These messages come in individually and are not part of the combined message.
+			bp.collectHandMsg(&message, msg.Data)
+			bp.chHand <- &message
+		} else {
+			// Drop these messages since we take them from the combined message.
+		}
+	}
+}
+
+func (bp *BotPlayer) queueCombinedMsg(msg *natsgo.Msg) {
+	var combinedMessage game.HandMessageCombined
+	err := protojson.Unmarshal(msg.Data, &combinedMessage)
+	if err != nil {
 		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf message [%s]", bp.logPrefix, err, string(msg.Data))
 		return
 	}
 
-	bp.collectHandMsg(&message, msg.Data)
-
-	bp.chHand <- &message
+	// Process individual messages within the combined message.
+	for _, message := range combinedMessage.GetMessages() {
+		bp.collectHandMsg(message, msg.Data)
+		bp.chHand <- message
+	}
 }
 
 func (bp *BotPlayer) collectGameMsg(msg *game.GameMessage, rawMsg []byte) {
