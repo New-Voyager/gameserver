@@ -165,7 +165,7 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger, msgCollector *msg
 		printStateMsg:   util.Env.ShouldPrintStateMsg(),
 		msgCollector:    msgCollector,
 		RewardsNameToID: make(map[string]uint32),
-		ackMaxWait:      30,
+		ackMaxWait:      300,
 	}
 
 	bp.sm = fsm.NewFSM(
@@ -523,11 +523,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		/* MessageType: MSG_ACK */
 		msgType := msgItem.GetMsgAck().GetMessageType()
 		msgID := msgItem.GetMsgAck().GetMessageId()
-		msg := fmt.Sprintf("%s: Received unexpected ack msg - %s:%d BotState: %s, CurrentMsgType: %s, CurrentMsgID: %d", bp.logPrefix, msgType, msgID, bp.sm.Current(), bp.lastMsgType, bp.lastMsgID)
-		if bp.sm.Current() != BotState__ACTED_WAITING_FOR_ACK {
-			bp.logger.Info().Msg(msg)
-			return
-		}
+		msg := fmt.Sprintf("%s: Ignoring unexpected %s msg - %s:%d BotState: %s, CurrentMsgType: %s, CurrentMsgID: %d", bp.logPrefix, game.HandMsgAck, msgType, msgID, bp.sm.Current(), bp.lastMsgType, bp.lastMsgID)
 		if msgType != bp.lastMsgType {
 			bp.logger.Info().Msg(msg)
 			return
@@ -536,7 +532,10 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			bp.logger.Info().Msg(msg)
 			return
 		}
-		bp.event(BotEvent__RECEIVE_ACK)
+		err := bp.event(BotEvent__RECEIVE_ACK)
+		if err != nil {
+			bp.logger.Info().Msg(msg)
+		}
 
 	case game.HandResultMessage:
 		/* MessageType: RESULT */
@@ -1577,10 +1576,12 @@ func (bp *BotPlayer) setupServerCrash(crashPoint string) error {
 	type payload struct {
 		GameCode   string `json:"gameCode"`
 		CrashPoint string `json:"crashPoint"`
+		PlayerID   uint64 `json:"playerId"`
 	}
 	data := payload{
 		GameCode:   bp.gameCode,
 		CrashPoint: crashPoint,
+		PlayerID:   bp.PlayerID,
 	}
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
@@ -1589,7 +1590,8 @@ func (bp *BotPlayer) setupServerCrash(crashPoint string) error {
 	url := fmt.Sprintf("%s/setup-crash", util.Env.GetGameServerURL(bp.gameCode))
 
 	bp.logger.Info().Msgf("%s: Setting up game server crash. URL: %s, Payload: %s", bp.logPrefix, url, jsonBytes)
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBytes))
+	client := http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Post(url, "application/json", bytes.NewBuffer(jsonBytes))
 	if err != nil {
 		return errors.Wrap(err, "Post failed")
 	}

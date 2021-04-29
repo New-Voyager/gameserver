@@ -219,7 +219,7 @@ func (g *Game) onPlayerActed(message *HandMessage, handState *HandState) error {
 		Str("messageType", actionMsg.MessageType).
 		Msg(fmt.Sprintf("%v", message))
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_1)
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_1, message.PlayerId)
 
 	if messageSeatNo == 0 && !RunningTests {
 		errMsg := fmt.Sprintf("Invalid seat number [%d] for player ID %d. Ignoring the action message.", messageSeatNo, message.PlayerId)
@@ -350,35 +350,21 @@ func (g *Game) onPlayerActed(message *HandMessage, handState *HandState) error {
 	g.saveHandState(handState)
 	g.sendActionAck(message)
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_2)
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_2, message.PlayerId)
 
 	handState.FlowState = FlowState_PREPARE_NEXT_ACTION
 	g.saveHandState(handState)
-	allMsgItems, err := g.prepareNextAction(handState)
+	err := g.prepareNextAction(handState)
 	if err != nil {
 		return err
 	}
-
-	// Create hand message with all of the message items.
-	msg := HandMessage{
-		ClubId:     g.config.ClubId,
-		GameId:     g.config.GameId,
-		HandNum:    handState.HandNum,
-		HandStatus: handState.CurrentState,
-		Messages:   allMsgItems,
-	}
-
-	g.broadcastHandMessage(&msg)
-	handState.ActionMsgInProgress = nil
-	g.saveHandState(handState)
-
 	return nil
 }
 
-func (g *Game) prepareNextAction(handState *HandState) ([]*HandMessageItem, error) {
+func (g *Game) prepareNextAction(handState *HandState) error {
 	expectedState := FlowState_PREPARE_NEXT_ACTION
 	if handState.FlowState != expectedState {
-		return nil, fmt.Errorf("prepareNextAction called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+		return fmt.Errorf("prepareNextAction called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
 
 	message := handState.ActionMsgInProgress
@@ -388,7 +374,7 @@ func (g *Game) prepareNextAction(handState *HandState) ([]*HandMessageItem, erro
 			Uint32("club", g.config.ClubId).
 			Str("game", g.config.GameCode).
 			Msg(errMsg)
-		return nil, fmt.Errorf(errMsg)
+		return fmt.Errorf(errMsg)
 	}
 
 	actionMsg := g.getClientMsgItem(message)
@@ -398,7 +384,7 @@ func (g *Game) prepareNextAction(handState *HandState) ([]*HandMessageItem, erro
 	var err error
 	err = handState.actionReceived(actionMsg.GetPlayerActed())
 	if err != nil {
-		return nil, errors.Wrap(err, "Error while updating handstate from action")
+		return errors.Wrap(err, "Error while updating handstate from action")
 	}
 
 	// Send player's current stack to be updated in the UI
@@ -438,13 +424,30 @@ func (g *Game) prepareNextAction(handState *HandState) ([]*HandMessageItem, erro
 	}
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 	for _, m := range msgItems {
 		allMsgItems = append(allMsgItems, m)
 	}
 
-	return allMsgItems, nil
+	// Create hand message with all of the message items.
+	msg := HandMessage{
+		ClubId:     g.config.ClubId,
+		GameId:     g.config.GameId,
+		HandNum:    handState.HandNum,
+		HandStatus: handState.CurrentState,
+		Messages:   allMsgItems,
+	}
+
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_1, message.PlayerId)
+	g.broadcastHandMessage(&msg)
+	handState.ActionMsgInProgress = nil
+
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_2, message.PlayerId)
+	g.saveHandState(handState)
+
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3, message.PlayerId)
+	return nil
 }
 
 func (g *Game) sendActionAck(message *HandMessage) {

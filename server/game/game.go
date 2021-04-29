@@ -285,7 +285,7 @@ func (g *Game) resumeGame(handState *HandState) error {
 	case FlowState_WAIT_FOR_NEXT_ACTION:
 		err = g.onPlayerActed(nil, handState)
 	case FlowState_PREPARE_NEXT_ACTION:
-		_, err = g.prepareNextAction(handState)
+		err = g.prepareNextAction(handState)
 	case FlowState_MOVE_TO_NEXT_ACTION:
 		_, err = g.moveToNextAction(handState)
 	case FlowState_MOVE_TO_NEXT_ROUND:

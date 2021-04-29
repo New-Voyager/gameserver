@@ -57,27 +57,29 @@ func (cp CrashPoint) IsValid() bool {
 var (
 	crashGameCode string
 	crashPoint    CrashPoint = CrashPoint_NO_CRASH
+	crashPlayerID uint64
 
 	crashTestLogger = log.With().Str("logger_name", "crashtest::crashtest").Logger()
 )
 
 // Set schedules for crashing at the specified point.
 // If cp == CrashPoint_NOW, the function will crash immediately without returning.
-func Set(gameCode string, cp CrashPoint) error {
+func Set(gameCode string, cp CrashPoint, playerID uint64) error {
 	if !cp.IsValid() {
 		return fmt.Errorf("Invalid crash point enum: [%s]", cp)
 	}
 	crashGameCode = gameCode
 	crashPoint = cp
+	crashPlayerID = playerID
 	if cp == CrashPoint_NOW {
-		Hit(gameCode, cp)
+		Hit(gameCode, cp, playerID)
 	}
 	return nil
 }
 
 // Hit will crash the process if cp matches the crash point scheduled by Set.
-func Hit(gameCode string, cp CrashPoint) {
-	if cp != crashPoint {
+func Hit(gameCode string, cp CrashPoint, playerID uint64) {
+	if cp != crashPoint || playerID != crashPlayerID {
 		return
 	}
 	// Save to the crash tracking trable.
@@ -85,7 +87,7 @@ func Hit(gameCode string, cp CrashPoint) {
 	if err != nil {
 		fmt.Printf("Error while inserting crash record. Game Code: %s, Crash Point: %s, Error: %s\n", gameCode, cp, err)
 	} else {
-		fmt.Printf("CRASHTEST (This is an intentional crash): %s %s\n", gameCode, cp)
+		fmt.Printf("CRASHTEST (This is an intentional crash) GameCode: %s CrashPoint: %s, CrashPlayerID: %d\n", gameCode, cp, crashPlayerID)
 	}
 	os.Exit(ExitCode)
 }
