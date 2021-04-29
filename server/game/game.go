@@ -573,7 +573,6 @@ func (g *Game) dealNewHand() error {
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, g.PlayersInSeats)))
 
 	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
-	g.saveHandState(handState)
 	msgItems, err := g.moveToNextAction(handState)
 	if err != nil {
 		return err
@@ -586,6 +585,7 @@ func (g *Game) dealNewHand() error {
 		Messages:   msgItems,
 	}
 	g.broadcastHandMessage(&handMsg)
+	g.saveHandState(handState)
 	return nil
 }
 

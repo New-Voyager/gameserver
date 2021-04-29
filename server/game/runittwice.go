@@ -148,8 +148,6 @@ func (g *Game) runItTwiceConfirmation(h *HandState, message *HandMessage) ([]*Ha
 		return nil, err
 	}
 
-	g.saveHandState(h)
-
 	return msgItems, nil
 }
 
@@ -274,7 +272,6 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 			}
 
 			h.FlowState = FlowState_SHOWDOWN
-			g.saveHandState(h)
 			msgItems, err := g.showdown(h)
 			if err != nil {
 				return nil, err

@@ -291,6 +291,7 @@ func (g *Game) onPlayerActed(message *HandMessage, handState *HandState) error {
 			Messages:   msgItems,
 		}
 
+		g.saveHandState(handState)
 		g.broadcastHandMessage(&msg)
 		return nil
 	}
@@ -347,7 +348,6 @@ func (g *Game) onPlayerActed(message *HandMessage, handState *HandState) error {
 
 	handState.ActionMsgInProgress = message
 	g.saveHandState(handState)
-
 	g.sendActionAck(message)
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_2)
@@ -369,6 +369,8 @@ func (g *Game) onPlayerActed(message *HandMessage, handState *HandState) error {
 	}
 
 	g.broadcastHandMessage(&msg)
+	handState.ActionMsgInProgress = nil
+	g.saveHandState(handState)
 
 	return nil
 }
@@ -389,9 +391,7 @@ func (g *Game) prepareNextAction(handState *HandState) ([]*HandMessageItem, erro
 		return nil, fmt.Errorf(errMsg)
 	}
 
-	actionMsg := message.GetMessages()[0]
-
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_1)
+	actionMsg := g.getClientMsgItem(message)
 
 	var allMsgItems []*HandMessageItem
 	var msgItems []*HandMessageItem
@@ -400,8 +400,6 @@ func (g *Game) prepareNextAction(handState *HandState) ([]*HandMessageItem, erro
 	if err != nil {
 		return nil, errors.Wrap(err, "Error while updating handstate from action")
 	}
-
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_2)
 
 	// Send player's current stack to be updated in the UI
 	seatNo := actionMsg.GetPlayerActed().GetSeatNo()
@@ -414,43 +412,28 @@ func (g *Game) prepareNextAction(handState *HandState) ([]*HandMessageItem, erro
 		actionMsg.GetPlayerActed().Amount = 0
 	}
 	message.HandNum = handState.HandNum
-	// broadcast this message to all the players
 	message.MessageId = 0
-
+	// broadcast this message to all the players (let everyone know this player acted)
 	allMsgItems = append(allMsgItems, actionMsg)
-
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3)
-
-	if !util.GameServerEnvironment.ShouldDisableDelays() {
-		time.Sleep(time.Duration(g.delays.PlayerActed) * time.Millisecond)
-	}
-
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_4)
 
 	if handState.NoActiveSeats == 1 {
 		handState.FlowState = FlowState_ONE_PLAYER_REMAINING
-		g.saveHandState(handState)
 		msgItems, err = g.onePlayerRemaining(handState)
 	} else if g.runItTwice(handState) {
 		// run it twice prompt
 		handState.FlowState = FlowState_RUNITTWICE_UP_PROMPT
-		g.saveHandState(handState)
 		msgItems, err = g.runItTwicePrompt(handState)
 	} else if handState.isAllActivePlayersAllIn() {
 		handState.FlowState = FlowState_ALL_PLAYERS_ALL_IN
-		g.saveHandState(handState)
 		msgItems, err = g.allPlayersAllIn(handState)
 	} else if handState.CurrentState == HandStatus_SHOW_DOWN {
 		handState.FlowState = FlowState_SHOWDOWN
-		g.saveHandState(handState)
 		msgItems, err = g.showdown(handState)
 	} else if handState.LastState != handState.CurrentState {
 		handState.FlowState = FlowState_MOVE_TO_NEXT_ROUND
-		g.saveHandState(handState)
 		msgItems, err = g.moveToNextRound(handState)
 	} else {
 		handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
-		g.saveHandState(handState)
 		msgItems, err = g.moveToNextAction(handState)
 	}
 
@@ -460,8 +443,6 @@ func (g *Game) prepareNextAction(handState *HandState) ([]*HandMessageItem, erro
 	for _, m := range msgItems {
 		allMsgItems = append(allMsgItems, m)
 	}
-
-	handState.ActionMsgInProgress = nil
 
 	return allMsgItems, nil
 }
@@ -658,7 +639,6 @@ func (g *Game) handEnded(handState *HandState) ([]*HandMessageItem, error) {
 	}
 
 	handState.FlowState = FlowState_MOVE_TO_NEXT_HAND
-	g.saveHandState(handState)
 
 	go g.SendGameMessageToChannel(gameMessage)
 
@@ -737,10 +717,12 @@ func (g *Game) moveToNextRound(handState *HandState) ([]*HandMessageItem, error)
 		return nil, fmt.Errorf("moveToNextRound called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ROUND_1)
-
 	if handState.LastState == HandStatus_DEAL {
 		// How do we get here?
+		channelGameLogger.Warn().
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
+			Msg("handState.LastState == HandStatus_DEAL in moveToNextRound")
 		return []*HandMessageItem{}, nil
 	}
 
@@ -765,10 +747,7 @@ func (g *Game) moveToNextRound(handState *HandState) ([]*HandMessageItem, error)
 		allMsgItems = append(allMsgItems, m)
 	}
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ROUND_2)
-
 	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
-	g.saveHandState(handState)
 	msgItems, err = g.moveToNextAction(handState)
 	if err != nil {
 		return nil, err
@@ -776,8 +755,6 @@ func (g *Game) moveToNextRound(handState *HandState) ([]*HandMessageItem, error)
 	for _, m := range msgItems {
 		allMsgItems = append(allMsgItems, m)
 	}
-
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ROUND_3)
 
 	return allMsgItems, nil
 }
@@ -794,8 +771,6 @@ func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error
 
 	var allMsgItems []*HandMessageItem
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ACTION_1)
-
 	var canCheck bool
 	for _, action := range handState.NextSeatAction.AvailableActions {
 		if action == ACTION_CHECK {
@@ -811,8 +786,6 @@ func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error
 	playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
 	g.resetTimer(handState.NextSeatAction.SeatNo, playerID, canCheck)
 	allMsgItems = append(allMsgItems, yourActionMsg)
-
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ACTION_2)
 
 	pots := make([]float32, 0)
 	for _, pot := range handState.Pots {
@@ -848,12 +821,7 @@ func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error
 
 	allMsgItems = append(allMsgItems, nextActionMsg)
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ACTION_3)
-
 	handState.FlowState = FlowState_WAIT_FOR_NEXT_ACTION
-	g.saveHandState(handState)
-
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_ACTION_4)
 
 	return allMsgItems, nil
 }
@@ -863,8 +831,6 @@ func (g *Game) allPlayersAllIn(handState *HandState) ([]*HandMessageItem, error)
 	if handState.FlowState != expectedState {
 		return nil, fmt.Errorf("allPlayersAllIn called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
-
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_1)
 
 	var allMsgItems []*HandMessageItem
 	var msgItems []*HandMessageItem
@@ -883,21 +849,16 @@ func (g *Game) allPlayersAllIn(handState *HandState) ([]*HandMessageItem, error)
 
 	allMsgItems = append(allMsgItems, msgItem)
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_2)
-
 	for handState.CurrentState != HandStatus_SHOW_DOWN {
 		switch handState.CurrentState {
 		case HandStatus_FLOP:
 			msgItems, err = g.gotoFlop(handState)
-			crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_3)
 			handState.CurrentState = HandStatus_TURN
 		case HandStatus_TURN:
 			msgItems, err = g.gotoTurn(handState)
-			crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_4)
 			handState.CurrentState = HandStatus_RIVER
 		case HandStatus_RIVER:
 			msgItems, err = g.gotoRiver(handState)
-			crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_5)
 			handState.CurrentState = HandStatus_SHOW_DOWN
 		}
 		if err != nil {
@@ -908,13 +869,7 @@ func (g *Game) allPlayersAllIn(handState *HandState) ([]*HandMessageItem, error)
 		}
 	}
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_6)
-
 	handState.FlowState = FlowState_SHOWDOWN
-	g.saveHandState(handState)
-
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_7)
-
 	msgItems, err = g.showdown(handState)
 	if err != nil {
 		return nil, err
@@ -922,8 +877,6 @@ func (g *Game) allPlayersAllIn(handState *HandState) ([]*HandMessageItem, error)
 	for _, m := range msgItems {
 		allMsgItems = append(allMsgItems, m)
 	}
-
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_ALL_PLAYERS_ALL_IN_8)
 
 	return allMsgItems, nil
 }
@@ -959,7 +912,6 @@ func (g *Game) showdown(handState *HandState) ([]*HandMessageItem, error) {
 		allMsgItems = append(allMsgItems, m)
 	}
 
-	g.saveHandState(handState)
 	msgItems, err = g.handEnded(handState)
 	if err != nil {
 		return nil, err
@@ -1001,7 +953,6 @@ func (g *Game) onePlayerRemaining(handState *HandState) ([]*HandMessageItem, err
 	}
 
 	handState.FlowState = FlowState_HAND_ENDED
-	g.saveHandState(handState)
 	msgItems, err = g.handEnded(handState)
 	if err != nil {
 		return nil, err
