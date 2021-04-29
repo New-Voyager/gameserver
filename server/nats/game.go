@@ -247,20 +247,11 @@ func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 		EmitUnpopulated: true,
 	}
 	data, _ := marshaller.Marshal(message)
-	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", message.MessageType).
-		Str("subject", n.hand2PlayerAllSubject).
-		Msg(fmt.Sprintf("H->A: %s", string(data)))
-	n.nc.Publish(n.hand2PlayerAllSubject, data)
-}
-
-func (n NatsGame) BroadcastCombinedHandMessage(message *game.HandMessageCombined) {
-	message.PlayerId = 0
-
-	marshaller := protojson.MarshalOptions{
-		EmitUnpopulated: true,
+	var msgTypes []string
+	for _, msgItem := range message.GetMessages() {
+		msgTypes = append(msgTypes, msgItem.MessageType)
 	}
-	data, _ := marshaller.Marshal(message)
-	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", message.MessageType).
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Messages", fmt.Sprintf("%v", msgTypes)).
 		Str("subject", n.hand2PlayerAllSubject).
 		Msg(fmt.Sprintf("H->A: %s", string(data)))
 	n.nc.Publish(n.hand2PlayerAllSubject, data)
@@ -270,7 +261,11 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 	hand2PlayerSubject := fmt.Sprintf("hand.%s.player.%d", n.gameCode, playerID)
 	message.PlayerId = playerID
 	data, _ := protojson.Marshal(message)
-	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", message.MessageType).
+	var msgTypes []string
+	for _, msgItem := range message.GetMessages() {
+		msgTypes = append(msgTypes, msgItem.MessageType)
+	}
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", fmt.Sprintf("%v", msgTypes)).
 		Str("subject", hand2PlayerSubject).
 		Msg(fmt.Sprintf("H->P: %s", string(data)))
 	n.nc.Publish(hand2PlayerSubject, data)

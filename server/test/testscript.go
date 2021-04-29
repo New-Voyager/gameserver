@@ -3,17 +3,17 @@ package test
 import (
 	"fmt"
 
-	"google.golang.org/protobuf/proto"
 	"voyager.com/server/game"
 )
 
 type TestGameScript struct {
-	gameScript             *game.GameScript
-	testGame               *TestGame
-	filename               string
-	result                 *ScriptTestResult
-	observer               *TestPlayer
-	observerLastHandMesage *game.HandMessage
+	gameScript                  *game.GameScript
+	testGame                    *TestGame
+	filename                    string
+	result                      *ScriptTestResult
+	observer                    *TestPlayer
+	observerLastHandMessage     *game.HandMessage
+	observerLastHandMessageItem *game.HandMessageItem
 }
 
 func (g *TestGameScript) run(t *TestDriver) error {
@@ -29,12 +29,15 @@ func (g *TestGameScript) run(t *TestDriver) error {
 	return nil
 }
 
-func (g *TestGameScript) waitForObserver() *game.HandMessage {
-	messageBytes := <-g.testGame.observerCh
-	var handMessage game.HandMessage
-	proto.Unmarshal(messageBytes, &handMessage)
-	g.observerLastHandMesage = &handMessage
-	return &handMessage
+func (g *TestGameScript) waitForObserver() observerChItem {
+	chItem := <-g.testGame.observerCh
+	if chItem.handMessage != nil {
+		g.observerLastHandMessage = chItem.handMessage
+	}
+	if chItem.handMsgItem != nil {
+		g.observerLastHandMessageItem = chItem.handMsgItem
+	}
+	return chItem
 }
 
 // configures the table with the configuration

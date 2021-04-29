@@ -26,7 +26,6 @@ var RunningTests bool
 type GameMessageReceiver interface {
 	BroadcastGameMessage(message *GameMessage)
 	BroadcastHandMessage(message *HandMessage)
-	BroadcastCombinedHandMessage(message *HandMessageCombined)
 	SendHandMessageToPlayer(message *HandMessage, playerID uint64)
 	SendGameMessageToPlayer(message *GameMessage, playerID uint64)
 }
@@ -457,14 +456,6 @@ func (g *Game) dealNewHand() error {
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Table: %s", handState.PrintTable(g.players)))
 
-	handMessage := HandMessage{
-		MessageType: HandNewHand,
-		GameId:      g.config.GameId,
-		ClubId:      g.config.ClubId,
-		HandNum:     handState.HandNum,
-		HandStatus:  handState.CurrentState,
-	}
-
 	// send a new hand message to all players
 	newHand := NewHand{
 		ButtonPos:      handState.ButtonPos,
@@ -481,8 +472,19 @@ func (g *Game) dealNewHand() error {
 		PlayersInSeats: playersInSeats,
 	}
 
-	//newHand.PlayerCards = playersCards
-	handMessage.HandMessage = &HandMessage_NewHand{NewHand: &newHand}
+	handMessage := HandMessage{
+		GameId:     g.config.GameId,
+		ClubId:     g.config.ClubId,
+		HandNum:    handState.HandNum,
+		HandStatus: handState.CurrentState,
+		Messages: []*HandMessageItem{
+			{
+				MessageType: HandNewHand,
+				Content:     &HandMessageItem_NewHand{NewHand: &newHand},
+			},
+		},
+	}
+
 	g.broadcastHandMessage(&handMessage)
 	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.BeforeDeal) * time.Millisecond)
@@ -499,12 +501,16 @@ func (g *Game) dealNewHand() error {
 
 	// indicate the clients card distribution began
 	handMessage = HandMessage{
-		MessageType: HandDealStarted,
-		GameId:      g.config.GameId,
-		ClubId:      g.config.ClubId,
-		GameCode:    g.config.GameCode,
-		HandNum:     handState.HandNum,
-		HandStatus:  handState.CurrentState,
+		GameId:     g.config.GameId,
+		ClubId:     g.config.ClubId,
+		GameCode:   g.config.GameCode,
+		HandNum:    handState.HandNum,
+		HandStatus: handState.CurrentState,
+		Messages: []*HandMessageItem{
+			{
+				MessageType: HandDealStarted,
+			},
+		},
 	}
 	g.broadcastHandMessage(&handMessage)
 
@@ -526,17 +532,26 @@ func (g *Game) dealNewHand() error {
 
 		// seatNo is the key, cards are value
 		playerCards := handState.PlayersCards[uint32(player.SeatNo)]
-		message := HandDealCards{SeatNo: uint32(player.SeatNo)}
+		dealCards := HandDealCards{SeatNo: uint32(player.SeatNo)}
 
 		tmpGameToken := uint64(0)
 		cards, maskedCards := g.maskCards(playerCards, tmpGameToken)
 		playersCards[player.SeatNo] = fmt.Sprintf("%d", maskedCards)
-		message.Cards = fmt.Sprintf("%d", maskedCards)
-		message.CardsStr = poker.CardsToString(cards)
+		dealCards.Cards = fmt.Sprintf("%d", maskedCards)
+		dealCards.CardsStr = poker.CardsToString(cards)
 
 		//messageData, _ := proto.Marshal(&message)
-		handMessage := HandMessage{MessageType: HandDeal, GameId: g.config.GameId, ClubId: g.config.ClubId, PlayerId: player.PlayerID}
-		handMessage.HandMessage = &HandMessage_DealCards{DealCards: &message}
+		handMessage := HandMessage{
+			GameId:   g.config.GameId,
+			ClubId:   g.config.ClubId,
+			PlayerId: player.PlayerID,
+			Messages: []*HandMessageItem{
+				{
+					MessageType: HandDeal,
+					Content:     &HandMessageItem_DealCards{DealCards: &dealCards},
+				},
+			},
+		}
 		b, _ := proto.Marshal(&handMessage)
 
 		if *g.messageReceiver != nil {
@@ -559,19 +574,18 @@ func (g *Game) dealNewHand() error {
 
 	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 	g.saveHandState(handState)
-	messages, err := g.moveToNextAction(handState)
+	msgItems, err := g.moveToNextAction(handState)
 	if err != nil {
 		return err
 	}
-	combinedMessage := HandMessageCombined{
-		ClubId:      g.config.ClubId,
-		GameId:      g.config.GameId,
-		HandNum:     handState.HandNum,
-		MessageType: HandNextStep,
-		HandStatus:  handState.CurrentState,
-		Messages:    messages,
+	handMsg := HandMessage{
+		ClubId:     g.config.ClubId,
+		GameId:     g.config.GameId,
+		HandNum:    handState.HandNum,
+		HandStatus: handState.CurrentState,
+		Messages:   msgItems,
 	}
-	g.broadcastCombinedMessage(&combinedMessage)
+	g.broadcastHandMessage(&handMsg)
 	return nil
 }
 
@@ -599,24 +613,6 @@ func (g *Game) broadcastHandMessage(message *HandMessage) {
 			time.Sleep(time.Duration(g.delays.GlobalBroadcastDelay) * time.Millisecond)
 		}
 		(*g.messageReceiver).BroadcastHandMessage(message)
-		if !RunningTests {
-			time.Sleep(time.Duration(g.delays.GlobalBroadcastDelay) * time.Millisecond)
-		}
-	} else {
-		b, _ := proto.Marshal(message)
-		for _, player := range g.allPlayers {
-			player.chHand <- b
-		}
-	}
-}
-
-func (g *Game) broadcastCombinedMessage(message *HandMessageCombined) {
-	message.GameCode = g.config.GameCode
-	if *g.messageReceiver != nil {
-		if !RunningTests {
-			time.Sleep(time.Duration(g.delays.GlobalBroadcastDelay) * time.Millisecond)
-		}
-		(*g.messageReceiver).BroadcastCombinedHandMessage(message)
 		if !RunningTests {
 			time.Sleep(time.Duration(g.delays.GlobalBroadcastDelay) * time.Millisecond)
 		}
@@ -667,10 +663,7 @@ func (g *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint64) {
 	} else {
 		player := g.allPlayers[playerID]
 		if player == nil {
-			if message.GetMessageType() == HandMsgAck {
-				// Not sure why this causes player to be null, but ignore it for now.
-				return
-			}
+			return
 		}
 		b, _ := proto.Marshal(message)
 		player.chHand <- b

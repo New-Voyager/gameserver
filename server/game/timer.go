@@ -97,7 +97,6 @@ func (g *Game) handlePlayTimeout(timeoutMsg timerMsg) error {
 		g.handleRunitTwiceTimeout(handState)
 	} else {
 		// Force a default action for the timed-out player.
-		// TODO: What should be the correct default action?
 		handAction := HandAction{
 			SeatNo:   timeoutMsg.seatNo,
 			Action:   ACTION_FOLD,
@@ -109,12 +108,16 @@ func (g *Game) handlePlayTimeout(timeoutMsg timerMsg) error {
 		}
 
 		handMessage := HandMessage{
-			MessageType: HandPlayerActed,
-			GameId:      g.config.GameId,
-			ClubId:      g.config.ClubId,
-			HandNum:     handState.HandNum,
-			HandStatus:  handState.CurrentState,
-			HandMessage: &HandMessage_PlayerActed{PlayerActed: &handAction},
+			GameId:     g.config.GameId,
+			ClubId:     g.config.ClubId,
+			HandNum:    handState.HandNum,
+			HandStatus: handState.CurrentState,
+			Messages: []*HandMessageItem{
+				{
+					MessageType: HandPlayerActed,
+					Content:     &HandMessageItem_PlayerActed{PlayerActed: &handAction},
+				},
+			},
 		}
 		g.SendHandMessage(&handMessage)
 	}

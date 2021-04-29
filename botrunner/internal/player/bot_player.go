@@ -234,6 +234,14 @@ func (bp *BotPlayer) event(event string) error {
 	return err
 }
 
+func (bp *BotPlayer) updateLogPrefix() {
+	if bp.config.IsHuman {
+		bp.logPrefix = fmt.Sprintf("Player [%s:%d:%d]", bp.config.Name, bp.PlayerID, bp.seatNo)
+	} else {
+		bp.logPrefix = fmt.Sprintf("Bot [%s:%d:%d]", bp.config.Name, bp.PlayerID, bp.seatNo)
+	}
+}
+
 func (bp *BotPlayer) queueGameMsg(msg *natsgo.Msg) {
 	if bp.printGameMsg {
 		bp.logger.Info().Msg(fmt.Sprintf("%s: Received game message %s", bp.logPrefix, string(msg.Data)))
@@ -252,41 +260,15 @@ func (bp *BotPlayer) queueGameMsg(msg *natsgo.Msg) {
 }
 
 func (bp *BotPlayer) queueHandMsg(msg *natsgo.Msg) {
-	if bp.printHandMsg {
-		bp.logger.Info().Msg(fmt.Sprintf("%s: Subject: %s Received hand message %s", bp.logPrefix, msg.Subject, string(msg.Data)))
-	}
-
 	var message game.HandMessage
 	err := protojson.Unmarshal(msg.Data, &message)
-	if err != nil {
-		bp.queueCombinedMsg(msg)
-	} else {
-		if message.MessageType == game.HandDeal ||
-			message.MessageType == game.HandNewHand ||
-			message.MessageType == game.HandMsgAck ||
-			message.MessageType == game.HandQueryCurrentHand {
-			// These messages come in individually and are not part of the combined message.
-			bp.collectHandMsg(&message, msg.Data)
-			bp.chHand <- &message
-		} else {
-			// Drop these messages since we take them from the combined message.
-		}
-	}
-}
-
-func (bp *BotPlayer) queueCombinedMsg(msg *natsgo.Msg) {
-	var combinedMessage game.HandMessageCombined
-	err := protojson.Unmarshal(msg.Data, &combinedMessage)
 	if err != nil {
 		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf message [%s]", bp.logPrefix, err, string(msg.Data))
 		return
 	}
 
-	// Process individual messages within the combined message.
-	for _, message := range combinedMessage.GetMessages() {
-		bp.collectHandMsg(message, msg.Data)
-		bp.chHand <- message
-	}
+	bp.collectHandMsg(&message, msg.Data)
+	bp.chHand <- &message
 }
 
 func (bp *BotPlayer) collectGameMsg(msg *game.GameMessage, rawMsg []byte) {
@@ -319,14 +301,6 @@ func (bp *BotPlayer) messageLoop() {
 	}
 }
 
-func (bp *BotPlayer) updateLogPrefix() {
-	if bp.config.IsHuman {
-		bp.logPrefix = fmt.Sprintf("Player [%s:%d:%d]", bp.config.Name, bp.PlayerID, bp.seatNo)
-	} else {
-		bp.logPrefix = fmt.Sprintf("Bot [%s:%d:%d]", bp.config.Name, bp.PlayerID, bp.seatNo)
-	}
-}
-
 func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 	if bp.IsErrorState() {
 		bp.logger.Info().Msgf("%s: Bot is in error state. Ignoring hand message.", bp.logPrefix)
@@ -341,9 +315,15 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 
 	bp.lastHandMessage = message
 
-	switch message.MessageType {
+	for i, msgItem := range message.GetMessages() {
+		bp.processMsgItem(message, msgItem, i)
+	}
+}
+
+func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.HandMessageItem, msgItemIdx int) {
+	switch msgItem.MessageType {
 	case game.HandDeal:
-		deal := message.GetDealCards()
+		deal := msgItem.GetDealCards()
 		maskedCards := deal.Cards
 		c, _ := strconv.ParseInt(maskedCards, 10, 64)
 		cardBytes := make([]byte, 8)
@@ -377,7 +357,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 	case game.HandNewHand:
 		/* MessageType: NEW_HAND */
 		bp.game.handStatus = message.GetHandStatus()
-		newHand := message.GetNewHand()
+		newHand := msgItem.GetNewHand()
 		bp.game.table.buttonPos = newHand.GetButtonPos()
 		bp.game.table.sbPos = newHand.GetSbPos()
 		bp.game.table.bbPos = newHand.GetBbPos()
@@ -455,9 +435,9 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 	case game.HandFlop:
 		/* MessageType: FLOP */
 		bp.game.handStatus = message.GetHandStatus()
-		bp.game.table.flopCards = message.GetFlop().GetBoard()
+		bp.game.table.flopCards = msgItem.GetFlop().GetBoard()
 		if bp.IsHuman() || bp.IsObserver() {
-			bp.logger.Info().Msgf("%s: Flop cards shown: %s", bp.logPrefix, message.GetFlop().GetCardsStr())
+			bp.logger.Info().Msgf("%s: Flop cards shown: %s", bp.logPrefix, msgItem.GetFlop().GetCardsStr())
 		}
 		bp.verifyBoard()
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
@@ -465,9 +445,9 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 	case game.HandTurn:
 		/* MessageType: TURN */
 		bp.game.handStatus = message.GetHandStatus()
-		bp.game.table.turnCards = message.GetTurn().GetBoard()
+		bp.game.table.turnCards = msgItem.GetTurn().GetBoard()
 		if bp.IsHuman() || bp.IsObserver() {
-			bp.logger.Info().Msgf("%s: Turn cards shown: %s", bp.logPrefix, message.GetTurn().GetCardsStr())
+			bp.logger.Info().Msgf("%s: Turn cards shown: %s", bp.logPrefix, msgItem.GetTurn().GetCardsStr())
 		}
 		bp.verifyBoard()
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
@@ -475,15 +455,21 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 	case game.HandRiver:
 		/* MessageType: RIVER */
 		bp.game.handStatus = message.GetHandStatus()
-		bp.game.table.riverCards = message.GetRiver().GetBoard()
+		bp.game.table.riverCards = msgItem.GetRiver().GetBoard()
 		if bp.IsHuman() || bp.IsObserver() {
-			bp.logger.Info().Msgf("%s: River cards shown: %s", bp.logPrefix, message.GetRiver().GetCardsStr())
+			bp.logger.Info().Msgf("%s: River cards shown: %s", bp.logPrefix, msgItem.GetRiver().GetCardsStr())
 		}
 		bp.verifyBoard()
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 
 	case game.HandPlayerAction:
 		/* MessageType: YOUR_ACTION */
+		seatAction := msgItem.GetSeatAction()
+		seatNo := seatAction.GetSeatNo()
+		if seatNo != bp.seatNo {
+			// It's not my turn.
+			break
+		}
 		err := bp.event(BotEvent__RECEIVE_YOUR_ACTION)
 		if err != nil {
 			// State transition failed due to unexpected YOUR_ACTION message. Possible cause is game server sent a duplicate
@@ -492,14 +478,8 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 			break
 		}
 		bp.game.handStatus = message.GetHandStatus()
-		seatAction := message.GetSeatAction()
-		seatNo := seatAction.GetSeatNo()
 		if bp.IsObserver() && bp.config.Script.IsSeatHuman(seatNo) {
 			bp.logger.Info().Msgf("%s: Waiting on seat %d (%s/human) to act.", bp.logPrefix, seatNo, bp.getPlayerNameBySeatNo(seatNo))
-		}
-		if seatNo != bp.seatNo {
-			// It's not my turn.
-			break
 		}
 		bp.game.handNum = message.HandNum
 		bp.act(seatAction)
@@ -507,7 +487,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 	case game.HandPlayerActed:
 		/* MessageType: PLAYER_ACTED */
 		bp.game.handNum = message.HandNum
-		playerActed := message.GetPlayerActed()
+		playerActed := msgItem.GetPlayerActed()
 		seatNo := playerActed.GetSeatNo()
 		action := playerActed.GetAction()
 		amount := playerActed.GetAmount()
@@ -541,8 +521,8 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 
 	case game.HandMsgAck:
 		/* MessageType: MSG_ACK */
-		msgType := message.GetMsgAck().GetMessageType()
-		msgID := message.GetMsgAck().GetMessageId()
+		msgType := msgItem.GetMsgAck().GetMessageType()
+		msgID := msgItem.GetMsgAck().GetMessageId()
 		msg := fmt.Sprintf("%s: Received unexpected ack msg - %s:%d BotState: %s, CurrentMsgType: %s, CurrentMsgID: %d", bp.logPrefix, msgType, msgID, bp.sm.Current(), bp.lastMsgType, bp.lastMsgID)
 		if bp.sm.Current() != BotState__ACTED_WAITING_FOR_ACK {
 			bp.logger.Info().Msg(msg)
@@ -561,7 +541,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 	case game.HandResultMessage:
 		/* MessageType: RESULT */
 		bp.game.handStatus = message.GetHandStatus()
-		bp.game.handResult = message.GetHandResult()
+		bp.game.handResult = msgItem.GetHandResult()
 		bp.verifyResult()
 		if bp.IsObserver() {
 			bp.PrintHandResult()
@@ -586,7 +566,7 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		}
 
 	case game.HandQueryCurrentHand:
-		currentState := message.GetCurrentHandState()
+		currentState := msgItem.GetCurrentHandState()
 		bp.logger.Info().Msgf("%s: Received current hand state: %+v", bp.logPrefix, currentState)
 		handStatus := currentState.GetCurrentRound()
 		playersActed := currentState.GetPlayersActed()
@@ -1216,8 +1196,11 @@ func (bp *BotPlayer) queryCurrentHandState() error {
 		GameId:   bp.gameID,
 		PlayerId: bp.PlayerID,
 		//GameToken: 	 bp.GameToken,
-		MessageType: game.HandQueryCurrentHand,
-		HandMessage: nil,
+		Messages: []*game.HandMessageItem{
+			{
+				MessageType: game.HandQueryCurrentHand,
+			},
+		},
 	}
 	protoData, err := protojson.Marshal(&msg)
 	if err != nil {
@@ -1363,13 +1346,18 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 	msgType := game.HandPlayerActed
 	msgID := bp.lastMsgID + 1
 	actionMsg := game.HandMessage{
-		ClubId:      uint32(bp.clubID),
-		GameId:      bp.gameID,
-		HandNum:     bp.game.handNum,
-		PlayerId:    bp.PlayerID,
-		MessageType: msgType,
-		MessageId:   msgID,
-		HandMessage: &game.HandMessage_PlayerActed{PlayerActed: &handAction},
+		ClubId:    uint32(bp.clubID),
+		GameId:    bp.gameID,
+		HandNum:   bp.game.handNum,
+		PlayerId:  bp.PlayerID,
+		SeatNo:    bp.seatNo,
+		MessageId: msgID,
+		Messages: []*game.HandMessageItem{
+			{
+				MessageType: msgType,
+				Content:     &game.HandMessageItem_PlayerActed{PlayerActed: &handAction},
+			},
+		},
 	}
 
 	go bp.publishAndWaitForAck(bp.meToHand, &actionMsg)
@@ -1395,9 +1383,9 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 		if attempts > bp.ackMaxWait {
 			var errMsg string
 			if !published {
-				errMsg = fmt.Sprintf("%s: Retry (%d) exhausted while publishing message type: %s, ID: %d", bp.logPrefix, bp.ackMaxWait, msg.GetMessageType(), msg.GetMessageId())
+				errMsg = fmt.Sprintf("%s: Retry (%d) exhausted while publishing message type: %s, ID: %d", bp.logPrefix, bp.ackMaxWait, game.HandPlayerActed, msg.GetMessageId())
 			} else {
-				errMsg = fmt.Sprintf("%s: Retry (%d) exhausted while waiting for game server acknowledgement for message type: %s, ID: %d", bp.logPrefix, bp.ackMaxWait, msg.GetMessageType(), msg.GetMessageId())
+				errMsg = fmt.Sprintf("%s: Retry (%d) exhausted while waiting for game server acknowledgement for message type: %s, ID: %d", bp.logPrefix, bp.ackMaxWait, game.HandPlayerActed, msg.GetMessageId())
 			}
 			bp.logger.Error().Msg(errMsg)
 			bp.errorStateMsg = errMsg
@@ -1405,7 +1393,7 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 			return
 		}
 		if attempts > 1 {
-			bp.logger.Info().Msgf("%s: Attempt (%d) to publish message type: %s, message ID: %d", bp.logPrefix, attempts, msg.GetMessageType(), msg.GetMessageId())
+			bp.logger.Info().Msgf("%s: Attempt (%d) to publish message type: %s, message ID: %d", bp.logPrefix, attempts, game.HandPlayerActed, msg.GetMessageId())
 		}
 		if err := bp.natsConn.Publish(bp.meToHand, protoData); err != nil {
 			bp.logger.Error().Msgf("%s: Error [%s] while publishing message %+v", bp.logPrefix, err, msg)
@@ -1415,7 +1403,7 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 		if !published {
 			bp.sm.Event(BotEvent__SEND_MY_ACTION)
 			bp.lastMsgID = msg.GetMessageId()
-			bp.lastMsgType = msg.GetMessageType()
+			bp.lastMsgType = game.HandPlayerActed
 			published = true
 		}
 		time.Sleep(2 * time.Second)
