@@ -946,6 +946,7 @@ func (g *Game) showdown(handState *HandState) ([]*HandMessageItem, error) {
 	handState.removeFoldedPlayersFromPots()
 	handState.removeEmptyPots()
 	handState.HandCompletedAt = HandStatus_SHOW_DOWN
+	handState.FlowState = FlowState_HAND_ENDED
 
 	var allMsgItems []*HandMessageItem
 	var msgItems []*HandMessageItem
@@ -958,7 +959,6 @@ func (g *Game) showdown(handState *HandState) ([]*HandMessageItem, error) {
 		allMsgItems = append(allMsgItems, m)
 	}
 
-	handState.FlowState = FlowState_HAND_ENDED
 	g.saveHandState(handState)
 	msgItems, err = g.handEnded(handState)
 	if err != nil {
@@ -987,7 +987,7 @@ func (g *Game) onePlayerRemaining(handState *HandState) ([]*HandMessageItem, err
 	}
 	// every one folded except one player, send the pot to the player
 	handState.everyOneFoldedWinners()
-	handState.CurrentState = HandStatus_HAND_CLOSED
+	handState.CurrentState = HandStatus_RESULT
 
 	var allMsgItems []*HandMessageItem
 	var msgItems []*HandMessageItem

@@ -107,7 +107,7 @@ hands:
       # verify preflop-action result
       # since both players folded, the round ended with a hand result
       verify:
-        state: FLOP
+        state: RESULT
         pots:
           -
             pot: 150.0

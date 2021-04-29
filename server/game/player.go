@@ -86,7 +86,7 @@ func (p *Player) handleHandMessage(messageBytes []byte, message *HandMessage) {
 	TotalBase64BytesReceived += len(base64)
 	TotalJsonBytesReceived += len(jsonb)
 
-	playerLogger.Warn().Str("dir", "GH->P").Msg(string(jsonb))
+	// playerLogger.Warn().Str("dir", "GH->P").Msg(string(jsonb))
 
 	msgItems := message.GetMessages()
 	for _, msgItem := range msgItems {
@@ -111,10 +111,10 @@ func (p *Player) handleHandMessage(messageBytes []byte, message *HandMessage) {
 		} else if msgItem.MessageType == HandRunItTwice {
 			p.onRunItTwice(messageBytes, message, msgItem)
 		} else {
-			playerLogger.Warn().
-				Uint32("club", message.ClubId).
-				Uint64("game", message.GameId).
-				Msg(fmt.Sprintf("Unhandled Hand message type: %s %v", msgItem.MessageType, message))
+			// playerLogger.Warn().
+			// 	Uint32("club", message.ClubId).
+			// 	Uint64("game", message.GameId).
+			// 	Msg(fmt.Sprintf("Unhandled Hand message type: %s %v", msgItem.MessageType, message))
 		}
 	}
 }

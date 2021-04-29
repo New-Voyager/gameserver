@@ -1,0 +1,108 @@
+club:
+  name: Bug Testing
+  description: testing
+game:
+  create: true
+  title: bug testing
+  game-type: HOLDEM
+  small-blind: 1
+  big-blind: 2
+  min-players: 2
+  max-players: 9
+  game-length: 60
+  buy-in-approval: false
+  buy-in-min: 30
+  buy-in-max: 3000
+  acton-time: 30
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 158
+  - seat: 2
+    player: brian
+    buy-in: 121
+  - seat: 3
+    player: tom
+    buy-in: 485
+  - seat: 4
+    player: jim
+    buy-in: 52
+  - seat: 5
+    player: rob
+    buy-in: 50
+  - seat: 6
+    player: john
+    buy-in: 391
+  - seat: 7
+    player: michael
+    buy-in: 52
+  - seat: 8
+    player: bill
+    buy-in: 50
+hands:
+  - setup:
+      button-pos: 1
+      flop:
+        - 6d
+        - 9s
+        - 8s
+      turn: 4d
+      river: Ts
+      seat-cards:
+        - seat: 1
+          cards:
+            - Qs
+            - 2c
+        - seat: 2
+          cards:
+            - 8h
+            - Qh
+        - seat: 3
+          cards:
+            - Tc
+            - 2h
+        - seat: 4
+          cards:
+            - 9d
+            - Kc
+        - seat: 5
+          cards:
+            - 6h
+            - 7d
+        - seat: 6
+          cards:
+            - 7s
+            - 5c
+        - seat: 7
+          cards:
+            - 3d
+            - 5h
+        - seat: 8
+          cards:
+            - 9c
+            - Jd
+    preflop:
+      seat-actions:
+        - action: 4, CALL, 2
+        - action: 5, CALL, 2
+        - action: 6, CALL, 2
+        - action: 7, FOLD
+        - action: 8, FOLD
+        - action: 1, FOLD
+        - action: 2, FOLD
+        - action: 3, CALL, 40
+        - action: 4, FOLD
+        - action: 5, FOLD
+        - action: 6, CALL, 40
+    flop:
+      seat-actions:
+        - action: 3, CHECK
+        - action: 6, CHECK
+    turn:
+      seat-actions:
+        - action: 3, CHECK
+        - action: 6, CHECK
+    river:
+      seat-actions:
+        - action: 3, CHECK
+        - action: 6, CHECK

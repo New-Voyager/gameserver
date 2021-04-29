@@ -493,7 +493,7 @@ func (h *TestHand) getObserverLastHandMessageItem() *game.HandMessageItem {
 
 func (h *TestHand) verifyBettingRound(t *TestDriver, verify *game.VerifyBettingRound) error {
 	lastHandMessage := h.getObserverLastHandMessage()
-	lastHandMsgItem := h.getObserverLastHandMessageItem()
+	// lastHandMsgItem := h.getObserverLastHandMessageItem()
 	if verify.State != "" {
 		if verify.State == "FLOP" {
 			// make sure the hand state is set correctly
@@ -534,8 +534,9 @@ func (h *TestHand) verifyBettingRound(t *TestDriver, verify *game.VerifyBettingR
 				}
 			}
 		} else if verify.State == "RESULT" {
-			if lastHandMsgItem.MessageType != "RESULT" {
-				h.addError(fmt.Errorf("Expected result after preflop actions. Actual message: %s", lastHandMsgItem.MessageType))
+			// if lastHandMsgItem.MessageType != "RESULT" {
+			if lastHandMessage.HandStatus != game.HandStatus_RESULT {
+				h.addError(fmt.Errorf("Expected result after the betting round. Actual: %s", game.HandStatus_name[int32(lastHandMessage.HandStatus)]))
 				return fmt.Errorf("Failed at preflop verification step")
 			}
 		}

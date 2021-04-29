@@ -145,7 +145,7 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 					Msg(fmt.Sprintf("%s", string(jsonb)))
 			}
 			if msgItem.MessageType == game.HandResultMessage {
-				testPlayerLogger.Error().
+				testPlayerLogger.Info().
 					Uint32("club", t.player.ClubID).
 					Uint64("game", t.player.GameID).
 					Uint64("playerid", t.player.PlayerID).
