@@ -9,12 +9,3 @@ goToRiver: 1000
 pendingUpdatesRetry: 5000
 onMoveToNextHand: 3000
 moveToNextHand: 5000
-
-# When we send the FLOP, TURN, RIVER message to the Hand->All subject, and then
-# YOUR_ACTION message to the Hand->Player subject immediately after, I see that sometimes
-# the bot receives YOUR_ACTION message first. This means that the message ordering
-# is not guaranteed across the 2 subjects.
-# Have some delay around the broadcast message to make sure the client receives broadcast messages
-# such as FLOP, TURN, RIVER and the unicast messages such as YOUR_ACTION in the correct
-# order.
-globalBroadcastDelay: 50
