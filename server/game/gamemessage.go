@@ -48,10 +48,10 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 	}
 }
 
-func processPendingUpdates(apiServerUrl string, gameID uint64) {
+func processPendingUpdates(apiServerURL string, gameID uint64) {
 	// call api server processPendingUpdates
 	channelGameLogger.Info().Msgf("Processing pending updates for the game %d", gameID)
-	url := fmt.Sprintf("%s/internal/process-pending-updates/gameId/%d", apiServerUrl, gameID)
+	url := fmt.Sprintf("%s/internal/process-pending-updates/gameId/%d", apiServerURL, gameID)
 	resp, _ := http.Post(url, "application/json", nil)
 
 	// if the api server returns nil, do nothing
@@ -150,7 +150,6 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 		g.inProcessPendingUpdates = true
 		go processPendingUpdates(g.apiServerUrl, g.config.GameId)
 	} else {
-		// Save Flow State.
 		handState.FlowState = FlowState_DEAL_HAND
 		g.saveHandState(handState)
 
