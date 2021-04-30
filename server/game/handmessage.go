@@ -250,8 +250,8 @@ func (g *Game) onPlayerActed(message *HandMessage, handState *HandState) error {
 	}
 
 	if !actionMsg.GetPlayerActed().GetTimedOut() {
-		if message.MessageId == 0 && !RunningTests {
-			errMsg := fmt.Sprintf("Invalid message ID [0] for player ID %d Seat %d. Ignoring the action message.", message.PlayerId, messageSeatNo)
+		if message.MessageId == "" && !RunningTests {
+			errMsg := fmt.Sprintf("Missing message ID for player ID %d Seat %d. Ignoring the action message.", message.PlayerId, messageSeatNo)
 			channelGameLogger.Error().
 				Uint32("club", g.config.ClubId).
 				Str("game", g.config.GameCode).
@@ -367,8 +367,8 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 		return fmt.Errorf("prepareNextAction called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
 
-	message := handState.ActionMsgInProgress
-	if message == nil {
+	playerMsg := handState.ActionMsgInProgress
+	if playerMsg == nil {
 		errMsg := "Unable to get action message in progress. handState.ActionMsgInProgress is nil"
 		channelGameLogger.Error().
 			Uint32("club", g.config.ClubId).
@@ -377,7 +377,7 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 		return fmt.Errorf(errMsg)
 	}
 
-	actionMsg := g.getClientMsgItem(message)
+	actionMsg := g.getClientMsgItem(playerMsg)
 
 	var allMsgItems []*HandMessageItem
 	var msgItems []*HandMessageItem
@@ -397,8 +397,6 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 		actionMsg.GetPlayerActed().Action = ACTION_FOLD
 		actionMsg.GetPlayerActed().Amount = 0
 	}
-	message.HandNum = handState.HandNum
-	message.MessageId = 0
 	// broadcast this message to all the players (let everyone know this player acted)
 	allMsgItems = append(allMsgItems, actionMsg)
 
@@ -431,22 +429,23 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 	}
 
 	// Create hand message with all of the message items.
-	msg := HandMessage{
+	serverMsg := HandMessage{
 		ClubId:     g.config.ClubId,
 		GameId:     g.config.GameId,
 		HandNum:    handState.HandNum,
 		HandStatus: handState.CurrentState,
+		MessageId:  fmt.Sprintf("ACTION:%d:%s:%d:%s", handState.HandNum, handState.CurrentState, playerMsg.PlayerId, playerMsg.MessageId),
 		Messages:   allMsgItems,
 	}
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_1, message.PlayerId)
-	g.broadcastHandMessage(&msg)
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_1, playerMsg.PlayerId)
+	g.broadcastHandMessage(&serverMsg)
 	handState.ActionMsgInProgress = nil
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_2, message.PlayerId)
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_2, playerMsg.PlayerId)
 	g.saveHandState(handState)
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3, message.PlayerId)
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3, playerMsg.PlayerId)
 	return nil
 }
 

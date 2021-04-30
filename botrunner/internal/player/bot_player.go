@@ -75,9 +75,12 @@ type BotPlayer struct {
 	deckHandNum uint32
 
 	// For message acknowledgement
-	lastMsgID   uint32
-	lastMsgType string
-	ackMaxWait  int
+	clientLastMsgID   string
+	clientLastMsgType string
+	ackMaxWait        int
+
+	// Remember the most recent message ID's for deduplicating server messages.
+	serverLastMsgIDs *util.Queue
 
 	// Message channels
 	chGame chan *game.GameMessage
@@ -152,20 +155,22 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger, msgCollector *msg
 	gqlHelper := gql.NewGQLHelper(gqlClient, uint32(playerConfig.GQLTimeoutSec), "")
 
 	bp := BotPlayer{
-		logger:          logger,
-		config:          playerConfig,
-		gqlHelper:       gqlHelper,
-		natsConn:        nc,
-		chGame:          make(chan *game.GameMessage, 10),
-		chHand:          make(chan *game.HandMessage, 10),
-		end:             make(chan bool),
-		logPrefix:       logPrefix,
-		printGameMsg:    util.Env.ShouldPrintGameMsg(),
-		printHandMsg:    util.Env.ShouldPrintHandMsg(),
-		printStateMsg:   util.Env.ShouldPrintStateMsg(),
-		msgCollector:    msgCollector,
-		RewardsNameToID: make(map[string]uint32),
-		ackMaxWait:      300,
+		logger:           logger,
+		config:           playerConfig,
+		gqlHelper:        gqlHelper,
+		natsConn:         nc,
+		chGame:           make(chan *game.GameMessage, 10),
+		chHand:           make(chan *game.HandMessage, 10),
+		end:              make(chan bool),
+		logPrefix:        logPrefix,
+		printGameMsg:     util.Env.ShouldPrintGameMsg(),
+		printHandMsg:     util.Env.ShouldPrintHandMsg(),
+		printStateMsg:    util.Env.ShouldPrintStateMsg(),
+		msgCollector:     msgCollector,
+		RewardsNameToID:  make(map[string]uint32),
+		clientLastMsgID:  "0",
+		serverLastMsgIDs: util.NewQueue(5),
+		ackMaxWait:       300,
 	}
 
 	bp.sm = fsm.NewFSM(
@@ -306,6 +311,13 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		bp.logger.Info().Msgf("%s: Bot is in error state. Ignoring hand message.", bp.logPrefix)
 		return
 	}
+
+	if message.MessageId != "" && bp.serverLastMsgIDs.Contains(message.MessageId) {
+		// Duplicate message potentially due to server restart. Ignore it.
+		bp.logger.Info().Msgf("%s: Ignoring duplicate hand message ID: %s", bp.logPrefix, message.MessageId)
+		return
+	}
+	bp.serverLastMsgIDs.Push(message.MessageId)
 
 	if message.PlayerId != 0 && message.PlayerId != bp.PlayerID {
 		// drop this message
@@ -523,12 +535,12 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		/* MessageType: MSG_ACK */
 		msgType := msgItem.GetMsgAck().GetMessageType()
 		msgID := msgItem.GetMsgAck().GetMessageId()
-		msg := fmt.Sprintf("%s: Ignoring unexpected %s msg - %s:%d BotState: %s, CurrentMsgType: %s, CurrentMsgID: %d", bp.logPrefix, game.HandMsgAck, msgType, msgID, bp.sm.Current(), bp.lastMsgType, bp.lastMsgID)
-		if msgType != bp.lastMsgType {
+		msg := fmt.Sprintf("%s: Ignoring unexpected %s msg - %s:%s BotState: %s, CurrentMsgType: %s, CurrentMsgID: %s", bp.logPrefix, game.HandMsgAck, msgType, msgID, bp.sm.Current(), bp.clientLastMsgType, bp.clientLastMsgID)
+		if msgType != bp.clientLastMsgType {
 			bp.logger.Info().Msg(msg)
 			return
 		}
-		if msgID != bp.lastMsgID {
+		if msgID != bp.clientLastMsgID {
 			bp.logger.Info().Msg(msg)
 			return
 		}
@@ -1343,7 +1355,11 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 		Amount: nextAmt,
 	}
 	msgType := game.HandPlayerActed
-	msgID := bp.lastMsgID + 1
+	lastMsgIDInt, err := strconv.Atoi(bp.clientLastMsgID)
+	if err != nil {
+		panic(fmt.Sprintf("Unable to convert message ID to int: %v", err))
+	}
+	msgID := strconv.Itoa(lastMsgIDInt + 1)
 	actionMsg := game.HandMessage{
 		ClubId:    uint32(bp.clubID),
 		GameId:    bp.gameID,
@@ -1401,14 +1417,14 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 		}
 		if !published {
 			bp.sm.Event(BotEvent__SEND_MY_ACTION)
-			bp.lastMsgID = msg.GetMessageId()
-			bp.lastMsgType = game.HandPlayerActed
+			bp.clientLastMsgID = msg.GetMessageId()
+			bp.clientLastMsgType = game.HandPlayerActed
 			published = true
 		}
 		time.Sleep(2 * time.Second)
 		if bp.sm.Current() != BotState__ACTED_WAITING_FOR_ACK {
 			ackReceived = true
-		} else if bp.lastMsgID != msg.GetMessageId() {
+		} else if bp.clientLastMsgID != msg.GetMessageId() {
 			// Bots are acting very fast. This bot is already waiting for the ack for the next action.
 			ackReceived = true
 		}

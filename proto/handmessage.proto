@@ -177,7 +177,7 @@ message HandResult  {
 }
 
 message MsgAcknowledgement {
-  uint32 message_id = 1;
+  string message_id = 1;
   string message_type = 2;
 }
 
@@ -189,7 +189,7 @@ message HandMessage {
   uint32 hand_num = 5;
   uint32 seat_no = 6;       // if this message is targeted to a specific player
   uint64 player_id = 8;
-  uint32 message_id = 9;
+  string message_id = 9;
   string game_token = 10;    // game token assigned to a player for this game
   HandStatus hand_status = 11;
   repeated HandMessageItem messages = 12;
