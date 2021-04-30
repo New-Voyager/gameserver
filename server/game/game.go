@@ -477,6 +477,7 @@ func (g *Game) dealNewHand() error {
 		ClubId:     g.config.ClubId,
 		HandNum:    handState.HandNum,
 		HandStatus: handState.CurrentState,
+		MessageId:  g.generateMsgID("NEW_HAND", handState.HandNum, handState.CurrentState, 0, ""),
 		Messages: []*HandMessageItem{
 			{
 				MessageType: HandNewHand,
@@ -506,6 +507,7 @@ func (g *Game) dealNewHand() error {
 		GameCode:   g.config.GameCode,
 		HandNum:    handState.HandNum,
 		HandStatus: handState.CurrentState,
+		MessageId:  g.generateMsgID("DEAL", handState.HandNum, handState.CurrentState, 0, ""),
 		Messages: []*HandMessageItem{
 			{
 				MessageType: HandDealStarted,
@@ -542,9 +544,10 @@ func (g *Game) dealNewHand() error {
 
 		//messageData, _ := proto.Marshal(&message)
 		handMessage := HandMessage{
-			GameId:   g.config.GameId,
-			ClubId:   g.config.ClubId,
-			PlayerId: player.PlayerID,
+			GameId:    g.config.GameId,
+			ClubId:    g.config.ClubId,
+			PlayerId:  player.PlayerID,
+			MessageId: g.generateMsgID("CARDS", handState.HandNum, handState.CurrentState, player.PlayerID, ""),
 			Messages: []*HandMessageItem{
 				{
 					MessageType: HandDeal,
@@ -582,11 +585,16 @@ func (g *Game) dealNewHand() error {
 		GameId:     g.config.GameId,
 		HandNum:    handState.HandNum,
 		HandStatus: handState.CurrentState,
+		MessageId:  g.generateMsgID("ACTION", handState.HandNum, handState.CurrentState, 0, ""),
 		Messages:   msgItems,
 	}
 	g.broadcastHandMessage(&handMsg)
 	g.saveHandState(handState)
 	return nil
+}
+
+func (g *Game) generateMsgID(prefix string, handNum uint32, handStatus HandStatus, playerID uint64, originalMsgID string) string {
+	return fmt.Sprintf("%s:%d:%s:%d:%s", prefix, handNum, handStatus, playerID, originalMsgID)
 }
 
 func (g *Game) saveHandState(handState *HandState) error {

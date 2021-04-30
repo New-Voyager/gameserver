@@ -312,7 +312,11 @@ func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
 		return
 	}
 
-	if message.MessageId != "" && bp.serverLastMsgIDs.Contains(message.MessageId) {
+	if message.MessageId == "" {
+		bp.logger.Panic().Msgf("%s: Hand message from server is missing message ID. Message: %s", bp.logPrefix, message.String())
+	}
+
+	if bp.serverLastMsgIDs.Contains(message.MessageId) {
 		// Duplicate message potentially due to server restart. Ignore it.
 		bp.logger.Info().Msgf("%s: Ignoring duplicate hand message ID: %s", bp.logPrefix, message.MessageId)
 		return
@@ -1398,9 +1402,9 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 		if attempts > bp.ackMaxWait {
 			var errMsg string
 			if !published {
-				errMsg = fmt.Sprintf("%s: Retry (%d) exhausted while publishing message type: %s, ID: %d", bp.logPrefix, bp.ackMaxWait, game.HandPlayerActed, msg.GetMessageId())
+				errMsg = fmt.Sprintf("%s: Retry (%d) exhausted while publishing message type: %s, message ID: %s", bp.logPrefix, bp.ackMaxWait, game.HandPlayerActed, msg.GetMessageId())
 			} else {
-				errMsg = fmt.Sprintf("%s: Retry (%d) exhausted while waiting for game server acknowledgement for message type: %s, ID: %d", bp.logPrefix, bp.ackMaxWait, game.HandPlayerActed, msg.GetMessageId())
+				errMsg = fmt.Sprintf("%s: Retry (%d) exhausted while waiting for game server acknowledgement for message type: %s, message ID: %s", bp.logPrefix, bp.ackMaxWait, game.HandPlayerActed, msg.GetMessageId())
 			}
 			bp.logger.Error().Msg(errMsg)
 			bp.errorStateMsg = errMsg
@@ -1408,7 +1412,7 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 			return
 		}
 		if attempts > 1 {
-			bp.logger.Info().Msgf("%s: Attempt (%d) to publish message type: %s, message ID: %d", bp.logPrefix, attempts, game.HandPlayerActed, msg.GetMessageId())
+			bp.logger.Info().Msgf("%s: Attempt (%d) to publish message type: %s, message ID: %s", bp.logPrefix, attempts, game.HandPlayerActed, msg.GetMessageId())
 		}
 		if err := bp.natsConn.Publish(bp.meToHand, protoData); err != nil {
 			bp.logger.Error().Msgf("%s: Error [%s] while publishing message %+v", bp.logPrefix, err, msg)
