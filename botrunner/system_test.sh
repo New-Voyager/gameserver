@@ -8,6 +8,7 @@ test_scripts=(
     'botrunner_scripts/system_test/river-action-3-bots-2-hands.yaml'
     'botrunner_scripts/system_test/river-action-3-bots-wait-for-next-action.yaml'
     'botrunner_scripts/system_test/river-action-3-bots-prepare-next-action.yaml'
+    'botrunner_scripts/system_test/river-action-3-bots-deal.yaml'
 )
 
 echo "Test Scripts: ${test_scripts[@]}"

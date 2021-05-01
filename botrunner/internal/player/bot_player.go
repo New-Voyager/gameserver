@@ -169,7 +169,7 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger, msgCollector *msg
 		msgCollector:     msgCollector,
 		RewardsNameToID:  make(map[string]uint32),
 		clientLastMsgID:  "0",
-		serverLastMsgIDs: util.NewQueue(5),
+		serverLastMsgIDs: util.NewQueue(10),
 		ackMaxWait:       300,
 	}
 
@@ -1593,7 +1593,7 @@ func (bp *BotPlayer) GetJWT(playerUUID string, deviceID string) (string, error) 
 	return jwtData.Jwt, nil
 }
 
-func (bp *BotPlayer) setupServerCrash(crashPoint string) error {
+func (bp *BotPlayer) setupServerCrash(crashPoint string, playerID uint64) error {
 	type payload struct {
 		GameCode   string `json:"gameCode"`
 		CrashPoint string `json:"crashPoint"`
@@ -1602,7 +1602,7 @@ func (bp *BotPlayer) setupServerCrash(crashPoint string) error {
 	data := payload{
 		GameCode:   bp.gameCode,
 		CrashPoint: crashPoint,
-		PlayerID:   bp.PlayerID,
+		PlayerID:   playerID,
 	}
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
@@ -1641,6 +1641,8 @@ func (bp *BotPlayer) setupNextHand() error {
 	}
 
 	currentHand := bp.config.Script.Hands[bp.deckHandNum]
+
+	bp.processPreDealItems(currentHand.Setup.PreDeal)
 
 	// setup deck
 	var setupDeckMsg *SetupDeck

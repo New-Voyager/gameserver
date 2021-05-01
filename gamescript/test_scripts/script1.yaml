@@ -46,6 +46,9 @@ bot-config:
 
 hands:
   - setup:
+      pre-deal:
+        - setup-server-crash:
+            crash-point: DEAL_1
       button-pos: 1
       flop: ["Ac", "Ad", "2c"]
       turn: Td
