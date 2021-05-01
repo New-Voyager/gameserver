@@ -33,19 +33,20 @@ message HandStats {
 
 //NewHand message is sent to all the players to indicate which seat is next to act 
 message NewHand {
-  uint32 button_pos = 1;
-  uint32 sb_pos = 2;
-  uint32 bb_pos = 3;
-  uint32 next_action_seat = 4;
-  map <uint32, string> player_cards = 5;  // key: seat no, value: encrypted cards
-  GameType game_type = 6;
-  uint32 no_cards = 7;     // number of cards dealt to the players
-  float small_blind = 8;
-  float big_blind = 9;
-  float bring_in = 10;
-  float straddle = 11;
-  uint32 pause = 12;      // the hand will pause for specified seconds
-  map <uint32, PlayerInSeatState> players_in_seats = 13; // seat no, player status
+  uint32 hand_num = 1;
+  uint32 button_pos = 2;
+  uint32 sb_pos = 3;
+  uint32 bb_pos = 4;
+  uint32 next_action_seat = 5;
+  map <uint32, string> player_cards = 6;  // key: seat no, value: encrypted cards
+  GameType game_type = 7;
+  uint32 no_cards = 8;     // number of cards dealt to the players
+  float small_blind = 9;
+  float big_blind = 10;
+  float bring_in = 11;
+  float straddle = 12;
+  uint32 pause = 13;      // the hand will pause for specified seconds
+  map <uint32, PlayerInSeatState> players_in_seats = 14; // seat no, player status
 }
 
 //HandDealCards message is sent to each player when cards dealt to the player

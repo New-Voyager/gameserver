@@ -1102,6 +1102,7 @@ func (bp *BotPlayer) SitIn(gameCode string, seatNo uint32) error {
 
 	bp.observing = false
 	bp.logger.Info().Msgf("%s: Successfully took a seat in game [%s]. Status: [%s]", bp.logPrefix, gameCode, status)
+	bp.seatNo = seatNo
 	bp.isSeated = true
 	return nil
 }
@@ -1419,6 +1420,7 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 			time.Sleep(2 * time.Second)
 			continue
 		}
+		ackReceived = true
 		if !published {
 			bp.sm.Event(BotEvent__SEND_MY_ACTION)
 			bp.clientLastMsgID = msg.GetMessageId()

@@ -449,6 +449,20 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 	g.saveHandState(handState)
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3, playerMsg.PlayerId)
+
+	// if the last message is hand ended (pause for the result animation)
+	handEnded := false
+	for _, message := range allMsgItems {
+		if message.MessageType == HandEnded {
+			handEnded = true
+		}
+	}
+	// wait 5 seconds to show the result
+	// send a message to game to start new hand
+	if handEnded && !util.GameServerEnvironment.ShouldDisableDelays() {
+		time.Sleep(time.Duration(g.delays.MoveToNextHand) * time.Millisecond)
+	}
+
 	return nil
 }
 
@@ -480,6 +494,9 @@ func (g *Game) sendActionAck(playerMsg *HandMessage) {
 		Messages:   []*HandMessageItem{ack},
 	}
 	g.sendHandMessageToPlayer(serverMsg, playerMsg.GetPlayerId())
+	channelGameLogger.Info().
+		Str("game", g.config.GameCode).
+		Msg(fmt.Sprintf("Acknowledgment sent to %d. Message Id: %s", playerMsg.GetPlayerId(), playerMsg.GetMessageId()))
 }
 
 func (g *Game) getPots(handState *HandState) ([]float32, []*SeatsInPots) {
@@ -631,9 +648,9 @@ func (g *Game) handEnded(handState *HandState) ([]*HandMessageItem, error) {
 
 	// wait 5 seconds to show the result
 	// send a message to game to start new hand
-	if !util.GameServerEnvironment.ShouldDisableDelays() {
-		time.Sleep(time.Duration(g.delays.MoveToNextHand) * time.Millisecond)
-	}
+	// if !util.GameServerEnvironment.ShouldDisableDelays() {
+	// 	time.Sleep(time.Duration(g.delays.MoveToNextHand) * time.Millisecond)
+	// }
 
 	handEnded := &HandMessageItem{
 		MessageType: HandEnded,

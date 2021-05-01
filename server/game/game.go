@@ -458,6 +458,7 @@ func (g *Game) dealNewHand() error {
 
 	// send a new hand message to all players
 	newHand := NewHand{
+		HandNum:        handState.HandNum,
 		ButtonPos:      handState.ButtonPos,
 		SbPos:          handState.SmallBlindPos,
 		BbPos:          handState.BigBlindPos,
