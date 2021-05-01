@@ -1420,7 +1420,6 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 			time.Sleep(2 * time.Second)
 			continue
 		}
-		ackReceived = true
 		if !published {
 			bp.sm.Event(BotEvent__SEND_MY_ACTION)
 			bp.clientLastMsgID = msg.GetMessageId()
