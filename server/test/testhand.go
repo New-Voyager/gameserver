@@ -41,9 +41,9 @@ func (h *TestHand) run(t *TestDriver) error {
 	if err != nil {
 		return err
 	}
-	lastHandMessage := h.gameScript.observer.lastHandMessage
+	lastMsgItem := h.gameScript.observer.lastHandMessageItem
 	result := false
-	if lastHandMessage.MessageType == "RESULT" {
+	if lastMsgItem.MessageType == "RESULT" {
 		result = true
 	}
 
@@ -53,9 +53,9 @@ func (h *TestHand) run(t *TestDriver) error {
 		if err != nil {
 			return err
 		}
-		lastHandMessage := h.gameScript.observer.lastHandMessage
+		lastMsgItem := h.gameScript.observer.lastHandMessageItem
 		result = false
-		if lastHandMessage.MessageType == "RESULT" {
+		if lastMsgItem.MessageType == "RESULT" {
 			result = true
 		}
 	}
@@ -66,9 +66,9 @@ func (h *TestHand) run(t *TestDriver) error {
 		if err != nil {
 			return err
 		}
-		lastHandMessage := h.gameScript.observer.lastHandMessage
+		lastMsgItem := h.gameScript.observer.lastHandMessageItem
 		result = false
-		if lastHandMessage.MessageType == "RESULT" {
+		if lastMsgItem.MessageType == "RESULT" {
 			result = true
 		}
 	}
@@ -79,9 +79,9 @@ func (h *TestHand) run(t *TestDriver) error {
 		if err != nil {
 			return err
 		}
-		lastHandMessage := h.gameScript.observer.lastHandMessage
+		lastMsgItem := h.gameScript.observer.lastHandMessageItem
 		result = false
-		if lastHandMessage.MessageType == "RESULT" {
+		if lastMsgItem.MessageType == "RESULT" {
 			result = true
 		} else {
 			// we didn't get any results after the river
@@ -93,8 +93,8 @@ func (h *TestHand) run(t *TestDriver) error {
 
 	// verify results
 	if result {
-		lastHandMessage = h.gameScript.observer.lastHandMessage
-		handResult := lastHandMessage.GetHandResult()
+		lastMsgItem := h.gameScript.observer.lastHandMessageItem
+		handResult := lastMsgItem.GetHandResult()
 		_ = handResult
 
 		err = h.verifyHandResult(t, handResult)
@@ -186,16 +186,20 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.Betting
 				}
 			}
 			// send handmessage
-			message := game.HandMessage{
-				ClubId:      h.gameScript.testGame.clubID,
-				GameId:      h.gameScript.testGame.gameID,
-				HandNum:     h.hand.Num,
-				SeatNo:      action.SeatNo,
-				MessageType: game.HandPlayerActed,
-			}
 			actionType := game.ACTION(game.ACTION_value[action.Action])
 			handAction := game.HandAction{SeatNo: action.SeatNo, Action: actionType, Amount: action.Amount}
-			message.HandMessage = &game.HandMessage_PlayerActed{PlayerActed: &handAction}
+			message := game.HandMessage{
+				ClubId:  h.gameScript.testGame.clubID,
+				GameId:  h.gameScript.testGame.gameID,
+				HandNum: h.hand.Num,
+				SeatNo:  action.SeatNo,
+				Messages: []*game.HandMessageItem{
+					{
+						MessageType: game.HandPlayerActed,
+						Content:     &game.HandMessageItem_PlayerActed{PlayerActed: &handAction},
+					},
+				},
+			}
 			player.player.HandProtoMessageFromAdapter(&message)
 			h.gameScript.waitForObserver()
 		}
@@ -204,18 +208,18 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.Betting
 	h.waitForRunItTwicePrompt()
 	h.waitForRunItTwicePrompt()
 
-	lastHandMessage := h.getObserverLastHandMessage()
+	lastHandMsgItem := h.getObserverLastHandMessageItem()
 	// if last hand message was no more downs, there will be no more actions from the players
-	if lastHandMessage.MessageType == game.HandNoMoreActions {
+	if lastHandMsgItem.MessageType == game.HandNoMoreActions {
 		h.noMoreActions = true
 		// wait for betting round message (flop, turn, river, showdown)
 		h.gameScript.waitForObserver()
-	} else if lastHandMessage.MessageType == game.HandRunItTwice {
+	} else if lastHandMsgItem.MessageType == game.HandRunItTwice {
 		// verify run it twice
 		fmt.Printf("Run it twice")
 		// wait for the result
 		h.gameScript.waitForObserver()
-	} else if lastHandMessage.MessageType != game.HandResultMessage {
+	} else if lastHandMsgItem.MessageType != game.HandResultMessage {
 		// wait for betting round message (flop, turn, river, showdown)
 		h.gameScript.waitForObserver()
 	}
@@ -230,19 +234,12 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.Betting
 }
 
 func (h *TestHand) waitForRunItTwicePrompt() {
-	lastHandMessage := h.getObserverLastHandMessage()
-	if lastHandMessage.MessageType == game.HandPlayerAction {
-		seatAction := lastHandMessage.GetSeatAction()
+	lastHandMsgItem := h.getObserverLastHandMessageItem()
+	if lastHandMsgItem.MessageType == game.HandPlayerAction {
+		seatAction := lastHandMsgItem.GetSeatAction()
 		if seatAction.AvailableActions != nil && len(seatAction.AvailableActions) >= 1 {
 			if seatAction.AvailableActions[0] == game.ACTION_RUN_IT_TWICE_PROMPT {
 				// confirm the player wants to run it twice
-				message := game.HandMessage{
-					ClubId:      h.gameScript.testGame.clubID,
-					GameId:      h.gameScript.testGame.gameID,
-					HandNum:     h.hand.Num,
-					SeatNo:      seatAction.SeatNo,
-					MessageType: game.HandPlayerActed,
-				}
 				actionType := game.ACTION_RUN_IT_TWICE_YES
 				player := h.gameScript.playerFromSeat(seatAction.SeatNo)
 				if !player.player.RunItTwicePromptResponse {
@@ -250,7 +247,18 @@ func (h *TestHand) waitForRunItTwicePrompt() {
 				}
 
 				handAction := game.HandAction{SeatNo: seatAction.SeatNo, Action: actionType}
-				message.HandMessage = &game.HandMessage_PlayerActed{PlayerActed: &handAction}
+				message := game.HandMessage{
+					ClubId:  h.gameScript.testGame.clubID,
+					GameId:  h.gameScript.testGame.gameID,
+					HandNum: h.hand.Num,
+					SeatNo:  seatAction.SeatNo,
+					Messages: []*game.HandMessageItem{
+						{
+							MessageType: game.HandPlayerActed,
+							Content:     &game.HandMessageItem_PlayerActed{PlayerActed: &handAction},
+						},
+					},
+				}
 				player.player.HandProtoMessageFromAdapter(&message)
 				h.gameScript.waitForObserver()
 			}
@@ -340,7 +348,7 @@ func (h *TestHand) dealHand(t *TestDriver) error {
 	}
 
 	// verify hand status
-	handState := h.gameScript.observer.currentHand.HandStatus.String()
+	handState := h.gameScript.observer.lastHandMessage.HandStatus.String()
 	if len(verify.State) != 0 && verify.State != handState {
 		h.addError(fmt.Errorf("Hand state does not match. Expected: %s actual: %s", verify.State, handState))
 		passed = false
@@ -476,11 +484,16 @@ func (h *TestHand) addError(e error) {
 }
 
 func (h *TestHand) getObserverLastHandMessage() *game.HandMessage {
-	return h.gameScript.observerLastHandMesage
+	return h.gameScript.observerLastHandMessage
+}
+
+func (h *TestHand) getObserverLastHandMessageItem() *game.HandMessageItem {
+	return h.gameScript.observerLastHandMessageItem
 }
 
 func (h *TestHand) verifyBettingRound(t *TestDriver, verify *game.VerifyBettingRound) error {
 	lastHandMessage := h.getObserverLastHandMessage()
+	// lastHandMsgItem := h.getObserverLastHandMessageItem()
 	if verify.State != "" {
 		if verify.State == "FLOP" {
 			// make sure the hand state is set correctly
@@ -521,8 +534,9 @@ func (h *TestHand) verifyBettingRound(t *TestDriver, verify *game.VerifyBettingR
 				}
 			}
 		} else if verify.State == "RESULT" {
-			if lastHandMessage.MessageType != "RESULT" {
-				h.addError(fmt.Errorf("Expected result after preflop actions. Actual message: %s", lastHandMessage.MessageType))
+			// if lastHandMsgItem.MessageType != "RESULT" {
+			if lastHandMessage.HandStatus != game.HandStatus_RESULT {
+				h.addError(fmt.Errorf("Expected result after the betting round. Actual: %s", game.HandStatus_name[int32(lastHandMessage.HandStatus)]))
 				return fmt.Errorf("Failed at preflop verification step")
 			}
 		}

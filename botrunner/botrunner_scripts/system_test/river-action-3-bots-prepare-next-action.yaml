@@ -4,7 +4,7 @@ club:
 
 game:
   create: true
-  title: "Crash Test - WAIT_FOR_NEXT_ACTION"
+  title: "Crash Test - PREPARE_NEXT_ACTION"
   game-type: "HOLDEM"
   small-blind: 1.0
   big-blind: 2.0
@@ -62,21 +62,24 @@ hands:
       seat-actions:
         # seat number/action/amount
         - action: 1, CALL, 2
-          pre-action:
-            - setup-server-crash:
-                crash-point: WAIT_FOR_NEXT_ACTION_1
         - action: 5, CALL, 2
+        - action: 8, CHECK
           pre-action:
             - setup-server-crash:
-                crash-point: WAIT_FOR_NEXT_ACTION_2
-        - action: 8, CHECK
+                crash-point: PREPARE_NEXT_ACTION_1
 
     flop:
       verify:
         board: ["Ac", "Ad", "2c"]
       seat-actions:
         - action: 5, CHECK
+          pre-action:
+            - setup-server-crash:
+                crash-point: PREPARE_NEXT_ACTION_2
         - action: 8, BET, 2
+          pre-action:
+            - setup-server-crash:
+                crash-point: PREPARE_NEXT_ACTION_3
         - action: 1, CALL, 2
         - action: 5, RAISE, 4
         - action: 8, FOLD

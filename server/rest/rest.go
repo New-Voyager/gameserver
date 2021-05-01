@@ -89,6 +89,7 @@ func setupCrash(c *gin.Context) {
 	type Payload struct {
 		GameCode   string `json:"gameCode"`
 		CrashPoint string `json:"crashPoint"`
+		PlayerID   uint64 `json:"playerId"`
 	}
 	var payload Payload
 	err := c.BindJSON(&payload)
@@ -102,8 +103,8 @@ func setupCrash(c *gin.Context) {
 		return
 	}
 
-	restLogger.Info().Msgf("Received request to crash the server at [%s]", payload.CrashPoint)
-	err = crashtest.Set(payload.GameCode, crashtest.CrashPoint(payload.CrashPoint))
+	restLogger.Info().Msgf("Received request to crash the server at [%s] player [%d]", payload.CrashPoint, payload.PlayerID)
+	err = crashtest.Set(payload.GameCode, crashtest.CrashPoint(payload.CrashPoint), payload.PlayerID)
 	if err != nil {
 		restLogger.Error().Msgf("Unable to setup server for crash. Error: %v", err)
 		c.IndentedJSON(http.StatusInternalServerError, appError{

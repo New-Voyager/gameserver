@@ -278,30 +278,32 @@ func (g *Game) resumeGame(handState *HandState) error {
 		Str("game", g.config.GameCode).
 		Msgf("Restarting hand at flow state [%s].", handState.FlowState)
 
+	var err error
 	switch handState.FlowState {
 	case FlowState_DEAL_HAND:
-		return g.dealNewHand()
+		err = g.dealNewHand()
 	case FlowState_WAIT_FOR_NEXT_ACTION:
-		return g.onPlayerActed(nil, handState)
+		err = g.onPlayerActed(nil, handState)
 	case FlowState_PREPARE_NEXT_ACTION:
-		return g.prepareNextAction(handState)
+		err = g.prepareNextAction(handState)
 	case FlowState_MOVE_TO_NEXT_ACTION:
-		return g.moveToNextAction(handState)
+		_, err = g.moveToNextAction(handState)
 	case FlowState_MOVE_TO_NEXT_ROUND:
-		return g.moveToNextRound(handState)
+		_, err = g.moveToNextRound(handState)
 	case FlowState_ALL_PLAYERS_ALL_IN:
-		return g.allPlayersAllIn(handState)
+		_, err = g.allPlayersAllIn(handState)
 	case FlowState_ONE_PLAYER_REMAINING:
-		return g.onePlayerRemaining(handState)
+		_, err = g.onePlayerRemaining(handState)
 	case FlowState_SHOWDOWN:
-		return g.showdown(handState)
+		_, err = g.showdown(handState)
 	case FlowState_HAND_ENDED:
-		return g.handEnded(handState)
+		_, err = g.handEnded(handState)
 	case FlowState_MOVE_TO_NEXT_HAND:
-		return g.moveToNextHand(handState)
+		err = g.moveToNextHand(handState)
 	default:
-		return fmt.Errorf("Unhandled flow state in resumeGame: %s", handState.FlowState)
+		err = fmt.Errorf("Unhandled flow state in resumeGame: %s", handState.FlowState)
 	}
+	return err
 }
 
 func (g *Game) maskCards(playerCards []byte, gameToken uint64) ([]uint32, uint64) {
@@ -454,16 +456,9 @@ func (g *Game) dealNewHand() error {
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Table: %s", handState.PrintTable(g.players)))
 
-	handMessage := HandMessage{
-		MessageType: HandNewHand,
-		GameId:      g.config.GameId,
-		ClubId:      g.config.ClubId,
-		HandNum:     handState.HandNum,
-		HandStatus:  handState.CurrentState,
-	}
-
 	// send a new hand message to all players
 	newHand := NewHand{
+		HandNum:        handState.HandNum,
 		ButtonPos:      handState.ButtonPos,
 		SbPos:          handState.SmallBlindPos,
 		BbPos:          handState.BigBlindPos,
@@ -478,8 +473,20 @@ func (g *Game) dealNewHand() error {
 		PlayersInSeats: playersInSeats,
 	}
 
-	//newHand.PlayerCards = playersCards
-	handMessage.HandMessage = &HandMessage_NewHand{NewHand: &newHand}
+	handMessage := HandMessage{
+		GameId:     g.config.GameId,
+		ClubId:     g.config.ClubId,
+		HandNum:    handState.HandNum,
+		HandStatus: handState.CurrentState,
+		MessageId:  g.generateMsgID("NEW_HAND", handState.HandNum, handState.CurrentState, 0, ""),
+		Messages: []*HandMessageItem{
+			{
+				MessageType: HandNewHand,
+				Content:     &HandMessageItem_NewHand{NewHand: &newHand},
+			},
+		},
+	}
+
 	g.broadcastHandMessage(&handMessage)
 	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.BeforeDeal) * time.Millisecond)
@@ -496,12 +503,17 @@ func (g *Game) dealNewHand() error {
 
 	// indicate the clients card distribution began
 	handMessage = HandMessage{
-		MessageType: HandDealStarted,
-		GameId:      g.config.GameId,
-		ClubId:      g.config.ClubId,
-		GameCode:    g.config.GameCode,
-		HandNum:     handState.HandNum,
-		HandStatus:  handState.CurrentState,
+		GameId:     g.config.GameId,
+		ClubId:     g.config.ClubId,
+		GameCode:   g.config.GameCode,
+		HandNum:    handState.HandNum,
+		HandStatus: handState.CurrentState,
+		MessageId:  g.generateMsgID("DEAL", handState.HandNum, handState.CurrentState, 0, ""),
+		Messages: []*HandMessageItem{
+			{
+				MessageType: HandDealStarted,
+			},
+		},
 	}
 	g.broadcastHandMessage(&handMessage)
 
@@ -523,17 +535,27 @@ func (g *Game) dealNewHand() error {
 
 		// seatNo is the key, cards are value
 		playerCards := handState.PlayersCards[uint32(player.SeatNo)]
-		message := HandDealCards{SeatNo: uint32(player.SeatNo)}
+		dealCards := HandDealCards{SeatNo: uint32(player.SeatNo)}
 
 		tmpGameToken := uint64(0)
 		cards, maskedCards := g.maskCards(playerCards, tmpGameToken)
 		playersCards[player.SeatNo] = fmt.Sprintf("%d", maskedCards)
-		message.Cards = fmt.Sprintf("%d", maskedCards)
-		message.CardsStr = poker.CardsToString(cards)
+		dealCards.Cards = fmt.Sprintf("%d", maskedCards)
+		dealCards.CardsStr = poker.CardsToString(cards)
 
 		//messageData, _ := proto.Marshal(&message)
-		handMessage := HandMessage{MessageType: HandDeal, GameId: g.config.GameId, ClubId: g.config.ClubId, PlayerId: player.PlayerID}
-		handMessage.HandMessage = &HandMessage_DealCards{DealCards: &message}
+		handMessage := HandMessage{
+			GameId:    g.config.GameId,
+			ClubId:    g.config.ClubId,
+			PlayerId:  player.PlayerID,
+			MessageId: g.generateMsgID("CARDS", handState.HandNum, handState.CurrentState, player.PlayerID, ""),
+			Messages: []*HandMessageItem{
+				{
+					MessageType: HandDeal,
+					Content:     &HandMessageItem_DealCards{DealCards: &dealCards},
+				},
+			},
+		}
 		b, _ := proto.Marshal(&handMessage)
 
 		if *g.messageReceiver != nil {
@@ -555,9 +577,25 @@ func (g *Game) dealNewHand() error {
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, g.PlayersInSeats)))
 
 	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
+	msgItems, err := g.moveToNextAction(handState)
+	if err != nil {
+		return err
+	}
+	handMsg := HandMessage{
+		ClubId:     g.config.ClubId,
+		GameId:     g.config.GameId,
+		HandNum:    handState.HandNum,
+		HandStatus: handState.CurrentState,
+		MessageId:  g.generateMsgID("ACTION", handState.HandNum, handState.CurrentState, 0, ""),
+		Messages:   msgItems,
+	}
+	g.broadcastHandMessage(&handMsg)
 	g.saveHandState(handState)
-	g.moveToNextAction(handState)
 	return nil
+}
+
+func (g *Game) generateMsgID(prefix string, handNum uint32, handStatus HandStatus, playerID uint64, originalMsgID string) string {
+	return fmt.Sprintf("%s:%d:%s:%d:%s", prefix, handNum, handStatus, playerID, originalMsgID)
 }
 
 func (g *Game) saveHandState(handState *HandState) error {
@@ -580,13 +618,7 @@ func (g *Game) loadHandState() (*HandState, error) {
 func (g *Game) broadcastHandMessage(message *HandMessage) {
 	message.GameCode = g.config.GameCode
 	if *g.messageReceiver != nil {
-		if !RunningTests {
-			time.Sleep(time.Duration(g.delays.GlobalBroadcastDelay) * time.Millisecond)
-		}
 		(*g.messageReceiver).BroadcastHandMessage(message)
-		if !RunningTests {
-			time.Sleep(time.Duration(g.delays.GlobalBroadcastDelay) * time.Millisecond)
-		}
 	} else {
 		b, _ := proto.Marshal(message)
 		for _, player := range g.allPlayers {
@@ -598,9 +630,7 @@ func (g *Game) broadcastHandMessage(message *HandMessage) {
 func (g *Game) broadcastGameMessage(message *GameMessage) {
 	message.GameCode = g.config.GameCode
 	if *g.messageReceiver != nil {
-		time.Sleep(time.Duration(g.delays.GlobalBroadcastDelay) * time.Millisecond)
 		(*g.messageReceiver).BroadcastGameMessage(message)
-		time.Sleep(time.Duration(g.delays.GlobalBroadcastDelay) * time.Millisecond)
 	} else {
 		b, _ := proto.Marshal(message)
 		for _, player := range g.allPlayers {
@@ -634,10 +664,7 @@ func (g *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint64) {
 	} else {
 		player := g.allPlayers[playerID]
 		if player == nil {
-			if message.GetMessageType() == HandMsgAck {
-				// Not sure why this causes player to be null, but ignore it for now.
-				return
-			}
+			return
 		}
 		b, _ := proto.Marshal(message)
 		player.chHand <- b

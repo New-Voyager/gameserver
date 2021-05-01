@@ -5,20 +5,10 @@ set -e
 # YAML file paths are relative to the botrunner.
 test_scripts=(
     'botrunner_scripts/system_test/river-action-3-bots.yaml'
+    'botrunner_scripts/system_test/river-action-3-bots-2-hands.yaml'
     'botrunner_scripts/system_test/river-action-3-bots-wait-for-next-action.yaml'
-    'botrunner_scripts/system_test/river-action-3-bots-move-to-next-action.yaml'
-    'botrunner_scripts/system_test/river-action-3-bots-move-to-next-round.yaml'
-    'botrunner_scripts/system_test/3-bots-move-to-next-hand-no-pending-updates.yaml'
+    'botrunner_scripts/system_test/river-action-3-bots-prepare-next-action.yaml'
 )
-
-# Generate additional scripts based on templates.
-generated_dir='botrunner_scripts/system_test/generated/'
-mkdir -p "${generated_dir}"
-for seq in {1..8}; do
-    out_file="${generated_dir}/3-bots-all-players-all-in-${seq}.yaml"
-    sed "s/{{SEQ}}/${seq}/g" 'botrunner_scripts/system_test/template/3-bots-all-players-all-in-template.yaml' > ${out_file} && \
-    test_scripts+=(${out_file})
-done
 
 echo "Test Scripts: ${test_scripts[@]}"
 

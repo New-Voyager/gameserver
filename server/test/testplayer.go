@@ -19,18 +19,19 @@ type TestPlayer struct {
 	player       *game.Player
 	seatNo       uint32
 	testObserver bool
-	observerCh   chan []byte
+	observerCh   chan observerChItem
 
 	// we preserve the last message
-	lastHandMessage *game.HandMessage
-	lastGameMessage *game.GameMessage
-	actionChange    *game.HandMessage
-	noMoreActions   *game.HandMessage
-	runItTwice      *game.HandMessage
-	yourAction      *game.HandMessage
+	lastHandMessage     *game.HandMessage
+	lastHandMessageItem *game.HandMessageItem
+	lastGameMessage     *game.GameMessage
+	actionChange        *game.HandMessageItem
+	noMoreActions       *game.HandMessageItem
+	runItTwice          *game.HandMessageItem
+	yourAction          *game.HandMessageItem
 
 	// current hand message
-	currentHand *game.HandMessage
+	currentHand *game.HandMessageItem
 
 	// players cards
 	cards []uint32
@@ -53,7 +54,7 @@ func NewTestPlayer(playerInfo game.GamePlayer, observer *TestPlayer) *TestPlayer
 	}
 }
 
-func NewTestPlayerAsObserver(playerInfo game.GamePlayer, observerCh chan []byte) *TestPlayer {
+func NewTestPlayerAsObserver(playerInfo game.GamePlayer, observerCh chan observerChItem) *TestPlayer {
 	return &TestPlayer{
 		playerInfo:   playerInfo,
 		testObserver: true,
@@ -69,10 +70,10 @@ func (t *TestPlayer) joinGame(gameID uint64, seatNo uint32, buyIn float32, runIt
 	t.player.JoinGame(gameID, seatNo, buyIn, runItTwice, runItTwicePromptResponse)
 }
 
-func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.HandMessage, jsonb []byte) {
+func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.HandMessage, msgItem *game.HandMessageItem, jsonb []byte) {
 
-	if handMessage.MessageType == game.HandNewHand {
-		t.currentHand = handMessage
+	if msgItem.MessageType == game.HandNewHand {
+		t.currentHand = msgItem
 		t.flop = nil
 		/*
 			if t.seatNo > 0 {
@@ -92,9 +93,9 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 				}
 				t.cards = cards
 			}*/
-	} else if handMessage.MessageType == "DEAL" {
+	} else if msgItem.MessageType == "DEAL" {
 		// unscramble cards
-		maskedCards := handMessage.GetDealCards().Cards
+		maskedCards := msgItem.GetDealCards().Cards
 		c, _ := strconv.ParseInt(maskedCards, 10, 64)
 		b := make([]byte, 8)
 		binary.LittleEndian.PutUint64(b, uint64(c))
@@ -108,32 +109,33 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 			i++
 		}
 		t.cards = cards
-	} else if handMessage.MessageType == "FLOP" {
-		t.flop = handMessage.GetFlop()
-	} else if handMessage.MessageType == "TURN" {
-		t.turn = handMessage.GetTurn()
-	} else if handMessage.MessageType == "RIVER" {
-		t.river = handMessage.GetRiver()
+	} else if msgItem.MessageType == "FLOP" {
+		t.flop = msgItem.GetFlop()
+	} else if msgItem.MessageType == "TURN" {
+		t.turn = msgItem.GetTurn()
+	} else if msgItem.MessageType == "RIVER" {
+		t.river = msgItem.GetRiver()
 	}
 	t.lastHandMessage = handMessage
+	t.lastHandMessageItem = msgItem
 
 	logged := false
-	if handMessage.MessageType == game.HandNextAction {
-		t.actionChange = handMessage
+	if msgItem.MessageType == game.HandNextAction {
+		t.actionChange = msgItem
 	}
 
 	if t.testObserver {
-		if handMessage.MessageType == game.HandPlayerAction ||
+		if msgItem.MessageType == game.HandPlayerAction ||
 			// handMessage.MessageType == game.HandNextAction ||
-			handMessage.MessageType == game.HandNewHand ||
-			handMessage.MessageType == game.HandResultMessage ||
-			handMessage.MessageType == game.HandFlop ||
-			handMessage.MessageType == game.HandTurn ||
-			handMessage.MessageType == game.HandRiver ||
-			handMessage.MessageType == game.HandNoMoreActions ||
-			handMessage.MessageType == game.HandRunItTwice {
+			msgItem.MessageType == game.HandNewHand ||
+			msgItem.MessageType == game.HandResultMessage ||
+			msgItem.MessageType == game.HandFlop ||
+			msgItem.MessageType == game.HandTurn ||
+			msgItem.MessageType == game.HandRiver ||
+			msgItem.MessageType == game.HandNoMoreActions ||
+			msgItem.MessageType == game.HandRunItTwice {
 
-			if handMessage.MessageType != game.HandNextAction {
+			if msgItem.MessageType != game.HandNextAction {
 				testPlayerLogger.Info().
 					Uint32("club", t.player.ClubID).
 					Uint64("game", t.player.GameID).
@@ -142,8 +144,8 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 					Str("player", t.player.PlayerName).
 					Msg(fmt.Sprintf("%s", string(jsonb)))
 			}
-			if handMessage.MessageType == game.HandResultMessage {
-				testPlayerLogger.Error().
+			if msgItem.MessageType == game.HandResultMessage {
+				testPlayerLogger.Info().
 					Uint32("club", t.player.ClubID).
 					Uint64("game", t.player.GameID).
 					Uint64("playerid", t.player.PlayerID).
@@ -153,29 +155,41 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 			}
 			// save next action information
 			// used for pot validation
-			if handMessage.MessageType == game.HandNoMoreActions {
-				t.noMoreActions = handMessage
+			if msgItem.MessageType == game.HandNoMoreActions {
+				t.noMoreActions = msgItem
 			}
 
-			if handMessage.MessageType == game.HandRunItTwice {
-				t.runItTwice = handMessage
+			if msgItem.MessageType == game.HandRunItTwice {
+				t.runItTwice = msgItem
 			}
 
 			logged = true
 			// signal the observer to consume this message
-			t.observerCh <- messageBytes
+			t.observerCh <- observerChItem{
+				gameMessage: nil,
+				handMessage: handMessage,
+				handMsgItem: msgItem,
+			}
 		}
 	} else {
-		if handMessage.MessageType == game.HandPlayerAction {
-			t.yourAction = handMessage
+		if msgItem.MessageType == game.HandPlayerAction {
+			t.yourAction = msgItem
 			// tell observer to consume
 			if t.observer != nil {
-				t.observer.observerCh <- messageBytes
+				t.observer.observerCh <- observerChItem{
+					gameMessage: nil,
+					handMessage: handMessage,
+					handMsgItem: msgItem,
+				}
 			}
-		} else if handMessage.MessageType == game.HandDeal {
+		} else if msgItem.MessageType == game.HandDeal {
 			// tell observer to consume
 			if t.observer != nil {
-				t.observer.observerCh <- messageBytes
+				t.observer.observerCh <- observerChItem{
+					gameMessage: nil,
+					handMessage: handMessage,
+					handMsgItem: msgItem,
+				}
 			}
 		}
 	}
@@ -213,7 +227,11 @@ func (t *TestPlayer) GameMessageFromGame(messageBytes []byte, gameMessage *game.
 
 		if messageTypeStr == game.GameTableState {
 			t.lastTableState = gameMessage.GetTableState()
-			t.observerCh <- messageBytes
+			t.observerCh <- observerChItem{
+				gameMessage: gameMessage,
+				handMessage: nil,
+				handMsgItem: nil,
+			}
 			// } else if messageTypeStr == "PLAYER_SAT" {
 			// 	if gameMessage.GetPlayerSat().PlayerId == t.player.PlayerID {
 			// 		t.seatNo = gameMessage.GetPlayerSat().SeatNo

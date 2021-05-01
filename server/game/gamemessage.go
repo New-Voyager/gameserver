@@ -48,10 +48,10 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 	}
 }
 
-func processPendingUpdates(apiServerUrl string, gameID uint64) {
+func processPendingUpdates(apiServerURL string, gameID uint64) {
 	// call api server processPendingUpdates
 	channelGameLogger.Info().Msgf("Processing pending updates for the game %d", gameID)
-	url := fmt.Sprintf("%s/internal/process-pending-updates/gameId/%d", apiServerUrl, gameID)
+	url := fmt.Sprintf("%s/internal/process-pending-updates/gameId/%d", apiServerURL, gameID)
 	resp, _ := http.Post(url, "application/json", nil)
 
 	// if the api server returns nil, do nothing
@@ -125,7 +125,7 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 		return fmt.Errorf("moveToNextHand called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_HAND_1)
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_HAND_1, 0)
 
 	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.OnMoveToNextHand) * time.Millisecond)
@@ -150,7 +150,6 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 		g.inProcessPendingUpdates = true
 		go processPendingUpdates(g.apiServerUrl, g.config.GameId)
 	} else {
-		// Save Flow State.
 		handState.FlowState = FlowState_DEAL_HAND
 		g.saveHandState(handState)
 
@@ -158,9 +157,9 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 			GameId:      g.config.GameId,
 			MessageType: GameDealHand,
 		}
-		crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_HAND_3)
+		crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_HAND_3, 0)
 		go g.SendGameMessageToChannel(gameMessage)
-		crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_HAND_4)
+		crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_HAND_4, 0)
 	}
 
 	return nil

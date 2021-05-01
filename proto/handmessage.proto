@@ -33,19 +33,20 @@ message HandStats {
 
 //NewHand message is sent to all the players to indicate which seat is next to act 
 message NewHand {
-  uint32 button_pos = 1;
-  uint32 sb_pos = 2;
-  uint32 bb_pos = 3;
-  uint32 next_action_seat = 4;
-  map <uint32, string> player_cards = 5;  // key: seat no, value: encrypted cards
-  GameType game_type = 6;
-  uint32 no_cards = 7;     // number of cards dealt to the players
-  float small_blind = 8;
-  float big_blind = 9;
-  float bring_in = 10;
-  float straddle = 11;
-  uint32 pause = 12;      // the hand will pause for specified seconds
-  map <uint32, PlayerInSeatState> players_in_seats = 13; // seat no, player status
+  uint32 hand_num = 1;
+  uint32 button_pos = 2;
+  uint32 sb_pos = 3;
+  uint32 bb_pos = 4;
+  uint32 next_action_seat = 5;
+  map <uint32, string> player_cards = 6;  // key: seat no, value: encrypted cards
+  GameType game_type = 7;
+  uint32 no_cards = 8;     // number of cards dealt to the players
+  float small_blind = 9;
+  float big_blind = 10;
+  float bring_in = 11;
+  float straddle = 12;
+  uint32 pause = 13;      // the hand will pause for specified seconds
+  map <uint32, PlayerInSeatState> players_in_seats = 14; // seat no, player status
 }
 
 //HandDealCards message is sent to each player when cards dealt to the player
@@ -177,11 +178,10 @@ message HandResult  {
 }
 
 message MsgAcknowledgement {
-  uint32 message_id = 1;
+  string message_id = 1;
   string message_type = 2;
 }
 
-//HandMessage packages the actual message with Hand information (clubid, game_num, hand_num) 
 message HandMessage {
   string version = 1;
   uint32 club_id = 2;
@@ -189,12 +189,17 @@ message HandMessage {
   string game_code = 4;
   uint32 hand_num = 5;
   uint32 seat_no = 6;       // if this message is targeted to a specific player
-  string message_type = 7;
   uint64 player_id = 8;
-  uint32 message_id = 9;
+  string message_id = 9;
   string game_token = 10;    // game token assigned to a player for this game
   HandStatus hand_status = 11;
-  oneof hand_message {
+  repeated HandMessageItem messages = 12;
+}
+
+//HandMessage packages the actual message with Hand information (clubid, game_num, hand_num) 
+message HandMessageItem {
+  string message_type = 7;
+  oneof content {
     NextSeatAction  seat_action = 12;
     HandDealCards deal_cards = 13;
     NewHand new_hand = 14;

@@ -159,9 +159,14 @@ func (mc *MsgCollector) Verify() error {
 		for i := 0; i < numMsgs; i++ {
 			var expectedMsg *game.HandMessage = expectedMsgs[i]
 			var actualMsg *game.HandMessage = msgs[i].msg
-			// TODO: Compare other fields as well based on the message type.
-			if actualMsg.GetMessageType() != expectedMsg.GetMessageType() {
-				return fmt.Errorf("Message type mismatch for player [%s] hand message %d. Expected: [%s] Actual: [%s]", playerName, i, expectedMsg.GetMessageType(), actualMsg.GetMessageType())
+			numMsgItems := len(expectedMsg.GetMessages())
+			for j := 0; j < numMsgItems; j++ {
+				expectedMsgItem := expectedMsg.GetMessages()[j]
+				actualMsgItem := actualMsg.GetMessages()[j]
+				// TODO: Compare other fields as well based on the message type.
+				if actualMsgItem.MessageType != expectedMsgItem.MessageType {
+					return fmt.Errorf("Message type mismatch for player [%s] hand message %d item %d. Expected: [%s] Actual: [%s]", playerName, i, j, expectedMsgItem.MessageType, actualMsgItem.MessageType)
+				}
 			}
 		}
 	}
