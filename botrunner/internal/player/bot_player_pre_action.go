@@ -13,15 +13,31 @@ func (bp *BotPlayer) processPreActions(preActions []gamescript.PreAction) {
 		}
 
 		crashPoint := pa.SetupServerCrash.CrashPoint
-		err := bp.setupServerCrash(crashPoint)
-		attempts := 1
-		for err != nil && attempts < 30 {
-			time.Sleep(2 * time.Second)
-			attempts++
-			err = bp.setupServerCrash(crashPoint)
+		bp.setupServerCrashWithRetry(crashPoint, bp.PlayerID, 30)
+	}
+}
+
+func (bp *BotPlayer) processPreDealItems(preDealItems []gamescript.PreDealSetup) {
+	for _, pd := range preDealItems {
+		if pd.SetupServerCrash.CrashPoint == "" {
+			continue
 		}
-		if err != nil {
-			bp.logger.Fatal().Msgf("%s: Unable to setup game server crash: %s", bp.logPrefix, err)
-		}
+
+		crashPoint := pd.SetupServerCrash.CrashPoint
+		bp.setupServerCrashWithRetry(crashPoint, 0, 30)
+	}
+}
+
+func (bp *BotPlayer) setupServerCrashWithRetry(crashPoint string, playerID uint64, maxRetries int) {
+	err := bp.setupServerCrash(crashPoint, playerID)
+	retries := 0
+	for err != nil && retries < maxRetries {
+		bp.logger.Error().Msgf("%s: Error while setting up game server crash: %v", bp.logPrefix, err)
+		time.Sleep(2 * time.Second)
+		err = bp.setupServerCrash(crashPoint, playerID)
+		retries++
+	}
+	if err != nil {
+		bp.logger.Fatal().Msgf("%s: Unable to setup game server crash: %s", bp.logPrefix, err)
 	}
 }

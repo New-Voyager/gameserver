@@ -89,7 +89,7 @@ func runWithNats() {
 	// restart games
 	time.Sleep(1 * time.Second)
 	mainLogger.Info().Msg("Requesting to restart the active games.")
-	// nats.RequestRestartGames(apiServerURL)
+	nats.RequestRestartGames(apiServerURL)
 
 	select {}
 }

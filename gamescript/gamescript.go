@@ -124,6 +124,7 @@ type Hand struct {
 
 // HandSetup contains the setup content in the hand config.
 type HandSetup struct {
+	PreDeal    []PreDealSetup       `yaml:"pre-deal"`
 	ButtonPos  uint32               `yaml:"button-pos"`
 	Flop       []string             `yaml:"flop"`
 	Turn       string               `yaml:"turn"`
@@ -135,6 +136,10 @@ type HandSetup struct {
 	LeaveGame  []LeaveGame          `yaml:"leave-game"`
 	WaitLists  []WaitList           `yaml:"wait-list"`
 	Pause      uint32               `yaml:"pause"` // bot runner pauses and waits before next hand
+}
+
+type PreDealSetup struct {
+	SetupServerCrash SetupServerCrash `yaml:"setup-server-crash"`
 }
 
 type SeatCards struct {

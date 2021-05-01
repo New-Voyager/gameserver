@@ -11,6 +11,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/proto"
+	"voyager.com/server/crashtest"
 	"voyager.com/server/poker"
 	"voyager.com/server/util"
 )
@@ -193,6 +194,7 @@ func (g *Game) startGame() (bool, error) {
 		}
 
 		g.config = gameConfig
+		g.Status = gameConfig.Status
 		channelGameLogger.Info().Msgf("New Game Config: %+v\n", g.config)
 
 		// Initialize stateful information in the game object.
@@ -286,18 +288,6 @@ func (g *Game) resumeGame(handState *HandState) error {
 		err = g.onPlayerActed(nil, handState)
 	case FlowState_PREPARE_NEXT_ACTION:
 		err = g.prepareNextAction(handState)
-	case FlowState_MOVE_TO_NEXT_ACTION:
-		_, err = g.moveToNextAction(handState)
-	case FlowState_MOVE_TO_NEXT_ROUND:
-		_, err = g.moveToNextRound(handState)
-	case FlowState_ALL_PLAYERS_ALL_IN:
-		_, err = g.allPlayersAllIn(handState)
-	case FlowState_ONE_PLAYER_REMAINING:
-		_, err = g.onePlayerRemaining(handState)
-	case FlowState_SHOWDOWN:
-		_, err = g.showdown(handState)
-	case FlowState_HAND_ENDED:
-		_, err = g.handEnded(handState)
 	case FlowState_MOVE_TO_NEXT_HAND:
 		err = g.moveToNextHand(handState)
 	default:
@@ -353,6 +343,8 @@ func (g *Game) dealNewHand() error {
 	newHandNum := g.prevHandNum + 1
 	var newHandInfo *NewHandInfo
 	var err error
+
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_1, 0)
 
 	gameType := g.config.GameType
 	playersInSeats := make(map[uint32]*PlayerInSeatState)
@@ -488,6 +480,8 @@ func (g *Game) dealNewHand() error {
 	}
 
 	g.broadcastHandMessage(&handMessage)
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_2, 0)
+
 	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.BeforeDeal) * time.Millisecond)
 	}
@@ -516,6 +510,7 @@ func (g *Game) dealNewHand() error {
 		},
 	}
 	g.broadcastHandMessage(&handMessage)
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_3, 0)
 
 	playersCards := make(map[uint32]string)
 	numActivePlayers := uint32(g.countActivePlayers())
@@ -564,6 +559,8 @@ func (g *Game) dealNewHand() error {
 		} else {
 			g.allPlayers[player.PlayerID].chHand <- b
 		}
+
+		crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_4, 0)
 	}
 	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(cardAnimationTime * time.Millisecond)
@@ -590,7 +587,10 @@ func (g *Game) dealNewHand() error {
 		Messages:   msgItems,
 	}
 	g.broadcastHandMessage(&handMsg)
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_5, 0)
+
 	g.saveHandState(handState)
+	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_6, 0)
 	return nil
 }
 

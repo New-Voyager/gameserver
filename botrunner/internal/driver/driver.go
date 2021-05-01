@@ -441,6 +441,12 @@ func (br *BotRunner) Run() error {
 func (br *BotRunner) verifyGameServerCrashLog() error {
 	var expectedCrashPoints []string
 	for _, hand := range br.script.Hands {
+		for _, pd := range hand.Setup.PreDeal {
+			cp := pd.SetupServerCrash.CrashPoint
+			if cp != "" {
+				expectedCrashPoints = append(expectedCrashPoints, cp)
+			}
+		}
 		rounds := []gamescript.BettingRound{hand.Preflop, hand.Flop, hand.Turn, hand.River}
 		for _, round := range rounds {
 			for _, seatAction := range round.SeatActions {

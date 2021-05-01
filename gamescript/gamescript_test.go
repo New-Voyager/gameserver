@@ -73,6 +73,13 @@ func TestReadGameScript(t *testing.T) {
 		Hands: []Hand{
 			{
 				Setup: HandSetup{
+					PreDeal: []PreDealSetup{
+						{
+							SetupServerCrash: SetupServerCrash{
+								CrashPoint: "DEAL_1",
+							},
+						},
+					},
 					ButtonPos: 1,
 					Flop:      []string{"Ac", "Ad", "2c"},
 					Turn:      "Td",
