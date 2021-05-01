@@ -182,11 +182,11 @@ func (bp *BotPlayer) seatWaitList(tableUpdate *game.TableUpdate) {
 }
 
 func (bp *BotPlayer) setupSeatChange() error {
-	if int(bp.handNum) >= len(bp.config.Script.Hands) {
+	if int(bp.game.handNum) >= len(bp.config.Script.Hands) {
 		return nil
 	}
 
-	currentHand := bp.config.Script.Hands[bp.handNum-1]
+	currentHand := bp.config.Script.Hands[bp.game.handNum-1]
 	seatChanges := currentHand.Setup.SeatChange
 	if seatChanges != nil {
 		// using seat no, get the bot player and make seat change request
@@ -203,11 +203,11 @@ func (bp *BotPlayer) setupSeatChange() error {
 }
 
 func (bp *BotPlayer) pauseGameIfNeeded() error {
-	if int(bp.handNum) >= len(bp.config.Script.Hands) {
+	if int(bp.game.handNum) >= len(bp.config.Script.Hands) {
 		return nil
 	}
 
-	currentHand := bp.config.Script.Hands[bp.handNum-1]
+	currentHand := bp.config.Script.Hands[bp.game.handNum-1]
 	if currentHand.PauseGame {
 		bp.logger.Info().Msgf("%s: Player [%s] requested to pause the game.", bp.logPrefix, bp.config.Name)
 		bp.gqlHelper.PauseGame(bp.gameCode)
@@ -216,12 +216,12 @@ func (bp *BotPlayer) pauseGameIfNeeded() error {
 }
 
 func (bp *BotPlayer) processPostHandSteps() error {
-	if int(bp.handNum) >= len(bp.config.Script.Hands) {
+	if int(bp.game.handNum) >= len(bp.config.Script.Hands) {
 		return nil
 	}
 	bp.logger.Info().Msgf("%s: Running post hand steps.", bp.logPrefix)
 
-	currentHand := bp.config.Script.Hands[bp.handNum-1]
+	currentHand := bp.config.Script.Hands[bp.game.handNum-1]
 	if len(currentHand.PostHandSteps) == 0 {
 		bp.logger.Info().Msgf("%s: No post hand steps.", bp.logPrefix)
 		return nil
@@ -303,11 +303,11 @@ func (bp *BotPlayer) hostSeatChange(hostSeatChange *gamescript.HostSeatChange) e
 }
 
 func (bp *BotPlayer) setupLeaveGame() error {
-	if int(bp.handNum) >= len(bp.config.Script.Hands) {
+	if int(bp.game.handNum) >= len(bp.config.Script.Hands) {
 		return nil
 	}
 
-	currentHand := bp.config.Script.Hands[bp.handNum-1]
+	currentHand := bp.config.Script.Hands[bp.game.handNum-1]
 	leaveGame := currentHand.Setup.LeaveGame
 	if leaveGame != nil {
 		// using seat no, get the bot player and make seat change request
@@ -337,11 +337,11 @@ func (bp *BotPlayer) JoinWaitlist(observer *gamescript.Observer) error {
 }
 
 func (bp *BotPlayer) setupWaitList() error {
-	if int(bp.handNum) >= len(bp.config.Script.Hands) {
+	if int(bp.game.handNum) >= len(bp.config.Script.Hands) {
 		return nil
 	}
 
-	currentHand := bp.config.Script.Hands[bp.handNum-1]
+	currentHand := bp.config.Script.Hands[bp.game.handNum-1]
 	waitLists := currentHand.Setup.WaitLists
 	if waitLists != nil {
 		for _, waitlistPlayer := range waitLists {

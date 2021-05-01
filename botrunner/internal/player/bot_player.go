@@ -71,9 +71,6 @@ type BotPlayer struct {
 	pairCard    uint32
 	balance     float32
 
-	// used by host bot for tracking next deck
-	deckHandNum uint32
-
 	// For message acknowledgement
 	clientLastMsgID   string
 	clientLastMsgType string
@@ -115,7 +112,6 @@ type BotPlayer struct {
 	handMsgPlayerSub *natsgo.Subscription
 
 	game      *gameView
-	handNum   uint32 // hand number
 	seatNo    uint32
 	observing bool // if a player is playing, then he is also an observer
 
@@ -131,7 +127,8 @@ type BotPlayer struct {
 
 	decision ScriptBasedDecision
 
-	isSeated bool
+	isSeated             bool
+	hasNextHandBeenSetup bool // For host only
 
 	// Error msg if the bot is in an error state (BotState__ERROR).
 	errorStateMsg string
@@ -380,7 +377,8 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.game.table.nextActionSeat = newHand.GetNextActionSeat()
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 		bp.game.table.actionTracker = game.NewHandActionTracker()
-		bp.handNum = message.HandNum
+		bp.game.handNum = message.HandNum
+		bp.hasNextHandBeenSetup = false // Not this hand, but the next one.
 		if bp.IsHost() {
 			data, _ := protojson.Marshal(message)
 			fmt.Printf("==========================\n")
@@ -403,9 +401,6 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 						time.Sleep(1 * time.Second)
 						bp.RequestEndGame(bp.gameCode)
 					}()
-				} else {
-					// setup next hand
-					bp.setupNextHand()
 				}
 			}
 			bp.pauseGameIfNeeded()
@@ -497,12 +492,17 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if bp.IsObserver() && bp.config.Script.IsSeatHuman(seatNo) {
 			bp.logger.Info().Msgf("%s: Waiting on seat %d (%s/human) to act.", bp.logPrefix, seatNo, bp.getPlayerNameBySeatNo(seatNo))
 		}
-		bp.game.handNum = message.HandNum
 		bp.act(seatAction)
 
 	case game.HandPlayerActed:
 		/* MessageType: PLAYER_ACTED */
-		bp.game.handNum = message.HandNum
+		if bp.IsHost() && !bp.config.Script.AutoPlay && !bp.hasNextHandBeenSetup {
+			// We're just using this message as a signal that the betting
+			// round is in progress and we are now ready to setup the next hand.
+			bp.setupNextHand()
+			bp.hasNextHandBeenSetup = true
+		}
+
 		playerActed := msgItem.GetPlayerActed()
 		seatNo := playerActed.GetSeatNo()
 		action := playerActed.GetAction()
@@ -613,7 +613,7 @@ func (bp *BotPlayer) verifyBoard() {
 		return
 	}
 
-	scriptCurrentHand := bp.config.Script.GetHand(bp.handNum)
+	scriptCurrentHand := bp.config.Script.GetHand(bp.game.handNum)
 	switch bp.game.handStatus {
 	case game.HandStatus_FLOP:
 		expectedBoard = scriptCurrentHand.Flop.Verify.Board
@@ -649,7 +649,7 @@ func (bp *BotPlayer) verifyBoard() {
 	}
 
 	if !match {
-		bp.logger.Panic().Msgf("%s: Hand %d %s verify failed. Board does not match the expected. Current board: %v. Expected board: %v.", bp.logPrefix, bp.handNum, bp.game.handStatus, currentBoardCards, expectedBoardCards)
+		bp.logger.Panic().Msgf("%s: Hand %d %s verify failed. Board does not match the expected. Current board: %v. Expected board: %v.", bp.logPrefix, bp.game.handNum, bp.game.handStatus, currentBoardCards, expectedBoardCards)
 	}
 }
 
@@ -659,12 +659,12 @@ func (bp *BotPlayer) verifyResult() {
 	if bp.config.Script.AutoPlay {
 		return
 	}
-	scriptResult := bp.config.Script.GetHand(bp.handNum).Result
+	scriptResult := bp.config.Script.GetHand(bp.game.handNum).Result
 	expectedWonAt := scriptResult.ActionEndedAt
 	wonAt := bp.GetHandResult().GetHandLog().GetWonAt()
 	if expectedWonAt != "" {
 		if expectedWonAt != wonAt.String() {
-			bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Won at: %s. Expected won at: %s.", bp.logPrefix, bp.handNum, wonAt, expectedWonAt)
+			bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Won at: %s. Expected won at: %s.", bp.logPrefix, bp.game.handNum, wonAt, expectedWonAt)
 		}
 	}
 	if len(scriptResult.Winners) == 0 {
@@ -694,7 +694,7 @@ func (bp *BotPlayer) verifyResult() {
 		}
 	}
 	if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
-		bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.handNum, actualWinnersBySeat, expectedWinnersBySeat)
+		bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
 	}
 }
 
@@ -1635,39 +1635,40 @@ func (bp *BotPlayer) getPlayerInSeat(seatNo uint32) *game.SeatInfo {
 }
 
 func (bp *BotPlayer) setupNextHand() error {
+	nextHandNum := bp.game.handNum + 1
 
-	if int(bp.deckHandNum) >= len(bp.config.Script.Hands) {
+	if int(nextHandNum) > len(bp.config.Script.Hands) {
 		return nil
 	}
 
-	currentHand := bp.config.Script.Hands[bp.deckHandNum]
+	nextHand := bp.config.Script.GetHand(nextHandNum)
 
-	bp.processPreDealItems(currentHand.Setup.PreDeal)
+	bp.processPreDealItems(nextHand.Setup.PreDeal)
 
 	// setup deck
 	var setupDeckMsg *SetupDeck
-	if currentHand.Setup.Auto {
+	if nextHand.Setup.Auto {
 		setupDeckMsg = &SetupDeck{
 			MessageType: BotDriverSetupDeck,
 			GameCode:    bp.gameCode,
 			GameID:      bp.gameID,
 			Auto:        true,
-			Pause:       currentHand.Setup.Pause,
+			Pause:       nextHand.Setup.Pause,
 		}
-		if currentHand.Setup.ButtonPos != 0 {
-			setupDeckMsg.ButtonPos = currentHand.Setup.ButtonPos
+		if nextHand.Setup.ButtonPos != 0 {
+			setupDeckMsg.ButtonPos = nextHand.Setup.ButtonPos
 		}
 	} else {
 		setupDeckMsg = &SetupDeck{
 			MessageType: BotDriverSetupDeck,
-			Pause:       currentHand.Setup.Pause,
+			Pause:       nextHand.Setup.Pause,
 			GameCode:    bp.gameCode,
 			GameID:      bp.gameID,
-			ButtonPos:   currentHand.Setup.ButtonPos,
-			Flop:        currentHand.Setup.Flop,
-			Turn:        currentHand.Setup.Turn,
-			River:       currentHand.Setup.River,
-			PlayerCards: bp.getPlayerCardsFromConfig(currentHand.Setup.SeatCards),
+			ButtonPos:   nextHand.Setup.ButtonPos,
+			Flop:        nextHand.Setup.Flop,
+			Turn:        nextHand.Setup.Turn,
+			River:       nextHand.Setup.River,
+			PlayerCards: bp.getPlayerCardsFromConfig(nextHand.Setup.SeatCards),
 		}
 	}
 	msgBytes, err := jsoniter.Marshal(setupDeckMsg)
@@ -1675,7 +1676,6 @@ func (bp *BotPlayer) setupNextHand() error {
 		return errors.Wrap(err, fmt.Sprintf("Unable to marshal SetupDeck BotDriverSetupDeck message %+v", setupDeckMsg))
 	}
 	bp.natsConn.Publish(util.GetDriverToGameSubject(), msgBytes)
-	bp.deckHandNum++
 	return nil
 }
 
