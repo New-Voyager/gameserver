@@ -286,18 +286,6 @@ func (g *Game) resumeGame(handState *HandState) error {
 		err = g.onPlayerActed(nil, handState)
 	case FlowState_PREPARE_NEXT_ACTION:
 		err = g.prepareNextAction(handState)
-	case FlowState_MOVE_TO_NEXT_ACTION:
-		_, err = g.moveToNextAction(handState)
-	case FlowState_MOVE_TO_NEXT_ROUND:
-		_, err = g.moveToNextRound(handState)
-	case FlowState_ALL_PLAYERS_ALL_IN:
-		_, err = g.allPlayersAllIn(handState)
-	case FlowState_ONE_PLAYER_REMAINING:
-		_, err = g.onePlayerRemaining(handState)
-	case FlowState_SHOWDOWN:
-		_, err = g.showdown(handState)
-	case FlowState_HAND_ENDED:
-		_, err = g.handEnded(handState)
 	case FlowState_MOVE_TO_NEXT_HAND:
 		err = g.moveToNextHand(handState)
 	default:
