@@ -94,7 +94,6 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 		return nil
 	}
 
-	cardsStr := poker.CardsToString(handState.BoardCards)
 	boardCards := make([]uint32, len(handState.BoardCards))
 	for i, card := range handState.BoardCards {
 		boardCards[i] = uint32(card)
@@ -121,11 +120,28 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 		}
 	}
 
+	var boardCardsOut []uint32
+	switch handState.CurrentState {
+	case HandStatus_FLOP:
+		boardCardsOut = boardCards[:3]
+	case HandStatus_TURN:
+		boardCardsOut = boardCards[:4]
+
+	case HandStatus_RIVER:
+	case HandStatus_RESULT:
+	case HandStatus_SHOW_DOWN:
+		boardCardsOut = boardCards
+
+	default:
+		boardCardsOut = make([]uint32, 0)
+	}
+	cardsStr := poker.CardsToString(boardCardsOut)
+
 	currentHandState := CurrentHandState{
 		HandNum:       handState.HandNum,
 		GameType:      handState.GameType,
 		CurrentRound:  handState.CurrentState,
-		BoardCards:    boardCards,
+		BoardCards:    boardCardsOut,
 		BoardCards_2:  nil,
 		CardsStr:      cardsStr,
 		Pots:          pots,
