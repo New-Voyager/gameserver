@@ -512,6 +512,18 @@ func (h *HandState) actionReceived(action *HandAction) error {
 			Msg(errMsg)
 		return fmt.Errorf(errMsg)
 	}
+
+	if action.Action == ACTION_FOLD || action.Action == ACTION_CHECK {
+		if action.Amount > 0 {
+			handLogger.Error().
+				Uint64("game", h.GetGameId()).
+				Uint32("hand", h.GetHandNum()).
+				Uint32("seat", action.SeatNo).
+				Msgf("Invalid amount %f passed for the fold action", action.Amount)
+		}
+		action.Amount = 0
+	}
+
 	playerID := playerIds[action.SeatNo]
 	if playerID == 0 {
 		errMsg := fmt.Sprintf("Invalid seat %d. PlayerID is 0", action.SeatNo)
