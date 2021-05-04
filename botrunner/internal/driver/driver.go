@@ -409,7 +409,10 @@ func (br *BotRunner) Run() error {
 	}
 
 	if br.anyBotError() {
-		br.logBotErrors()
+		errMsg := br.logBotErrors()
+		if errMsg != "" {
+			return fmt.Errorf(errMsg)
+		}
 	}
 
 	// Verify game-server crashed as requested.
@@ -542,10 +545,14 @@ func (br *BotRunner) anyBotError() bool {
 	return false
 }
 
-func (br *BotRunner) logBotErrors() {
+func (br *BotRunner) logBotErrors() string {
+	var errMsg string
 	for _, b := range br.bots {
 		if b.IsErrorState() {
-			br.logger.Error().Msgf("Bot is in error state. Bot error message: %s", b.GetErrorMsg())
+			msg := fmt.Sprintf("Bot %s is in error state. Bot error message: %s", b.GetName(), b.GetErrorMsg())
+			br.logger.Error().Msgf(msg)
+			errMsg = errMsg + "\n" + msg
 		}
 	}
+	return errMsg
 }
