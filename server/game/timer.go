@@ -6,13 +6,13 @@ import (
 )
 
 type timerMsg struct {
-	seatNo      uint32
-	playerID    uint64
-	canCheck    bool
-	allowedTime time.Duration
-	seatNo2     uint32
-	playerID2   uint64
-	runItTwice  bool
+	seatNo     uint32
+	playerID   uint64
+	canCheck   bool
+	expireAt   time.Time
+	seatNo2    uint32
+	playerID2  uint64
+	runItTwice bool
 }
 
 func (g *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
@@ -28,7 +28,7 @@ func (g *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
 		case msg := <-g.chResetTimer:
 			// Start the new timer.
 			currentTimerMsg = msg
-			expirationTime = time.Now().Add(msg.allowedTime)
+			expirationTime = msg.expireAt
 			paused = false
 		default:
 			if !paused {
@@ -51,31 +51,31 @@ func (g *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
 	}
 }
 
-func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool) {
-	channelGameLogger.Info().Msgf("Resetting timer. Current timer seat: %d timer: %d", seatNo, g.config.ActionTime)
+func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireAt time.Time) {
+	channelGameLogger.Info().Msgf("Resetting timer. Current timer seat: %d expires at %s (%f seconds from now)", seatNo, expireAt, expireAt.Sub(time.Now()).Seconds())
 	fmt.Printf("Resetting timer. Current timer seat: %d timer: %d\n", seatNo, g.config.ActionTime)
 	g.timerSeatNo = seatNo
 	g.actionTimeStart = time.Now()
 	g.chResetTimer <- timerMsg{
-		seatNo:      seatNo,
-		playerID:    playerID,
-		allowedTime: time.Duration(g.config.ActionTime) * time.Second,
-		canCheck:    canCheck,
+		seatNo:   seatNo,
+		playerID: playerID,
+		expireAt: expireAt,
+		canCheck: canCheck,
 	}
 }
 
-func (g *Game) runItTwiceTimer(seatNo uint32, playerID uint64, seatNo2 uint32, playerID2 uint64) {
-	channelGameLogger.Info().Msgf("Resetting timer for run-it-twice prompt. SeatNo 1: %d SeatNo 2: %d timer: %d", seatNo, seatNo2, g.config.ActionTime)
+func (g *Game) runItTwiceTimer(seatNo uint32, playerID uint64, seatNo2 uint32, playerID2 uint64, expireAt time.Time) {
+	channelGameLogger.Info().Msgf("Resetting timer for run-it-twice prompt. SeatNo 1: %d SeatNo 2: %d expires at %s (%f seconds from now)", seatNo, seatNo2, expireAt, expireAt.Sub(time.Now()).Seconds())
 	fmt.Printf("Resetting timer. Current timer seat: %d timer: %d\n", seatNo, g.config.ActionTime)
 	g.timerSeatNo = seatNo
 	g.actionTimeStart = time.Now()
 	g.chResetTimer <- timerMsg{
-		seatNo:      seatNo,
-		playerID:    playerID,
-		allowedTime: time.Duration(g.config.ActionTime) * time.Second,
-		seatNo2:     seatNo2,
-		playerID2:   playerID2,
-		runItTwice:  true,
+		seatNo:     seatNo,
+		playerID:   playerID,
+		expireAt:   expireAt,
+		seatNo2:    seatNo2,
+		playerID2:  playerID2,
+		runItTwice: true,
 	}
 }
 

@@ -18,7 +18,7 @@ game:
   rake-cap: 5.0
   buy-in-min: 500
   buy-in-max: 1000
-  action-time: 10
+  action-time: 100
 
 starting-seats:
   - seat: 1

@@ -93,7 +93,9 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 	msgItems = append(msgItems, player2MsgItem)
 
 	// run a timer for the prompt
-	g.runItTwiceTimer(player1Seat, player1, player2Seat, player2)
+	timeoutAt := time.Now().Add(time.Duration(g.config.ActionTime) * time.Second)
+	h.NextSeatAction.ActionTimesoutAt = timeoutAt.Unix()
+	g.runItTwiceTimer(player1Seat, player1, player2Seat, player2, timeoutAt)
 
 	return msgItems, nil
 }
