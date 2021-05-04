@@ -215,10 +215,29 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		if handState.ActionMsgInProgress == nil {
 			// There is no saved message. We crashed before saving the
 			// message. We rely on the client to retry the message in this case.
+			now := time.Now()
+			// Give some time for the client to retry before timing it out.
+			retryWindowSec := 10
+			actionExpiresAt := time.Unix(handState.NextSeatAction.ActionTimesoutAt, 0)
+			if actionExpiresAt.Before(now.Add(time.Duration(retryWindowSec) * time.Second)) {
+				actionExpiresAt = now.Add(time.Duration(retryWindowSec) * time.Second)
+			}
 			channelGameLogger.Info().
 				Uint32("club", g.config.ClubId).
 				Str("game", g.config.GameCode).
-				Msg("Game server restarted with no saved action message. Relying on the client to resend the action.")
+				Msgf("Game server restarted with no saved action message. Relying on the client to resend the action. Restarting the action timer. Current time: %s. Action expires at: %s (%f seconds from now).", now, actionExpiresAt, actionExpiresAt.Sub(now).Seconds())
+
+			var canCheck bool
+			for _, action := range handState.NextSeatAction.AvailableActions {
+				if action == ACTION_CHECK {
+					canCheck = true
+					break
+				}
+			}
+			playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
+			if handState.NextSeatAction.ActionTimesoutAt != 0 {
+				g.resetTimer(handState.NextSeatAction.SeatNo, playerID, canCheck, actionExpiresAt)
+			}
 			return nil
 		}
 		channelGameLogger.Info().
@@ -823,7 +842,9 @@ func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error
 		Content:     &HandMessageItem_SeatAction{SeatAction: handState.NextSeatAction},
 	}
 	playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
-	g.resetTimer(handState.NextSeatAction.SeatNo, playerID, canCheck)
+	actionTimesoutAt := time.Now().Add(time.Duration(g.config.ActionTime) * time.Second)
+	handState.NextSeatAction.ActionTimesoutAt = actionTimesoutAt.Unix()
+	g.resetTimer(handState.NextSeatAction.SeatNo, playerID, canCheck, actionTimesoutAt)
 	allMsgItems = append(allMsgItems, yourActionMsg)
 
 	pots := make([]float32, 0)
