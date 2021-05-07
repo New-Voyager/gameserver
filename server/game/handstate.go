@@ -206,6 +206,22 @@ func (h *HandState) copyPlayersState(maxSeats uint32, playersInSeats []SeatPlaye
 }
 
 func (h *HandState) setupRound(state HandStatus) {
+
+	var log *HandActionLog
+	switch h.CurrentState {
+	case HandStatus_FLOP:
+		log = h.FlopActions
+	case HandStatus_TURN:
+		log = h.TurnActions
+	case HandStatus_RIVER:
+		log = h.RiverActions
+	}
+
+	// track main pot value as starting value
+	if log != nil {
+		log.PotStart = h.Pots[0].Pot
+	}
+
 	h.RoundState[uint32(state)].PlayerBalance = make(map[uint32]float32, 0)
 	roundState := h.RoundState[uint32(state)]
 	for seatNo, playerID := range h.PlayersInSeats {
@@ -237,6 +253,9 @@ func (h *HandState) setupPreflop() {
 	h.CurrentRaise = 0
 	// initialize all-in players list
 	h.AllInPlayers = make([]uint32, h.MaxSeats+1) // seat 0 is dealer
+
+	// add antes here
+	h.PreflopActions.PotStart = 0
 	h.setupRound(HandStatus_PREFLOP)
 
 	h.actionReceived(&HandAction{

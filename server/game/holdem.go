@@ -57,6 +57,8 @@ func (h *HoldemWinnerEvaluate) Evaluate() {
 
 			pot := pots[i]
 			potWinners := &PotWinners{}
+			potWinners.PotNo = uint32(i)
+			potWinners.Amount = pot.Pot
 			potWinners.HiWinners = h.determineHandWinners(pot, boardCards)
 			if board1 {
 				h.winners[uint32(i)] = potWinners
