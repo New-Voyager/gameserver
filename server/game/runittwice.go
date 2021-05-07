@@ -8,23 +8,35 @@ import (
 	"voyager.com/server/util"
 )
 
-func (g *Game) runItTwice(h *HandState) bool {
+func (g *Game) runItTwice(h *HandState, lastPlayerAction *PlayerActRound) bool {
 
 	if !h.hasEveryOneActed() {
 		return false
 	}
 
+	// if last player folded his cards, then we won't trigger run it twice
+	if lastPlayerAction.State == PlayerActState_PLAYER_ACT_FOLDED {
+		return false
+	}
+
 	// we run it twice only for headsup and one of the players went all in
 	allInPlayers := h.allinCount()
+	playerConfig := g.playerConfig.Load().(map[uint64]PlayerConfigUpdate)
+
 	if allInPlayers != 0 && allInPlayers <= 2 && h.activeSeatsCount() == 2 {
 		// if both players opted for run-it-twice, then we will prompt
 		prompt := true
-		for seatNo, playerID := range h.ActiveSeats {
+		for _, playerID := range h.ActiveSeats {
 			if playerID == 0 {
 				continue
 			}
 
-			if !h.RunItTwiceOptedPlayers[seatNo] {
+			if config, ok := playerConfig[playerID]; ok {
+				if !config.RunItTwicePrompt {
+					prompt = false
+					break
+				}
+			} else {
 				prompt = false
 				break
 			}
@@ -69,11 +81,15 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 	}
 
 	var msgItems []*HandMessageItem
+	// run a timer for the prompt
+	timeoutAt := time.Now().Add(time.Duration(g.config.ActionTime) * time.Second)
+	timeoutAtUnix := timeoutAt.UTC().Unix()
 
 	// prompt player 1
 	seatAction := &NextSeatAction{
 		AvailableActions: []ACTION{ACTION_RUN_IT_TWICE_PROMPT},
 		SeatNo:           player1Seat,
+		ActionTimesoutAt: timeoutAtUnix,
 	}
 	player1MsgItem := &HandMessageItem{
 		MessageType: HandPlayerAction,
@@ -85,6 +101,7 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 	seatAction = &NextSeatAction{
 		AvailableActions: []ACTION{ACTION_RUN_IT_TWICE_PROMPT},
 		SeatNo:           player2Seat,
+		ActionTimesoutAt: timeoutAtUnix,
 	}
 	player2MsgItem := &HandMessageItem{
 		MessageType: HandPlayerAction,
@@ -92,9 +109,7 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 	}
 	msgItems = append(msgItems, player2MsgItem)
 
-	// run a timer for the prompt
-	timeoutAt := time.Now().Add(time.Duration(g.config.ActionTime) * time.Second)
-	h.NextSeatAction.ActionTimesoutAt = timeoutAt.Unix()
+	//h.NextSeatAction.ActionTimesoutAt = timeoutAt.Unix()
 	g.runItTwiceTimer(player1Seat, player1, player2Seat, player2, timeoutAt)
 
 	return msgItems, nil

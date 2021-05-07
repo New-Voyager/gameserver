@@ -131,7 +131,8 @@ message TableUpdate {
   repeated SeatUpdate seat_updates = 12; // updated seats
 }
 
-message PendingGameUpdates {
-  uint64 game_id = 1;
-  repeated GamePlayerUpdate player_updates = 2;
+message PlayerConfigUpdate {
+  uint64 player_id = 1;
+  bool muck_losing_hand = 2;
+  bool run_it_twice_prompt = 3;
 }

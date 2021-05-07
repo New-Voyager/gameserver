@@ -13,6 +13,8 @@ type SetupDeck struct {
 	GameID      uint64       `json:"game-id"`
 	ButtonPos   uint32       `json:"button-pos"`
 	Shuffle     bool         `json:"shuffle"`
+	Board       []string     `json:"board"`
+	Board2      []string     `json:"board2"`
 	Flop        []string     `json:"flop"`
 	Turn        string       `json:"turn"`
 	River       string       `json:"river"`

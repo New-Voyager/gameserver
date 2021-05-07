@@ -4,10 +4,6 @@ option go_package = "./game";
 import "game.proto";
 import "hand.proto";
 
-message PlayersInSeatsMessage {
-  repeated PlayerInSeat player_in_seats = 1;
-}
-
 message PlayerInSeat {
   uint64 player_id = 1;
   string name = 2;
@@ -77,9 +73,7 @@ message GameMessage {
   uint64 player_id = 5;
   string message_type = 6;
   oneof game_message {
-    PlayersInSeatsMessage  players_in_seats = 7;
     GameStatusMessage status = 8;
-    // GamePlayerSatMessage  player_sat = 9;
     GameStatusChangeMessage status_change = 10;
     GameJoinMessage join_game = 11;
     GameDealHandMessage deal_hand = 12;
@@ -91,5 +85,6 @@ message GameMessage {
     bytes hand_log = 18;
     HighHand high_hand = 19;
     TableUpdate table_update = 20;
+    PlayerConfigUpdate player_config_update = 21;
   }
 }

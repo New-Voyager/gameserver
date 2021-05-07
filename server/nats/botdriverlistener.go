@@ -30,6 +30,8 @@ type SetupDeck struct {
 	GameCode    string       `json:"game-code"`
 	GameId      uint64       `json:"game-id"`
 	ButtonPos   uint32       `json:"button-pos"`
+	Board       []string     `json:"board"`
+	Board2      []string     `json:"board2"`
 	Flop        []string     `json:"flop"`
 	Turn        string       `json:"turn"`
 	River       string       `json:"river"`
@@ -108,6 +110,7 @@ func (n *NatsDriverBotListener) listenForMessages(msg *natsgo.Msg) {
 		n.initializeGame(&botDriverMessage)
 	case BotDriverSetupDeck:
 		var setupDeck SetupDeck
+		fmt.Printf("%s", string(msg.Data))
 		err := jsoniter.Unmarshal(msg.Data, &setupDeck)
 		if err != nil {
 			natsTestDriverLogger.Error().Msg(fmt.Sprintf("Invalid setup deck message. %s", string(msg.Data)))

@@ -19,9 +19,6 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 		Msg(fmt.Sprintf("Game message: %s. %v", message.MessageType, message))
 
 	switch message.MessageType {
-	case GamePlayerInSeats:
-		g.onPlayerInSeats(message)
-
 	case GameStatusChanged:
 		g.onStatusChanged(message)
 
@@ -45,6 +42,9 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 
 	case GameStart:
 		break
+
+	case PlayerConfigUpdateMsg:
+		g.onPlayerConfigUpdate(message)
 	}
 }
 
@@ -165,24 +165,6 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 	return nil
 }
 
-// This is only for testing.
-func (g *Game) onPlayerInSeats(message *GameMessage) error {
-	g.PlayersInSeats = make([]SeatPlayer, g.config.MaxPlayers+1) // 0 is for dealer/observer
-	for _, player := range message.GetPlayersInSeats().GetPlayerInSeats() {
-		seatNo := player.SeatNo
-		g.PlayersInSeats[seatNo] = SeatPlayer{
-			SeatNo:   seatNo,
-			OpenSeat: false,
-			PlayerID: player.PlayerId,
-			Name:     player.Name,
-			BuyIn:    player.BuyIn,
-			Stack:    player.BuyIn,
-			Status:   PlayerStatus_PLAYING,
-		}
-	}
-	return nil
-}
-
 func (g *Game) onStatusChanged(message *GameMessage) error {
 	gameStatusChanged := message.GetStatusChange()
 	g.Status = gameStatusChanged.NewStatus
@@ -248,5 +230,17 @@ func (g *Game) broadcastTableState() error {
 func (g *Game) onJoinGame(message *GameMessage) error {
 	joinMessage := message.GetJoinGame()
 	g.players[joinMessage.PlayerId] = joinMessage.Name
+	return nil
+}
+
+func (g *Game) onPlayerConfigUpdate(message *GameMessage) error {
+	updateMessage := message.GetPlayerConfigUpdate()
+	playerConfig := g.playerConfig.Load().(map[uint64]PlayerConfigUpdate)
+	playerConfig[updateMessage.PlayerId] = PlayerConfigUpdate{
+		PlayerId:         updateMessage.PlayerId,
+		MuckLosingHand:   updateMessage.MuckLosingHand,
+		RunItTwicePrompt: updateMessage.RunItTwicePrompt,
+	}
+	g.playerConfig.Store(playerConfig)
 	return nil
 }

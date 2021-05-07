@@ -18,33 +18,42 @@ game:
   rake-cap: 5.0
   buy-in-min: 100
   buy-in-max: 300
-  action-time: 100
-  dont-start: true
+  action-time: 10
+  # dont-start: true
+  run-it-twice-allowed: true
+  muck-losing-hand: true
 
 starting-seats:
   - seat: 1
     player: yong
     buy-in: 100
+    run-it-twice: true
+    run-it-twice-prompt: true
   - seat: 2
     player: brian
     buy-in: 100
+    run-it-twice: true
+    run-it-twice-prompt: true
   - seat: 3
     player: chris
     buy-in: 100
+    run-it-twice: true
+    run-it-twice-prompt: true
   - seat: 4
     player: tom
     buy-in: 100
+    run-it-twice: true
+    run-it-twice-prompt: true
 
 # Human plays this user.
-tester: yong
+#tester: yong
 
 # deal the following hands in the table
 hands:
   - setup:
       button-pos: 1
-      flop: ["Ac", "Ad", "2c"]
-      turn: Td
-      river: 4s
+      board: ["Ac", "Ad", "2c", "Td", "4s"]
+      board2: ["6c", "7d", "4c", "8d", "8s"]
       seat-cards:
         - seat: 1
           cards: ["Kh", "Qd"]
@@ -60,7 +69,7 @@ hands:
       seat-actions:
         # seat number/action/amount
         - action: 4, CALL, 2
-        - action: 1, CALL, 2
+        - action: 1, FOLD
         - action: 2, CALL, 2
         - action: 3, CHECK
 
@@ -69,24 +78,6 @@ hands:
         board: ["Ac", "Ad", "2c"]
       seat-actions:
         - action: 2, CHECK
-        - action: 3, CHECK
-        - action: 4, CHECK
-        - action: 1, CHECK
-
-    turn:
-      verify:
-        board: ["Ac", "Ad", "2c", "Td"]
-      seat-actions:
-        - action: 2, CHECK
-        - action: 3, CHECK
-        - action: 4, CHECK
-        - action: 1, CHECK
-
-    river:
-      verify:
-        board: ["Ac", "Ad", "2c", "Td", "4s"]
-      seat-actions:
-        - action: 2, CHECK
-        - action: 3, CHECK
-        - action: 4, CHECK
-        - action: 1, CHECK
+        - action: 3, ALLIN
+        - action: 1, FOLD
+        - action: 2, ALLIN

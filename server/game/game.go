@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -65,8 +66,10 @@ type Game struct {
 	Status                  GameStatus
 	TableStatus             TableStatus
 	ButtonPos               uint32
+	retryDelayMillis        uint32
 
-	retryDelayMillis uint32
+	// used for storing player configuration of runItTwicePrompt, muckLosingHand
+	playerConfig atomic.Value
 }
 
 func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver,
@@ -92,6 +95,10 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver,
 	g.end = make(chan bool)
 	g.waitingPlayers = make([]uint64, 0)
 	g.players = make(map[uint64]string)
+
+	playerConfig := make(map[uint64]PlayerConfigUpdate)
+	g.playerConfig.Store(playerConfig)
+
 	if RunningTests {
 		g.initGameState()
 	}
@@ -369,9 +376,16 @@ func (g *Game) dealNewHand() error {
 		moveButton = true
 		gameType = newHandInfo.GameType
 		newHandNum = newHandInfo.HandNum
-		for seatNo := range g.PlayersInSeats {
+		playerUpdateConfig := make(map[uint64]PlayerConfigUpdate)
+		for seatNo, player := range g.PlayersInSeats {
 			g.PlayersInSeats[seatNo] = SeatPlayer{}
+			playerUpdateConfig[player.PlayerID] = PlayerConfigUpdate{
+				PlayerId:         player.PlayerID,
+				MuckLosingHand:   player.MuckLosingHand,
+				RunItTwicePrompt: player.RunItTwicePrompt,
+			}
 		}
+		g.playerConfig.Store(playerUpdateConfig)
 
 		/*
 			type SeatPlayer struct {
@@ -393,6 +407,11 @@ func (g *Game) dealNewHand() error {
 		for _, playerInSeat := range newHandInfo.PlayersInSeats {
 			if playerInSeat.SeatNo <= uint32(g.config.MaxPlayers) {
 				g.PlayersInSeats[playerInSeat.SeatNo] = playerInSeat
+			}
+			playerUpdateConfig[playerInSeat.PlayerID] = PlayerConfigUpdate{
+				PlayerId:         playerInSeat.PlayerID,
+				MuckLosingHand:   playerInSeat.MuckLosingHand,
+				RunItTwicePrompt: playerInSeat.RunItTwicePrompt,
 			}
 			playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
 				Status:       playerInSeat.Status,
@@ -685,7 +704,6 @@ func (g *Game) addPlayer(player *Player, buyIn float32) error {
 		Stack:      buyIn,
 		OpenSeat:   false,
 		SeatNo:     player.SeatNo,
-		RunItTwice: player.RunItTwice,
 	}
 	return nil
 }
@@ -700,7 +718,6 @@ func (g *Game) getPlayersAtTable() ([]*PlayerAtTableState, error) {
 				BuyIn:          player.BuyIn,
 				CurrentBalance: player.Stack,
 				Status:         player.Status,
-				RunItTwice:     player.RunItTwice,
 			}
 			ret = append(ret, playerAtTable)
 		}

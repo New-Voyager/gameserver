@@ -75,4 +75,6 @@ type GameCreateOpt struct {
 	BuyInMax           float32
 	ActionTime         int
 	RewardIds          []uint32
+	RunItTwiceAllowed  bool
+	MuckLosingHand     bool
 }
