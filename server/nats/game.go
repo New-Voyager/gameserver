@@ -380,3 +380,22 @@ func (n *NatsGame) tableUpdate(gameID uint64, update *TableUpdate) {
 	// send the message to the players
 	go n.BroadcastGameMessage(&message)
 }
+
+func (n *NatsGame) playerConfigUpdate(update *PlayerConfigUpdate) error {
+	// first send a message to all the players
+	message := &game.GameMessage{
+		GameId:      n.gameID,
+		GameCode:    n.gameCode,
+		MessageType: game.PlayerConfigUpdateMsg,
+	}
+
+	message.GameMessage = &game.GameMessage_PlayerConfigUpdate{
+		PlayerConfigUpdate: &game.PlayerConfigUpdate{
+			PlayerId:         update.PlayerId,
+			MuckLosingHand:   update.MuckLosingHand,
+			RunItTwicePrompt: update.RunItTwicePrompt,
+		},
+	}
+	n.serverGame.SendGameMessageToChannel(message)
+	return nil
+}

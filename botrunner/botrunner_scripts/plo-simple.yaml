@@ -76,7 +76,8 @@ hands:
     result:
       winners:
         - seat: 1
-          receive: 41.0
+          receive: 43.0
+          rank: Full House
       action-ended: SHOW_DOWN
       
       # balance indicates the player balance after the hand

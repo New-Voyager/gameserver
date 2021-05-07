@@ -111,6 +111,5 @@ message HandState {
   bool run_it_twice_prompt = 58;      // Action waits on next seat action or run it twice prompt
   RunItTwice run_it_twice = 59;
   bool run_it_twice_confirmed = 60;
-  repeated bool run_it_twice_opted_players = 61;   // players who opted for run-it-twice
   map <uint32, PotWinners> board2_winners = 62; // second board winnners
 }

@@ -23,7 +23,7 @@
       },
       "args": [
         "-script",
-        "botrunner_scripts/waitlist.yaml"
+        "botrunner_scripts/run-it-twice.yaml"
       ]
     },
     {

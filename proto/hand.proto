@@ -29,8 +29,9 @@ message HandAction {
 }
 
 message HandActionLog {
-  float pot = 1;
-  repeated HandAction actions = 2; 
+  float pot_start = 1;
+  float pot = 2;
+  repeated HandAction actions = 3; 
 }
 
 message BetRaiseOption {
@@ -196,8 +197,10 @@ message HandWinner {
 }
 
 message PotWinners {
-  repeated HandWinner hi_winners = 1;
-  repeated HandWinner low_winners = 2;
+  uint32 pot_no = 1;
+  float amount = 2;
+  repeated HandWinner hi_winners = 3;
+  repeated HandWinner low_winners = 4;
 }
 
 enum FlowState {

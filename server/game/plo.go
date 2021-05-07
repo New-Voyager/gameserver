@@ -70,9 +70,12 @@ func (h *PloWinnerEvaluate) Evaluate() {
 		for i := len(pots) - 1; i >= 0; i-- {
 
 			pot := pots[i]
+
 			hiPotAmount := pot.Pot
 			loPotAmount := float32(0)
 			potWinners := &PotWinners{}
+			potWinners.PotNo = uint32(i)
+			potWinners.Amount = pot.Pot
 			if h.hiLo {
 				// determine whether there is a low winner in this pot
 				if h.isLowWinner(pot, board1, board2) {

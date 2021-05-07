@@ -441,7 +441,7 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 	if handState.NoActiveSeats == 1 {
 		handState.FlowState = FlowState_ONE_PLAYER_REMAINING
 		msgItems, err = g.onePlayerRemaining(handState)
-	} else if g.runItTwice(handState) {
+	} else if g.runItTwice(handState, playerAction) {
 		// run it twice prompt
 		handState.FlowState = FlowState_RUNITTWICE_UP_PROMPT
 		msgItems, err = g.runItTwicePrompt(handState)
@@ -1028,6 +1028,7 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 
 	// send the hand to the database to store first
 	handResult := handResultProcessor.getResult(true /*db*/)
+	handResult.NoCards = g.NumCards(handState.GameType)
 	saveResult, _ := g.saveHandResult(handResult)
 
 	// send to all the players

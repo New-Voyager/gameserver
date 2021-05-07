@@ -26,15 +26,24 @@ type GameStatus struct {
 }
 
 type PlayerUpdate struct {
-	GameId    uint64            `json:"gameId"`
-	PlayerId  uint64            `json:"playerId"`
-	SeatNo    uint64            `json:"seatNo"`
-	Stack     float64           `json:"Stack"`
-	Status    game.PlayerStatus `json:"status"`
-	BuyIn     float64           `json:"buyIn"`
-	GameToken string            `json:"gameToken"`
-	OldSeatNo uint64            `json:"oldSeatNo"`
-	NewUpdate game.NewUpdate    `json:"newUpdate"`
+	GameId           uint64            `json:"gameId"`
+	PlayerId         uint64            `json:"playerId"`
+	SeatNo           uint64            `json:"seatNo"`
+	Stack            float64           `json:"Stack"`
+	Status           game.PlayerStatus `json:"status"`
+	BuyIn            float64           `json:"buyIn"`
+	GameToken        string            `json:"gameToken"`
+	OldSeatNo        uint64            `json:"oldSeatNo"`
+	NewUpdate        game.NewUpdate    `json:"newUpdate"`
+	MuckLosingHand   bool              `json:"muckLosinghand"`
+	RunItTwicePrompt bool              `json:"runItTwicePrompt"`
+}
+
+type PlayerConfigUpdate struct {
+	GameId           uint64 `json:"gameId"`
+	PlayerId         uint64 `json:"playerId"`
+	MuckLosingHand   bool   `json:"muckLosinghand"`
+	RunItTwicePrompt bool   `json:"runItTwicePrompt"`
 }
 
 type TableUpdate struct {

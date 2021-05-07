@@ -100,6 +100,10 @@ type BotPlayer struct {
 	inWaitList      bool
 	confirmWaitlist bool
 
+	// other config
+	runItTwice     bool
+	muckLosingHand bool
+
 	// Nats subjects
 	gameToAll string
 	handToAll string
@@ -268,6 +272,10 @@ func (bp *BotPlayer) queueHandMsg(msg *natsgo.Msg) {
 		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf message [%s]", bp.logPrefix, err, string(msg.Data))
 		return
 	}
+
+	// fmt.Printf("\n\n")
+	// fmt.Printf(string(msg.Data))
+	// fmt.Printf("\n\n")
 
 	bp.collectHandMsg(&message, msg.Data)
 	bp.chHand <- &message
@@ -1020,6 +1028,12 @@ func (bp *BotPlayer) JoinGame(gameCode string) error {
 		if bp.IsHuman() {
 			bp.logger.Info().Msgf("%s: Press ENTER to take seat [%d]...", bp.logPrefix, scriptSeatNo)
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
+		} else {
+			// update player config
+			scriptSeatConfig := bp.config.Script.GetSeatConfigByPlayerName(bp.config.Name)
+			if scriptSeatConfig != nil {
+				bp.UpdateGameConfig(gameCode, scriptSeatConfig.RunItTwicePromptResponse, scriptSeatConfig.MuckLosingHand)
+			}
 		}
 
 		bp.event(BotEvent__REQUEST_SIT)
@@ -1231,6 +1245,19 @@ func (bp *BotPlayer) queryCurrentHandState() error {
 	return nil
 }
 
+// UpdateGameConfig updates game configuration for individual player
+func (bp *BotPlayer) UpdateGameConfig(gameCode string, runItTwiceAllowed bool, muckLosingHand bool) error {
+	bp.logger.Info().Msgf("%s: Updating player configuration [runItTwiceAllowed: %v, muckLosingHand: %v] game [%s].",
+		bp.logPrefix, runItTwiceAllowed, muckLosingHand, gameCode)
+	err := bp.gqlHelper.UpdateGameConfig(gameCode, runItTwiceAllowed, muckLosingHand)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("%s: Unable to update game config [%s]", bp.logPrefix, gameCode))
+	}
+	bp.runItTwice = runItTwiceAllowed
+	bp.muckLosingHand = muckLosingHand
+	return nil
+}
+
 func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 	availableActions := seatAction.AvailableActions
 	nextAction := game.ACTION_CHECK
@@ -1245,6 +1272,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 			autoPlay = true
 		}
 	}
+	runItTwiceActionPrompt := false
 
 	if autoPlay {
 		bp.logger.Info().Msgf("%s: Seat %d Available actions: %+v", bp.logPrefix, bp.seatNo, seatAction.AvailableActions)
@@ -1279,6 +1307,9 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 			if action == game.ACTION_ALLIN {
 				allInAvailable = true
 				allInAmount = seatAction.AllInAmount
+			}
+			if action == game.ACTION_RUN_IT_TWICE_PROMPT {
+				runItTwiceActionPrompt = true
 			}
 		}
 
@@ -1332,16 +1363,24 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 			}
 		}
 	} else {
-		var err error
-		scriptAction, err := bp.decision.GetNextAction(bp, availableActions)
-		if err != nil {
-			bp.logger.Error().Msgf("%s: Unable to get the next action %+v", bp.logPrefix, err)
-			return
+
+		for _, action := range availableActions {
+			if action == game.ACTION_RUN_IT_TWICE_PROMPT {
+				runItTwiceActionPrompt = true
+			}
 		}
-		nextAction = game.ActionStringToAction(scriptAction.Action.Action)
-		nextAmt = scriptAction.Action.Amount
-		preActions := scriptAction.PreActions
-		bp.processPreActions(preActions)
+		if !runItTwiceActionPrompt {
+			var err error
+			scriptAction, err := bp.decision.GetNextAction(bp, availableActions)
+			if err != nil {
+				bp.logger.Error().Msgf("%s: Unable to get the next action %+v", bp.logPrefix, err)
+				return
+			}
+			nextAction = game.ActionStringToAction(scriptAction.Action.Action)
+			nextAmt = scriptAction.Action.Amount
+			preActions := scriptAction.PreActions
+			bp.processPreActions(preActions)
+		}
 	}
 
 	if bp.IsHuman() {
@@ -1353,11 +1392,25 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 		// Pause to think for some time to be realistic.
 		time.Sleep(bp.getActionTime())
 	}
-
-	handAction := game.HandAction{
-		SeatNo: bp.seatNo,
-		Action: nextAction,
-		Amount: nextAmt,
+	var handAction game.HandAction
+	if runItTwiceActionPrompt {
+		if bp.runItTwice {
+			handAction = game.HandAction{
+				SeatNo: bp.seatNo,
+				Action: game.ACTION_RUN_IT_TWICE_YES,
+			}
+		} else {
+			handAction = game.HandAction{
+				SeatNo: bp.seatNo,
+				Action: game.ACTION_RUN_IT_TWICE_NO,
+			}
+		}
+	} else {
+		handAction = game.HandAction{
+			SeatNo: bp.seatNo,
+			Action: nextAction,
+			Amount: nextAmt,
+		}
 	}
 	msgType := game.HandPlayerActed
 	lastMsgIDInt, err := strconv.Atoi(bp.clientLastMsgID)
@@ -1665,6 +1718,8 @@ func (bp *BotPlayer) setupNextHand() error {
 			GameCode:    bp.gameCode,
 			GameID:      bp.gameID,
 			ButtonPos:   nextHand.Setup.ButtonPos,
+			Board:       nextHand.Setup.Board,
+			Board2:      nextHand.Setup.Board2,
 			Flop:        nextHand.Setup.Flop,
 			Turn:        nextHand.Setup.Turn,
 			River:       nextHand.Setup.River,

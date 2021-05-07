@@ -259,6 +259,8 @@ func (br *BotRunner) Run() error {
 			BuyInMax:           br.script.Game.BuyInMax,
 			ActionTime:         br.script.Game.ActionTime,
 			RewardIds:          rewardIds,
+			RunItTwiceAllowed:  br.script.Game.RunItTwiceAllowed,
+			MuckLosingHand:     br.script.Game.MuckLosingHand,
 		})
 		if err != nil {
 			return err
@@ -285,6 +287,7 @@ func (br *BotRunner) Run() error {
 				if err != nil {
 					return err
 				}
+
 			} else {
 				// observers
 			}

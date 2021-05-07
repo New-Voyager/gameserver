@@ -225,6 +225,8 @@ func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (string,
 	req.Var("buyInMax", opt.BuyInMax)
 	req.Var("actionTime", opt.ActionTime)
 	req.Var("rewardIds", opt.RewardIds)
+	req.Var("runItTwiceAllowed", opt.RunItTwiceAllowed)
+	req.Var("muckLosingHand", opt.MuckLosingHand)
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Authorization", g.authToken)
 
@@ -629,6 +631,38 @@ func (g *GQLHelper) HostRequestSeatChangeSwap(gameCode string, seat1 uint32, sea
 	return resp.SeatChange, nil
 }
 
+func (g *GQLHelper) UpdateGameConfig(gameCode string, runItTwiceAllowed bool, muckLosingHand bool) error {
+	req := graphql.NewRequest(UpdateGameConfigGQL)
+	type GameConfigChangeInput struct {
+		RunItTwiceAllowed bool `json:"runItTwicePrompt"`
+		MuckLosingHand    bool `json:"muckLosingHand"`
+	}
+	config := GameConfigChangeInput{
+		RunItTwiceAllowed: runItTwiceAllowed,
+		MuckLosingHand:    muckLosingHand,
+	}
+	//var respData EndGameResp
+	req.Var("gameCode", gameCode)
+	req.Var("config", config)
+
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", g.authToken)
+	var resp struct {
+		Ret bool `json:"ret"`
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+
+	err := g.client.Run(ctx, req, &resp)
+	if err != nil {
+		fmt.Printf("err: %v", err)
+		return err
+	}
+
+	return nil
+}
+
 // GameInfoGQL is the gql query string for gameinfo api.
 const GameInfoGQL = `query game_info($gameCode: String!) {
     gameInfo(gameCode: $gameCode) {
@@ -810,6 +844,8 @@ const ConfigureGameGQL = `mutation configure_game(
 	$buyInMax: Float!
 	$actionTime: Int!
 	$rewardIds: [Int!]
+	$runItTwiceAllowed: Boolean
+	$muckLosingHand: Boolean
 ) {
 	configuredGame: configureGame(
 		clubCode: $clubCode
@@ -830,6 +866,8 @@ const ConfigureGameGQL = `mutation configure_game(
 			buyInMax: $buyInMax
 			actionTime: $actionTime
 			rewardIds: $rewardIds
+			runItTwiceAllowed: $runItTwiceAllowed
+			muckLosingHand: $muckLosingHand
 		}
 	) {
 		gameCode
@@ -1056,3 +1094,8 @@ const HostSeatChangeSwapGQL = `mutation seatChangeSwapSeats($gameCode: String!, 
 		seatNo2: $seatNo2
 	)
 }`
+
+const UpdateGameConfigGQL = `
+	mutation muckLosingHand($gameCode:String! $config:GameConfigChangeInput!) {
+		ret: updateGameConfig(gameCode:$gameCode, config:$config)
+  	}`

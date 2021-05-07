@@ -291,19 +291,20 @@ type SaveHandResult struct {
 }
 
 type SeatPlayer struct {
-	SeatNo         uint32
-	OpenSeat       bool
-	PlayerID       uint64 `json:"playerId"`
-	PlayerUUID     string `json:"playerUuid"`
-	Name           string
-	BuyIn          float32
-	Stack          float32
-	Status         PlayerStatus
-	GameToken      string
-	GameTokenInt   uint64
-	RunItTwice     bool
-	BuyInTimeExpAt string
-	BreakTimeExpAt string
+	SeatNo           uint32
+	OpenSeat         bool
+	PlayerID         uint64 `json:"playerId"`
+	PlayerUUID       string `json:"playerUuid"`
+	Name             string
+	BuyIn            float32
+	Stack            float32
+	Status           PlayerStatus
+	GameToken        string
+	GameTokenInt     uint64
+	BuyInTimeExpAt   string
+	BreakTimeExpAt   string
+	MuckLosingHand   bool
+	RunItTwicePrompt bool
 }
 
 /*

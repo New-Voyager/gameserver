@@ -56,13 +56,18 @@ type Game struct {
 	ActionTime         int     `yaml:"action-time"`
 	Rewards            string  `yaml:"rewards"`
 	DontStart          bool    `yaml:"dont-start"`
+	RunItTwiceAllowed  bool    `yaml:"run-it-twice-allowed"`
+	MuckLosingHand     bool    `yaml:"muck-losing-hand"`
 }
 
 // StartingSeat contains an entry in the StartingSeats array in the game script.
 type StartingSeat struct {
-	Seat   uint32  `yaml:"seat"`
-	Player string  `yaml:"player"`
-	BuyIn  float32 `yaml:"buy-in"`
+	Seat                     uint32  `yaml:"seat"`
+	Player                   string  `yaml:"player"`
+	BuyIn                    float32 `yaml:"buy-in"`
+	RunItTwice               bool    `yaml:"run-it-twice"`
+	RunItTwicePromptResponse bool    `yaml:"run-it-twice-prompt"`
+	MuckLosingHand           bool    `yaml:"muck-losing-hand"`
 }
 
 // Observer contains entries of observers of game
@@ -126,6 +131,8 @@ type Hand struct {
 type HandSetup struct {
 	PreDeal    []PreDealSetup       `yaml:"pre-deal"`
 	ButtonPos  uint32               `yaml:"button-pos"`
+	Board      []string             `yaml:"board"`
+	Board2     []string             `yaml:"board2"`
 	Flop       []string             `yaml:"flop"`
 	Turn       string               `yaml:"turn"`
 	River      string               `yaml:"river"`
@@ -438,6 +445,15 @@ func (s *Script) GetInitialBuyInAmount(seatNo uint32) float32 {
 		}
 	}
 	return 0
+}
+
+func (s *Script) GetSeatConfigByPlayerName(playerName string) *StartingSeat {
+	for _, startingSeat := range s.StartingSeats {
+		if startingSeat.Player == playerName {
+			return &startingSeat
+		}
+	}
+	return nil
 }
 
 func (s *Script) GetHand(handNum uint32) Hand {
