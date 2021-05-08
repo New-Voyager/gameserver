@@ -41,4 +41,5 @@ type player struct {
 	status   game.PlayerStatus
 	stack    float32
 	buyIn    float32
+	isBot    bool
 }

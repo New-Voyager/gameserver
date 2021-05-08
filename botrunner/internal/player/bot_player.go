@@ -61,6 +61,7 @@ type BotPlayer struct {
 	gameID          uint64
 	PlayerID        uint64
 	RewardsNameToID map[string]uint32
+	scriptedGame    bool
 
 	// state of the bot
 	sm *fsm.FSM
@@ -172,6 +173,7 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger, msgCollector *msg
 		clientLastMsgID:  "0",
 		serverLastMsgIDs: util.NewQueue(10),
 		ackMaxWait:       300,
+		scriptedGame:     true,
 	}
 
 	bp.sm = fsm.NewFSM(
@@ -273,9 +275,9 @@ func (bp *BotPlayer) queueHandMsg(msg *natsgo.Msg) {
 		return
 	}
 
-	// fmt.Printf("\n\n")
-	// fmt.Printf(string(msg.Data))
-	// fmt.Printf("\n\n")
+	fmt.Printf("\n\n")
+	fmt.Printf(string(msg.Data))
+	fmt.Printf("\n\n")
 
 	bp.collectHandMsg(&message, msg.Data)
 	bp.chHand <- &message
@@ -1075,6 +1077,7 @@ func (bp *BotPlayer) reload() error {
 // JoinUnscriptedGame joins a game without using the yaml script. This is used for joining
 // a human-created game where you can freely grab whatever seat available.
 func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
+	bp.scriptedGame = false
 	if !bp.config.Script.AutoPlay {
 		return fmt.Errorf("%s: JoinUnscriptedGame called with a non-autoplay script", bp.logPrefix)
 	}
@@ -1101,9 +1104,41 @@ func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
 	}
 	bp.seatNo = seatNo
 
+	// unscripted game, bots will run it twice
+	if bp.gameInfo.RunItTwiceAllowed {
+		bp.UpdateGameConfig(gameCode, true, true)
+	}
+
 	bp.event(BotEvent__SUCCEED_BUYIN)
 
 	return nil
+}
+
+// GetGameInfo queries the game info from the api server.
+func (bp *BotPlayer) DetermineBots(gameInfo game.GameInfo) {
+
+	if bp.game == nil {
+		// this player is neither playing nor observing
+		return
+	}
+
+	for _, p := range gameInfo.SeatInfo.PlayersInSeats {
+		seatPlayer := bp.game.table.playersBySeat[p.SeatNo]
+		if seatPlayer == nil {
+			seatPlayer = &player{
+				seatNo:   p.SeatNo,
+				playerID: p.PlayerId,
+				status:   game.PlayerStatus(game.PlayerStatus_value[p.Status]),
+				buyIn:    p.BuyIn,
+				stack:    p.Stack,
+				isBot:    p.IsBot,
+			}
+			bp.game.table.playersBySeat[p.SeatNo] = seatPlayer
+		} else {
+			seatPlayer.isBot = p.IsBot
+		}
+	}
+	return
 }
 
 // SitIn takes a seat in a game as a player.
@@ -1362,6 +1397,37 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 				}
 			}
 		}
+
+		// this section is to simulate run it twice scenario
+		// if the game is configured to run it twice and the current bot is the last one to act
+		// go all in
+		// get human players (there should be only one)
+		// get the human player action
+		// if the human player action is ALLIN, check how many players are active
+		// if more than 2 players are active, then fold
+		// if only two players are active, then the remaining bot will go all in
+		if bp.gameInfo.RunItTwiceAllowed {
+			players := bp.humanPlayers()
+			if len(players) == 1 {
+				player := players[0]
+				// human player action
+				action := bp.game.table.playersActed[player.seatNo]
+				if action != nil && action.State == game.PlayerActState_PLAYER_ACT_ALL_IN {
+					activePlayers := bp.activePlayers()
+					if len(activePlayers) == 2 {
+						// last remaining bot
+						nextAction = game.ACTION_ALLIN
+						nextAmt = allInAmount
+					} else {
+						// these bots should go all in
+						nextAction = game.ACTION_FOLD
+						nextAmt = 0
+					}
+
+				}
+			}
+		}
+
 	} else {
 
 		for _, action := range availableActions {
@@ -1505,6 +1571,26 @@ func (bp *BotPlayer) getLastActedSeatFromTracker() uint32 {
 		return 0
 	}
 	return actionHistory[len(actionHistory)-1].SeatNo
+}
+
+func (bp *BotPlayer) activePlayers() []uint32 {
+	activePlayers := make([]uint32, 0)
+	for seatNo, act := range bp.game.table.playersActed {
+		if act.State != game.PlayerActState_PLAYER_ACT_FOLDED {
+			activePlayers = append(activePlayers, seatNo)
+		}
+	}
+	return activePlayers
+}
+
+func (bp *BotPlayer) humanPlayers() []*player {
+	players := make([]*player, 0)
+	for _, player := range bp.game.table.playersBySeat {
+		if !player.isBot {
+			players = append(players, player)
+		}
+	}
+	return players
 }
 
 // IsObserver returns true if this bot is an observer bot.

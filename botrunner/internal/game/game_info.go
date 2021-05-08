@@ -27,6 +27,7 @@ type GameInfo struct {
 	BuyInMax              float32
 	ActionTime            uint32
 	MuckLosingHand        bool
+	RunItTwiceAllowed     bool
 	WaitForBigBlind       bool
 	StartedBy             string
 	StartedAt             time.Time
@@ -52,9 +53,12 @@ type GameInfo struct {
 type SeatInfo struct {
 	SeatNo     uint32  `json:"seatNo"`
 	PlayerUUID string  `json:"playerUuid"`
+	PlayerId   uint64  `json:"playerId"`
 	Name       string  `json:"name"`
 	BuyIn      float32 `json:"buyIn"`
 	Stack      float32 `json:"stack"`
+	IsBot      bool    `json:"isBot"`
+	Status     string  `json:"status"`
 }
 
 // GameCreateOpt contains parameters for creating a new game.

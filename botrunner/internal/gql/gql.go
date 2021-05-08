@@ -689,6 +689,7 @@ const GameInfoGQL = `query game_info($gameCode: String!) {
         buyInMax
         actionTime
         muckLosingHand
+		runItTwiceAllowed
         waitForBigBlind
         startedBy
         startedAt
@@ -705,6 +706,7 @@ const GameInfoGQL = `query game_info($gameCode: String!) {
                 seatNo
                 buyIn
                 stack
+				isBot
             }
         }
         gameToken

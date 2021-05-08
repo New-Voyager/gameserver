@@ -23,7 +23,7 @@
       },
       "args": [
         "-script",
-        "botrunner_scripts/run-it-twice.yaml"
+        "botrunner_scripts/holdem/preflop.yaml"
       ]
     },
     {
