@@ -1426,8 +1426,12 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 
 				}
 			}
+			for _, action := range availableActions {
+				if action == game.ACTION_RUN_IT_TWICE_PROMPT {
+					runItTwiceActionPrompt = true
+				}
+			}
 		}
-
 	} else {
 
 		for _, action := range availableActions {

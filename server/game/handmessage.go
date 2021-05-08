@@ -1028,11 +1028,11 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 
 	// send the hand to the database to store first
 	handResult := handResultProcessor.getResult(true /*db*/)
-	handResult.NoCards = g.NumCards(handState.GameType)
 	saveResult, _ := g.saveHandResult(handResult)
 
 	// send to all the players
 	handResult = handResultProcessor.getResult(false /*db*/)
+	handResult.NoCards = g.NumCards(handState.GameType)
 
 	// update the player balance
 	for seatNo, player := range handResult.Players {
