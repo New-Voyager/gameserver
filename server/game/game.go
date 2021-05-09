@@ -123,10 +123,10 @@ func (g *Game) runGame() {
 	ended := false
 	for !ended {
 		if !g.running {
-			channelGameLogger.Info().
-				Uint32("club", g.config.ClubId).
-				Str("game", g.config.GameCode).
-				Msg(fmt.Sprintf("Starting the game"))
+			// channelGameLogger.Info().
+			// 	Uint32("club", g.config.ClubId).
+			// 	Str("game", g.config.GameCode).
+			// 	Msg(fmt.Sprintf("Starting the game"))
 
 			started, err := g.startGame()
 			if err != nil {
@@ -202,7 +202,7 @@ func (g *Game) startGame() (bool, error) {
 
 		g.config = gameConfig
 		g.Status = gameConfig.Status
-		channelGameLogger.Info().Msgf("New Game Config: %+v\n", g.config)
+		// channelGameLogger.Info().Msgf("New Game Config: %+v\n", g.config)
 
 		// Initialize stateful information in the game object.
 		g.initGameState()

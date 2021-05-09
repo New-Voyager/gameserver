@@ -275,9 +275,11 @@ func (bp *BotPlayer) queueHandMsg(msg *natsgo.Msg) {
 		return
 	}
 
-	fmt.Printf("\n\n")
-	fmt.Printf(string(msg.Data))
-	fmt.Printf("\n\n")
+	if bp.IsHost() {
+		fmt.Printf("\n\n")
+		fmt.Printf(string(msg.Data))
+		fmt.Printf("\n\n")
+	}
 
 	bp.collectHandMsg(&message, msg.Data)
 	bp.chHand <- &message

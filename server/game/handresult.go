@@ -1,11 +1,5 @@
 package game
 
-import (
-	"fmt"
-
-	"voyager.com/server/poker"
-)
-
 type HandResultProcessor struct {
 	handState         *HandState
 	rewardTrackingIds []uint32
@@ -123,22 +117,22 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 		hr.handState.HandCompletedAt == HandStatus_SHOW_DOWN {
 		bestSeatHands = hr.evaluator.GetBestPlayerCards()
 		highHands = hr.evaluator.GetHighHandCards()
-		fmt.Printf("\n\n================================================================\n\n")
-		for seatNo, hand := range bestSeatHands {
-			if highHand, ok := highHands[seatNo]; ok {
-				fmt.Printf("Seat: %d, Cards:%+v, Str: %s Rank: %d, rankStr: %s, hhHand: %s rank: %d rankStr: %s\n",
-					seatNo,
-					hand.cards,
-					poker.CardsToString(hand.cards), hand.rank, poker.RankString(hand.rank),
-					poker.CardToString(highHand.cards), highHand.rank, poker.RankString((highHand.rank)))
-			} else {
-				fmt.Printf("Seat: %d, Cards:%+v, Str: %s Rank: %d, rankStr: %s\n",
-					seatNo,
-					hand.cards,
-					poker.CardsToString(hand.cards), hand.rank, poker.RankString(hand.rank))
-			}
-		}
-		fmt.Printf("\n\n================================================================\n\n")
+		// fmt.Printf("\n\n================================================================\n\n")
+		// for seatNo, hand := range bestSeatHands {
+		// 	if highHand, ok := highHands[seatNo]; ok {
+		// 		fmt.Printf("Seat: %d, Cards:%+v, Str: %s Rank: %d, rankStr: %s, hhHand: %s rank: %d rankStr: %s\n",
+		// 			seatNo,
+		// 			hand.cards,
+		// 			poker.CardsToString(hand.cards), hand.rank, poker.RankString(hand.rank),
+		// 			poker.CardToString(highHand.cards), highHand.rank, poker.RankString((highHand.rank)))
+		// 	} else {
+		// 		fmt.Printf("Seat: %d, Cards:%+v, Str: %s Rank: %d, rankStr: %s\n",
+		// 			seatNo,
+		// 			hand.cards,
+		// 			poker.CardsToString(hand.cards), hand.rank, poker.RankString(hand.rank))
+		// 	}
+		// }
+		// fmt.Printf("\n\n================================================================\n\n")
 	}
 	handResult := &HandResult{
 		GameId:     hr.handState.GameId,

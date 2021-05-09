@@ -320,6 +320,9 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		if err != nil {
 			return err
 		}
+		// acknowledge so that player does not resend the message
+		g.sendActionAck(playerMsg)
+
 		msg := HandMessage{
 			ClubId:     g.config.ClubId,
 			GameId:     g.config.GameId,
@@ -331,6 +334,8 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 		g.saveHandState(handState)
 		g.broadcastHandMessage(&msg)
+		g.pauseIfGameEnded(msgItems)
+
 		return nil
 	}
 
@@ -484,7 +489,11 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 	g.saveHandState(handState)
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3, playerMsg.PlayerId)
+	g.pauseIfGameEnded(allMsgItems)
+	return nil
+}
 
+func (g *Game) pauseIfGameEnded(allMsgItems []*HandMessageItem) {
 	// if the last message is hand ended (pause for the result animation)
 	handEnded := false
 	for _, message := range allMsgItems {
@@ -495,10 +504,10 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 	// wait 5 seconds to show the result
 	// send a message to game to start new hand
 	if handEnded && !util.GameServerEnvironment.ShouldDisableDelays() {
-		time.Sleep(time.Duration(g.delays.MoveToNextHand) * time.Millisecond)
+		fmt.Printf("\n\n===============================\nHand ended. Pausing the game\n")
+		time.Sleep(5000 * time.Millisecond)
+		fmt.Printf("Resuming the game\n===============================\n\n")
 	}
-
-	return nil
 }
 
 func (g *Game) sendActionAck(playerMsg *HandMessage) {
