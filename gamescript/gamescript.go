@@ -308,6 +308,7 @@ type Pot struct {
 
 type HandResult struct {
 	Winners       []HandWinner   `yaml:"winners"`
+	LoWinners     []HandWinner   `yaml:"lo-winners"`
 	ActionEndedAt string         `yaml:"action-ended"`
 	Stacks        []PlayerStack  `yaml:"stacks"`
 	HighHand      []HighHandSeat `yaml:"high-hand"`

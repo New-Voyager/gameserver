@@ -126,7 +126,7 @@ do-login:
 TEST_DOCKER_NET := poker_test
 
 # These images are downloaded.
-API_SERVER_IMAGE := $(REGISTRY)/api-server:0.2.29
+API_SERVER_IMAGE := $(REGISTRY)/api-server:0.2.40
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
 REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
 POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5
@@ -141,7 +141,7 @@ ifndef CIRCLECI
 endif
 
 .PHONY: system-test
-system-test: system-test-build system-test-down system-test-up
+system-test: system-test-down system-test-up
 	docker exec -t system_test_botrunner_1 bash -c "./system_test.sh"
 
 .PHONY: system-test-build

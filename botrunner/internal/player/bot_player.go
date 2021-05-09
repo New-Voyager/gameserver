@@ -708,6 +708,30 @@ func (bp *BotPlayer) verifyResult() {
 	if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
 		bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
 	}
+
+	if len(scriptResult.LoWinners) > 0 {
+		expectedLoWinnersBySeat := make(map[uint32]winner)
+		for _, expectedWinner := range scriptResult.LoWinners {
+			expectedLoWinnersBySeat[expectedWinner.Seat] = winner{
+				SeatNo:  expectedWinner.Seat,
+				Amount:  expectedWinner.Receive,
+				RankStr: expectedWinner.RankStr,
+			}
+		}
+		actualLoWinnersBySeat := make(map[uint32]winner)
+		pots = bp.GetHandResult().GetHandLog().GetPotWinners()
+		for _, w := range pots[0].LowWinners {
+			actualLoWinnersBySeat[w.GetSeatNo()] = winner{
+				SeatNo:  w.GetSeatNo(),
+				Amount:  w.GetAmount(),
+				RankStr: w.GetRankStr(),
+			}
+		}
+
+		if !cmp.Equal(expectedLoWinnersBySeat, actualLoWinnersBySeat) {
+			bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Low Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualLoWinnersBySeat, expectedLoWinnersBySeat)
+		}
+	}
 }
 
 func (bp *BotPlayer) SetClubCode(clubCode string) {
