@@ -207,12 +207,14 @@ func (g *Game) startGame() (bool, error) {
 		// Initialize stateful information in the game object.
 		g.initGameState()
 
-		// Get seat info.
-		handInfo, err := g.getNewHandInfo()
-		if err != nil {
-			return false, err
+		if g.running {
+			// Get seat info.
+			handInfo, err := g.getNewHandInfo()
+			if err != nil {
+				return false, err
+			}
+			numActivePlayers = len(handInfo.PlayersInSeats)
 		}
-		numActivePlayers = len(handInfo.PlayersInSeats)
 	} else {
 		numActivePlayers = g.countActivePlayers()
 	}
