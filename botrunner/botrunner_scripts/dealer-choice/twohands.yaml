@@ -19,7 +19,7 @@ game:
   buy-in-min: 100
   buy-in-max: 300
   action-time: 100
-  dealer-choice-games: ['HOLDEM', 'PLO']
+  dealer-choice-games: ['HOLDEM', 'PLO', 'PLO_HILO', 'FIVE_CARD_PLO', 'FIVE_CARD_PLO_HILO']
 
 starting-seats:
   - seat: 1
@@ -43,6 +43,10 @@ bot-config:
 hands:
   - setup:
       button-pos: 1
+      auto: true
+  - setup:
+      auto: true
+  - setup:
       auto: true
   - setup:
       auto: true
