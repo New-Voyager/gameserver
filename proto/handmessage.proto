@@ -183,6 +183,11 @@ message MsgAcknowledgement {
   string message_type = 2;
 }
 
+message Announcement {
+  string type = 1;
+  repeated string params = 2;   // parameters for internationlization  
+}
+
 message HandMessage {
   string version = 1;
   uint32 club_id = 2;
@@ -216,5 +221,6 @@ message HandMessageItem {
     MsgAcknowledgement msg_ack = 24;
     HighHand high_hand = 25;      // announce high hand
     RunItTwiceBoards run_it_twice = 26;   // to display run it twice cards
+    Announcement announcement = 27;
   }
 }

@@ -59,6 +59,7 @@ const (
 	HandQueryCurrentHand string = "QUERY_CURRENT_HAND"
 	HandDealStarted      string = "DEAL_STARTED" // used for animations
 	HandNextStep         string = "NEXT_STEP"
+	HandAnnouncement     string = "ANNOUNCEMENT"
 )
 
 // sub message types used in TableUpdate message
@@ -70,4 +71,9 @@ const (
 	TableHostSeatChangeProcessEnd   string = "HostSeatChangeInProcessEnd"
 	TableHostSeatChangeMove         string = "HostSeatChangeMove"
 	TableUpdatePlayerSeats          string = "UpdatePlayerSeats"
+)
+
+// sub message types used in Announcment message
+const (
+	AnnouncementNewGameType string = "NewGameType"
 )

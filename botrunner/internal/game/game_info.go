@@ -81,4 +81,5 @@ type GameCreateOpt struct {
 	RewardIds          []uint32
 	RunItTwiceAllowed  bool
 	MuckLosingHand     bool
+	RoeGames           []string
 }

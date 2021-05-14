@@ -38,26 +38,27 @@ type Reward struct {
 
 // Game contains game configuration in the game script.
 type Game struct {
-	Create             bool    `yaml:"create"`
-	Title              string  `yaml:"title"`
-	GameType           string  `yaml:"game-type"`
-	SmallBlind         float32 `yaml:"small-blind"`
-	BigBlind           float32 `yaml:"big-blind"`
-	UtgStraddleAllowed bool    `yaml:"utg-straddle-allowed"`
-	StraddleBet        float32 `yaml:"straddle-bet"`
-	MinPlayers         int     `yaml:"min-players"`
-	MaxPlayers         int     `yaml:"max-players"`
-	GameLength         int     `yaml:"game-length"`
-	BuyInApproval      bool    `yaml:"buy-in-approval"`
-	RakePercentage     float32 `yaml:"rake-percentage"`
-	RakeCap            float32 `yaml:"rake-cap"`
-	BuyInMin           float32 `yaml:"buy-in-min"`
-	BuyInMax           float32 `yaml:"buy-in-max"`
-	ActionTime         int     `yaml:"action-time"`
-	Rewards            string  `yaml:"rewards"`
-	DontStart          bool    `yaml:"dont-start"`
-	RunItTwiceAllowed  bool    `yaml:"run-it-twice-allowed"`
-	MuckLosingHand     bool    `yaml:"muck-losing-hand"`
+	Create             bool     `yaml:"create"`
+	Title              string   `yaml:"title"`
+	GameType           string   `yaml:"game-type"`
+	SmallBlind         float32  `yaml:"small-blind"`
+	BigBlind           float32  `yaml:"big-blind"`
+	UtgStraddleAllowed bool     `yaml:"utg-straddle-allowed"`
+	StraddleBet        float32  `yaml:"straddle-bet"`
+	MinPlayers         int      `yaml:"min-players"`
+	MaxPlayers         int      `yaml:"max-players"`
+	GameLength         int      `yaml:"game-length"`
+	BuyInApproval      bool     `yaml:"buy-in-approval"`
+	RakePercentage     float32  `yaml:"rake-percentage"`
+	RakeCap            float32  `yaml:"rake-cap"`
+	BuyInMin           float32  `yaml:"buy-in-min"`
+	BuyInMax           float32  `yaml:"buy-in-max"`
+	ActionTime         int      `yaml:"action-time"`
+	Rewards            string   `yaml:"rewards"`
+	DontStart          bool     `yaml:"dont-start"`
+	RunItTwiceAllowed  bool     `yaml:"run-it-twice-allowed"`
+	MuckLosingHand     bool     `yaml:"muck-losing-hand"`
+	RoeGames           []string `yaml:"roe-games"`
 }
 
 // StartingSeat contains an entry in the StartingSeats array in the game script.

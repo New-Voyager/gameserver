@@ -389,6 +389,32 @@ func (g *Game) dealNewHand() error {
 		}
 		g.playerConfig.Store(playerUpdateConfig)
 
+		if newHandInfo.AnnounceGameType {
+			params := []string{
+				newHandInfo.GameType.String(),
+			}
+			announcement := &Announcement{
+				Type:   AnnouncementNewGameType,
+				Params: params,
+			}
+			_ = announcement
+			// // announce new game type
+			handMessage := HandMessage{
+				GameId:     g.config.GameId,
+				ClubId:     g.config.ClubId,
+				HandNum:    newHandInfo.HandNum,
+				HandStatus: HandStatus_DEAL,
+				MessageId:  g.generateMsgID("ANNOUNCEMENT", newHandInfo.HandNum, HandStatus_DEAL, 0, ""),
+				Messages: []*HandMessageItem{
+					{
+						MessageType: HandAnnouncement,
+						Content:     &HandMessageItem_Announcement{Announcement: announcement},
+					},
+				},
+			}
+			g.broadcastHandMessage(&handMessage)
+		}
+
 		/*
 			type SeatPlayer struct {
 				SeatNo       uint32

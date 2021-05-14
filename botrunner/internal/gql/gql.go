@@ -227,6 +227,7 @@ func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (string,
 	req.Var("rewardIds", opt.RewardIds)
 	req.Var("runItTwiceAllowed", opt.RunItTwiceAllowed)
 	req.Var("muckLosingHand", opt.MuckLosingHand)
+	req.Var("roeGames", opt.RoeGames)
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Authorization", g.authToken)
 
@@ -848,6 +849,7 @@ const ConfigureGameGQL = `mutation configure_game(
 	$rewardIds: [Int!]
 	$runItTwiceAllowed: Boolean
 	$muckLosingHand: Boolean
+	$roeGames: [GameType!]
 ) {
 	configuredGame: configureGame(
 		clubCode: $clubCode
@@ -870,6 +872,7 @@ const ConfigureGameGQL = `mutation configure_game(
 			rewardIds: $rewardIds
 			runItTwiceAllowed: $runItTwiceAllowed
 			muckLosingHand: $muckLosingHand
+			roeGames: $roeGames
 		}
 	) {
 		gameCode
