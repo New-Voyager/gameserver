@@ -476,7 +476,7 @@ func (g *Game) dealNewHand() error {
 
 	deck := g.testDeckToUse
 	if deck == nil || deck.Empty() {
-		if handSetup != nil {
+		if handSetup != nil && handSetup.Deck != nil {
 			deck = poker.DeckFromBytes(handSetup.Deck)
 		} else {
 			deck = poker.NewDeck(nil).Shuffle()

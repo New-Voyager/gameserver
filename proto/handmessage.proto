@@ -202,6 +202,11 @@ message HandMessage {
   repeated HandMessageItem messages = 12;
 }
 
+message DealerChoice {
+  uint64 player_id = 1;
+  repeated GameType games = 2;
+}
+
 //HandMessage packages the actual message with Hand information (clubid, game_num, hand_num) 
 message HandMessageItem {
   string message_type = 7;
@@ -222,5 +227,6 @@ message HandMessageItem {
     HighHand high_hand = 25;      // announce high hand
     RunItTwiceBoards run_it_twice = 26;   // to display run it twice cards
     Announcement announcement = 27;
+    DealerChoice dealer_choice = 28;
   }
 }

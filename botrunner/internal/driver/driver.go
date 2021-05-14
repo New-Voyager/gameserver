@@ -262,6 +262,7 @@ func (br *BotRunner) Run() error {
 			RunItTwiceAllowed:  br.script.Game.RunItTwiceAllowed,
 			MuckLosingHand:     br.script.Game.MuckLosingHand,
 			RoeGames:           br.script.Game.RoeGames,
+			DealerChoiceGames:  br.script.Game.DealerChoiceGames,
 		})
 		if err != nil {
 			return err

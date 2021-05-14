@@ -82,4 +82,5 @@ type GameCreateOpt struct {
 	RunItTwiceAllowed  bool
 	MuckLosingHand     bool
 	RoeGames           []string
+	DealerChoiceGames  []string
 }

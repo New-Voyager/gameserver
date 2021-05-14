@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -268,17 +269,17 @@ func (bp *BotPlayer) queueGameMsg(msg *natsgo.Msg) {
 }
 
 func (bp *BotPlayer) queueHandMsg(msg *natsgo.Msg) {
-	var message game.HandMessage
-	err := protojson.Unmarshal(msg.Data, &message)
-	if err != nil {
-		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf message [%s]", bp.logPrefix, err, string(msg.Data))
-		return
-	}
 
 	if bp.IsHost() {
 		fmt.Printf("\n\n")
 		fmt.Printf(string(msg.Data))
 		fmt.Printf("\n\n")
+	}
+	var message game.HandMessage
+	err := protojson.Unmarshal(msg.Data, &message)
+	if err != nil {
+		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf message [%s]", bp.logPrefix, err, string(msg.Data))
+		return
 	}
 
 	bp.collectHandMsg(&message, msg.Data)
@@ -378,6 +379,13 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			}
 		}
 		bp.logger.Info().Msgf("%s: Received cards: %s (%+v)", bp.logPrefix, poker.CardsToString(cards), cards)
+
+	case game.HandDealerChoice:
+		dealerChoice := msgItem.GetDealerChoice()
+		bp.logger.Info().Msgf("%s: Dealer choice games: (%+v)", bp.logPrefix, dealerChoice.Games)
+		nextGameIdx := rand.Intn(len(dealerChoice.Games))
+		nextGame := dealerChoice.Games[nextGameIdx]
+		bp.chooseNextGame(nextGame)
 
 	case game.HandNewHand:
 		/* MessageType: NEW_HAND */
@@ -614,6 +622,10 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			bp.act(nextSeatAction)
 		}
 	}
+}
+
+func (bp *BotPlayer) chooseNextGame(gameType game.GameType) {
+	bp.gqlHelper.DealerChoice(bp.gameCode, gameType)
 }
 
 func (bp *BotPlayer) verifyBoard() {
