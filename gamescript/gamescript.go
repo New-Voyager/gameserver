@@ -59,6 +59,7 @@ type Game struct {
 	RunItTwiceAllowed  bool     `yaml:"run-it-twice-allowed"`
 	MuckLosingHand     bool     `yaml:"muck-losing-hand"`
 	RoeGames           []string `yaml:"roe-games"`
+	DealerChoiceGames  []string `yaml:"dealer-choice-games"`
 }
 
 // StartingSeat contains an entry in the StartingSeats array in the game script.

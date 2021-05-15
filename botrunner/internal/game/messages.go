@@ -45,6 +45,7 @@ const (
 	HandNoMoreActions    string = "NO_MORE_ACTIONS"
 	HandQueryCurrentHand string = "QUERY_CURRENT_HAND"
 	HandNextStep         string = "NEXT_STEP"
+	HandDealerChoice     string = "DEALER_CHOICE"
 )
 
 // Table update messages

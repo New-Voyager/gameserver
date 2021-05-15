@@ -49,6 +49,29 @@ func (g *GQLHelper) CreatePlayer(name string, deviceID string, email string, pas
 	return respData.PlayerUUID, nil
 }
 
+// CreatePlayer registers the player.
+func (g *GQLHelper) DealerChoice(gameCode string, gameType game.GameType) (bool, error) {
+	req := graphql.NewRequest(DealerChoiceGQL)
+	req.Var("gameCode", gameCode)
+	req.Var("gameType", gameType.String())
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", g.authToken)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+
+	var respData struct {
+		ret bool
+	}
+
+	err := g.client.Run(ctx, req, &respData)
+	if err != nil {
+		return false, err
+	}
+
+	return respData.ret, nil
+}
+
 // CreateClub creates a new club.
 func (g *GQLHelper) CreateClub(name string, description string) (string, error) {
 	req := graphql.NewRequest(CreateClubGQL)
@@ -228,6 +251,8 @@ func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (string,
 	req.Var("runItTwiceAllowed", opt.RunItTwiceAllowed)
 	req.Var("muckLosingHand", opt.MuckLosingHand)
 	req.Var("roeGames", opt.RoeGames)
+	req.Var("dealerChoiceGames", opt.DealerChoiceGames)
+
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Authorization", g.authToken)
 
@@ -850,6 +875,7 @@ const ConfigureGameGQL = `mutation configure_game(
 	$runItTwiceAllowed: Boolean
 	$muckLosingHand: Boolean
 	$roeGames: [GameType!]
+	$dealerChoiceGames: [GameType!]
 ) {
 	configuredGame: configureGame(
 		clubCode: $clubCode
@@ -873,6 +899,7 @@ const ConfigureGameGQL = `mutation configure_game(
 			runItTwiceAllowed: $runItTwiceAllowed
 			muckLosingHand: $muckLosingHand
 			roeGames: $roeGames
+			dealerChoiceGames: $dealerChoiceGames
 		}
 	) {
 		gameCode
@@ -1104,3 +1131,10 @@ const UpdateGameConfigGQL = `
 	mutation muckLosingHand($gameCode:String! $config:GameConfigChangeInput!) {
 		ret: updateGameConfig(gameCode:$gameCode, config:$config)
   	}`
+
+const DealerChoiceGQL = `mutation dealerChoice($gameCode: String!, $gameType: GameType!) {
+	ret: dealerChoice(
+		gameCode: $gameCode
+		gameType: $gameType
+	)
+}`
