@@ -384,11 +384,12 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		return nil
 	}
 
+	actionResponseTime := time.Now().Sub(g.actionTimeStart)
+	actedSeconds := uint32(actionResponseTime.Seconds())
 	if messageSeatNo == g.timerSeatNo {
 		// cancel action timer
 		g.pausePlayTimer(messageSeatNo)
 	}
-
 	handState.ActionMsgInProgress = playerMsg
 	g.saveHandState(handState)
 	g.sendActionAck(playerMsg)
@@ -397,14 +398,14 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 	handState.FlowState = FlowState_PREPARE_NEXT_ACTION
 	g.saveHandState(handState)
-	err := g.prepareNextAction(handState)
+	err := g.prepareNextAction(handState, uint64(actedSeconds))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (g *Game) prepareNextAction(handState *HandState) error {
+func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64) error {
 	expectedState := FlowState_PREPARE_NEXT_ACTION
 	if handState.FlowState != expectedState {
 		return fmt.Errorf("prepareNextAction called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
@@ -425,7 +426,7 @@ func (g *Game) prepareNextAction(handState *HandState) error {
 	var allMsgItems []*HandMessageItem
 	var msgItems []*HandMessageItem
 	var err error
-	err = handState.actionReceived(actionMsg.GetPlayerActed())
+	err = handState.actionReceived(actionMsg.GetPlayerActed(), actionResponseTime)
 	if err != nil {
 		return errors.Wrap(err, "Error while updating handstate from action")
 	}
@@ -1037,11 +1038,19 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 
 	// send the hand to the database to store first
 	handResult := handResultProcessor.getResult(true /*db*/)
+	handResult.NoCards = g.NumCards(handState.GameType)
+	handResult.SmallBlind = handState.SmallBlind
+	handResult.BigBlind = handState.BigBlind
+	handResult.MaxPlayers = handState.MaxSeats
+
 	saveResult, _ := g.saveHandResult(handResult)
 
 	// send to all the players
 	handResult = handResultProcessor.getResult(false /*db*/)
 	handResult.NoCards = g.NumCards(handState.GameType)
+	handResult.SmallBlind = handState.SmallBlind
+	handResult.BigBlind = handState.BigBlind
+	handResult.MaxPlayers = handState.MaxSeats
 
 	// update the player balance
 	for seatNo, player := range handResult.Players {

@@ -176,6 +176,10 @@ message HandResult  {
   map<uint64, PlayerStats> player_stats = 15;
   HandStats hand_stats = 16;
   bool run_it_twice = 17;                 // indicates the players ran it twice
+  float small_blind = 18;
+  float big_blind = 19;
+  float ante = 20;
+  uint32 max_players = 21;
 }
 
 message MsgAcknowledgement {

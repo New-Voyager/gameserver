@@ -258,12 +258,12 @@ func (h *HandState) setupPreflop() {
 		SeatNo: h.SmallBlindPos,
 		Action: ACTION_SB,
 		Amount: h.SmallBlind,
-	})
+	}, 0)
 	h.actionReceived(&HandAction{
 		SeatNo: h.BigBlindPos,
 		Action: ACTION_BB,
 		Amount: h.BigBlind,
-	})
+	}, 0)
 
 	h.ActionCompleteAtSeat = h.BigBlindPos
 
@@ -515,7 +515,7 @@ func (h *HandState) getNextActivePlayer(seatNo uint32) uint32 {
 	return nextSeat
 }
 
-func (h *HandState) actionReceived(action *HandAction) error {
+func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64) error {
 	// get player ID from the seat
 	playerIds := h.GetPlayersInSeats()
 	if len(playerIds) < int(action.SeatNo) {
@@ -696,6 +696,7 @@ func (h *HandState) actionReceived(action *HandAction) error {
 
 	bettingState.PlayerBalance[action.SeatNo] = bettingState.PlayerBalance[action.SeatNo] - diff
 	action.Stack = bettingState.PlayerBalance[action.SeatNo]
+	action.ActionTime = uint32(actionResponseTime)
 	// add the action to the log
 	log.Actions = append(log.Actions, action)
 	log.Pot = log.Pot + diff

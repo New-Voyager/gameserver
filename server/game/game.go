@@ -296,7 +296,7 @@ func (g *Game) resumeGame(handState *HandState) error {
 	case FlowState_WAIT_FOR_NEXT_ACTION:
 		err = g.onPlayerActed(nil, handState)
 	case FlowState_PREPARE_NEXT_ACTION:
-		err = g.prepareNextAction(handState)
+		err = g.prepareNextAction(handState, 0)
 	case FlowState_MOVE_TO_NEXT_HAND:
 		err = g.moveToNextHand(handState)
 	default:
@@ -375,7 +375,9 @@ func (g *Game) dealNewHand() error {
 			panic(err)
 		}
 		g.ButtonPos = newHandInfo.ButtonPos
-		moveButton = true
+
+		// button is moved in the API server
+		moveButton = false
 		gameType = newHandInfo.GameType
 		newHandNum = newHandInfo.HandNum
 		playerUpdateConfig := make(map[uint64]PlayerConfigUpdate)
