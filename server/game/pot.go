@@ -73,9 +73,11 @@ func (h *HandState) addChipsToPot(seatBets []float32, handEnded bool) {
 		if bet < lowestBet {
 			// the player folded
 			currentPot.add(uint32(seatNo), bet)
+			h.PlayersActed[seatNo].BetAmount += bet
 			seatBets[seatNo] = 0
 		} else {
 			currentPot.add(uint32(seatNo), lowestBet)
+			h.PlayersActed[seatNo].BetAmount += lowestBet
 			seatBets[seatNo] = bet - lowestBet
 		}
 	}

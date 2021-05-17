@@ -763,13 +763,13 @@ func (h *HandState) settleRound() {
 	currentBettingRound := bettingState.Betting
 
 	// update player state
-	for seatNo, bet := range currentBettingRound.SeatBet {
-		playerID := h.PlayersInSeats[seatNo]
-		if playerID == 0 {
-			continue
-		}
-		h.PlayersState[playerID].Stack -= bet
-	}
+	// for seatNo, bet := range currentBettingRound.SeatBet {
+	// 	playerID := h.PlayersInSeats[seatNo]
+	// 	if playerID == 0 {
+	// 		continue
+	// 	}
+	// 	h.PlayersState[playerID].Stack -= bet
+	// }
 
 	// if only one player is active, then this hand is concluded
 	handEnded := false
@@ -783,41 +783,58 @@ func (h *HandState) settleRound() {
 		// player 1 has 50 chips and player 2 has 100 chips
 		// then the action is over, we need to return 50 chips
 		// back to player 1
-		maxBetPos := -1
-		// we should have atleast two seats to play
-		maxBet := float32(0)
-		secondMaxBet := float32(0)
-		seatBets := currentBettingRound.SeatBet
-		if seatBets[1] < seatBets[2] {
-			maxBet = seatBets[2]
-			secondMaxBet = seatBets[1]
-			maxBetPos = 2
-		} else {
-			maxBet = seatBets[1]
-			secondMaxBet = seatBets[2]
-			maxBetPos = 1
-		}
-		for seat := 3; seat < len(seatBets); seat++ {
-			if h.ActiveSeats[seat] == 0 {
-				continue
-			}
-			bet := seatBets[seat]
-			if bet > maxBet {
-				secondMaxBet = maxBet
-				maxBet = bet
-				maxBetPos = seat
-			} else if bet < maxBet {
-				secondMaxBet = bet
-			}
-		}
-		if maxBet != 0 && secondMaxBet != 0 && maxBetPos > 0 {
-			playerID := h.PlayersInSeats[maxBetPos]
-			h.PlayersState[playerID].Stack += (maxBet - secondMaxBet)
-		}
+
+		// maxBetPos := -1
+		// // we should have atleast two seats to play
+		// maxBet := float32(0)
+		// secondMaxBet := float32(0)
+		// seatBets := currentBettingRound.SeatBet
+		// if seatBets[1] < seatBets[2] {
+		// 	maxBet = seatBets[2]
+		// 	secondMaxBet = seatBets[1]
+		// 	maxBetPos = 2
+		// } else {
+		// 	maxBet = seatBets[1]
+		// 	secondMaxBet = seatBets[2]
+		// 	maxBetPos = 1
+		// }
+		// for seat := 3; seat < len(seatBets); seat++ {
+		// 	if h.ActiveSeats[seat] == 0 {
+		// 		continue
+		// 	}
+		// 	bet := seatBets[seat]
+		// 	if bet > maxBet {
+		// 		secondMaxBet = maxBet
+		// 		maxBet = bet
+		// 		maxBetPos = seat
+		// 	} else if bet < maxBet {
+		// 		secondMaxBet = bet
+		// 	}
+		// }
+		// if maxBet != 0 && secondMaxBet != 0 && maxBetPos > 0 {
+		// 	playerID := h.PlayersInSeats[maxBetPos]
+		// 	h.PlayersState[playerID].Stack += (maxBet - secondMaxBet)
+		// }
+	}
+
+	for _, playerActRound := range h.PlayersActed {
+		playerActRound.BetAmount = 0.0
 	}
 
 	h.addChipsToPot(currentBettingRound.SeatBet, handEnded)
 
+	// update the stack based on the amount the player bet on this round
+	for seatNo, playerActRound := range h.PlayersActed {
+		if seatNo == 0 {
+			continue
+		}
+
+		playerID := h.PlayersInSeats[seatNo]
+		if playerID == 0 {
+			continue
+		}
+		h.PlayersState[playerID].Stack -= playerActRound.BetAmount
+	}
 	if handEnded {
 		h.HandCompletedAt = h.CurrentState
 		h.CurrentState = HandStatus_RESULT

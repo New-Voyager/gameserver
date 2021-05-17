@@ -23,7 +23,7 @@
       },
       "args": [
         "-script",
-        "botrunner_scripts/dealer-choice/twohands.yaml"
+        "botrunner_scripts/bugs/two-pots.yaml"
       ]
     },
     {

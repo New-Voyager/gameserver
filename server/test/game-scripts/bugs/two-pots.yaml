@@ -1,0 +1,131 @@
+disabled: false
+game-config:
+  type: PLO
+  max-players: 3
+  min-players: 2
+  min-buyin: 60.0
+  max-buyin: 300.0
+  auto-start: false
+  auto-approve: true
+  title: 3 players playing
+  sb: 1.0
+  bb: 2.0
+  rake-percentage: 10
+  rake-cap: 5
+
+# players in the game
+players:
+  - name: yong
+    id: 1
+  - name: brian
+    id: 2
+  - name: tom
+    id: 3
+  - name: jim
+    id: 4
+  - name: rob
+    id: 5
+  - name: john
+    id: 6
+
+take-seat:
+  button-pos: 6
+  seats:
+    -
+      seat: 1 
+      player: 1
+      buy-in: 24
+    -
+      seat: 2
+      player: 2
+      buy-in: 6
+    -
+      seat: 3 
+      player: 3
+      buy-in: 6
+    -
+      seat: 4
+      player: 4
+      buy-in: 278
+    -
+      seat: 5
+      player: 5
+      buy-in: 6
+    -
+      seat: 6 
+      player: 6
+      buy-in: 210
+
+hands:
+  - setup:
+      button-pos: 1
+      flop:
+        - Kd
+        - 6h
+        - 4h
+      turn: Tc
+      river: Qc
+      seat-cards:
+        - seat: 1
+          cards:
+            - 9h
+            - Qs
+            - Ad
+            - Ts
+        - seat: 2
+          cards:
+            - 7h
+            - 2d
+            - Jd
+            - 7s
+        - seat: 3
+          cards:
+            - 7c
+            - 3h
+            - 3c
+            - Jh
+        - seat: 4
+          cards:
+            - 9s
+            - Jc
+            - Qd
+            - Ks
+        - seat: 5
+          cards:
+            - Th
+            - Kc
+            - Ah
+            - 6c
+        - seat: 6
+          cards:
+            - 2h
+            - 4d
+            - 6d
+            - 3s
+    preflop:
+      seat-actions:
+        - action: 3, CALL, 2
+        - action: 4, CALL, 2
+        - action: 5, CALL, 2
+        - action: 6, CALL, 2
+        - action: 1, CALL, 2
+        - action: 2, ALLIN, 6
+        - action: 3, ALLIN, 6
+        - action: 4, CALL, 6
+        - action: 5, ALLIN, 6
+        - action: 6, CALL, 6
+        - action: 1, ALLIN, 24
+        - action: 4, CALL, 24
+        - action: 6, CALL, 24
+    flop:
+      seat-actions:
+        - action: 4, CHECK
+        - action: 6, CHECK
+    turn:
+      seat-actions:
+        - action: 4, CHECK
+        - action: 6, CHECK
+    river:
+      seat-actions:
+        - action: 4, CHECK
+        - action: 6, CHECK

@@ -1196,7 +1196,7 @@ func (bp *BotPlayer) SitIn(gameCode string, seatNo uint32) error {
 
 // BuyIn is where you buy the chips once seated in a game.
 func (bp *BotPlayer) BuyIn(gameCode string, amount float32) error {
-	bp.logger.Info().Msgf("%s: Buying in amount [%f].", bp.logPrefix, amount)
+	//bp.logger.Info().Msgf("%s: Buying in amount [%f].", bp.logPrefix, amount)
 
 	resp, err := bp.gqlHelper.BuyIn(gameCode, amount)
 	if err != nil {

@@ -125,6 +125,10 @@ message PlayerActRound {
 
   // tracks what bet index this action applies to 
   uint32 acted_bet_index = 4;
+
+  // total bet of the player in this round
+  // used for calculating player stack
+  float bet_amount = 5;
 }
 
 // message tracks number of players in this pot and the amount in the pot

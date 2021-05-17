@@ -1,0 +1,108 @@
+club:
+  name: Bug Testing
+  description: testing
+game:
+  create: true
+  title: bug testing
+  game-type: PLO_HILO
+  small-blind: 1
+  big-blind: 2
+  min-players: 2
+  max-players: 9
+  game-length: 60
+  buy-in-approval: false
+  buy-in-min: 1
+  buy-in-max: 3000
+  action-time: 30
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 24
+  - seat: 2
+    player: brian
+    buy-in: 6
+  - seat: 3
+    player: tom
+    buy-in: 6
+  - seat: 4
+    player: jim
+    buy-in: 278
+  - seat: 5
+    player: rob
+    buy-in: 6
+  - seat: 6
+    player: john
+    buy-in: 210
+hands:
+  - setup:
+      button-pos: 6
+      flop:
+        - Kd
+        - 6h
+        - 4h
+      turn: Tc
+      river: Qc
+      seat-cards:
+        - seat: 1
+          cards:
+            - 9h
+            - Qs
+            - Ad
+            - Ts
+        - seat: 2
+          cards:
+            - 7h
+            - 2d
+            - Jd
+            - 7s
+        - seat: 3
+          cards:
+            - 7c
+            - 3h
+            - 3c
+            - Jh
+        - seat: 4
+          cards:
+            - 9s
+            - Jc
+            - Qd
+            - Ks
+        - seat: 5
+          cards:
+            - Th
+            - Kc
+            - Ah
+            - 6c
+        - seat: 6
+          cards:
+            - 2h
+            - 4d
+            - 6d
+            - 3s
+    preflop:
+      seat-actions:
+        - action: 3, CALL, 2
+        - action: 4, CALL, 2
+        - action: 5, CALL, 2
+        - action: 6, CALL, 2
+        - action: 1, CALL, 2
+        - action: 2, ALLIN, 6
+        - action: 3, ALLIN, 6
+        - action: 4, CALL, 6
+        - action: 5, ALLIN, 6
+        - action: 6, CALL, 6
+        - action: 1, ALLIN, 24
+        - action: 4, CALL, 24
+        - action: 6, CALL, 24
+    flop:
+      seat-actions:
+        - action: 4, CHECK
+        - action: 6, CHECK
+    turn:
+      seat-actions:
+        - action: 4, CHECK
+        - action: 6, CHECK
+    river:
+      seat-actions:
+        - action: 4, CHECK
+        - action: 6, CHECK
