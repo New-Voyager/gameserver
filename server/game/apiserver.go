@@ -66,3 +66,28 @@ func (g *Game) getNewHandInfo() (*NewHandInfo, error) {
 	}
 	return nil, fmt.Errorf("[%s] Cannot get new hand information", g.config.GameCode)
 }
+
+func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) error {
+	// TODO: Implement retry.
+
+	url := fmt.Sprintf("%s/internal/move-to-next-hand/game_num/%s/hand_num/%d", g.apiServerUrl, g.config.GameCode, gameServerHandNum)
+
+	resp, _ := http.Post(url, "text/plain", bytes.NewBuffer([]byte{}))
+	// if the api server returns nil, do nothing
+	if resp == nil {
+		return fmt.Errorf("[%s] Cannot move API server to next hand", g.config.GameCode)
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		channelGameLogger.Error().Msgf("[%s] Cannot read response from /move-to-next-hand", g.config.GameCode)
+		return err
+	}
+	channelGameLogger.Info().Msgf("[%s] Response from /move-to-next-hand: %s", g.config.GameCode, bodyBytes)
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("[%s] /move-to-next-hand returned %d", g.config.GameCode, resp.StatusCode)
+	}
+	return nil
+}

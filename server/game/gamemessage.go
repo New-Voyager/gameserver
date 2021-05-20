@@ -99,6 +99,14 @@ func (g *Game) onPendingUpdatesDone(message *GameMessage) error {
 		if err != nil {
 			return err
 		}
+
+		err = g.moveAPIServerToNextHand(handState.HandNum)
+		for err != nil {
+			channelGameLogger.Error().Msg(err.Error())
+			time.Sleep(5 * time.Second)
+			err = g.moveAPIServerToNextHand(handState.HandNum)
+		}
+
 		handState.FlowState = FlowState_DEAL_HAND
 		g.saveHandState(handState)
 
@@ -150,6 +158,13 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 		g.inProcessPendingUpdates = true
 		go processPendingUpdates(g.apiServerUrl, g.config.GameId)
 	} else {
+		err := g.moveAPIServerToNextHand(handState.HandNum)
+		for err != nil {
+			channelGameLogger.Error().Msg(err.Error())
+			time.Sleep(5 * time.Second)
+			err = g.moveAPIServerToNextHand(handState.HandNum)
+		}
+
 		handState.FlowState = FlowState_DEAL_HAND
 		g.saveHandState(handState)
 

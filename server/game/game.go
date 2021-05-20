@@ -277,6 +277,13 @@ func (g *Game) startGame() (bool, error) {
 	g.broadcastGameMessage(&gameMessage)
 
 	if g.autoDeal {
+		err := g.moveAPIServerToNextHand(0)
+		for err != nil {
+			channelGameLogger.Error().Msg(err.Error())
+			time.Sleep(5 * time.Second)
+			err = g.moveAPIServerToNextHand(0)
+		}
+
 		g.dealNewHand()
 	}
 
