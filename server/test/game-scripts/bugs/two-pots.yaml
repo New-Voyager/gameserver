@@ -1,7 +1,7 @@
 disabled: false
 game-config:
   type: PLO
-  max-players: 3
+  max-players: 6
   min-players: 2
   min-buyin: 60.0
   max-buyin: 300.0
@@ -57,8 +57,9 @@ take-seat:
       buy-in: 210
 
 hands:
-  - setup:
-      button-pos: 1
+  - num: 1
+    setup:
+      button-pos: 6
       flop:
         - Kd
         - 6h
@@ -102,30 +103,62 @@ hands:
             - 4d
             - 6d
             - 3s
-    preflop:
-      seat-actions:
-        - action: 3, CALL, 2
-        - action: 4, CALL, 2
-        - action: 5, CALL, 2
-        - action: 6, CALL, 2
-        - action: 1, CALL, 2
-        - action: 2, ALLIN, 6
-        - action: 3, ALLIN, 6
-        - action: 4, CALL, 6
-        - action: 5, ALLIN, 6
-        - action: 6, CALL, 6
-        - action: 1, ALLIN, 24
-        - action: 4, CALL, 24
-        - action: 6, CALL, 24
-    flop:
-      seat-actions:
-        - action: 4, CHECK
-        - action: 6, CHECK
-    turn:
-      seat-actions:
-        - action: 4, CHECK
-        - action: 6, CHECK
-    river:
-      seat-actions:
-        - action: 4, CHECK
-        - action: 6, CHECK
+    preflop-action:
+      actions:
+        - seat: 3
+          action: CALL
+          amount: 2
+        - seat: 4
+          action: CALL
+          amount: 2
+        - seat: 5
+          action: CALL
+          amount: 2
+        - seat: 6
+          action: CALL
+          amount: 2
+        - seat: 1
+          action: CALL
+          amount: 2
+        - seat: 2
+          action: ALLIN
+          amount: 6
+        - seat: 3
+          action: ALLIN
+          amount: 6
+        - seat: 4
+          action: CALL
+          amount: 6
+        - seat: 5
+          action: ALLIN
+          amount: 6
+        - seat: 6
+          action: CALL
+          amount: 6
+        - seat: 1
+          action: ALLIN
+          amount: 24
+        - seat: 4
+          action: CALL
+          amount: 24
+        - seat: 6
+          action: CALL
+          amount: 24
+    flop-action:
+      actions:
+        - seat: 4
+          action: CHECK
+        - seat: 6
+          action: CHECK
+    turn-action:
+      actions:
+        - seat: 4
+          action: CHECK
+        - seat: 6
+          action: CHECK
+    river-action:
+      actions:
+        - seat: 4
+          action: CHECK
+        - seat: 6
+          action: CHECK
