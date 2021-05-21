@@ -37,7 +37,8 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 
 	gamePlayers := make(map[uint64]*TestPlayer)
 
-	gameCode := fmt.Sprintf("%d", time.Now().Unix())
+	now := time.Now().UnixNano()
+	gameCode := fmt.Sprintf("%d", now)
 	maxPlayers := 9
 	config := game.GameConfig{
 		ClubId:     clubID,
@@ -58,7 +59,7 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	gameScript.gameScript.GameConfig.GameCode = gameCode
 	gameScript.gameScript.GameConfig.ClubId = clubID
 	gameScript.gameScript.GameConfig.GameType = gameType
-	gameScript.gameScript.GameConfig.GameId = uint64(time.Now().Unix())
+	gameScript.gameScript.GameConfig.GameId = uint64(now)
 
 	serverGame, gameID, err := game.GameManager.InitializeGame(nil, &gameScript.gameScript.GameConfig, false)
 	if err != nil {
