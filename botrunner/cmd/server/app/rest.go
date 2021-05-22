@@ -32,7 +32,8 @@ func RunRestServer(portNo uint, logDir string) {
 	r.POST("/delete-all", deleteAll)
 	r.POST("/join-human-game", joinHumanGame)
 	r.POST("/delete-human-game", deleteHumanGame)
-	r.GET("/list-scripts", listBotrunnerScripts)
+	r.POST("/start-app-game", startAppGame)
+	r.GET("/app-games", listAppGames)
 	r.Run(fmt.Sprintf(":%d", portNo))
 }
 
@@ -165,31 +166,43 @@ func validateApplyPayload(payload BatchConf) error {
 	return nil
 }
 
-func listBotrunnerScripts(c *gin.Context) {
-	fileNames, err := util.GetFilesInDir("botrunner_scripts")
-	if err != nil {
-		errMsg := fmt.Sprintf("Error while listing files in botrunner_scripts directory. Error: %s", err)
-		restLogger.Error().Msg(errMsg)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
-		return
-	}
+func listAppGames(c *gin.Context) {
 	type listItem struct {
-		GameTitle  string
+		AppGame    string
 		ScriptFile string
 	}
 	var scripts []listItem
-	for _, fileName := range fileNames {
-		scriptFile := "botrunner_scripts/" + fileName
-		gameTitle, err := getGameTitle(scriptFile)
-		if err != nil {
-			errMsg := fmt.Sprintf("Error while parsing game title for script %s. Error: %s", scriptFile, err)
-			restLogger.Error().Msg(errMsg)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
-			return
-		}
-		scripts = append(scripts, listItem{ScriptFile: scriptFile, GameTitle: gameTitle})
+	m, err := listAppGameScripts()
+	if err != nil {
+		restLogger.Error().Msg(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	for appGameTitle, scriptFile := range m {
+		scripts = append(scripts, listItem{ScriptFile: scriptFile, AppGame: appGameTitle})
 	}
 	c.JSON(http.StatusOK, gin.H{"scripts": scripts})
+}
+
+// app game name -> script file
+func listAppGameScripts() (map[string]string, error) {
+	fileNames, err := util.GetFilesInDir("botrunner_scripts")
+	if err != nil {
+		return nil, fmt.Errorf("Error while listing files in botrunner_scripts directory. Error: %s", err)
+	}
+	res := make(map[string]string)
+	for _, fileName := range fileNames {
+		scriptFile := "botrunner_scripts/" + fileName
+		appGameTitle, err := getAppGameTitle(scriptFile)
+		if err != nil {
+			return nil, fmt.Errorf("Error while parsing game title for script %s. Error: %s", scriptFile, err)
+		}
+		if appGameTitle == "" {
+			continue
+		}
+		res[appGameTitle] = scriptFile
+	}
+	return res, nil
 }
 
 func getGameTitle(scriptFile string) (string, error) {
@@ -198,6 +211,14 @@ func getGameTitle(scriptFile string) (string, error) {
 		return "", errors.Wrap(err, "Error while parsing script file")
 	}
 	return script.Game.Title, nil
+}
+
+func getAppGameTitle(scriptFile string) (string, error) {
+	script, err := gamescript.ReadGameScript(scriptFile)
+	if err != nil {
+		return "", errors.Wrap(err, "Error while parsing script file")
+	}
+	return script.AppGame, nil
 }
 
 func joinHumanGame(c *gin.Context) {
@@ -236,10 +257,72 @@ func joinHumanGame(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "Accepted"})
 }
 
+func startAppGame(c *gin.Context) {
+	type Payload struct {
+		ClubCode string `json:"clubCode"`
+		Name     string `json:"name"`
+	}
+	var payload Payload
+	err := c.BindJSON(&payload)
+	if err != nil {
+		errMsg := fmt.Sprintf("Failed to parse payload. Error: %s", err)
+		restLogger.Error().Msg(errMsg)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
+		return
+	}
+	name := payload.Name
+	if name == "" {
+		c.String(400, "Failed to read name param from start-app-game endpoint.")
+		return
+	}
+	clubCode := payload.ClubCode
+	if clubCode == "" {
+		c.String(400, "Failed to read club-code param from start-app-game endpoint")
+		return
+	}
+	m, err := listAppGameScripts()
+	if err != nil {
+		restLogger.Error().Msg(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	scriptFile, ok := m[name]
+	if !ok {
+		errMsg := fmt.Sprintf("Unable to find script file for app game %s", name)
+		restLogger.Error().Msg(errMsg)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
+		return
+	}
+	script, err := gamescript.ReadGameScript(scriptFile)
+	if err != nil {
+		errMsg := fmt.Sprintf("Error while parsing script file %s. Error: %s", scriptFile, err)
+		restLogger.Error().Msg(errMsg)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
+		return
+	}
+	players, err := gamescript.ReadPlayersConfig(playersConfig)
+	if err != nil {
+		errMsg := fmt.Sprintf("Error while parsing players config file %s. Error: %s", playersConfig, err)
+		restLogger.Error().Msg(errMsg)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
+		return
+	}
+	launcher := GetLauncher()
+	err = launcher.StartAppGame(clubCode, name, players, script)
+	if err != nil {
+		errMsg := fmt.Sprintf("Error while starting app game. Error: %s", err)
+		restLogger.Error().Msg(errMsg)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "Accepted"})
+}
+
 func deleteHumanGame(c *gin.Context) {
 	gameCode := c.Query("game-code")
 	if gameCode == "" {
-		c.String(400, "Failed to read game-code param from join-hame endpoint.")
+		c.String(400, "Failed to read game-code param from delete-human-game endpoint.")
 	}
 
 	launcher := GetLauncher()
