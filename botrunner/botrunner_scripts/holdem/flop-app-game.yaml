@@ -1,4 +1,4 @@
-app-game: 'Ends at Preflop'
+app-game: Flop App Game
 club:
   name: Manchester Club
   description: Club used for testing with the bot runner
@@ -56,23 +56,33 @@ hands:
     preflop:
       seat-actions:
         # seat number/action/amount
-        - action: 1, BET, 4
+        - action: 1, CALL, 2
+        - action: 2, CALL, 2
+        - action: 3, CHECK
+
+    flop:
+      verify:
+        board: ["Ac", "Ad", "2c"]
+      seat-actions:
+        - action: 2, CHECK
+        - action: 3, BET, 2
+        - action: 1, CALL, 2
         - action: 2, RAISE, 10
         - action: 3, FOLD
-        - action: 1, FOLD
+        - action: 1, FOLD 
 
     result:
       winners:
         - seat: 2
-          receive: 16.0
-      action-ended: PREFLOP
+          receive: 19
+      action-ended: FLOP
       
       # balance indicates the player balance after the hand
       # bb player won a chip
       stacks:
         - seat: 1
+          stack: 84
+        - seat: 5
+          stack: 120
+        - seat: 8
           stack: 96
-        - seat: 2
-          stack: 106
-        - seat: 3
-          stack: 98

@@ -129,3 +129,13 @@ func (l *Launcher) DeleteHumanGame(gameCode string) error {
 	delete(l.humanGames, gameCode)
 	return nil
 }
+
+// StartAppGame starts a script game for an existing club.
+func (l *Launcher) StartAppGame(clubCode string, name string, players *gamescript.Players, script *gamescript.Script) error {
+	h, err := NewAppGame(clubCode, name, players, script)
+	if err != nil {
+		return err
+	}
+	h.Launch()
+	return nil
+}

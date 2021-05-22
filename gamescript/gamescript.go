@@ -13,6 +13,7 @@ import (
 
 // Script contains game script YAML content.
 type Script struct {
+	AppGame       string         `yaml:"app-game"`
 	Club          Club           `yaml:"club"`
 	Game          Game           `yaml:"game"`
 	StartingSeats []StartingSeat `yaml:"starting-seats"`

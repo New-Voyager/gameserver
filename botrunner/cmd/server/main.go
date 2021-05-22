@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 
+	_ "github.com/lib/pq"
 	"github.com/rs/zerolog/log"
 	"voyager.com/botrunner/cmd/server/app"
 )
