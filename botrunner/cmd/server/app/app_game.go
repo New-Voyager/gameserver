@@ -52,7 +52,7 @@ func (b *AppGame) Launch() error {
 	botPlayerLogger := zerolog.New(f).With().Str("logger_name", "BotPlayer").Logger()
 
 	b.logger.Info().Msgf("Launching bot runner to start an app game. Logging to %s", logFileName)
-	botRunner, err := driver.NewBotRunner(b.clubCode, "", b.script, b.players, true, &botRunnerLogger, &botPlayerLogger, "", "", false)
+	botRunner, err := driver.NewBotRunner(b.clubCode, "", b.script, b.players, false, &botRunnerLogger, &botPlayerLogger, "", "", false)
 	if err != nil {
 		errors.Wrap(err, "Error while creating a BotRunner")
 	}

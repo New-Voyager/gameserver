@@ -191,8 +191,7 @@ func listAppGameScripts() (map[string]string, error) {
 		return nil, fmt.Errorf("Error while listing files in botrunner_scripts directory. Error: %s", err)
 	}
 	res := make(map[string]string)
-	for _, fileName := range fileNames {
-		scriptFile := "botrunner_scripts/" + fileName
+	for _, scriptFile := range fileNames {
 		appGameTitle, err := getAppGameTitle(scriptFile)
 		if err != nil {
 			return nil, fmt.Errorf("Error while parsing game title for script %s. Error: %s", scriptFile, err)
