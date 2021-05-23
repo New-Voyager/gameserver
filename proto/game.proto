@@ -71,6 +71,7 @@ enum NewUpdate {
   BUYIN_TIMEDOUT = 9;
   NEWUPDATE_WAIT_FOR_BUYIN_APPROVAL = 10;
   BUYIN_DENIED = 11;
+  NEWUPDATE_NOT_PLAYING = 12;
 }
 
 // Player update comes from the API server
@@ -90,6 +91,7 @@ message GamePlayerUpdate {
   float reload_chips = 7;
   NewUpdate new_update = 8;
   uint32 old_seat = 9;
+  string break_exp_at = 10;
 }
 
 // SeatMove message used when a host is rearranging the seats

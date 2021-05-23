@@ -146,6 +146,7 @@ func (br *BotRunner) Run() error {
 		}
 	}
 
+	br.logger.Info().Msgf("Bots joining the club")
 	// Register bots to the poker service.
 	for _, b := range append(br.bots, br.observerBot) {
 		err := b.Register()
@@ -198,6 +199,7 @@ func (br *BotRunner) Run() error {
 			return err
 		}
 	}
+	br.logger.Info().Msgf("Bots joined the club")
 
 	if br.botIsClubOwner {
 		// The club owner bot approves the other bots to join the club.
@@ -228,7 +230,7 @@ func (br *BotRunner) Run() error {
 				botNamesNotApproved := br.getBotNamesDiff(botsToApplyClub, botsApprovedToClub)
 				br.logger.Info().Msgf("Waiting for bots %v to be approved to the club [%s]", botNamesNotApproved, br.clubCode)
 			}
-			time.Sleep(2000 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
 
@@ -238,6 +240,7 @@ func (br *BotRunner) Run() error {
 		rewardID := br.bots[0].RewardsNameToID[br.script.Game.Rewards]
 		rewardIds = append(rewardIds, rewardID)
 	}
+	br.logger.Info().Msgf("Bots joining the new game")
 
 	gameTitle := br.script.Game.Title
 	if br.gameCode == "" {
@@ -269,10 +272,11 @@ func (br *BotRunner) Run() error {
 		}
 		br.gameCode = gameCode
 	}
+	br.logger.Info().Msgf("New game is created")
 
 	// Let the observer bot start watching the game.
 	br.observerBot.ObserveGame(br.gameCode)
-
+	br.logger.Info().Msgf("Starting the game")
 	if br.botIsGameHost {
 		// This is a bot-created game. Use the config script to sit the bots.
 		for _, startingSeat := range br.script.StartingSeats {
@@ -319,7 +323,7 @@ func (br *BotRunner) Run() error {
 				}
 			}
 			if !playersJoined {
-				time.Sleep(2000 * time.Millisecond)
+				time.Sleep(100 * time.Millisecond)
 			}
 		}
 
@@ -340,10 +344,12 @@ func (br *BotRunner) Run() error {
 				}
 			}
 			if !playersBoughtIn {
-				time.Sleep(2000 * time.Millisecond)
+				time.Sleep(100 * time.Millisecond)
 			}
 		}
+		br.logger.Info().Msgf("Bots joined the new game")
 
+		br.logger.Info().Msgf("Starting the new game")
 		// Have the owner bot start the game.
 		if !br.waitStart && !br.script.Game.DontStart {
 			// Have the owner bot start the game.
@@ -406,6 +412,7 @@ func (br *BotRunner) Run() error {
 			bot.DetermineBots(gi)
 		}
 	}
+	br.logger.Info().Msgf("Game started")
 
 	// Wait till the game is over.
 	requestedEndGame := false
