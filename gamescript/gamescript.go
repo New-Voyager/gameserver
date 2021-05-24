@@ -357,6 +357,12 @@ func (s *Script) Validate() error {
 	startingSeats := mapset.NewSet()
 	playerNames := mapset.NewSet()
 
+	// Check max players are valid numbers.
+	validMaxPlayers := mapset.NewSet(0, 2, 4, 6, 8, 9)
+	if !validMaxPlayers.Contains(s.Game.MaxPlayers) {
+		return fmt.Errorf("Invalid max-players [%d]", s.Game.MaxPlayers)
+	}
+
 	// Check starting seat numbers and player names are unique.
 	for _, seat := range s.StartingSeats {
 		if startingSeats.Contains(seat.Seat) {

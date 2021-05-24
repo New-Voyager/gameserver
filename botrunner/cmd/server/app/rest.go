@@ -192,6 +192,9 @@ func listAppGameScripts() (map[string]string, error) {
 	}
 	res := make(map[string]string)
 	for _, scriptFile := range fileNames {
+		if strings.HasSuffix(scriptFile, "/common/players.yaml") {
+			continue
+		}
 		appGameTitle, err := getAppGameTitle(scriptFile)
 		if err != nil {
 			return nil, fmt.Errorf("Error while parsing game title for script %s. Error: %s", scriptFile, err)
