@@ -11,7 +11,7 @@ game:
   utg-straddle-allowed: true
   straddle-bet: 4.0
   min-players: 2
-  max-players: 3
+  max-players: 4
   game-length: 60
   buy-in-approval: true
   rake-percentage: 5.0
