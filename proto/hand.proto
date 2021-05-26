@@ -205,6 +205,7 @@ message PotWinners {
   float amount = 2;
   repeated HandWinner hi_winners = 3;
   repeated HandWinner low_winners = 4;
+  uint32 pause_time = 5;      // pause time 
 }
 
 enum FlowState {

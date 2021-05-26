@@ -9,8 +9,9 @@ import (
 	"github.com/pkg/errors"
 	"voyager.com/server/crashtest"
 	"voyager.com/server/poker"
-	"voyager.com/server/util"
 )
+
+const pauseTime = uint32(3000)
 
 func (g *Game) handleHandMessage(message *HandMessage) {
 	err := g.validateClientMsg(message)
@@ -334,7 +335,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 		g.saveHandState(handState)
 		g.broadcastHandMessage(&msg)
-		g.pauseIfGameEnded(msgItems)
+		g.handleHandEnded(msgItems)
 
 		return nil
 	}
@@ -490,24 +491,46 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	g.saveHandState(handState)
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3, playerMsg.PlayerId)
-	g.pauseIfGameEnded(allMsgItems)
+	g.handleHandEnded(allMsgItems)
 	return nil
 }
 
-func (g *Game) pauseIfGameEnded(allMsgItems []*HandMessageItem) {
+func (g *Game) handleHandEnded(allMsgItems []*HandMessageItem) {
 	// if the last message is hand ended (pause for the result animation)
 	handEnded := false
+	var handResult *HandResult
 	for _, message := range allMsgItems {
 		if message.MessageType == HandEnded {
 			handEnded = true
 		}
 	}
+
 	// wait 5 seconds to show the result
 	// send a message to game to start new hand
-	if handEnded && !util.GameServerEnvironment.ShouldDisableDelays() {
-		fmt.Printf("\n\n===============================\nHand ended. Pausing the game\n")
-		time.Sleep(5000 * time.Millisecond)
+	if handEnded { //&& !util.GameServerEnvironment.ShouldDisableDelays() {
+		for _, message := range allMsgItems {
+			if message.MessageType == HandResultMessage {
+				handResult = message.GetHandResult()
+			}
+		}
+		totalPauseTime := 0
+		if handResult == nil {
+			totalPauseTime = int(pauseTime)
+		} else {
+			for _, potWinner := range handResult.HandLog.PotWinners {
+				totalPauseTime = totalPauseTime + int(potWinner.PauseTime)
+			}
+		}
+		fmt.Printf("\n\n===============================\nHand ended. Pausing the game. Pots: %d\n", totalPauseTime)
+		time.Sleep(time.Duration(totalPauseTime) * time.Millisecond)
+		//time.Sleep(5000 * time.Millisecond)
 		fmt.Printf("Resuming the game\n===============================\n\n")
+
+		gameMessage := &GameMessage{
+			GameId:      g.config.GameId,
+			MessageType: GameMoveToNextHand,
+		}
+		go g.SendGameMessageToChannel(gameMessage)
 	}
 }
 
@@ -701,14 +724,7 @@ func (g *Game) handEnded(handState *HandState) ([]*HandMessageItem, error) {
 		MessageType: HandEnded,
 	}
 
-	gameMessage := &GameMessage{
-		GameId:      g.config.GameId,
-		MessageType: GameMoveToNextHand,
-	}
-
 	handState.FlowState = FlowState_MOVE_TO_NEXT_HAND
-
-	go g.SendGameMessageToChannel(gameMessage)
 
 	return []*HandMessageItem{handEnded}, nil
 }
@@ -756,6 +772,11 @@ func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, hand
 				g.announceHighHand(saveResult, handResult.HighHand)
 			}
 		}
+	}
+
+	// update pause time
+	for _, potWinner := range handResult.HandLog.PotWinners {
+		potWinner.PauseTime = pauseTime
 	}
 
 	msgItem := &HandMessageItem{
