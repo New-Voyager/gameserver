@@ -1,0 +1,6 @@
+# Compiled executables
+timer
+!timer/
+
+# VS Code debugger
+__debug_bin
