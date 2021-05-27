@@ -48,7 +48,7 @@ for the human player. You can join and drive the human component using the teste
 ```
 # This botrunner will create a game and pause, giving you time to join.
 # It will print the game code to join.
-DEV_BOT_SCRIPT=river-action-2-bots-1-human.yaml make run
+BOTRUNNER_SCRIPT=botrunner_scripts/river-action-2-bots-1-human.yaml make run
 
 # Run the tester app from a different terminal to join the game as the human component.
 GAME_CODE=XXXXXX make tester
@@ -57,7 +57,7 @@ GAME_CODE=XXXXXX make tester
 Here is an example for a kubernetes run using a script containing a human.
 ```
 export DEV_API_SERVER_URL=http://35.188.237.125:9501
-export DEV_BOT_SCRIPT=river-action-2-bots-1-human.yaml
+export BOTRUNNER_SCRIPT=botrunner_scripts/river-action-2-bots-1-human.yaml
 
 # Bots
 make run
