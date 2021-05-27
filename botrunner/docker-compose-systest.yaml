@@ -32,6 +32,7 @@ services:
       REDIS_PORT: 6379
       NATS_URL: nats://nats:4222
       BOTRUNNER_URL: http://botrunner:8081
+      TIMER_URL: http://timer:8082
 
   game-server:
     image: ${GAME_SERVER_IMAGE}
@@ -72,6 +73,12 @@ services:
       POSTGRES_PASSWORD: 'game'
       POSTGRES_DB: 'game'
       DISABLE_DELAYS: 1
+
+  timer:
+    image: ${TIMER_IMAGE}
+    tty: true
+    environment:
+      API_SERVER_URL: http://api-server:9501
 
 networks:
   default:
