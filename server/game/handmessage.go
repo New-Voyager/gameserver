@@ -517,14 +517,30 @@ func (g *Game) handleHandEnded(allMsgItems []*HandMessageItem) {
 		if handResult == nil {
 			totalPauseTime = int(pauseTime)
 		} else {
-			for _, potWinner := range handResult.HandLog.PotWinners {
-				totalPauseTime = totalPauseTime + int(potWinner.PauseTime)
+			if handResult.RunItTwice {
+				if handResult.HandLog.RunItTwiceResult.Board_1Winners != nil {
+					for _, potWinner := range handResult.HandLog.RunItTwiceResult.Board_1Winners {
+						totalPauseTime = totalPauseTime + int(potWinner.PauseTime)
+					}
+				}
+				if handResult.HandLog.RunItTwiceResult.Board_2Winners != nil {
+					for _, potWinner := range handResult.HandLog.RunItTwiceResult.Board_2Winners {
+						totalPauseTime = totalPauseTime + int(potWinner.PauseTime)
+					}
+				}
+			} else {
+				for _, potWinner := range handResult.HandLog.PotWinners {
+					totalPauseTime = totalPauseTime + int(potWinner.PauseTime)
+				}
 			}
 		}
-		fmt.Printf("\n\n===============================\nHand ended. Pausing the game. Pots: %d\n", totalPauseTime)
+		now := time.Now()
+
+		fmt.Printf("\n\n===============================\n[%s] Hand ended. Pausing the game. Pause: %d\n",
+			now.String(), totalPauseTime)
 		time.Sleep(time.Duration(totalPauseTime) * time.Millisecond)
 		//time.Sleep(5000 * time.Millisecond)
-		fmt.Printf("Resuming the game\n===============================\n\n")
+		fmt.Printf("[%s] Resuming the game\n===============================\n\n", time.Now().String())
 
 		gameMessage := &GameMessage{
 			GameId:      g.config.GameId,
@@ -775,8 +791,19 @@ func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, hand
 	}
 
 	// update pause time
-	for _, potWinner := range handResult.HandLog.PotWinners {
-		potWinner.PauseTime = pauseTime
+	if handResult.HandLog.RunItTwice {
+		if handResult.HandLog.RunItTwiceResult.Board_1Winners != nil {
+			for _, potWinner := range handResult.HandLog.RunItTwiceResult.Board_1Winners {
+				potWinner.PauseTime = pauseTime
+			}
+			for _, potWinner := range handResult.HandLog.RunItTwiceResult.Board_2Winners {
+				potWinner.PauseTime = pauseTime
+			}
+		}
+	} else {
+		for _, potWinner := range handResult.HandLog.PotWinners {
+			potWinner.PauseTime = pauseTime
+		}
 	}
 
 	msgItem := &HandMessageItem{
