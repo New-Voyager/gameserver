@@ -79,7 +79,7 @@ func cancelTimer(c *gin.Context) {
 		c.String(400, "Failed to parse player-id [%s] from start-time endpoint.", playerIDStr)
 	}
 
-	restLogger.Info().Msgf("cancel-timer game id: %s player id: %s purpose: %s", gameID, playerID, purpose)
+	restLogger.Info().Msgf("cancel-timer game id: %s player id: %s purpose: %s", gameIDStr, playerIDStr, purpose)
 
 	timeoutController.CancelTimer(gameID, playerID, purpose)
 }
