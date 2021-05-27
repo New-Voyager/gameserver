@@ -12,7 +12,6 @@ import (
 	"voyager.com/server/game"
 	"voyager.com/server/nats"
 	"voyager.com/server/rest"
-	"voyager.com/server/timer"
 	"voyager.com/server/util"
 
 	"github.com/rs/zerolog"
@@ -78,7 +77,6 @@ func runWithNats() {
 	_ = listener
 
 	apiServerURL := util.GameServerEnvironment.GetApiServerUrl()
-	timer.APIServerUrl = apiServerURL
 
 	// subscribe to api server events
 	nats.RegisterGameServer(apiServerURL, natsGameManager)
