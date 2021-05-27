@@ -1069,11 +1069,7 @@ func (bp *BotPlayer) JoinGame(gameCode string) error {
 			bp.logger.Info().Msgf("%s: Press ENTER to take seat [%d]...", bp.logPrefix, scriptSeatNo)
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
 		} else {
-			// update player config
-			scriptSeatConfig := bp.config.Script.GetSeatConfigByPlayerName(bp.config.Name)
-			if scriptSeatConfig != nil {
-				bp.UpdateGameConfig(gameCode, scriptSeatConfig.RunItTwicePromptResponse, scriptSeatConfig.MuckLosingHand)
-			}
+
 		}
 
 		bp.event(BotEvent__REQUEST_SIT)
@@ -1086,6 +1082,12 @@ func (bp *BotPlayer) JoinGame(gameCode string) error {
 		if bp.IsHuman() {
 			bp.logger.Info().Msgf("%s: Press ENTER to buy in [%f] chips...", bp.logPrefix, scriptBuyInAmount)
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
+		} else {
+			// update player config
+			scriptSeatConfig := bp.config.Script.GetSeatConfigByPlayerName(bp.config.Name)
+			if scriptSeatConfig != nil {
+				bp.UpdateGameConfig(gameCode, scriptSeatConfig.RunItTwicePromptResponse, scriptSeatConfig.MuckLosingHand)
+			}
 		}
 		bp.buyInAmount = uint32(scriptBuyInAmount)
 		err = bp.BuyIn(gameCode, scriptBuyInAmount)

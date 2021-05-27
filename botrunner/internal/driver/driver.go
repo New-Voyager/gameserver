@@ -107,7 +107,7 @@ func (br *BotRunner) Run() error {
 			MaxActionPauseTime: br.script.BotConfig.MaxActionPauseTime,
 			APIServerURL:       util.Env.GetAPIServerURL(),
 			NatsURL:            util.Env.GetNatsURL(),
-			GQLTimeoutSec:      3,
+			GQLTimeoutSec:      10,
 			Script:             br.script,
 			Players:            br.players,
 		}, br.playerLogger, br.msgCollector)
@@ -130,7 +130,7 @@ func (br *BotRunner) Run() error {
 		MaxActionPauseTime: 0,
 		APIServerURL:       util.Env.GetAPIServerURL(),
 		NatsURL:            util.Env.GetNatsURL(),
-		GQLTimeoutSec:      3,
+		GQLTimeoutSec:      10,
 		Script:             br.script,
 		Players:            br.players,
 	}, br.playerLogger, br.msgCollector)
