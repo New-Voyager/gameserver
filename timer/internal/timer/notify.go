@@ -4,13 +4,19 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"voyager.com/timer/internal/util"
 )
 
-var APIServerUrl string
+var APIServerURL string
+
+func init() {
+	APIServerURL = util.Env.GetAPIServerURL()
+}
 
 func notifyTimeout(t *Timer) {
 	timerLogger.Info().Msgf("Notifying timeout %d|%d|%s", t.gameID, t.playerID, t.purpose)
-	url := fmt.Sprintf("%s/internal/timer-callback/gameId/%d/playerId/%d/purpose/%s", APIServerUrl, t.gameID, t.playerID, t.purpose)
+	url := fmt.Sprintf("%s/internal/timer-callback/gameId/%d/playerId/%d/purpose/%s", APIServerURL, t.gameID, t.playerID, t.purpose)
 	retry := true
 	for retry {
 		resp, _ := http.Post(url, "application/json", nil)

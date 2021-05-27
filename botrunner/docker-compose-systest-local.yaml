@@ -27,6 +27,10 @@ services:
     ports:
       - 8081:8081
 
+  timer:
+    ports:
+      - 8082:8082
+
 networks:
   default:
     external:

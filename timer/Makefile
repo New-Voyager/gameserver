@@ -1,0 +1,45 @@
+BUILD_NO := $(shell cat build_number.txt)
+GCP_PROJECT_ID := voyager-01-285603
+DO_REGISTRY := registry.digitalocean.com/voyager
+GCP_REGISTRY := gcr.io/$(GCP_PROJECT_ID)
+REGISTRY := $(DO_REGISTRY)
+
+DEV_API_SERVER_URL ?= http://localhost:9501
+
+DOCKER_BUILDKIT ?= 1
+
+PROJECT_ROOT := ..
+
+.PHONY: docker-build
+docker-build:
+	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t timer
+
+.PHONY: build
+build:
+	go build -o timer
+
+.PHONY: run
+run:
+	API_SERVER_URL=$(DEV_API_SERVER_URL) go run ./main.go
+
+.PHONY: publish
+publish: do-publish
+
+.PHONY: do-publish
+do-publish: export REGISTRY=$(DO_REGISTRY)
+do-publish: do-login publish-timer
+
+.PHONY: gcp-publish
+gcp-publish: export REGISTRY=$(GCP_REGISTRY)
+gcp-publish: publish-timer
+
+.PHONY: publish-timer
+publish-timer:
+	docker tag timer $(REGISTRY)/timer:$(BUILD_NO)
+	docker tag timer $(REGISTRY)/timer:latest
+	docker push $(REGISTRY)/timer:$(BUILD_NO)
+	docker push $(REGISTRY)/timer:latest
+
+.PHONY: do-login
+do-login:
+	docker login --username 69bf6de23225d8abd358d7c5c2dac07d64a7f6c0bd97d5a5a974847269f99455 --password 69bf6de23225d8abd358d7c5c2dac07d64a7f6c0bd97d5a5a974847269f99455 registry.digitalocean.com

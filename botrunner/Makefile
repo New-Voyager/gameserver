@@ -131,7 +131,7 @@ do-login:
 TEST_DOCKER_NET := poker_test
 
 # These images are downloaded.
-API_SERVER_IMAGE := $(REGISTRY)/api-server:0.3.6
+API_SERVER_IMAGE := $(REGISTRY)/api-server:0.3.17
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
 REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
 POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5
@@ -139,6 +139,7 @@ POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5
 # These images are built from local code.
 GAME_SERVER_IMAGE=game-server:latest
 BOTRUNNER_IMAGE=botrunner:latest
+TIMER_IMAGE=timer:latest
 
 COMPOSE_SYSTEM_TEST := docker-compose -p system_test -f docker-compose-systest.yaml
 ifndef CIRCLECI
@@ -153,6 +154,7 @@ system-test: system-test-down system-test-up
 system-test-build:
 	$(MAKE) -C $(PROJECT_ROOT)/server docker-build
 	$(MAKE) -C $(PROJECT_ROOT)/botrunner docker-build
+	$(MAKE) -C $(PROJECT_ROOT)/timer docker-build
 
 .PHONY: system-test-down
 system-test-down: system-test-generate-env
@@ -176,6 +178,7 @@ system-test-generate-env:
 		echo "API_SERVER_IMAGE=$(API_SERVER_IMAGE)" >> .env && \
 		echo "GAME_SERVER_IMAGE=$(GAME_SERVER_IMAGE)" >> .env && \
 		echo "BOTRUNNER_IMAGE=$(BOTRUNNER_IMAGE)" >> .env && \
+		echo "TIMER_IMAGE=$(TIMER_IMAGE)" >> .env && \
 		echo "NATS_SERVER_IMAGE=$(NATS_SERVER_IMAGE)" >> .env && \
 		echo "REDIS_IMAGE=$(REDIS_IMAGE)" >> .env && \
 		echo "POSTGRES_IMAGE=$(POSTGRES_IMAGE)" >> .env && \
