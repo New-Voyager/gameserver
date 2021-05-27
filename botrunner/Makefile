@@ -15,9 +15,12 @@ DEV_POSTGRES_DB ?= game
 PRINT_GAME_MSG ?= false
 PRINT_HAND_MSG ?= false
 
+# Script used to join the human-created game.
+HUMAN_GAME_SCRIPT := botrunner_scripts/human-game.yaml
+
 # Script used to drive the botrunner & tester.
-DEV_BOT_SCRIPT ?= river-action-3-bots.yaml
-# DEV_BOT_SCRIPT ?= river-action-2-bots-1-human.yaml
+DEV_BOT_SCRIPT ?= botrunner_scripts/river-action-3-bots.yaml
+# DEV_BOT_SCRIPT ?= botrunner_scripts/river-action-2-bots-1-human.yaml
 
 DOCKER_BUILDKIT ?= 1
 
@@ -68,7 +71,7 @@ run:
 	POSTGRES_USER=$(DEV_POSTGRES_USER) \
 	POSTGRES_PASSWORD=$(DEV_POSTGRES_PASSWORD) \
 	POSTGRES_DB=$(DEV_POSTGRES_DB) \
-	go run ./cmd/botrunner/main.go --script botrunner_scripts/$(DEV_BOT_SCRIPT)
+	go run ./cmd/botrunner/main.go --script $(DEV_BOT_SCRIPT)
 
 .PHONY: tester
 tester: CODE=$(GAME_CODE)
@@ -76,7 +79,7 @@ tester:
 	API_SERVER_URL=$(DEV_API_SERVER_URL) \
 	PRINT_GAME_MSG=$(PRINT_GAME_MSG) \
 	PRINT_HAND_MSG=$(PRINT_HAND_MSG) \
-	go run ./cmd/tester/main.go --script botrunner_scripts/$(DEV_BOT_SCRIPT) --game-code $(CODE)
+	go run ./cmd/tester/main.go --script $(DEV_BOT_SCRIPT) --game-code $(CODE)
 
 .PHONY: join-human-game
 join-human-game: CCODE=$(CLUB_CODE)
@@ -85,7 +88,7 @@ join-human-game:
 	API_SERVER_URL=$(DEV_API_SERVER_URL) \
 	PRINT_GAME_MSG=$(PRINT_GAME_MSG) \
 	PRINT_HAND_MSG=$(PRINT_HAND_MSG) \
-	go run ./cmd/botrunner/main.go --script botrunner_scripts/human-game.yaml --club-code $(CCODE) --game-code $(GCODE)
+	go run ./cmd/botrunner/main.go --script $(HUMAN_GAME_SCRIPT) --club-code $(CCODE) --game-code $(GCODE)
 
 .PHONY: botrunner-server
 botrunner-server:
