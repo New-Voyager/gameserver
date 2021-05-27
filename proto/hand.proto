@@ -30,7 +30,7 @@ message HandAction {
 
 message HandActionLog {
   float pot_start = 1;
-  float pot = 2;
+  repeated float pots = 2;
   repeated HandAction actions = 3; 
 }
 

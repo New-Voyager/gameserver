@@ -216,6 +216,12 @@ func (h *HandState) setupRound(state HandStatus) {
 	// track main pot value as starting value
 	if log != nil {
 		log.PotStart = h.Pots[0].Pot
+		log.Pots = make([]float32, 0)
+		for _, pot := range h.Pots {
+			if pot.Pot != 0.0 {
+				log.Pots = append(log.Pots, pot.Pot)
+			}
+		}
 	}
 
 	h.RoundState[uint32(state)].PlayerBalance = make(map[uint32]float32, 0)
@@ -699,7 +705,6 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 	action.ActionTime = uint32(actionResponseTime)
 	// add the action to the log
 	log.Actions = append(log.Actions, action)
-	log.Pot = log.Pot + diff
 
 	// check whether everyone has acted in this ROUND
 	// or everyone except folded in this hand

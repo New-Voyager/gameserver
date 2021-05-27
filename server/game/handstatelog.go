@@ -94,7 +94,11 @@ func (h *HandState) PrintCurrentActionLog(playersInSeats []SeatPlayer) string {
 	for _, seatAction := range log.Actions {
 		fmt.Fprintf(&b, "%s\n", seatAction.Print(h, playersInSeats))
 	}
-	fmt.Fprintf(&b, "Pot: %f\n", log.Pot)
+	var pots string = ""
+	for _, pot := range log.Pots {
+		pots = pots + fmt.Sprintf("%f", pot)
+	}
+	fmt.Fprintf(&b, "Pots: %s\n", pots)
 	return b.String()
 }
 
