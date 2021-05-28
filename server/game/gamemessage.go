@@ -43,6 +43,9 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 	case GameStart:
 		break
 
+	case GameCurrentStatus:
+		g.onStatusUpdate(message)
+
 	case PlayerConfigUpdateMsg:
 		g.onPlayerConfigUpdate(message)
 	}
@@ -183,6 +186,13 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 func (g *Game) onStatusChanged(message *GameMessage) error {
 	gameStatusChanged := message.GetStatusChange()
 	g.Status = gameStatusChanged.NewStatus
+	return nil
+}
+
+func (g *Game) onStatusUpdate(message *GameMessage) error {
+	gameStatusChanged := message.GetStatus()
+	g.Status = gameStatusChanged.Status
+	g.TableStatus = gameStatusChanged.TableStatus
 	return nil
 }
 

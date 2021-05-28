@@ -381,6 +381,10 @@ func (g *Game) dealNewHand() error {
 			// right now panic (shouldn't happen)
 			panic(err)
 		}
+		if newHandInfo.TableStatus != TableStatus_GAME_RUNNING {
+			return nil
+		}
+
 		g.ButtonPos = newHandInfo.ButtonPos
 
 		// button is moved in the API server

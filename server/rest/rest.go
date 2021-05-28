@@ -178,11 +178,22 @@ func gamePendingUpdates(c *gin.Context) {
 
 	started := c.Query("started")
 	done := c.Query("done")
+	gameStatusStr := c.Query("status")
+	tableStatusStr := c.Query("table-status")
 
 	gameID, err := strconv.ParseUint(gameIDStr, 10, 64)
 	if err != nil {
 		c.String(400, "Failed to parse game-id [%s] from pending-updates endpoint.", gameIDStr)
 	}
+	gameStatus, err := strconv.ParseUint(gameStatusStr, 10, 64)
+	if err != nil {
+		c.String(400, "Failed to parse game-status [%s] from pending-updates endpoint.", gameIDStr)
+	}
+	tableStatus, err := strconv.ParseUint(tableStatusStr, 10, 64)
+	if err != nil {
+		c.String(400, "Failed to parse table-status [%s] from pending-updates endpoint.", gameIDStr)
+	}
+
 	if started != "" {
 		// API server started processing pending updates
 		//natsGameManager.GamePendingUpdatesStarted(gameID)
@@ -190,7 +201,7 @@ func gamePendingUpdates(c *gin.Context) {
 	} else if done != "" {
 		restLogger.Info().Msgf("****** Pending updates done for game %d", gameID)
 		// pending updates done, game can resume
-		natsGameManager.PendingUpdatesDone(gameID)
+		natsGameManager.PendingUpdatesDone(gameID, gameStatus, tableStatus)
 	}
 }
 
