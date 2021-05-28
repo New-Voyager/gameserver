@@ -94,10 +94,13 @@ func (gm *GameManager) PlayerUpdate(gameID uint64, playerUpdate *PlayerUpdate) {
 	}
 }
 
-func (gm *GameManager) PendingUpdatesDone(gameID uint64) {
+func (gm *GameManager) PendingUpdatesDone(gameID uint64, gameStatusInt uint64, tableStatusInt uint64) {
 	gameIDStr := fmt.Sprintf("%d", gameID)
-	if game, ok := gm.activeGames[gameIDStr]; ok {
-		game.pendingUpdatesDone()
+	if g, ok := gm.activeGames[gameIDStr]; ok {
+		gameStatus := game.GameStatus(gameStatusInt)
+		tableStatus := game.TableStatus(tableStatusInt)
+
+		g.pendingUpdatesDone(gameStatus, tableStatus)
 	} else {
 		natsLogger.Error().Uint64("gameId", gameID).Msg(fmt.Sprintf("GameID: %d does not exist", gameID))
 	}
