@@ -328,4 +328,6 @@ type NewHandInfo struct {
 	HandNum          uint32
 	AnnounceGameType bool
 	PlayersInSeats   []SeatPlayer
+	GameStatus       GameStatus
+	TableStatus      TableStatus
 }

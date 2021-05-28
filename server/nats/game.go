@@ -159,14 +159,24 @@ func (n *NatsGame) playerUpdate(gameID uint64, update *PlayerUpdate) {
 	n.BroadcastGameMessage(&message)
 }
 
-func (n *NatsGame) pendingUpdatesDone() {
+func (n *NatsGame) pendingUpdatesDone(gameStatus game.GameStatus, tableStatus game.TableStatus) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
-		Msg(fmt.Sprintf("APIServer->Game: Pending updates done. GameID: %d", n.gameID))
-	var message game.GameMessage
-	message.GameId = n.gameID
-	message.GameCode = n.gameCode
-	message.MessageType = game.GamePendingUpdatesDone
-	go n.serverGame.SendGameMessageToChannel(&message)
+		Msg(fmt.Sprintf("APIServer->Game: Pending updates done. GameID: %d GameStatus: %d Table Status: %d", n.gameID, gameStatus, tableStatus))
+	go func() {
+		var message game.GameMessage
+		message.GameId = n.gameID
+		message.GameCode = n.gameCode
+		message.GameId = n.gameID
+		message.GameCode = n.gameCode
+		message.MessageType = game.GameCurrentStatus
+
+		status := &game.GameStatusMessage{Status: gameStatus, TableStatus: tableStatus}
+		message.GameMessage = &game.GameMessage_Status{Status: status}
+		n.serverGame.SendGameMessageToChannel(&message)
+		message.MessageType = game.GamePendingUpdatesDone
+		message.GameMessage = nil
+		n.serverGame.SendGameMessageToChannel(&message)
+	}()
 }
 
 // message sent from bot to game
