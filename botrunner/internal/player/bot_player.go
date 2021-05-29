@@ -471,6 +471,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			bp.logger.Info().Msgf("%s: Flop cards shown: %s", bp.logPrefix, msgItem.GetFlop().GetCardsStr())
 		}
 		bp.verifyBoard()
+		//time.Sleep(1 * time.Second)
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 
 	case game.HandTurn:
@@ -481,6 +482,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			bp.logger.Info().Msgf("%s: Turn cards shown: %s", bp.logPrefix, msgItem.GetTurn().GetCardsStr())
 		}
 		bp.verifyBoard()
+		//time.Sleep(1 * time.Second)
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 
 	case game.HandRiver:
@@ -491,6 +493,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			bp.logger.Info().Msgf("%s: River cards shown: %s", bp.logPrefix, msgItem.GetRiver().GetCardsStr())
 		}
 		bp.verifyBoard()
+		//time.Sleep(1 * time.Second)
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 
 	case game.HandPlayerAction:
@@ -830,10 +833,7 @@ func (bp *BotPlayer) GetClubMemberStatus(clubCode string) (int, error) {
 	return status, nil
 }
 
-// CreateClubReward creates a new club reward.
-func (bp *BotPlayer) CreateClubReward(clubCode string, name string, rewardType string, scheduleType string, amount float32) (uint32, error) {
-	bp.logger.Info().Msgf("%s: Creating a new club reward [%s].", bp.logPrefix, name)
-
+func (bp *BotPlayer) GetRewardId(clubCode string, name string) (uint32, error) {
 	var rewardID uint32
 	// if the reward already exists, use the existing reward
 	clubRewards, err := bp.gqlHelper.GetClubRewards(clubCode)
@@ -845,6 +845,14 @@ func (bp *BotPlayer) CreateClubReward(clubCode string, name string, rewardType s
 			}
 		}
 	}
+	return rewardID, err
+}
+
+// CreateClubReward creates a new club reward.
+func (bp *BotPlayer) CreateClubReward(clubCode string, name string, rewardType string, scheduleType string, amount float32) (uint32, error) {
+	bp.logger.Info().Msgf("%s: Creating a new club reward [%s].", bp.logPrefix, name)
+	rewardID, err := bp.GetRewardId(clubCode, name)
+
 	if rewardID == 0 {
 		rewardID, err = bp.gqlHelper.CreateClubReward(clubCode, name, rewardType, scheduleType, amount)
 		if err != nil {
