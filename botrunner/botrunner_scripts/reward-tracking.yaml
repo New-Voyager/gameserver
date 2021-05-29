@@ -1,5 +1,6 @@
 # TODO: This script does not work.
 # For some reason the server starts YOUR_ACTION from seat 2 instead of seat 1.
+app-game: High hand tracking
 
 club:
   name: High Hand Club
@@ -93,10 +94,10 @@ hands:
         - action: 3, CALL, 10
         - action: 1, CALL, 10
 
-    result:
-      winners:
-        - seat: 3
-          receive: 56.0
-      high-hand:
-        - seat: 1
-      action-ended: SHOW_DOWN
+    # result:
+    #   winners:
+    #     - seat: 3
+    #       receive: 56.0
+    #   high-hand:
+    #     - seat: 1
+    #   action-ended: SHOW_DOWN

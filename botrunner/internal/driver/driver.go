@@ -237,8 +237,13 @@ func (br *BotRunner) Run() error {
 	rewardIds := make([]uint32, 0)
 	if br.script.Game.Rewards != "" {
 		// rewards can be listed with comma delimited string
-		rewardID := br.bots[0].RewardsNameToID[br.script.Game.Rewards]
-		rewardIds = append(rewardIds, rewardID)
+		//rewardID := br.bots[0].RewardsNameToID[br.script.Game.Rewards]
+		rewardID, err := br.bots[0].GetRewardId(br.clubCode, br.script.Game.Rewards)
+		if err != nil {
+			br.logger.Error().Msgf("Could not get reward info for %s", br.script.Game.Rewards)
+		} else {
+			rewardIds = append(rewardIds, rewardID)
+		}
 	}
 	br.logger.Info().Msgf("Bots joining the new game")
 
