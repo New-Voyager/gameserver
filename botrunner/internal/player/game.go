@@ -23,8 +23,6 @@ type tableView struct {
 
 	playersBySeat map[uint32]*player
 
-	me *player
-
 	flopCards  []uint32
 	turnCards  []uint32
 	riverCards []uint32

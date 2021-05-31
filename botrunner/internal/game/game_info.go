@@ -37,9 +37,9 @@ type GameInfo struct {
 	Status                string
 	TableStatus           string
 	SeatInfo              struct {
-		AvailableSeats []uint32
-		PlayersInSeats []SeatInfo
-	}
+		AvailableSeats []uint32   `json:"availableSeats"`
+		PlayersInSeats []SeatInfo `json:"playersInSeats"`
+	} `json:"seatInfo"`
 	GameToken           string
 	PlayerGameStatus    string
 	GameToPlayerChannel string

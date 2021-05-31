@@ -467,11 +467,12 @@ func (g *GQLHelper) RequestSeatChange(gameCode string) (string, error) {
 }
 
 // ConfirmSeatChange confirms to make a seat change to a open seat
-func (g *GQLHelper) ConfirmSeatChange(gameCode string) (bool, error) {
+func (g *GQLHelper) ConfirmSeatChange(gameCode string, seatNo uint32) (bool, error) {
 	req := graphql.NewRequest(ConfirmSeatChangeGQL)
 
 	var confirm ConfirmSeatChangeResp
 	req.Var("gameCode", gameCode)
+	req.Var("seatNo", seatNo)
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Authorization", g.authToken)
 
@@ -484,6 +485,26 @@ func (g *GQLHelper) ConfirmSeatChange(gameCode string) (bool, error) {
 	}
 
 	return confirm.Confirmed, nil
+}
+
+// DeclineSeatChange declines to make a seat change to a open seat
+func (g *GQLHelper) DeclineSeatChange(gameCode string) (bool, error) {
+	req := graphql.NewRequest(DeclineSeatChangeGQL)
+
+	var decline DeclineSeatChangeResp
+	req.Var("gameCode", gameCode)
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", g.authToken)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+
+	err := g.client.Run(ctx, req, &decline)
+	if err != nil {
+		return false, err
+	}
+
+	return decline.Declined, nil
 }
 
 // JoinWaitList allows a player to join waiting list of a game
@@ -745,7 +766,7 @@ const GameInfoGQL = `query game_info($gameCode: String!) {
 }`
 
 type GameInfoResp struct {
-	GameInfo game.GameInfo
+	GameInfo game.GameInfo `json:"gameInfo"`
 }
 
 // CreatePlayerGQL is the mustation gql for registering a new user.
@@ -1038,14 +1059,25 @@ type SeatChangeRequestResp struct {
 	Time string
 }
 
-const ConfirmSeatChangeGQL = `mutation confirmSeatChange($gameCode: String!) {
+const ConfirmSeatChangeGQL = `mutation confirmSeatChange($gameCode: String!, $seatNo: Int!) {
 	confirmed: confirmSeatChange(
 		gameCode: $gameCode
+		seatNo: $seatNo
 	)
 }`
 
 type ConfirmSeatChangeResp struct {
 	Confirmed bool
+}
+
+const DeclineSeatChangeGQL = `mutation declineSeatChange($gameCode: String!) {
+	declined: declineSeatChange(
+		gameCode: $gameCode
+	)
+}`
+
+type DeclineSeatChangeResp struct {
+	Declined bool
 }
 
 const JoinWaitListGQL = `mutation joinWaitList($gameCode: String!) {

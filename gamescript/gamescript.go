@@ -394,10 +394,6 @@ func (s *Script) Validate() error {
 			}
 			seatCardSeats.Add(seatCards.Seat)
 		}
-		// Check card setup contains all seat numbers.
-		if !validSeats.Equal(seatCardSeats) {
-			return fmt.Errorf("Seat numbers in hand %d seat-cards do not match the expected. Expected: %s, Provided: %s", handNum, validSeats, seatCardSeats)
-		}
 
 		// Check preflop seat numbers.
 		for _, seatAction := range hand.Preflop.SeatActions {

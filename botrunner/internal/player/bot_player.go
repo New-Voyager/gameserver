@@ -49,6 +49,11 @@ type Config struct {
 	Script             *gamescript.Script
 }
 
+type GameMessageChannelItem struct {
+	ProtoGameMsg    *game.GameMessage
+	NonProtoGameMsg *NonProtoMessage
+}
+
 // BotPlayer represents a bot user.
 type BotPlayer struct {
 	logger          *zerolog.Logger
@@ -61,6 +66,7 @@ type BotPlayer struct {
 	gameCode        string
 	gameID          uint64
 	PlayerID        uint64
+	PlayerUUID      string
 	RewardsNameToID map[string]uint32
 	scriptedGame    bool
 
@@ -82,7 +88,7 @@ type BotPlayer struct {
 	serverLastMsgIDs *util.Queue
 
 	// Message channels
-	chGame chan *game.GameMessage
+	chGame chan *GameMessageChannelItem
 	chHand chan *game.HandMessage
 	end    chan bool
 
@@ -160,9 +166,10 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger, msgCollector *msg
 	bp := BotPlayer{
 		logger:           logger,
 		config:           playerConfig,
+		PlayerUUID:       playerConfig.DeviceID,
 		gqlHelper:        gqlHelper,
 		natsConn:         nc,
-		chGame:           make(chan *game.GameMessage, 10),
+		chGame:           make(chan *GameMessageChannelItem, 10),
 		chHand:           make(chan *game.HandMessage, 10),
 		end:              make(chan bool),
 		logPrefix:        logPrefix,
@@ -257,15 +264,27 @@ func (bp *BotPlayer) queueGameMsg(msg *natsgo.Msg) {
 	}
 
 	var message game.GameMessage
+	var nonProtoMsg NonProtoMessage
 	err := protojson.Unmarshal(msg.Data, &message)
 	if err != nil {
-		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf message [%s]", bp.logPrefix, err, string(msg.Data))
-		return
+		// bp.logger.Debug().Msgf("%s: Error [%s] while unmarshalling protobuf game message [%s]. Assuming non-protobuf message", bp.logPrefix, err, string(msg.Data))
+		err = json.Unmarshal(msg.Data, &nonProtoMsg)
+		if err != nil {
+			bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling non-protobuf game message [%s]", bp.logPrefix, err, string(msg.Data))
+			return
+		}
+		bp.chGame <- &GameMessageChannelItem{
+			ProtoGameMsg:    nil,
+			NonProtoGameMsg: &nonProtoMsg,
+		}
+	} else {
+		bp.chGame <- &GameMessageChannelItem{
+			ProtoGameMsg:    &message,
+			NonProtoGameMsg: nil,
+		}
 	}
 
 	bp.collectGameMsg(&message, msg.Data)
-
-	bp.chGame <- &message
 }
 
 func (bp *BotPlayer) queueHandMsg(msg *natsgo.Msg) {
@@ -278,7 +297,7 @@ func (bp *BotPlayer) queueHandMsg(msg *natsgo.Msg) {
 	var message game.HandMessage
 	err := protojson.Unmarshal(msg.Data, &message)
 	if err != nil {
-		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf message [%s]", bp.logPrefix, err, string(msg.Data))
+		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf hand message [%s]", bp.logPrefix, err, string(msg.Data))
 		return
 	}
 
@@ -307,8 +326,12 @@ func (bp *BotPlayer) messageLoop() {
 		select {
 		case <-bp.end:
 			return
-		case message := <-bp.chGame:
-			bp.handleGameMessage(message)
+		case chItem := <-bp.chGame:
+			if chItem.ProtoGameMsg != nil {
+				bp.handleGameMessage(chItem.ProtoGameMsg)
+			} else if chItem.NonProtoGameMsg != nil {
+				bp.handleNonProtoGameMessage(chItem.NonProtoGameMsg)
+			}
 		case message := <-bp.chHand:
 			bp.handleHandMessage(message)
 		}
@@ -389,6 +412,8 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 
 	case game.HandNewHand:
 		/* MessageType: NEW_HAND */
+		bp.reloadBotFromGameInfo()
+		bp.game.handNum = message.HandNum
 		bp.game.handStatus = message.GetHandStatus()
 		newHand := msgItem.GetNewHand()
 		bp.game.table.buttonPos = newHand.GetButtonPos()
@@ -397,7 +422,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.game.table.nextActionSeat = newHand.GetNextActionSeat()
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 		bp.game.table.actionTracker = game.NewHandActionTracker()
-		bp.game.handNum = message.HandNum
+
 		bp.hasNextHandBeenSetup = false // Not this hand, but the next one.
 		if bp.IsHost() {
 			data, _ := protojson.Marshal(message)
@@ -460,8 +485,6 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		// process any leave game requests
 		// the player will after this hand
 		bp.setupLeaveGame()
-
-		bp.storeGameInfo()
 
 	case game.HandFlop:
 		/* MessageType: FLOP */
@@ -961,18 +984,21 @@ func (bp *BotPlayer) unsubscribe() error {
 		if err != nil {
 			errMsg = fmt.Sprintf("Error [%s] while unsubscribing from subject [%s]", err, bp.gameMsgSub.Subject)
 		}
+		bp.gameMsgSub = nil
 	}
 	if bp.handMsgAllSub != nil {
 		err := bp.handMsgAllSub.Unsubscribe()
 		if err != nil {
 			errMsg = fmt.Sprintf("%s Error [%s] while unsubscribing from subject [%s]", errMsg, err, bp.handMsgAllSub.Subject)
 		}
+		bp.handMsgAllSub = nil
 	}
 	if bp.handMsgPlayerSub != nil {
 		err := bp.handMsgPlayerSub.Unsubscribe()
 		if err != nil {
 			errMsg = fmt.Sprintf("%s Error [%s] while unsubscribing from subject [%s]", errMsg, err, bp.handMsgPlayerSub.Subject)
 		}
+		bp.handMsgPlayerSub = nil
 	}
 	if errMsg != "" {
 		return fmt.Errorf(errMsg)
@@ -1234,6 +1260,7 @@ func (bp *BotPlayer) LeaveGame() error {
 		if err != nil {
 			return errors.Wrap(err, "Error while making a GQL request to leave game")
 		}
+		bp.isSeated = false
 	}
 	bp.end <- true
 	return nil
@@ -1490,6 +1517,9 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 		if !runItTwiceActionPrompt {
 			var err error
 			scriptAction, err := bp.decision.GetNextAction(bp, availableActions)
+			if scriptAction.Action.Seat != bp.seatNo {
+				bp.logger.Panic().Msgf("%s: Bot seatNo (%d) != script seatNo (%d)", bp.logPrefix, bp.seatNo, scriptAction.Action.Seat)
+			}
 			if err != nil {
 				bp.logger.Error().Msgf("%s: Unable to get the next action %+v", bp.logPrefix, err)
 				return
@@ -1883,12 +1913,38 @@ func (bp *BotPlayer) getPlayerCardsFromConfig(seatCards []gamescript.SeatCards) 
 	return playerCards
 }
 
-func (bp *BotPlayer) storeGameInfo() error {
-	gi, err := bp.GetGameInfo(bp.gameCode)
+func (bp *BotPlayer) reloadBotFromGameInfo() error {
+	gameInfo, err := bp.GetGameInfo(bp.gameCode)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get game info %s", bp.logPrefix, bp.gameCode))
 	}
-	bp.gameInfo = &gi
+	bp.gameInfo = &gameInfo
+
+	var seatNo uint32
+	var isSeated bool
+	for _, p := range gameInfo.SeatInfo.PlayersInSeats {
+		pl := &player{
+			playerID: p.PlayerId,
+			seatNo:   p.SeatNo,
+			status:   game.PlayerStatus(game.PlayerStatus_value[p.Status]),
+			stack:    p.Stack,
+			buyIn:    p.BuyIn,
+			isBot:    p.IsBot,
+		}
+		bp.game.table.playersBySeat[p.SeatNo] = pl
+		if p.PlayerUUID == bp.PlayerUUID {
+			isSeated = true
+			seatNo = p.SeatNo
+		}
+	}
+	if isSeated {
+		bp.isSeated = true
+		bp.seatNo = seatNo
+	} else {
+		bp.isSeated = false
+		bp.seatNo = 0
+	}
+
 	return nil
 }
 

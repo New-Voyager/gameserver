@@ -1,0 +1,143 @@
+club:
+  name: Manchester Club
+  description: Club used for testing with the bot runner
+
+game:
+  create: true
+  title: "NLH Testing Game"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 9
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 100
+  buy-in-max: 300
+  action-time: 100
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 100
+  - seat: 5
+    player: brian
+    buy-in: 100
+  - seat: 8
+    player: tom
+    buy-in: 100
+
+tester:
+auto-play: false
+
+bot-config:
+  min-action-pause-time: 0
+  max-action-pause-time: 0
+
+# deal the following hands in the table
+hands:
+  - setup:
+      button-pos: 1
+      flop: ["Ac", "Ad", "2c"]
+      turn: Td
+      river: 4s
+      seat-cards:
+        # seat cards in the order players are sitting 
+        # seat 1 gets Kh Qd
+        # seat 5 gets 3s 7s
+        # seat 8 gets 9h 2s
+        - seat: 1
+          cards: ["Kh", "Qd"]
+        - seat: 5
+          cards: ["3s", "7s"]
+        - seat: 8
+          cards: ["9h", "2s"]
+      leave-game:
+        - seat: 5
+      seat-change:
+        - seat: 8
+          confirm: false
+
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 1, CALL, 2
+        - action: 5, CALL, 2
+        - action: 8, CHECK
+
+    flop:
+      verify:
+        board: ["Ac", "Ad", "2c"]
+      seat-actions:
+        - action: 5, CHECK
+        - action: 8, BET, 2
+        - action: 1, CALL, 2
+        - action: 5, RAISE, 4
+        - action: 8, FOLD
+        - action: 1, CALL, 4
+
+    turn:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td"]
+      seat-actions:
+        - action: 5, CHECK
+        - action: 1, BET, 10
+        - action: 5, CALL, 10
+
+    river:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-actions:
+        - action: 5, BET, 10
+        - action: 1, CALL, 10
+
+    result:
+      winners:
+        - seat: 1
+          receive: 54.0
+          rank: Two Pair
+      action-ended: SHOW_DOWN
+      
+      # balance indicates the player balance after the hand
+      # bb player won a chip
+      stacks:
+        - seat: 1
+          stack: 84
+        - seat: 5
+          stack: 120
+        - seat: 8
+          stack: 96
+
+  - setup:
+      button-pos: 1
+      flop: ["Ac", "Ad", "2c"]
+      turn: Td
+      river: 4s
+      seat-cards:
+        # seat cards in the order players are sitting 
+        # seat 1 gets Kh Qd
+        # seat 5 gets 3s 7s
+        # seat 8 gets 9h 2s
+        - seat: 1
+          cards: ["Kh", "Qd"]
+        - seat: 8
+          cards: ["3s", "7s"]
+
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 8, ALLIN
+        - action: 1, ALLIN
+
+    result:
+      winners:
+        - seat: 8
+          receive: 187
+          rank: Pair
+      action-ended: SHOW_DOWN
