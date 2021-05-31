@@ -63,6 +63,7 @@ type BotPlayer struct {
 	PlayerID        uint64
 	RewardsNameToID map[string]uint32
 	scriptedGame    bool
+	Reload          bool
 
 	// state of the bot
 	sm *fsm.FSM
@@ -175,6 +176,7 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger, msgCollector *msg
 		serverLastMsgIDs: util.NewQueue(10),
 		ackMaxWait:       300,
 		scriptedGame:     true,
+		Reload:           true,
 	}
 
 	bp.sm = fsm.NewFSM(
@@ -269,12 +271,15 @@ func (bp *BotPlayer) queueGameMsg(msg *natsgo.Msg) {
 }
 
 func (bp *BotPlayer) queueHandMsg(msg *natsgo.Msg) {
+	fmt.Printf("\n")
+	fmt.Printf(string(msg.Data))
+	fmt.Printf("\n")
 
-	if bp.IsHost() {
-		fmt.Printf("\n\n")
-		fmt.Printf(string(msg.Data))
-		fmt.Printf("\n\n")
-	}
+	// if bp.IsHost() {
+	// 	fmt.Printf("\n\n")
+	// 	fmt.Printf(string(msg.Data))
+	// 	fmt.Printf("\n\n")
+	// }
 	var message game.HandMessage
 	err := protojson.Unmarshal(msg.Data, &message)
 	if err != nil {
@@ -427,13 +432,33 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 
 			if !bp.config.Script.AutoPlay {
 				currentHand := bp.config.Script.Hands[message.HandNum-1]
-				if len(currentHand.Setup.Verify.Seats) > 0 {
+				verify := currentHand.Setup.Verify
+				if len(verify.Seats) > 0 {
 					for _, seat := range currentHand.Setup.Verify.Seats {
 						seatPlayer := newHand.PlayersInSeats[seat.Seat]
 						if seatPlayer.Name != seat.Player {
 							bp.logger.Error().Msgf("Player %s should be in seat %d, but found another player: %s", seatPlayer.Name, seat.Seat, seat.Player)
 							panic(fmt.Sprintf("Player %s should be in seat %d, but found another player: %s", seatPlayer.Name, seat.Seat, seat.Player))
 						}
+					}
+				}
+
+				if verify.ButtonPos != nil {
+					if newHand.ButtonPos != *verify.ButtonPos {
+						bp.logger.Error().Msgf("Button position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.ButtonPos, newHand.ButtonPos)
+						panic(fmt.Sprintf("Button position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.ButtonPos, newHand.ButtonPos))
+					}
+				}
+				if verify.SBPos != nil {
+					if newHand.SbPos != *verify.SBPos {
+						bp.logger.Error().Msgf("SB position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.SBPos, newHand.SbPos)
+						panic(fmt.Sprintf("SB position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.SBPos, newHand.SbPos))
+					}
+				}
+				if verify.BBPos != nil {
+					if newHand.BbPos != *verify.BBPos {
+						bp.logger.Error().Msgf("BB position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.BBPos, newHand.BbPos)
+						panic(fmt.Sprintf("BB position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.BBPos, newHand.BbPos))
 					}
 				}
 			}
@@ -588,7 +613,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		result := bp.game.handResult
 		for seatNo, player := range result.Players {
 			if seatNo == bp.seatNo {
-				if player.Balance.After == 0.0 {
+				if player.Balance.After == 0.0 && bp.Reload {
 					// reload chips
 					bp.reload()
 				}
