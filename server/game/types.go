@@ -330,4 +330,6 @@ type NewHandInfo struct {
 	PlayersInSeats   []SeatPlayer
 	GameStatus       GameStatus
 	TableStatus      TableStatus
+	SbPos            uint32
+	BbPos            uint32
 }

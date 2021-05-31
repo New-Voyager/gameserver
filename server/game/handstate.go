@@ -103,7 +103,7 @@ func (h *HandState) board(deck *poker.Deck) []byte {
 	return board
 }
 
-func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonPos uint32, moveButton bool, playersInSeats []SeatPlayer) {
+func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonPos uint32, sbPos uint32, bbPos uint32, moveButton bool, playersInSeats []SeatPlayer) {
 	// settle players in the seats
 	h.PlayersInSeats = make([]uint64, gameConfig.MaxPlayers+1) // seat 0 is dealer
 	h.NoActiveSeats = 0
@@ -126,6 +126,16 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 		h.PlayerStats[player.PlayerID] = &PlayerStats{InPreflop: true}
 		h.NoActiveSeats++
 	}
+
+	// if there is no active player in the button pos (panic)
+	if h.PlayersInSeats[buttonPos] == 0 {
+		handLogger.Error().
+			Uint64("game", h.GetGameId()).
+			Uint32("hand", h.GetHandNum()).
+			Msgf("Button Pos: %d does not have any active seat: %v. This is a dead button", buttonPos, h.PlayersInSeats)
+		//panic(fmt.Sprintf("Button Pos: %d does not have any active seats: %v", buttonPos, h.PlayersInSeats))
+	}
+
 	h.HandStats = &HandStats{}
 	h.MaxSeats = uint32(gameConfig.MaxPlayers)
 	h.SmallBlind = float32(gameConfig.SmallBlind)
@@ -147,10 +157,15 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 		h.ButtonPos = h.moveButton()
 	}
 
-	// TODO: make sure small blind is still there
-	// if small blind left the game, we can have dead small
-	// to make it simple, we will make new players to always to post or wait for the big blind
-	h.SmallBlindPos, h.BigBlindPos = h.getBlindPos()
+	if sbPos != 0 && bbPos != 0 {
+		h.SmallBlindPos = sbPos
+		h.BigBlindPos = bbPos
+	} else {
+		// TODO: make sure small blind is still there
+		// if small blind left the game, we can have dead small
+		// to make it simple, we will make new players to always to post or wait for the big blind
+		h.SmallBlindPos, h.BigBlindPos = h.getBlindPos()
+	}
 
 	h.BalanceBeforeHand = make([]*PlayerBalance, 0)
 	// also populate current balance of the players in the table
@@ -450,18 +465,24 @@ func (h *HandState) getPlayersCards(deck *poker.Deck) map[uint32][]byte {
 			playerCards[uint32(seatNo)] = make([]byte, 0, 4)
 		}
 	}
+	activeSeats := h.activeSeatsCount()
+	totalCards := activeSeats * noOfCards
 
 	for i := 0; i < noOfCards; i++ {
 		seatNo := h.ButtonPos
 		for {
 			seatNo = h.getNextActivePlayer(seatNo)
 			cards := deck.Draw(1)
+			totalCards--
 			h.DeckIndex++
 			playerCards[seatNo] = append(playerCards[seatNo], cards[0].GetByte())
-			if seatNo == h.ButtonPos {
+			if seatNo == h.ButtonPos || totalCards == 0 {
 				// next round of cards
 				break
 			}
+		}
+		if totalCards == 0 {
+			break
 		}
 	}
 

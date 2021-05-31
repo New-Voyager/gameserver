@@ -71,6 +71,7 @@ type StartingSeat struct {
 	RunItTwice               bool    `yaml:"run-it-twice"`
 	RunItTwicePromptResponse bool    `yaml:"run-it-twice-prompt"`
 	MuckLosingHand           bool    `yaml:"muck-losing-hand"`
+	Reload                   *bool   `yaml:"reload"`
 }
 
 // Observer contains entries of observers of game
@@ -165,6 +166,9 @@ type HandSetupVerfication struct {
 	State         string       `yaml:"state"`
 	DealtCards    []SeatCards  `yaml:"dealt-cards"`
 	Seats         []VerifySeat `yaml:"seats"`
+	ButtonPos     *uint32      `yaml:"button-pos"`
+	SBPos         *uint32      `yaml:"sb-pos"`
+	BBPos         *uint32      `yaml:"bb-pos"`
 }
 
 type SeatChangeConfirm struct {
@@ -395,9 +399,9 @@ func (s *Script) Validate() error {
 			seatCardSeats.Add(seatCards.Seat)
 		}
 		// Check card setup contains all seat numbers.
-		if !validSeats.Equal(seatCardSeats) {
-			return fmt.Errorf("Seat numbers in hand %d seat-cards do not match the expected. Expected: %s, Provided: %s", handNum, validSeats, seatCardSeats)
-		}
+		// if !validSeats.Equal(seatCardSeats) {
+		// 	return fmt.Errorf("Seat numbers in hand %d seat-cards do not match the expected. Expected: %s, Provided: %s", handNum, validSeats, seatCardSeats)
+		// }
 
 		// Check preflop seat numbers.
 		for _, seatAction := range hand.Preflop.SeatActions {
