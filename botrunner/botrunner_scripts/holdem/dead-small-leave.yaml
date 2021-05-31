@@ -48,7 +48,7 @@ bot-config:
 hands:
   - setup:
       leave-game:
-        - seat: 2
+        - seat: 3
       button-pos: 1
       board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-cards:
@@ -74,8 +74,8 @@ hands:
       verify:
         board: ["Ac", "Ad", "2c"]
       seat-actions:
-        - action: 2, ALLIN
-        - action: 3, ALLIN
+        - action: 2, BET, 2
+        - action: 3, FOLD
         - action: 4, FOLD
         - action: 1, FOLD
 
@@ -86,3 +86,11 @@ hands:
           button-pos: 2
           sb-pos: 3
           bb-pos: 4
+
+# button should be in seat 3
+  - setup:
+      auto: true
+      verify:
+          button-pos: 3
+          sb-pos: 4
+          bb-pos: 1
