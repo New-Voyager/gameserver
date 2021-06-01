@@ -26,3 +26,17 @@ type SetupDeck struct {
 type PlayerCard struct {
 	Cards []string `json:"cards"`
 }
+
+type NonProtoMessage struct {
+	Type       string `json:"type"`
+	GameCode   string `json:"gameCode"`
+	OpenedSeat uint32 `json:"openedSeat"`
+	PlayerName string `json:"playerName"`
+	PlayerID   uint64 `json:"playerId"`
+	PlayerUUID string `json:"playerUuid"`
+	ExpTime    string `json:"expTime"`
+	PromptSecs int    `json:"promptSecs"`
+	OldSeatNo  int    `json:"oldSeatNo"`
+	NewSeatNo  int    `json:"newSeatNo"`
+	RequestID  string `json:"requestId"`
+}

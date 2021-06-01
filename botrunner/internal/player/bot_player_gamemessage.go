@@ -35,7 +35,6 @@ func (bp *BotPlayer) handleGameMessage(message *game.GameMessage) {
 		bp.game.table.playersBySeat[seatNo] = p
 		if playerID == bp.PlayerID {
 			// me
-			bp.game.table.me = p
 			bp.seatNo = p.seatNo
 
 			if playerUpdateMsg.GetStatus() == game.PlayerStatus_PLAYING &&
@@ -51,7 +50,6 @@ func (bp *BotPlayer) handleGameMessage(message *game.GameMessage) {
 				data, _ := json.Marshal(message)
 				fmt.Printf("%s\n", string(data))
 
-				bp.game.table.me = p
 				bp.seatNo = p.seatNo
 				bp.updateLogPrefix()
 			}
@@ -59,6 +57,12 @@ func (bp *BotPlayer) handleGameMessage(message *game.GameMessage) {
 				bp.logPrefix, playerID, p.seatNo, playerUpdateMsg.OldSeat)
 			// a player switched seat, his old seat is empty
 			bp.game.table.playersBySeat[playerUpdateMsg.OldSeat] = nil
+		} else if playerUpdateMsg.GetNewUpdate() == game.NewUpdate_LEFT_THE_GAME {
+			if playerID == bp.PlayerID {
+				if bp.isSeated {
+					bp.LeaveGame()
+				}
+			}
 		}
 
 	case game.GameCurrentStatus:
@@ -96,19 +100,57 @@ func (bp *BotPlayer) handleGameMessage(message *game.GameMessage) {
 	}
 }
 
+func (bp *BotPlayer) handleNonProtoGameMessage(message *NonProtoMessage) {
+	fmt.Printf("[%s] HANDLING NON-PROTO GAME MESSAGE: %+v\n", bp.logPrefix, message)
+	switch message.Type {
+	case "PLAYER_SEAT_CHANGE_PROMPT":
+		if message.PlayerID != bp.PlayerID {
+			// This message is for some other player.
+			return
+		}
+		openedSeatNo := message.OpenedSeat
+		scriptHandConf := bp.config.Script.GetHand(bp.game.handNum)
+		for _, sc := range scriptHandConf.Setup.SeatChange {
+			if sc.Seat == bp.seatNo {
+				if sc.Confirm {
+					bp.logger.Info().Msgf("%s: CONFIRM seat change", bp.logPrefix)
+					bp.gqlHelper.ConfirmSeatChange(bp.gameCode, openedSeatNo)
+				} else {
+					bp.logger.Info().Msgf("%s: DECLINE seat change", bp.logPrefix)
+					bp.gqlHelper.DeclineSeatChange(bp.gameCode)
+				}
+			}
+		}
+		break
+	case "PLAYER_SEAT_MOVE":
+		oldSeatNo := message.OldSeatNo
+		newSeatNo := message.NewSeatNo
+		playerID := message.PlayerID
+		if playerID == bp.PlayerID {
+
+		}
+		if bp.IsObserver() {
+			bp.logger.Info().Msgf("Player [%s] changed seat %d -> %d", message.PlayerName, oldSeatNo, newSeatNo)
+		}
+		break
+	case "PLAYER_SEAT_CHANGE_DONE":
+		break
+	}
+}
+
 func (bp *BotPlayer) onTableUpdate(message *game.GameMessage) {
 	// based on the update, do different things
 	tableUpdate := message.GetTableUpdate()
 	if tableUpdate.Type == game.TableUpdateSeatChangeProcess {
-		data, _ := protojson.Marshal(message)
-		fmt.Printf("%s\n", string(data))
-		// open seat
-		// do i want to change seat??
-		if bp.requestedSeatChange && bp.confirmSeatChange {
-			bp.logger.Info().Msgf("%s: Confirming seat change to the open seat", bp.logPrefix)
-			// confirm seat change
-			bp.gqlHelper.ConfirmSeatChange(bp.gameCode)
-		}
+		// data, _ := protojson.Marshal(message)
+		// fmt.Printf("%s\n", string(data))
+		// // open seat
+		// // do i want to change seat??
+		// if bp.requestedSeatChange && bp.confirmSeatChange {
+		// 	bp.logger.Info().Msgf("%s: Confirming seat change to the open seat", bp.logPrefix)
+		// 	// confirm seat change
+		// 	bp.gqlHelper.ConfirmSeatChange(bp.gameCode)
+		// }
 	} else if tableUpdate.Type == game.TableUpdateWaitlistSeating {
 		data, _ := protojson.Marshal(message)
 		fmt.Printf("%s\n", string(data))
@@ -186,13 +228,13 @@ func (bp *BotPlayer) setupSeatChange() error {
 		return nil
 	}
 
-	currentHand := bp.config.Script.Hands[bp.game.handNum-1]
+	currentHand := bp.config.Script.GetHand(bp.game.handNum)
 	seatChanges := currentHand.Setup.SeatChange
 	if seatChanges != nil {
 		// using seat no, get the bot player and make seat change request
 		for _, seatChangeRequest := range seatChanges {
 			if seatChangeRequest.Seat == bp.seatNo {
-				bp.logger.Info().Msgf("%s: Player [%s] requested seat change.", bp.logPrefix, bp.config.Name)
+				bp.logger.Info().Msgf("%s: Player [%s] requesting seat change.", bp.logPrefix, bp.config.Name)
 				bp.gqlHelper.RequestSeatChange(bp.gameCode)
 				bp.requestedSeatChange = true
 				bp.confirmSeatChange = seatChangeRequest.Confirm
@@ -307,7 +349,7 @@ func (bp *BotPlayer) setupLeaveGame() error {
 		return nil
 	}
 
-	currentHand := bp.config.Script.Hands[bp.game.handNum-1]
+	currentHand := bp.config.Script.GetHand(bp.game.handNum)
 	leaveGame := currentHand.Setup.LeaveGame
 	if leaveGame != nil {
 		// using seat no, get the bot player and make seat change request
