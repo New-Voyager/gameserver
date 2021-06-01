@@ -1,5 +1,5 @@
 club:
-  name: Bad Robots
+  name: Waitlist Testing Club
   description: Club used for testing with the bot runner
   rewards:
     - name: High Hand
@@ -9,7 +9,7 @@ club:
 
 game:
   create: true
-  title: "Bot Testing Game"
+  title: "Waitlist Testing"
   game-type: "HOLDEM"
   small-blind: 1.0
   big-blind: 2.0
@@ -55,4 +55,40 @@ starting-seats:
     player: michael
     buy-in: 1000
 
-auto-play: true
+observers:
+  - player: david
+    waitlist: true
+    confirm: true
+    buy-in: 500
+  - player: olivia
+    waitlist: true
+    confirm: true
+    buy-in: 500
+  - player: emma
+    waitlist: true
+    confirm: true
+    buy-in: 500
+
+# deal the following hands in the table
+hands:
+  - setup:
+      button-pos: 1
+      auto: true
+      take-break:
+        - seat: 5
+
+  - setup:
+      pause: 10
+      auto: true
+
+  - setup:
+      pause: 10
+      auto: true
+      leave-game:
+        - seat: 2
+
+  - setup:
+      auto: true
+
+  - setup:
+      auto: true

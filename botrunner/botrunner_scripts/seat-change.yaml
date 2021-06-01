@@ -62,7 +62,9 @@ hands:
       auto: true
       seat-change:
         - seat: 2
-          confirm: true
+          decline: true
+        - seat: 3
+          accept: true          
       leave-game:
         - seat: 6
 

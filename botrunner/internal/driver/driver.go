@@ -288,6 +288,10 @@ func (br *BotRunner) Run() error {
 			playerName := startingSeat.Player
 			b := br.botsByName[playerName]
 
+			if startingSeat.Reload != nil {
+				b.Reload = *startingSeat.Reload
+			}
+
 			if startingSeat.Seat != 0 {
 				br.botsBySeat[startingSeat.Seat] = b
 				if b.IsHuman() {

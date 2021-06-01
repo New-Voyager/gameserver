@@ -66,6 +66,8 @@ type Game struct {
 	Status                  GameStatus
 	TableStatus             TableStatus
 	ButtonPos               uint32
+	SbPos                   uint32
+	BbPos                   uint32
 	retryDelayMillis        uint32
 
 	// used for storing player configuration of runItTwicePrompt, muckLosingHand
@@ -386,6 +388,8 @@ func (g *Game) dealNewHand() error {
 		}
 
 		g.ButtonPos = newHandInfo.ButtonPos
+		g.SbPos = newHandInfo.SbPos
+		g.BbPos = newHandInfo.BbPos
 
 		// button is moved in the API server
 		moveButton = false
@@ -468,6 +472,9 @@ func (g *Game) dealNewHand() error {
 		g.config.GameType = newHandInfo.GameType
 		g.config.SmallBlind = float64(newHandInfo.SmallBlind)
 		g.config.BigBlind = float64(newHandInfo.BigBlind)
+	} else {
+		g.SbPos = 0
+		g.BbPos = 0
 	}
 
 	if g.testButtonPos > 0 {
@@ -496,7 +503,7 @@ func (g *Game) dealNewHand() error {
 		}
 	}
 
-	handState.initialize(g.config, deck, g.ButtonPos, moveButton, g.PlayersInSeats)
+	handState.initialize(g.config, deck, g.ButtonPos, g.SbPos, g.BbPos, moveButton, g.PlayersInSeats)
 
 	g.ButtonPos = handState.GetButtonPos()
 	g.testDeckToUse = nil

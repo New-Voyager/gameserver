@@ -71,6 +71,7 @@ type StartingSeat struct {
 	RunItTwice               bool    `yaml:"run-it-twice"`
 	RunItTwicePromptResponse bool    `yaml:"run-it-twice-prompt"`
 	MuckLosingHand           bool    `yaml:"muck-losing-hand"`
+	Reload                   *bool   `yaml:"reload"`
 }
 
 // Observer contains entries of observers of game
@@ -165,6 +166,9 @@ type HandSetupVerfication struct {
 	State         string       `yaml:"state"`
 	DealtCards    []SeatCards  `yaml:"dealt-cards"`
 	Seats         []VerifySeat `yaml:"seats"`
+	ButtonPos     *uint32      `yaml:"button-pos"`
+	SBPos         *uint32      `yaml:"sb-pos"`
+	BBPos         *uint32      `yaml:"bb-pos"`
 }
 
 type SeatChangeConfirm struct {
