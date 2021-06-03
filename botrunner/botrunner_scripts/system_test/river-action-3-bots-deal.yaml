@@ -44,7 +44,6 @@ hands:
       pre-deal:
         - setup-server-crash:
             crash-point: DEAL_1
-      button-pos: 1
       flop: ["Ac", "Ad", "2c"]
       turn: Td
       river: 4s
@@ -115,7 +114,6 @@ hands:
       pre-deal:
         - setup-server-crash:
             crash-point: DEAL_2
-      button-pos: 1
       flop: ["Ac", "Ad", "2c"]
       turn: Td
       river: 4s
@@ -135,39 +133,39 @@ hands:
     preflop:
       seat-actions:
         # seat number/action/amount
-        - action: 1, CALL, 2
         - action: 5, CALL, 2
-        - action: 8, CHECK
+        - action: 8, CALL, 2
+        - action: 1, CHECK
 
     flop:
       verify:
         board: ["Ac", "Ad", "2c"]
       seat-actions:
-        - action: 5, CHECK
-        - action: 8, BET, 2
-        - action: 1, CALL, 2
-        - action: 5, RAISE, 4
-        - action: 8, FOLD
-        - action: 1, CALL, 4
+        - action: 8, CHECK
+        - action: 1, BET, 2
+        - action: 5, CALL, 2
+        - action: 8, RAISE, 4
+        - action: 1, FOLD
+        - action: 5, CALL, 4
 
     turn:
       verify:
         board: ["Ac", "Ad", "2c", "Td"]
       seat-actions:
-        - action: 5, CHECK
-        - action: 1, BET, 10
-        - action: 5, CALL, 10
+        - action: 8, CHECK
+        - action: 5, BET, 10
+        - action: 8, CALL, 10
 
     river:
       verify:
         board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-actions:
-        - action: 5, BET, 10
-        - action: 1, CALL, 10
+        - action: 8, BET, 10
+        - action: 5, CALL, 10
 
     result:
       winners:
-        - seat: 1
+        - seat: 5
           receive: 54.0
           rank: Two Pair
       action-ended: SHOW_DOWN
@@ -186,7 +184,6 @@ hands:
       pre-deal:
         - setup-server-crash:
             crash-point: DEAL_3
-      button-pos: 1
       flop: ["Ac", "Ad", "2c"]
       turn: Td
       river: 4s
@@ -206,39 +203,39 @@ hands:
     preflop:
       seat-actions:
         # seat number/action/amount
+        - action: 8, CALL, 2
         - action: 1, CALL, 2
-        - action: 5, CALL, 2
-        - action: 8, CHECK
+        - action: 5, CHECK
 
     flop:
       verify:
         board: ["Ac", "Ad", "2c"]
       seat-actions:
-        - action: 5, CHECK
-        - action: 8, BET, 2
-        - action: 1, CALL, 2
-        - action: 5, RAISE, 4
-        - action: 8, FOLD
-        - action: 1, CALL, 4
+        - action: 1, CHECK
+        - action: 5, BET, 2
+        - action: 8, CALL, 2
+        - action: 1, RAISE, 4
+        - action: 5, FOLD
+        - action: 8, CALL, 4
 
     turn:
       verify:
         board: ["Ac", "Ad", "2c", "Td"]
       seat-actions:
-        - action: 5, CHECK
-        - action: 1, BET, 10
-        - action: 5, CALL, 10
+        - action: 1, CHECK
+        - action: 8, BET, 10
+        - action: 1, CALL, 10
 
     river:
       verify:
         board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-actions:
-        - action: 5, BET, 10
-        - action: 1, CALL, 10
+        - action: 1, BET, 10
+        - action: 8, CALL, 10
 
     result:
       winners:
-        - seat: 1
+        - seat: 8
           receive: 54.0
           rank: Two Pair
       action-ended: SHOW_DOWN
@@ -257,7 +254,6 @@ hands:
       pre-deal:
         - setup-server-crash:
             crash-point: DEAL_4
-      button-pos: 1
       flop: ["Ac", "Ad", "2c"]
       turn: Td
       river: 4s
@@ -328,7 +324,6 @@ hands:
       pre-deal:
         - setup-server-crash:
             crash-point: DEAL_5
-      button-pos: 1
       flop: ["Ac", "Ad", "2c"]
       turn: Td
       river: 4s
@@ -348,39 +343,39 @@ hands:
     preflop:
       seat-actions:
         # seat number/action/amount
-        - action: 1, CALL, 2
         - action: 5, CALL, 2
-        - action: 8, CHECK
+        - action: 8, CALL, 2
+        - action: 1, CHECK
 
     flop:
       verify:
         board: ["Ac", "Ad", "2c"]
       seat-actions:
-        - action: 5, CHECK
-        - action: 8, BET, 2
-        - action: 1, CALL, 2
-        - action: 5, RAISE, 4
-        - action: 8, FOLD
-        - action: 1, CALL, 4
+        - action: 8, CHECK
+        - action: 1, BET, 2
+        - action: 5, CALL, 2
+        - action: 8, RAISE, 4
+        - action: 1, FOLD
+        - action: 5, CALL, 4
 
     turn:
       verify:
         board: ["Ac", "Ad", "2c", "Td"]
       seat-actions:
-        - action: 5, CHECK
-        - action: 1, BET, 10
-        - action: 5, CALL, 10
+        - action: 8, CHECK
+        - action: 5, BET, 10
+        - action: 8, CALL, 10
 
     river:
       verify:
         board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-actions:
-        - action: 5, BET, 10
-        - action: 1, CALL, 10
+        - action: 8, BET, 10
+        - action: 5, CALL, 10
 
     result:
       winners:
-        - seat: 1
+        - seat: 5
           receive: 54.0
           rank: Two Pair
       action-ended: SHOW_DOWN
@@ -399,7 +394,6 @@ hands:
       pre-deal:
         - setup-server-crash:
             crash-point: DEAL_6
-      button-pos: 1
       flop: ["Ac", "Ad", "2c"]
       turn: Td
       river: 4s
@@ -419,39 +413,39 @@ hands:
     preflop:
       seat-actions:
         # seat number/action/amount
+        - action: 8, CALL, 2
         - action: 1, CALL, 2
-        - action: 5, CALL, 2
-        - action: 8, CHECK
+        - action: 5, CHECK
 
     flop:
       verify:
         board: ["Ac", "Ad", "2c"]
       seat-actions:
-        - action: 5, CHECK
-        - action: 8, BET, 2
-        - action: 1, CALL, 2
-        - action: 5, RAISE, 4
-        - action: 8, FOLD
-        - action: 1, CALL, 4
+        - action: 1, CHECK
+        - action: 5, BET, 2
+        - action: 8, CALL, 2
+        - action: 1, RAISE, 4
+        - action: 5, FOLD
+        - action: 8, CALL, 4
 
     turn:
       verify:
         board: ["Ac", "Ad", "2c", "Td"]
       seat-actions:
-        - action: 5, CHECK
-        - action: 1, BET, 10
-        - action: 5, CALL, 10
+        - action: 1, CHECK
+        - action: 8, BET, 10
+        - action: 1, CALL, 10
 
     river:
       verify:
         board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-actions:
-        - action: 5, BET, 10
-        - action: 1, CALL, 10
+        - action: 1, BET, 10
+        - action: 8, CALL, 10
 
     result:
       winners:
-        - seat: 1
+        - seat: 8
           receive: 54.0
           rank: Two Pair
       action-ended: SHOW_DOWN

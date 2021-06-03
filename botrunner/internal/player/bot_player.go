@@ -1970,6 +1970,8 @@ func (bp *BotPlayer) reloadBotFromGameInfo() error {
 		bp.seatNo = 0
 	}
 
+	bp.updateLogPrefix()
+
 	return nil
 }
 
