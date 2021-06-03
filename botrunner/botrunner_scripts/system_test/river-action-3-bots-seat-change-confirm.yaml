@@ -41,7 +41,6 @@ bot-config:
 # deal the following hands in the table
 hands:
   - setup:
-      button-pos: 1
       flop: ["Ac", "Ad", "2c"]
       turn: Td
       river: 4s
@@ -114,7 +113,6 @@ hands:
           stack: 96
 
   - setup:
-      button-pos: 1
       flop: ["Ac", "Ad", "2c"]
       turn: Td
       river: 4s
@@ -137,7 +135,7 @@ hands:
 
     result:
       winners:
-        - seat: 5
+        - seat: 1
           receive: 187
           rank: Pair
       action-ended: SHOW_DOWN
