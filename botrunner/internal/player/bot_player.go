@@ -1408,7 +1408,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 		}
 	}
 	runItTwiceActionPrompt := false
-
+	timeout := false
 	if autoPlay {
 		bp.logger.Info().Msgf("%s: Seat %d Available actions: %+v", bp.logPrefix, bp.seatNo, seatAction.AvailableActions)
 		canBet := false
@@ -1551,6 +1551,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 			}
 			nextAction = game.ActionStringToAction(scriptAction.Action.Action)
 			nextAmt = scriptAction.Action.Amount
+			timeout = scriptAction.Timeout
 			preActions := scriptAction.PreActions
 			bp.processPreActions(preActions)
 		}
@@ -1606,7 +1607,17 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 		},
 	}
 
-	go bp.publishAndWaitForAck(bp.meToHand, &actionMsg)
+	if timeout {
+		go func() {
+			// sleep more than action time
+			time.Sleep(time.Duration(bp.config.Script.Game.ActionTime) * time.Second)
+			time.Sleep(2 * time.Second)
+			actedPlayerName := bp.getPlayerNameBySeatNo(bp.seatNo)
+			bp.logger.Info().Msgf("%s: Seat %d (%s) timed out Stage:%s.", bp.logPrefix, bp.seatNo, actedPlayerName, bp.game.handStatus)
+		}()
+	} else {
+		go bp.publishAndWaitForAck(bp.meToHand, &actionMsg)
+	}
 }
 
 func (bp *BotPlayer) getActionTime() time.Duration {

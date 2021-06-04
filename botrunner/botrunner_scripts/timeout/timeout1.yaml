@@ -1,0 +1,96 @@
+app-game: Three Pots Game
+
+club:
+  name: Manchester Club
+  description: Club used for testing with the bot runner
+
+game:
+  create: true
+  title: "NLH Testing Game"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 4
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 100
+  buy-in-max: 400
+  action-time: 10
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 100
+  - seat: 2
+    player: brian
+    buy-in: 200
+  - seat: 3
+    player: tom
+    buy-in: 300
+  - seat: 4
+    player: rich
+    buy-in: 400
+
+tester:
+auto-play: false
+
+bot-config:
+  min-action-pause-time: 500
+  max-action-pause-time: 1000
+
+# deal the following hands in the table
+hands:
+  - setup:
+      button-pos: 1
+      board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-cards:
+        - seat: 2
+          cards: ["Kh", "Qd"]
+        - seat: 3
+          cards: ["3s", "7s"]
+        - seat: 4
+          cards: ["Th", "Ks"]
+        - seat: 1
+          cards: ["9h", "2s"]
+
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 4, CALL, 2
+        - action: 1, CALL, 2
+        - action: 2, CALL, 2
+        - action: 3, CHECK
+
+    flop:
+      verify:
+        board: ["Ac", "Ad", "2c"]
+      seat-actions:
+        - action: 2, CHECK
+          timeout: true
+        - action: 3, CHECK
+        - action: 4, CHECK
+        - action: 1, ALLIN
+        - action: 2, CALL, 98
+        - action: 3, CALL, 98
+        - action: 4, CALL, 98
+
+    turn:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td"]
+      seat-actions:
+        - action: 2, ALLIN
+        - action: 3, CALL, 100
+        - action: 4, CALL, 100
+
+    river:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-actions:
+        - action: 3, ALLIN
+        - action: 4, ALLIN
