@@ -260,7 +260,8 @@ func (h *PloWinnerEvaluate) determineLoHandWinners(pot *SeatsInPots, potAmount f
 		remainingAmount = remainingAmount - chipsAward
 
 		evaluatedCards := bestRank[seatNo]
-		s := poker.CardsToString(evaluatedCards.cards)
+		s := poker.CardsToString(evaluatedCards.GetLoCards())
+		fmt.Printf("\n\nSeatNo: %d Low cards: %s %v\n\n", seatNo, s, evaluatedCards.GetLoCards())
 		handWinners[i] = &HandWinner{
 			SeatNo:          seatNo,
 			Amount:          chipsAward,

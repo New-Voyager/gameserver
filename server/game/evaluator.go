@@ -23,7 +23,7 @@ func (e EvaluatedCards) GetCards() []uint32 {
 func (e EvaluatedCards) GetLoCards() []uint32 {
 	cards := make([]uint32, len(e.locards))
 	for i := range e.locards {
-		cards[i] = uint32(e.cards[i])
+		cards[i] = uint32(e.locards[i])
 	}
 	return cards
 }
