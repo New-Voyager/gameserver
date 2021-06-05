@@ -87,7 +87,7 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 			GameId:    g.config.GameId,
 			PlayerId:  playerMsg.GetPlayerId(),
 			HandNum:   0,
-			MessageId: g.generateMsgID("CURRENT_HAND", handState.HandNum, handState.CurrentState, playerMsg.PlayerId, playerMsg.MessageId),
+			MessageId: g.generateMsgID("CURRENT_HAND", handState.HandNum, handState.CurrentState, playerMsg.PlayerId, playerMsg.MessageId, handState.CurrentActionNum),
 			Messages:  []*HandMessageItem{handStateMsg},
 		}
 
@@ -203,7 +203,7 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 		PlayerId:   playerMsg.GetPlayerId(),
 		HandNum:    handState.HandNum,
 		HandStatus: handState.CurrentState,
-		MessageId:  g.generateMsgID("CURRENT_HAND", handState.HandNum, handState.CurrentState, playerMsg.PlayerId, playerMsg.MessageId),
+		MessageId:  g.generateMsgID("CURRENT_HAND", handState.HandNum, handState.CurrentState, playerMsg.PlayerId, playerMsg.MessageId, handState.CurrentActionNum),
 		Messages:   []*HandMessageItem{handStateMsg},
 	}
 	g.sendHandMessageToPlayer(serverMsg, playerMsg.GetPlayerId())
@@ -282,7 +282,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 			Msg(errMsg)
 		if !actionMsg.GetPlayerActed().GetTimedOut() {
 			// Acknowledge so that the client stops retrying.
-			g.sendActionAck(playerMsg)
+			g.sendActionAck(playerMsg, handState.CurrentActionNum)
 		}
 		return fmt.Errorf(errMsg)
 	}
@@ -311,7 +311,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		// This can happen if the action was already processed, but the client is retrying
 		// because the acnowledgement got lost in the network. Just acknowledge so that
 		// the client stops retrying.
-		g.sendActionAck(playerMsg)
+		g.sendActionAck(playerMsg, handState.CurrentActionNum)
 		return fmt.Errorf(errMsg)
 	}
 
@@ -322,14 +322,14 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 			return err
 		}
 		// acknowledge so that player does not resend the message
-		g.sendActionAck(playerMsg)
+		g.sendActionAck(playerMsg, handState.CurrentActionNum)
 
 		msg := HandMessage{
 			ClubId:     g.config.ClubId,
 			GameId:     g.config.GameId,
 			HandNum:    handState.HandNum,
 			HandStatus: handState.CurrentState,
-			MessageId:  g.generateMsgID("RIT_CONFIRM", handState.HandNum, handState.CurrentState, playerMsg.PlayerId, playerMsg.MessageId),
+			MessageId:  g.generateMsgID("RIT_CONFIRM", handState.HandNum, handState.CurrentState, playerMsg.PlayerId, playerMsg.MessageId, handState.CurrentActionNum),
 			Messages:   msgItems,
 		}
 
@@ -353,7 +353,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		// This can happen if the action was already processed, but the client is retrying
 		// because the acnowledgement got lost in the network. Just acknowledge so that
 		// the client stops retrying.
-		g.sendActionAck(playerMsg)
+		g.sendActionAck(playerMsg, handState.CurrentActionNum)
 		return fmt.Errorf(errMsg)
 	}
 
@@ -369,7 +369,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		// This can happen if the action was already processed, but the client is retrying
 		// because the acnowledgement got lost in the network. Just acknowledge so that
 		// the client stops retrying.
-		g.sendActionAck(playerMsg)
+		g.sendActionAck(playerMsg, handState.CurrentActionNum)
 		return fmt.Errorf(errMsg)
 	}
 
@@ -393,7 +393,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	}
 	handState.ActionMsgInProgress = playerMsg
 	g.saveHandState(handState)
-	g.sendActionAck(playerMsg)
+	g.sendActionAck(playerMsg, handState.CurrentActionNum)
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_2, playerMsg.PlayerId)
 
@@ -431,6 +431,9 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	if err != nil {
 		return errors.Wrap(err, "Error while updating handstate from action")
 	}
+
+	// This number is used to generate hand message IDs uniquely and deterministically across the server crashes.
+	handState.CurrentActionNum++
 
 	// Send player's current stack to be updated in the UI
 	seatNo := actionMsg.GetPlayerActed().GetSeatNo()
@@ -479,7 +482,7 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 		GameId:     g.config.GameId,
 		HandNum:    handState.HandNum,
 		HandStatus: handState.CurrentState,
-		MessageId:  g.generateMsgID("ACTION", handState.HandNum, handState.CurrentState, playerMsg.PlayerId, playerMsg.MessageId),
+		MessageId:  g.generateMsgID("ACTION", handState.HandNum, handState.CurrentState, playerMsg.PlayerId, playerMsg.MessageId, handState.CurrentActionNum),
 		Messages:   allMsgItems,
 	}
 
@@ -550,7 +553,7 @@ func (g *Game) handleHandEnded(allMsgItems []*HandMessageItem) {
 	}
 }
 
-func (g *Game) sendActionAck(playerMsg *HandMessage) {
+func (g *Game) sendActionAck(playerMsg *HandMessage, currentActionNum uint32) {
 	actionMsg := g.getClientMsgItem(playerMsg)
 	if actionMsg.GetPlayerActed().GetTimedOut() {
 		// Default action is generated by the server on action timeout. Don't acknowledge that.
@@ -574,7 +577,7 @@ func (g *Game) sendActionAck(playerMsg *HandMessage) {
 		HandNum:    playerMsg.GetHandNum(),
 		HandStatus: playerMsg.GetHandStatus(),
 		SeatNo:     playerMsg.GetSeatNo(),
-		MessageId:  g.generateMsgID("ACK", playerMsg.GetHandNum(), playerMsg.GetHandStatus(), playerMsg.GetPlayerId(), playerMsg.GetMessageId()),
+		MessageId:  g.generateMsgID("ACK", playerMsg.GetHandNum(), playerMsg.GetHandStatus(), playerMsg.GetPlayerId(), playerMsg.GetMessageId(), currentActionNum),
 		Messages:   []*HandMessageItem{ack},
 	}
 	g.sendHandMessageToPlayer(serverMsg, playerMsg.GetPlayerId())

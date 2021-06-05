@@ -66,6 +66,7 @@ hands:
         - action: 1, CALL, 2
         - action: 2, CALL, 2
         - action: 3, CHECK
+          timeout: true
 
     flop:
       verify:
@@ -74,7 +75,9 @@ hands:
         - action: 2, CHECK
           timeout: true
         - action: 3, CHECK
+          timeout: true
         - action: 4, CHECK
+          timeout: true
         - action: 1, ALLIN
         - action: 2, CALL, 98
         - action: 3, CALL, 98
@@ -94,3 +97,10 @@ hands:
       seat-actions:
         - action: 3, ALLIN
         - action: 4, ALLIN
+
+    result:
+      winners:
+        - seat: 4
+          receive: 395
+          rank: Two Pair
+      action-ended: SHOW_DOWN

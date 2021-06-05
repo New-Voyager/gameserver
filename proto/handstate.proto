@@ -55,6 +55,9 @@ message HandState {
   // the 0th pot is in the main pot
   repeated SeatsInPots pots = 18;
 
+  // Used to generate hand message ID deterministically
+  uint32 current_action_num = 19;
+
   // key is HandStatus
   //map <uint32, SeatBetting> round_betting = 20;
   map <uint32, RoundState> round_state = 20;

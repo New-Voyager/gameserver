@@ -6,13 +6,14 @@ import (
 )
 
 type timerMsg struct {
-	seatNo     uint32
-	playerID   uint64
-	canCheck   bool
-	expireAt   time.Time
-	seatNo2    uint32
-	playerID2  uint64
-	runItTwice bool
+	seatNo           uint32
+	playerID         uint64
+	currentActionNum uint32
+	canCheck         bool
+	expireAt         time.Time
+	seatNo2          uint32
+	playerID2        uint64
+	runItTwice       bool
 }
 
 func (g *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
@@ -112,6 +113,7 @@ func (g *Game) handlePlayTimeout(timeoutMsg timerMsg) error {
 			ClubId:     g.config.ClubId,
 			HandNum:    handState.HandNum,
 			HandStatus: handState.CurrentState,
+			PlayerId:   timeoutMsg.playerID,
 			Messages: []*HandMessageItem{
 				{
 					MessageType: HandPlayerActed,

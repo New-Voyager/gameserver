@@ -147,6 +147,7 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 	h.PlayersActed = make([]*PlayerActRound, h.MaxSeats+1)
 	h.BringIn = float32(gameConfig.BringIn)
 	h.BurnCards = false
+	h.CurrentActionNum = 0
 
 	// if the players don't have money less than the blinds
 	// don't let them play

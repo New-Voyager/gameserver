@@ -226,7 +226,7 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger, msgCollector *msg
 			},
 			{
 				Name: BotEvent__ACTION_TIMEDOUT,
-				Src:  []string{BotState__ACTED_WAITING_FOR_ACK},
+				Src:  []string{BotState__ACTED_WAITING_FOR_ACK, BotState__ACTED_WAITING_FOR_ACK, BotState__MY_TURN},
 				Dst:  BotState__WAITING_FOR_MY_TURN,
 			},
 		},
@@ -596,7 +596,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			if bp.config.Script.IsSeatHuman(seatNo) {
 				actedPlayerType = "human"
 			}
-			bp.logger.Info().Msgf("%s: Seat %d (%s/%s) acted [%s %f] Stage:%s.", bp.logPrefix, seatNo, actedPlayerName, actedPlayerType, action, amount, bp.game.handStatus)
+			bp.logger.Info().Msgf("%s: Seat %d (%s/%s) acted%s [%s %f] Stage:%s.", bp.logPrefix, seatNo, actedPlayerName, actedPlayerType, timedout, action, amount, bp.game.handStatus)
 		}
 		if bp.IsHuman() && seatNo != bp.seatNo {
 			// I'm a human and I see another player acted.
@@ -1609,11 +1609,11 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 
 	if timeout {
 		go func() {
+			actedPlayerName := bp.getPlayerNameBySeatNo(bp.seatNo)
+			bp.logger.Info().Msgf("%s: Seat %d (%s) is going to time out Stage: %s.", bp.logPrefix, bp.seatNo, actedPlayerName, bp.game.handStatus)
 			// sleep more than action time
 			time.Sleep(time.Duration(bp.config.Script.Game.ActionTime) * time.Second)
 			time.Sleep(2 * time.Second)
-			actedPlayerName := bp.getPlayerNameBySeatNo(bp.seatNo)
-			bp.logger.Info().Msgf("%s: Seat %d (%s) timed out Stage:%s.", bp.logPrefix, bp.seatNo, actedPlayerName, bp.game.handStatus)
 		}()
 	} else {
 		go bp.publishAndWaitForAck(bp.meToHand, &actionMsg)
