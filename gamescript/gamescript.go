@@ -194,6 +194,7 @@ type BettingRound struct {
 type SeatAction struct {
 	Action     Action      `yaml:"action"`
 	PreActions []PreAction `yaml:"pre-action"`
+	Timeout    bool        `yaml:"timeout"`
 }
 
 type Action struct {
