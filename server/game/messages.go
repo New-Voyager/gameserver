@@ -38,6 +38,9 @@ const (
 
 	// announcements
 	HighHandMsg string = "HIGH_HAND"
+
+	// Player Network Issue
+	GameNetworkIssue string = "NETWORK_ISSUE"
 )
 
 // Hand messages

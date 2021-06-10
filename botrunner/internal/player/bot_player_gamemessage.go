@@ -11,7 +11,7 @@ import (
 	"voyager.com/gamescript"
 )
 
-func (bp *BotPlayer) handleGameMessage(message *game.GameMessage) {
+func (bp *BotPlayer) processGameMessage(message *game.GameMessage) {
 	bp.lastGameMessage = message
 
 	switch message.MessageType {
@@ -100,7 +100,7 @@ func (bp *BotPlayer) handleGameMessage(message *game.GameMessage) {
 	}
 }
 
-func (bp *BotPlayer) handleNonProtoGameMessage(message *NonProtoMessage) {
+func (bp *BotPlayer) processNonProtoGameMessage(message *NonProtoMessage) {
 	fmt.Printf("[%s] HANDLING NON-PROTO GAME MESSAGE: %+v\n", bp.logPrefix, message)
 	switch message.Type {
 	case "PLAYER_SEAT_CHANGE_PROMPT":

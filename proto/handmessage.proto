@@ -212,6 +212,13 @@ message DealerChoice {
   uint32 timeout = 3;
 }
 
+message PingPongMessage {
+  uint64 game_id = 1;
+  string game_code = 2;
+  uint64 player_id = 3;
+  uint32 seq = 4;
+}
+
 //HandMessage packages the actual message with Hand information (clubid, game_num, hand_num) 
 message HandMessageItem {
   string message_type = 7;
