@@ -30,13 +30,16 @@ type GameMessageReceiver interface {
 	BroadcastHandMessage(message *HandMessage)
 	SendHandMessageToPlayer(message *HandMessage, playerID uint64)
 	SendGameMessageToPlayer(message *GameMessage, playerID uint64)
+	SendPingMessageToPlayer(message *PingPongMessage, playerID uint64)
 }
 type Game struct {
 	manager             *Manager
 	end                 chan bool
+	stopNetworkCheck    chan bool
 	running             bool
 	chHand              chan []byte
 	chGame              chan []byte
+	chPong              chan []byte
 	chPlayTimedOut      chan timerMsg
 	chResetTimer        chan timerMsg
 	chPauseTimer        chan bool
@@ -72,6 +75,12 @@ type Game struct {
 
 	// used for storing player configuration of runItTwicePrompt, muckLosingHand
 	playerConfig atomic.Value
+
+	// For player network connnectivity check
+	pingTimeoutSec uint32
+	maxMissedPings uint32
+	pingStates     map[uint64]*playerPingState
+	pingStatesLock sync.Mutex
 }
 
 func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver,
@@ -87,16 +96,21 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver,
 		handSetupPersist: handSetupPersist,
 		apiServerUrl:     apiServerUrl,
 		retryDelayMillis: 500,
+		pingTimeoutSec:   3,
+		maxMissedPings:   2,
 	}
 	g.allPlayers = make(map[uint64]*Player)
 	g.chGame = make(chan []byte)
 	g.chHand = make(chan []byte, 1)
+	g.chPong = make(chan []byte, 100)
 	g.chPlayTimedOut = make(chan timerMsg)
 	g.chResetTimer = make(chan timerMsg)
 	g.chPauseTimer = make(chan bool)
 	g.end = make(chan bool)
+	g.stopNetworkCheck = make(chan bool)
 	g.waitingPlayers = make([]uint64, 0)
 	g.players = make(map[uint64]string)
+	g.pingStates = make(map[uint64]*playerPingState)
 
 	playerConfig := make(map[uint64]PlayerConfigUpdate)
 	g.playerConfig.Store(playerConfig)
@@ -176,6 +190,30 @@ func (g *Game) runGame() {
 		}
 	}
 	g.manager.gameEnded(g)
+}
+
+func (g *Game) startNetworkCheck() {
+	stopPingLoop := make(chan bool)
+	defer func() {
+		stopPingLoop <- true
+	}()
+	go g.startPingLoop(stopPingLoop)
+
+	ended := false
+	for !ended {
+		select {
+		case <-g.stopNetworkCheck:
+			ended = true
+		case message := <-g.chPong:
+			var pongMsg PingPongMessage
+			err := proto.Unmarshal(message, &pongMsg)
+			if err == nil {
+				g.handlePongMessage(&pongMsg)
+			}
+		default:
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
 }
 
 func (g *Game) initGameState() error {
@@ -724,6 +762,12 @@ func (g *Game) SendHandMessage(message *HandMessage) {
 	g.chHand <- b
 }
 
+func (g *Game) SendPongMessage(message *PingPongMessage) {
+	message.GameCode = g.config.GameCode
+	b, _ := proto.Marshal(message)
+	g.chPong <- b
+}
+
 func (g *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint64) {
 	message.GameCode = g.config.GameCode
 	if *g.messageReceiver != nil {
@@ -735,6 +779,13 @@ func (g *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint64) {
 		}
 		b, _ := proto.Marshal(message)
 		player.chHand <- b
+	}
+}
+
+func (g *Game) sendPingMessageToPlayer(message *PingPongMessage, playerID uint64) {
+	message.GameCode = g.config.GameCode
+	if *g.messageReceiver != nil {
+		(*g.messageReceiver).SendPingMessageToPlayer(message, playerID)
 	}
 }
 

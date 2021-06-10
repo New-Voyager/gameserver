@@ -89,9 +89,11 @@ type BotPlayer struct {
 	serverLastMsgIDs *util.Queue
 
 	// Message channels
-	chGame chan *GameMessageChannelItem
-	chHand chan *game.HandMessage
-	end    chan bool
+	chGame  chan *GameMessageChannelItem
+	chHand  chan *game.HandMessage
+	chPing  chan *game.PingPongMessage
+	end     chan bool
+	endPing chan bool
 
 	// Points to the most recent messages from the game server.
 	lastGameMessage    *game.GameMessage
@@ -114,15 +116,18 @@ type BotPlayer struct {
 	muckLosingHand bool
 
 	// Nats subjects
-	gameToAll string
-	handToAll string
-	handToMe  string
-	meToHand  string
+	gameToAll    string
+	handToAll    string
+	handToMe     string
+	meToHand     string
+	pingToMe     string
+	pongToServer string
 
 	// Nats subscription objects
 	gameMsgSub       *natsgo.Subscription
 	handMsgAllSub    *natsgo.Subscription
 	handMsgPlayerSub *natsgo.Subscription
+	pingToPlayerSub  *natsgo.Subscription
 
 	game      *gameView
 	seatNo    uint32
@@ -172,7 +177,9 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger, msgCollector *msg
 		natsConn:         nc,
 		chGame:           make(chan *GameMessageChannelItem, 10),
 		chHand:           make(chan *game.HandMessage, 10),
+		chPing:           make(chan *game.PingPongMessage, 10),
 		end:              make(chan bool),
+		endPing:          make(chan bool),
 		logPrefix:        logPrefix,
 		printGameMsg:     util.Env.ShouldPrintGameMsg(),
 		printHandMsg:     util.Env.ShouldPrintHandMsg(),
@@ -235,6 +242,7 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger, msgCollector *msg
 		},
 	)
 	go bp.messageLoop()
+	go bp.pingMessageLoop()
 	return &bp, nil
 }
 
@@ -260,7 +268,7 @@ func (bp *BotPlayer) updateLogPrefix() {
 	}
 }
 
-func (bp *BotPlayer) queueGameMsg(msg *natsgo.Msg) {
+func (bp *BotPlayer) handleGameMsg(msg *natsgo.Msg) {
 	if bp.printGameMsg {
 		bp.logger.Info().Msg(fmt.Sprintf("%s: Received game message %s", bp.logPrefix, string(msg.Data)))
 	}
@@ -289,16 +297,11 @@ func (bp *BotPlayer) queueGameMsg(msg *natsgo.Msg) {
 	bp.collectGameMsg(&message, msg.Data)
 }
 
-func (bp *BotPlayer) queueHandMsg(msg *natsgo.Msg) {
+func (bp *BotPlayer) handleHandMsg(msg *natsgo.Msg) {
 	fmt.Printf("\n")
 	fmt.Printf(string(msg.Data))
 	fmt.Printf("\n")
 
-	// if bp.IsHost() {
-	// 	fmt.Printf("\n\n")
-	// 	fmt.Printf(string(msg.Data))
-	// 	fmt.Printf("\n\n")
-	// }
 	var message game.HandMessage
 	err := protojson.Unmarshal(msg.Data, &message)
 	if err != nil {
@@ -308,6 +311,21 @@ func (bp *BotPlayer) queueHandMsg(msg *natsgo.Msg) {
 
 	bp.collectHandMsg(&message, msg.Data)
 	bp.chHand <- &message
+}
+
+func (bp *BotPlayer) handlePingMsg(msg *natsgo.Msg) {
+	fmt.Printf("\n")
+	fmt.Printf(string(msg.Data))
+	fmt.Printf("\n")
+
+	var message game.PingPongMessage
+	err := protojson.Unmarshal(msg.Data, &message)
+	if err != nil {
+		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf ping message [%s]", bp.logPrefix, err, string(msg.Data))
+		return
+	}
+
+	bp.chPing <- &message
 }
 
 func (bp *BotPlayer) collectGameMsg(msg *game.GameMessage, rawMsg []byte) {
@@ -333,18 +351,30 @@ func (bp *BotPlayer) messageLoop() {
 			return
 		case chItem := <-bp.chGame:
 			if chItem.ProtoGameMsg != nil {
-				bp.handleGameMessage(chItem.ProtoGameMsg)
+				bp.processGameMessage(chItem.ProtoGameMsg)
 			} else if chItem.NonProtoGameMsg != nil {
-				bp.handleNonProtoGameMessage(chItem.NonProtoGameMsg)
+				bp.processNonProtoGameMessage(chItem.NonProtoGameMsg)
 			}
 		case message := <-bp.chHand:
-			bp.handleHandMessage(message)
+			bp.processHandMessage(message)
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
 }
 
-func (bp *BotPlayer) handleHandMessage(message *game.HandMessage) {
+func (bp *BotPlayer) pingMessageLoop() {
+	for {
+		select {
+		case <-bp.endPing:
+			return
+		case message := <-bp.chPing:
+			bp.respondToPing(message)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func (bp *BotPlayer) processHandMessage(message *game.HandMessage) {
 	if bp.IsErrorState() {
 		bp.logger.Info().Msgf("%s: Bot is in error state. Ignoring hand message.", bp.logPrefix)
 		return
@@ -675,6 +705,27 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 	}
 }
 
+func (bp *BotPlayer) respondToPing(pingMsg *game.PingPongMessage) error {
+	msg := game.PingPongMessage{
+		GameId:   bp.gameID,
+		PlayerId: bp.PlayerID,
+		Seq:      pingMsg.GetSeq(),
+	}
+
+	protoData, err := protojson.Marshal(&msg)
+	if err != nil {
+		return errors.Wrap(err, "Could not proto-marshal pong message.")
+	}
+	bp.logger.Info().Msgf("%s: Sending PONG. Msg: %s", bp.logPrefix, string(protoData))
+	// Send to hand subject.
+	err = bp.natsConn.Publish(bp.pongToServer, protoData)
+	if err != nil {
+		return errors.Wrapf(err, "Unable to publish pong message to nats channel %s", bp.pongToServer)
+	}
+
+	return nil
+}
+
 func (bp *BotPlayer) chooseNextGame(gameType game.GameType) {
 	bp.gqlHelper.DealerChoice(bp.gameCode, gameType)
 }
@@ -965,10 +1016,10 @@ func (bp *BotPlayer) CreateGame(gameOpt game.GameCreateOpt) (string, error) {
 }
 
 // Subscribe makes the bot subscribe to the game's nats subjects.
-func (bp *BotPlayer) Subscribe(gameToAll string, handToAll string, handToPlayer string) error {
+func (bp *BotPlayer) Subscribe(gameToAll string, handToAll string, handToPlayer string, pingToPlayer string) error {
 	if bp.gameMsgSub == nil || !bp.gameMsgSub.IsValid() {
 		bp.logger.Info().Msgf("%s: Subscribing to %s to receive game messages sent to players/observers", bp.logPrefix, gameToAll)
-		gameToAllSub, err := bp.natsConn.Subscribe(gameToAll, bp.queueGameMsg)
+		gameToAllSub, err := bp.natsConn.Subscribe(gameToAll, bp.handleGameMsg)
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the game message subject [%s]", bp.logPrefix, gameToAll))
 		}
@@ -978,7 +1029,7 @@ func (bp *BotPlayer) Subscribe(gameToAll string, handToAll string, handToPlayer 
 
 	if bp.handMsgAllSub == nil || !bp.handMsgAllSub.IsValid() {
 		bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand messages sent to players/observers", bp.logPrefix, handToAll)
-		handToAllSub, err := bp.natsConn.Subscribe(handToAll, bp.queueHandMsg)
+		handToAllSub, err := bp.natsConn.Subscribe(handToAll, bp.handleHandMsg)
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the hand message subject [%s]", bp.logPrefix, handToAll))
 		}
@@ -988,12 +1039,22 @@ func (bp *BotPlayer) Subscribe(gameToAll string, handToAll string, handToPlayer 
 
 	if bp.handMsgPlayerSub == nil || !bp.handMsgPlayerSub.IsValid() {
 		bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand messages sent to player: %s", bp.logPrefix, handToPlayer, bp.config.Name)
-		handToPlayerSub, err := bp.natsConn.Subscribe(handToPlayer, bp.queueHandMsg)
+		handToPlayerSub, err := bp.natsConn.Subscribe(handToPlayer, bp.handleHandMsg)
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the hand message subject [%s]", bp.logPrefix, handToPlayer))
 		}
 		bp.handMsgPlayerSub = handToPlayerSub
 		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, handToPlayer)
+	}
+
+	if bp.pingToPlayerSub == nil || !bp.pingToPlayerSub.IsValid() {
+		bp.logger.Info().Msgf("%s: Subscribing to %s to receive ping messages sent to player: %s", bp.logPrefix, pingToPlayer, bp.config.Name)
+		pingToPlayerSub, err := bp.natsConn.Subscribe(pingToPlayer, bp.handlePingMsg)
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the ping message subject [%s]", bp.logPrefix, pingToPlayer))
+		}
+		bp.pingToPlayerSub = pingToPlayerSub
+		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, pingToPlayer)
 	}
 
 	bp.event(BotEvent__SUBSCRIBE)
@@ -1046,7 +1107,7 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 		},
 	}
 
-	err = bp.Subscribe(gi.GameToPlayerChannel, gi.HandToAllChannel, gi.HandToPlayerChannel)
+	err = bp.Subscribe(gi.GameToPlayerChannel, gi.HandToAllChannel, gi.HandToPlayerChannel, gi.PingToPlayerChannel)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to game %s channels", bp.logPrefix, gameCode))
 	}
@@ -1055,6 +1116,8 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 	bp.handToAll = gi.HandToAllChannel
 	bp.handToMe = gi.HandToPlayerChannel
 	bp.meToHand = gi.PlayerToHandChannel
+	bp.pingToMe = gi.PingToPlayerChannel
+	bp.pongToServer = gi.PongChannel
 
 	gameID, err := bp.GetGameID(gameCode)
 	if err != nil {
@@ -1288,6 +1351,9 @@ func (bp *BotPlayer) LeaveGame() error {
 		bp.isSeated = false
 	}
 	bp.end <- true
+	bp.endPing <- true
+	bp.gameCode = ""
+	bp.gameID = 0
 	return nil
 }
 

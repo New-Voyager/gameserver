@@ -51,6 +51,7 @@ type NatsGame struct {
 	chManageGame           chan []byte
 	player2GameSubject     string
 	player2HandSubject     string
+	playerPongSubject      string
 	hand2PlayerAllSubject  string
 	game2AllPlayersSubject string
 
@@ -59,6 +60,7 @@ type NatsGame struct {
 	gameCode       string
 	player2GameSub *natsgo.Subscription
 	player2HandSub *natsgo.Subscription
+	player2PongSub *natsgo.Subscription
 	nc             *natsgo.Conn
 }
 
@@ -72,6 +74,9 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 	player2HandSubject := fmt.Sprintf("player.%s.hand", config.GameCode)
 	hand2AllPlayersSubject := fmt.Sprintf("hand.%s.player.all", config.GameCode)
 
+	// for receiving ping response
+	playerPongSubject := fmt.Sprintf("pong.%s", config.GameCode)
+
 	// we need to use the API to get the game configuration
 	natsGame := &NatsGame{
 		clubID:       clubID,
@@ -83,6 +88,7 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 		game2AllPlayersSubject: game2AllPlayersSubject,
 		player2HandSubject:     player2HandSubject,
 		hand2PlayerAllSubject:  hand2AllPlayersSubject,
+		playerPongSubject:      playerPongSubject,
 		gameCode:               config.GameCode,
 	}
 
@@ -91,6 +97,11 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 	natsGame.player2HandSub, e = nc.Subscribe(player2HandSubject, natsGame.player2Hand)
 	if e != nil {
 		natsLogger.Error().Msg(fmt.Sprintf("Failed to subscribe to %s", player2HandSubject))
+		return nil, e
+	}
+	natsGame.player2PongSub, e = nc.Subscribe(playerPongSubject, natsGame.player2Pong)
+	if e != nil {
+		natsLogger.Error().Msg(fmt.Sprintf("Failed to subscribe to %s", playerPongSubject))
 		return nil, e
 	}
 
@@ -109,6 +120,7 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 func (n *NatsGame) cleanup() {
 	n.player2HandSub.Unsubscribe()
 	n.player2GameSub.Unsubscribe()
+	n.player2PongSub.Unsubscribe()
 }
 
 // message sent from apiserver to game
@@ -230,6 +242,19 @@ func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
 	n.serverGame.SendHandMessage(&message)
 }
 
+// messages sent from player to pong channel for network check
+func (n *NatsGame) player2Pong(msg *natsgo.Msg) {
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+		Msg(fmt.Sprintf("Player->Pong: %s", string(msg.Data)))
+	var message game.PingPongMessage
+	e := protojson.Unmarshal(msg.Data, &message)
+	if e != nil {
+		return
+	}
+
+	n.serverGame.SendPongMessage(&message)
+}
+
 func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Game->AllPlayers: %s", message.MessageType))
@@ -279,6 +304,16 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 		Str("subject", hand2PlayerSubject).
 		Msg(fmt.Sprintf("H->P: %s", string(data)))
 	n.nc.Publish(hand2PlayerSubject, data)
+}
+
+func (n NatsGame) SendPingMessageToPlayer(message *game.PingPongMessage, playerID uint64) {
+	ping2PlayerSubject := fmt.Sprintf("ping.%s.player.%d", n.gameCode, playerID)
+	message.PlayerId = playerID
+	data, _ := protojson.Marshal(message)
+	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+		Str("subject", ping2PlayerSubject).
+		Msg(fmt.Sprintf("Ping->Player: %s", string(data)))
+	n.nc.Publish(ping2PlayerSubject, data)
 }
 
 func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID uint64) {
