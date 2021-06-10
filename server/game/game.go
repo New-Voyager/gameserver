@@ -336,6 +336,7 @@ func (g *Game) resumeGame(handState *HandState) error {
 		Str("game", g.config.GameCode).
 		Msgf("Restarting hand at flow state [%s].", handState.FlowState)
 
+	g.running = true
 	var err error
 	switch handState.FlowState {
 	case FlowState_DEAL_HAND:
@@ -906,5 +907,7 @@ func anyPendingUpdates(apiServerUrl string, gameID uint64, retryDelay uint32) (b
 
 func (g *Game) GameEnded() error {
 	g.removeHandState()
+	g.end <- true
+	g.stopNetworkCheck <- true
 	return nil
 }
