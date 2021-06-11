@@ -432,11 +432,19 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 		return errors.Wrap(err, "Error while updating handstate from action")
 	}
 
+	seatNo := actionMsg.GetPlayerActed().GetSeatNo()
+	playerID := handState.PlayersInSeats[seatNo]
+
+	if actionMsg.GetPlayerActed().GetTimedOut() {
+		handState.PlayerStats[playerID].ConsecutiveActionTimeouts++
+	} else {
+		handState.PlayerStats[playerID].ConsecutiveActionTimeouts = 0
+	}
+
 	// This number is used to generate hand message IDs uniquely and deterministically across the server crashes.
 	handState.CurrentActionNum++
 
 	// Send player's current stack to be updated in the UI
-	seatNo := actionMsg.GetPlayerActed().GetSeatNo()
 	playerAction := handState.PlayersActed[seatNo]
 	if playerAction.State != PlayerActState_PLAYER_ACT_FOLDED {
 		actionMsg.GetPlayerActed().Amount = playerAction.Amount

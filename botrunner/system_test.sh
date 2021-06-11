@@ -12,6 +12,7 @@ test_scripts=(
     'botrunner_scripts/system_test/river-action-3-bots-seat-change-decline.yaml'
     'botrunner_scripts/system_test/river-action-3-bots-seat-change-confirm.yaml'
     'botrunner_scripts/system_test/timeout.yaml'
+    'botrunner_scripts/system_test/consecutive-timeout.yaml'
 )
 
 echo "Test Scripts: ${test_scripts[@]}"

@@ -320,6 +320,7 @@ type HandResult struct {
 	ActionEndedAt string         `yaml:"action-ended"`
 	Stacks        []PlayerStack  `yaml:"stacks"`
 	HighHand      []HighHandSeat `yaml:"high-hand"`
+	PlayerStats   []PlayerStats  `yaml:"player-stats"`
 }
 
 type HandWinner struct {
@@ -335,6 +336,11 @@ type PlayerStack struct {
 
 type HighHandSeat struct {
 	Seat uint32 `yaml:"seat"`
+}
+
+type PlayerStats struct {
+	Seat                      uint32 `yaml:"seat"`
+	ConsecutiveActionTimeouts uint32 `yaml:"consecutive-action-timeouts"`
 }
 
 // ReadGameScript reads game script yaml file.

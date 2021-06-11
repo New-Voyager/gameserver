@@ -21,6 +21,7 @@ message PlayerStats {
   bool in_flop = 14;
   bool in_turn = 15;
   bool in_river = 16;
+  uint32 consecutive_action_timeouts = 17;
 }
 
 message HandStats {

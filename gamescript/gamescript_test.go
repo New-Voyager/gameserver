@@ -300,6 +300,20 @@ func TestReadGameScript(t *testing.T) {
 							Seat: 1,
 						},
 					},
+					PlayerStats: []PlayerStats{
+						{
+							Seat:                      1,
+							ConsecutiveActionTimeouts: 0,
+						},
+						{
+							Seat:                      5,
+							ConsecutiveActionTimeouts: 3,
+						},
+						{
+							Seat:                      8,
+							ConsecutiveActionTimeouts: 1,
+						},
+					},
 				},
 			},
 		},
