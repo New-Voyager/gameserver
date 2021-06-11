@@ -123,7 +123,11 @@ func (g *Game) onPlayerPong(playerPongMsg *PingPongMessage) error {
 	pongSeq := playerPongMsg.GetSeq()
 	pongRecvTime := time.Now()
 
-	fmt.Printf("PONG %d from player %d at %s", pongSeq, playerID, pongRecvTime.Format(time.RFC3339))
+	debugPong := false
+
+	if debugPong {
+		fmt.Printf("PONG %d from player %d at %s", pongSeq, playerID, pongRecvTime.Format(time.RFC3339))
+	}
 
 	g.pingStatesLock.Lock()
 	defer g.pingStatesLock.Unlock()
@@ -138,14 +142,18 @@ func (g *Game) onPlayerPong(playerPongMsg *PingPongMessage) error {
 		if pongSeq > ps.pingSeq {
 			// Should't happen.
 		} else {
-			if pongSeq == ps.pingSeq {
-				fmt.Printf(" (received in %.3f seconds)", pongRecvTime.Sub(ps.pingSentTime).Seconds())
+			if debugPong {
+				if pongSeq == ps.pingSeq {
+					fmt.Printf(" (received in %.3f seconds)", pongRecvTime.Sub(ps.pingSentTime).Seconds())
+				}
 			}
 			ps.pongSeq = pongSeq
 			ps.pongRecvTime = pongRecvTime
 		}
 	}
 
-	fmt.Println()
+	if debugPong {
+		fmt.Println()
+	}
 	return nil
 }

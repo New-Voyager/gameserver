@@ -314,10 +314,6 @@ func (bp *BotPlayer) handleHandMsg(msg *natsgo.Msg) {
 }
 
 func (bp *BotPlayer) handlePingMsg(msg *natsgo.Msg) {
-	fmt.Printf("\n")
-	fmt.Printf(string(msg.Data))
-	fmt.Printf("\n")
-
 	var message game.PingPongMessage
 	err := protojson.Unmarshal(msg.Data, &message)
 	if err != nil {
@@ -716,7 +712,7 @@ func (bp *BotPlayer) respondToPing(pingMsg *game.PingPongMessage) error {
 	if err != nil {
 		return errors.Wrap(err, "Could not proto-marshal pong message.")
 	}
-	bp.logger.Info().Msgf("%s: Sending PONG. Msg: %s", bp.logPrefix, string(protoData))
+	// bp.logger.Debug().Msgf("%s: Sending PONG. Msg: %s", bp.logPrefix, string(protoData))
 	// Send to hand subject.
 	err = bp.natsConn.Publish(bp.pongToServer, protoData)
 	if err != nil {
@@ -844,6 +840,19 @@ func (bp *BotPlayer) verifyResult() {
 
 		if !cmp.Equal(expectedLoWinnersBySeat, actualLoWinnersBySeat) {
 			bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Low Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualLoWinnersBySeat, expectedLoWinnersBySeat)
+		}
+	}
+
+	if len(scriptResult.PlayerStats) > 0 {
+		actualPlayerStats := bp.GetHandResult().GetPlayerStats()
+		for _, scriptStat := range scriptResult.PlayerStats {
+			seatNo := scriptStat.Seat
+			playerID := bp.getPlayerIDBySeatNo(seatNo)
+			actual := actualPlayerStats[playerID].ConsecutiveActionTimeouts
+			expected := scriptStat.ConsecutiveActionTimeouts
+			if actual != expected {
+				bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Consecutive Action Timeouts for seat# %d player ID %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actual, expected)
+			}
 		}
 	}
 }
@@ -1673,15 +1682,16 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 		},
 	}
 
+	playerName := bp.getPlayerNameBySeatNo(bp.seatNo)
 	if timeout {
 		go func() {
-			actedPlayerName := bp.getPlayerNameBySeatNo(bp.seatNo)
-			bp.logger.Info().Msgf("%s: Seat %d (%s) is going to time out Stage: %s.", bp.logPrefix, bp.seatNo, actedPlayerName, bp.game.handStatus)
+			bp.logger.Info().Msgf("%s: Seat %d (%s) is going to time out. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, bp.game.handStatus)
 			// sleep more than action time
 			time.Sleep(time.Duration(bp.config.Script.Game.ActionTime) * time.Second)
 			time.Sleep(2 * time.Second)
 		}()
 	} else {
+		bp.logger.Info().Msgf("%s: Seat %d (%s) is about to act [%s %f]. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, handAction.Action, handAction.Amount, bp.game.handStatus)
 		go bp.publishAndWaitForAck(bp.meToHand, &actionMsg)
 	}
 }
@@ -2070,6 +2080,15 @@ func (bp *BotPlayer) getPlayerNameBySeatNo(seatNo uint32) string {
 		}
 	}
 	return "MISSING"
+}
+
+func (bp *BotPlayer) getPlayerIDBySeatNo(seatNo uint32) uint64 {
+	for _, p := range bp.gameInfo.SeatInfo.PlayersInSeats {
+		if p.SeatNo == seatNo {
+			return p.PlayerId
+		}
+	}
+	return 0
 }
 
 // GetName returns the player's name (e.g., tom)

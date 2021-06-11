@@ -141,3 +141,11 @@ hands:
           stack: 96
       high-hand:
         - seat: 1
+
+      player-stats:
+        - seat: 1
+          consecutive-action-timeouts: 0
+        - seat: 5
+          consecutive-action-timeouts: 3
+        - seat: 8
+          consecutive-action-timeouts: 1

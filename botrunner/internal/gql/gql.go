@@ -749,6 +749,8 @@ const GameInfoGQL = `query game_info($gameCode: String!) {
             availableSeats
             playersInSeats {
                 name
+                playerId
+                status
                 playerUuid
                 seatNo
                 buyIn
