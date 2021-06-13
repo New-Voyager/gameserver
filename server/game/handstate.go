@@ -1016,6 +1016,7 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 		}
 	}
 
+	nextAction.SeatInSoFar = bettingRound.SeatBet[actionSeat]
 	allInAvailable := false
 	canRaise := false
 	canBet := false

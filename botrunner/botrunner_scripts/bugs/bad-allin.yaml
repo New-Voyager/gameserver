@@ -1,0 +1,111 @@
+# work on this
+#{"level":"info","logger_name":"nats::game","game":505,"clubID":185,
+#"Messages":"[PLAYER_ACTED YOUR_ACTION NEXT_ACTION]","subject":"hand.cgkqwikse.player.all","time":"2021-06-13T04:13:26+05:30","message":"H->A: 
+#{\"version\":\"\",\"clubId\":185,\"gameId\":\"505\",\"gameCode\":\"cgkqwikse\",\"handNum\":1,\"seatNo\":0,\"playerId\":\"0\",\"messageId\":\"ACTION:1:FLOP:1994:2:12\",\"gameToken\":\"\",\"handStatus\":\"FLOP\",\"messages\":[{\"messageType\":\"PLAYER_ACTED\",\"playerActed\":{\"seatNo\":1,\"action\":\"RAISE\",\"amount\":12,\"timedOut\":false,\"actionTime\":0,\"stack\":24}},{\"messageType\":\"YOUR_ACTION\",\"seatAction\":{\"seatNo\":2,
+
+
+#\"availableActions\":[\"FOLD\",\"ALLIN\"],\"straddleAmount\":0,\"callAmount\":0,\"raiseAmount\":0,\"minBetAmount\":0,\"maxBetAmount\":0,\"minRaiseAmount\":0,\"maxRaiseAmount\":0,
+#\"allInAmount\":14,\"betOptions\":[],\"actionTimesoutAt\":\"1623537836\",\"callAmountDiff\":0}},{\"messageType\":\"NEXT_ACTION\",\"actionChange\":{\"seatNo\":2,\"pots\":[12],\"potUpdates\":39,\"seatsPots\":[{\"seats\":[1,2,3,4,5,6],\"pot\":12}]}}]}"}
+
+club:
+  name: Bug Testing
+  description: testing
+game:
+  create: true
+  title: bug testing
+  game-type: HOLDEM
+  small-blind: 1
+  big-blind: 2
+  min-players: 2
+  max-players: 9
+  game-length: 60
+  buy-in-approval: false
+  buy-in-min: 1
+  buy-in-max: 3000
+  action-time: 30
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 38
+  - seat: 2
+    player: brian
+    buy-in: 16
+  - seat: 3
+    player: tom
+    buy-in: 481
+  - seat: 4
+    player: jim
+    buy-in: 15
+  - seat: 5
+    player: rob
+    buy-in: 100
+  - seat: 6
+    player: john
+    buy-in: 100
+hands:
+  - setup:
+      button-pos: 1
+      flop:
+        - 6s
+        - Qd
+        - 9s
+      turn: Ks
+      river: 3h
+      seat-cards:
+        - seat: 1
+          cards:
+            - Kc
+            - 5d
+        - seat: 2
+          cards:
+            - 4h
+            - 9h
+        - seat: 3
+          cards:
+            - 7h
+            - Td
+        - seat: 4
+          cards:
+            - 4d
+            - 8d
+        - seat: 5
+          cards:
+            - Qh
+            - Ac
+        - seat: 6
+          cards:
+            - Th
+            - 3d
+    preflop:
+      seat-actions:
+        - action: 4, CALL, 2
+        - action: 5, CALL, 2
+        - action: 6, CALL, 2
+        - action: 1, CALL, 2
+        - action: 2, CALL, 2
+        - action: 3, CHECK
+    flop:
+      seat-actions:
+        - action: 2, BET, 3
+        - action: 3, CALL, 3
+        - action: 4, CALL, 3
+        - action: 5, CALL, 3
+        - action: 6, CALL, 3
+        - action: 1, RAISE, 12
+        - action: 2, FOLD
+        - action: 3, CALL, 12
+        - action: 4, ALLIN, 13
+        - action: 5, CALL, 13
+        - action: 6, CALL, 13
+        - action: 1, FOLD
+        - action: 3, CALL, 13
+    turn:
+      seat-actions:
+        - action: 3, CHECK
+        - action: 5, CHECK
+        - action: 6, CHECK
+    river:
+      seat-actions:
+        - action: 3, CHECK
+        - action: 5, CHECK
+        - action: 6, CHECK
