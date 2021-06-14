@@ -259,18 +259,20 @@ func (g *Game) startGame() (bool, error) {
 		numActivePlayers = g.countActivePlayers()
 	}
 
-	handState, err := g.loadHandState()
-	if err == nil {
-		// There is an existing hand state. The game must've crashed and is now restarting.
-		// Continue where we left off.
-		err := g.resumeGame(handState)
-		if err != nil {
-			channelGameLogger.Error().
-				Uint32("club", g.config.ClubId).
-				Str("game", g.config.GameCode).
-				Msgf("Error while resuming game. Error: %s", err.Error())
+	if !RunningTests {
+		handState, err := g.loadHandState()
+		if err == nil {
+			// There is an existing hand state. The game must've crashed and is now restarting.
+			// Continue where we left off.
+			err := g.resumeGame(handState)
+			if err != nil {
+				channelGameLogger.Error().
+					Uint32("club", g.config.ClubId).
+					Str("game", g.config.GameCode).
+					Msgf("Error while resuming game. Error: %s", err.Error())
+			}
+			return true, nil
 		}
-		return true, nil
 	}
 
 	if !g.config.AutoStart && g.Status != GameStatus_ACTIVE {

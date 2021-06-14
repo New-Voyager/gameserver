@@ -1,0 +1,99 @@
+disabled: false
+
+game-config:
+  type: HOLDEM
+  max-players: 4
+  min-players: 3
+  min-buyin: 10.0
+  max-buyin: 300.0
+  auto-start: false
+  auto-approve: true
+  title: 4 players playing
+  sb: 1.0
+  bb: 2.0
+
+
+
+# players in the game
+players:
+  - name: yong
+    id: 1
+  - name: brian
+    id: 2
+  - name: tom
+    id: 3
+  - name: jim
+    id: 4
+
+take-seat:
+  button-pos: 4
+  seats:
+    -
+      seat: 1 
+      player: 1
+      buy-in: 114
+    -
+      seat: 2
+      player: 2
+      buy-in: 215
+    -
+      seat: 3 
+      player: 3
+      buy-in: 35
+    -
+      seat: 4
+      player: 4
+      buy-in: 96
+
+hands:
+  - num: 1
+    setup:
+      button-pos: 4
+      flop:
+        - 5d
+        - 4c
+        - 2c
+      turn: 6d
+      river: Jd
+      seat-cards:
+        - seat: 1
+          cards:
+            - 8h
+            - 7d
+        - seat: 2
+          cards:
+            - 3c
+            - Ts
+        - seat: 3
+          cards:
+            - Kc
+            - 7s
+        - seat: 4
+          cards:
+            - 8d
+            - 9d
+
+    preflop-action:
+      seat-actions:
+        - 3, CALL, 2
+        - 4, CALL, 2
+        - 1, CALL, 2
+        - 2, CHECK
+    flop-action:
+      seat-actions:
+        - 1, CHECK
+        - 2, CHECK
+        - 3, CHECK
+        - 4, CHECK
+    turn-action:
+      seat-actions:
+        - 1, BET, 52
+        - 2, FOLD
+        - 3, ALLIN, 33
+        - 4, FOLD
+    result:
+      # winners:
+      #   -
+      #     seat: 1
+      #     receive: 41.0
+      action-ended: SHOW_DOWN
