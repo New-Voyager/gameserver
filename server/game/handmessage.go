@@ -463,7 +463,7 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 		// run it twice prompt
 		handState.FlowState = FlowState_RUNITTWICE_UP_PROMPT
 		msgItems, err = g.runItTwicePrompt(handState)
-	} else if handState.isAllActivePlayersAllIn() {
+	} else if handState.isAllActivePlayersAllIn() || handState.allActionComplete() {
 		handState.FlowState = FlowState_ALL_PLAYERS_ALL_IN
 		msgItems, err = g.allPlayersAllIn(handState)
 	} else if handState.CurrentState == HandStatus_SHOW_DOWN {

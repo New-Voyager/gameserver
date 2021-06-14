@@ -784,6 +784,26 @@ func (h *HandState) isAllActivePlayersAllIn() bool {
 	return allIn
 }
 
+func (h *HandState) allActionComplete() bool {
+	noAllInPlayers := 0
+	noActivePlayers := 0
+	for seatNo, playerID := range h.ActiveSeats {
+		if playerID == 0 {
+			continue
+		}
+		if h.PlayersActed[seatNo].State != PlayerActState_PLAYER_ACT_FOLDED {
+			noActivePlayers++
+		}
+
+		if h.AllInPlayers[seatNo] != 0 {
+			noAllInPlayers++
+		}
+	}
+	if noActivePlayers-noAllInPlayers <= 1 {
+		return true
+	}
+	return false
+}
 func (h *HandState) settleRound() {
 	// before we go to next stage, settle pots
 	bettingState := h.RoundState[uint32(h.CurrentState)]
