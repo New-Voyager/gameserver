@@ -101,14 +101,22 @@ func (t *TestDriver) ReportResult() bool {
 	return passed
 }
 
-func RunGameScriptTests(dir string, testName string) {
+func RunGameScriptTests(fileOrDir string, testName string) {
 	game.RunningTests = true
-	pattern := fmt.Sprintf("%s/**/*.yaml", dir)
+	info, err := os.Stat(fileOrDir)
+	if os.IsNotExist(err) {
+		fmt.Printf("%s does not exist\n", fileOrDir)
+		os.Exit(1)
+	}
+	pattern := fileOrDir
+	if info.IsDir() {
+		pattern = fmt.Sprintf("%s/**/*.yaml", fileOrDir)
+	}
 	patterns := []string{pattern}
 	files, _, err := glob.Glob(patterns)
 	// runs game scripts and reports results
 	if err != nil {
-		fmt.Printf("Failed to get files from dir: %s\n", dir)
+		fmt.Printf("Failed to get game script file(s) from dir: %s\n", fileOrDir)
 		os.Exit(1)
 	}
 
