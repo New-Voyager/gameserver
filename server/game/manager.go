@@ -38,7 +38,9 @@ func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver, config *G
 		return nil, 0, err
 	}
 	go game.runGame()
-	go game.startNetworkCheck()
+	if !RunningTests {
+		go game.startNetworkCheck()
+	}
 	return game, config.GameId, nil
 }
 
