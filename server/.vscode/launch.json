@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch",
+      "name": "Script Test",
       "type": "go",
       "request": "launch",
       "mode": "auto",
@@ -39,20 +39,6 @@
         "POSTGRES_PASSWORD": "game"
       },
       "args": ["--server"]
-    },
-    {
-      "name": "Launch Bot",
-      "type": "go",
-      "request": "launch",
-      "mode": "auto",
-      "program": "${workspaceFolder}/main.go",
-      "env": {
-        "PERSIST_METHOD": "redis",
-        "REDIS_HOST": "localhost",
-        "REDIS_PORT": "6379",
-        "REDIS_DB": "0"
-      },
-      "args": ["--bot"]
-    }         
+    }
   ]
 }
