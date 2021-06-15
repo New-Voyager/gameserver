@@ -91,9 +91,12 @@ hands:
         - 2, FOLD
         - 3, ALLIN, 33
         - 4, FOLD
+    river-action:
+      seat-actions:
+        - 1, FOLD
     result:
-      # winners:
-      #   -
-      #     seat: 1
-      #     receive: 41.0
-      action-ended: SHOW_DOWN
+      winners:
+        -
+          seat: 3
+          receive: 74.0
+      action-ended: RIVER

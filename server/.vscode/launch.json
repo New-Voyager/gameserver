@@ -19,6 +19,11 @@
         "DISABLE_DELAYS": "1"
       },
       "args": ["--script-tests"]
+      // "args": [
+      //   "--script-tests",
+      //   "--game-script",
+      //   "test/game-scripts/test/allin.yaml"
+      // ]
     },
     {
       "name": "Launch Server",
