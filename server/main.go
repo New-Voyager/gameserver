@@ -22,7 +22,7 @@ import (
 
 var runServer *bool
 var runGameScriptTests *bool
-var gameScriptsDir *string
+var gameScriptsFileOrDir *string
 var delayConfigFile *string
 var testName *string
 var mainLogger = log.With().Str("logger_name", "nats::main").Logger()
@@ -31,7 +31,7 @@ func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	runServer = flag.Bool("server", true, "runs game server")
 	runGameScriptTests = flag.Bool("script-tests", false, "runs script tests")
-	gameScriptsDir = flag.String("game-script", "test/game-scripts", "runs tests with game script files")
+	gameScriptsFileOrDir = flag.String("game-script", "test/game-scripts", "runs tests with game script files")
 	delayConfigFile = flag.String("delays", "delays.yaml", "YAML file containing pause times")
 	testName = flag.String("testname", "", "runs a specific test")
 
@@ -93,8 +93,8 @@ func runWithNats() {
 }
 
 func testScripts() {
-	if *gameScriptsDir != "" {
-		test.RunGameScriptTests(*gameScriptsDir, *testName)
+	if *gameScriptsFileOrDir != "" {
+		test.RunGameScriptTests(*gameScriptsFileOrDir, *testName)
 	}
 }
 

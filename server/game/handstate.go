@@ -799,7 +799,7 @@ func (h *HandState) allActionComplete() bool {
 			noAllInPlayers++
 		}
 	}
-	if noActivePlayers-noAllInPlayers <= 1 {
+	if noActivePlayers-noAllInPlayers < 1 {
 		return true
 	}
 	return false
