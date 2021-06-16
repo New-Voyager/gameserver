@@ -18,12 +18,10 @@ var (
 )
 
 type arg struct {
-	playersFile      string
-	scriptFile       string
-	clubCode         string
-	gameCode         string
-	expectedMsgsFile string
-	msgDumpFile      string
+	playersFile string
+	scriptFile  string
+	clubCode    string
+	gameCode    string
 }
 
 func init() {
@@ -31,8 +29,6 @@ func init() {
 	flag.StringVar(&cmdArgs.playersFile, "players", "botrunner_scripts/common/players.yaml", "Players YAML file")
 	flag.StringVar(&cmdArgs.clubCode, "club-code", "", "Club code to use. If not provided, a club will be created and owned by a bot.")
 	flag.StringVar(&cmdArgs.gameCode, "game-code", "", "Game code to use. If not provided, a game will be created and started by a bot.")
-	flag.StringVar(&cmdArgs.expectedMsgsFile, "expected-msgs", "", "JSON file containing expected game server messages.")
-	flag.StringVar(&cmdArgs.msgDumpFile, "dump-msgs-to", "", "Dump server messages to this file.")
 	flag.Parse()
 }
 
@@ -64,7 +60,7 @@ func botrunner() int {
 	}
 	driverLogger := log.With().Str("logger_name", "BotRunner").Logger()
 	playerLogger := log.With().Str("logger_name", "BotPlayer").Logger()
-	botRunner, err := driver.NewBotRunner(cmdArgs.clubCode, cmdArgs.gameCode, script, players, false, &driverLogger, &playerLogger, cmdArgs.expectedMsgsFile, cmdArgs.msgDumpFile, true)
+	botRunner, err := driver.NewBotRunner(cmdArgs.clubCode, cmdArgs.gameCode, script, players, false, &driverLogger, &playerLogger, true)
 	if err != nil {
 		mainLogger.Error().Msgf("Error while creating a bot runner %+v", err)
 		return 1
