@@ -89,19 +89,8 @@ hands:
         board: ["Ac", "Ad", "2c", "Td"]
       seat-actions:
         - action: 2, ALLIN
-        # - action: 3, CALL, 100
-        #   timeout: true
         - action: 4, FOLD
           timeout: true
-
-    # river:
-    #   verify:
-    #     board: ["Ac", "Ad", "2c", "Td", "4s"]
-    #   seat-actions:
-    #     - action: 3, CALL, 100
-    #       timeout: true
-    #     - action: 4, CALL, 100
-    #       timeout: true
 
     result:
       winners:
@@ -118,3 +107,12 @@ hands:
           consecutive-action-timeouts: 3
         - seat: 4
           consecutive-action-timeouts: 1
+      stacks:
+        - seat: 1
+          stack: 297
+        - seat: 2
+          stack: 100
+        - seat: 3
+          stack: 298
+        - seat: 4
+          stack: 300

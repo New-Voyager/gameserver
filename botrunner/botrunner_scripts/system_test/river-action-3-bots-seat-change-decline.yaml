@@ -106,9 +106,9 @@ hands:
       # bb player won a chip
       stacks:
         - seat: 1
-          stack: 84
+          stack: 128
         - seat: 5
-          stack: 120
+          stack: 74
         - seat: 8
           stack: 96
 
@@ -139,3 +139,8 @@ hands:
           receive: 187
           rank: Pair
       action-ended: SHOW_DOWN
+      stacks:
+        - seat: 1
+          stack: 32
+        - seat: 8
+          stack: 187
