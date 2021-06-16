@@ -102,9 +102,9 @@ hands:
       # bb player won a chip
       stacks:
         - seat: 1
-          stack: 84
+          stack: 128
         - seat: 5
-          stack: 120
+          stack: 74
         - seat: 8
           stack: 96
 
@@ -170,8 +170,8 @@ hands:
       # bb player won a chip
       stacks:
         - seat: 1
-          stack: 84
+          stack: 124
         - seat: 5
-          stack: 120
+          stack: 102
         - seat: 8
           stack: 70

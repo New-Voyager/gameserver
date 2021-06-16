@@ -100,15 +100,13 @@ hands:
           rank: Two Pair
       action-ended: SHOW_DOWN
       
-      # balance indicates the player balance after the hand
-      # bb player won a chip
       stacks:
         - seat: 1
-          stack: 84
+          stack: 1028
         - seat: 5
-          stack: 120
+          stack: 974
         - seat: 8
-          stack: 96
+          stack: 996
 
   - setup:
       pre-deal:
@@ -170,15 +168,13 @@ hands:
           rank: Two Pair
       action-ended: SHOW_DOWN
       
-      # balance indicates the player balance after the hand
-      # bb player won a chip
       stacks:
         - seat: 1
-          stack: 84
+          stack: 1024
         - seat: 5
-          stack: 120
+          stack: 1002
         - seat: 8
-          stack: 96
+          stack: 970
 
   - setup:
       pre-deal:
@@ -240,15 +236,13 @@ hands:
           rank: Two Pair
       action-ended: SHOW_DOWN
       
-      # balance indicates the player balance after the hand
-      # bb player won a chip
       stacks:
         - seat: 1
-          stack: 84
+          stack: 998
         - seat: 5
-          stack: 120
+          stack: 998
         - seat: 8
-          stack: 96
+          stack: 998
 
   - setup:
       pre-deal:
@@ -310,15 +304,13 @@ hands:
           rank: Two Pair
       action-ended: SHOW_DOWN
       
-      # balance indicates the player balance after the hand
-      # bb player won a chip
       stacks:
         - seat: 1
-          stack: 84
+          stack: 1026
         - seat: 5
-          stack: 120
+          stack: 972
         - seat: 8
-          stack: 96
+          stack: 994
 
   - setup:
       pre-deal:
@@ -380,15 +372,13 @@ hands:
           rank: Two Pair
       action-ended: SHOW_DOWN
       
-      # balance indicates the player balance after the hand
-      # bb player won a chip
       stacks:
         - seat: 1
-          stack: 84
+          stack: 1022
         - seat: 5
-          stack: 120
+          stack: 1000
         - seat: 8
-          stack: 96
+          stack: 968
 
   - setup:
       pre-deal:
@@ -450,13 +440,10 @@ hands:
           rank: Two Pair
       action-ended: SHOW_DOWN
       
-      # balance indicates the player balance after the hand
-      # bb player won a chip
       stacks:
         - seat: 1
-          stack: 84
+          stack: 996
         - seat: 5
-          stack: 120
+          stack: 996
         - seat: 8
-          stack: 96
-
+          stack: 996

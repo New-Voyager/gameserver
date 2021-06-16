@@ -776,11 +776,11 @@ func (bp *BotPlayer) verifyBoard() {
 }
 
 func (bp *BotPlayer) verifyResult() {
-
 	// don't verify result for auto play
 	if bp.config.Script.AutoPlay {
 		return
 	}
+
 	scriptResult := bp.config.Script.GetHand(bp.game.handNum).Result
 	expectedWonAt := scriptResult.ActionEndedAt
 	wonAt := bp.GetHandResult().GetHandLog().GetWonAt()
@@ -853,6 +853,23 @@ func (bp *BotPlayer) verifyResult() {
 			if actual != expected {
 				bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Consecutive Action Timeouts for seat# %d player ID %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actual, expected)
 			}
+		}
+	}
+
+	if len(scriptResult.Stacks) > 0 {
+		resultPlayers := bp.GetHandResult().GetPlayers()
+		passed := true
+		for _, scriptPlayerStack := range scriptResult.Stacks {
+			seatNo := scriptPlayerStack.Seat
+			actualBalance := resultPlayers[seatNo].GetBalance().After
+			expectedBalance := scriptPlayerStack.Stack
+			if actualBalance != expectedBalance {
+				bp.logger.Error().Msgf("%s: Hand %d result verify failed. Remaining balance for seat# %d: %f. Expected: %f.", bp.logPrefix, bp.game.handNum, seatNo, actualBalance, expectedBalance)
+				passed = false
+			}
+		}
+		if !passed {
+			panic(fmt.Sprintf("Hand %d result verify failed.", bp.game.handNum))
 		}
 	}
 }

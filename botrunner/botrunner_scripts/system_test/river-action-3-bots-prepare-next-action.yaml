@@ -106,13 +106,10 @@ hands:
           receive: 54.0
           rank: Two Pair
       action-ended: SHOW_DOWN
-      
-      # balance indicates the player balance after the hand
-      # bb player won a chip
       stacks:
         - seat: 1
-          stack: 84
+          stack: 128
         - seat: 5
-          stack: 120
+          stack: 74
         - seat: 8
           stack: 96
