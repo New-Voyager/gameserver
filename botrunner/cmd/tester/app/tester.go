@@ -54,7 +54,7 @@ func (t *Tester) Run() error {
 		GQLTimeoutSec: 10,
 		Script:        t.script,
 		Players:       t.players,
-	}, &playerLogger, nil)
+	}, &playerLogger)
 	if err != nil {
 		return err
 	}

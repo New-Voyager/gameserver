@@ -4,7 +4,6 @@ package driver
 
 import (
 	"fmt"
-	"io/ioutil"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -13,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"voyager.com/botrunner/internal/game"
-	"voyager.com/botrunner/internal/msgcheck"
 	"voyager.com/botrunner/internal/player"
 	"voyager.com/botrunner/internal/util"
 	"voyager.com/gamescript"
@@ -21,66 +19,52 @@ import (
 
 // BotRunner is the main driver object that sets up the bots for a game.
 type BotRunner struct {
-	logger           *zerolog.Logger
-	playerLogger     *zerolog.Logger
-	msgCollector     *msgcheck.MsgCollector
-	msgDumpFile      string
-	expectedMsgsFile string
-	clubCode         string
-	botIsClubOwner   bool
-	players          *gamescript.Players
-	script           *gamescript.Script
-	waitStart        bool
-	gameCode         string
-	botIsGameHost    bool
-	currentHandNum   uint32
-	bots             []*player.BotPlayer
-	observerBot      *player.BotPlayer
-	botsByName       map[string]*player.BotPlayer
-	botsBySeat       map[uint32]*player.BotPlayer
-	observerBots     map[string]*player.BotPlayer // these players are observing the game and waiting in the waitlist
-	apiServerURL     string
-	natsConn         *natsgo.Conn
-	shouldTerminate  bool
-	resetDB          bool
+	logger          *zerolog.Logger
+	playerLogger    *zerolog.Logger
+	clubCode        string
+	botIsClubOwner  bool
+	players         *gamescript.Players
+	script          *gamescript.Script
+	waitStart       bool
+	gameCode        string
+	botIsGameHost   bool
+	currentHandNum  uint32
+	bots            []*player.BotPlayer
+	observerBot     *player.BotPlayer
+	botsByName      map[string]*player.BotPlayer
+	botsBySeat      map[uint32]*player.BotPlayer
+	observerBots    map[string]*player.BotPlayer // these players are observing the game and waiting in the waitlist
+	apiServerURL    string
+	natsConn        *natsgo.Conn
+	shouldTerminate bool
+	resetDB         bool
 }
 
 // NewBotRunner creates new instance of BotRunner.
-func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, players *gamescript.Players, waitStart bool, driverLogger *zerolog.Logger, playerLogger *zerolog.Logger, expectedMsgsFile string, msgDumpFile string, resetDB bool) (*BotRunner, error) {
+func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, players *gamescript.Players, waitStart bool, driverLogger *zerolog.Logger, playerLogger *zerolog.Logger, resetDB bool) (*BotRunner, error) {
 	natsURL := util.Env.GetNatsURL()
 	nc, err := natsgo.Connect(natsURL)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Driver unable to connect to NATS server [%s]", natsURL))
 	}
 
-	var msgCollector *msgcheck.MsgCollector
-	if msgDumpFile != "" || expectedMsgsFile != "" {
-		msgCollector, err = msgcheck.NewMsgCollector(expectedMsgsFile)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	d := BotRunner{
-		logger:           driverLogger,
-		playerLogger:     playerLogger,
-		msgCollector:     msgCollector,
-		msgDumpFile:      msgDumpFile,
-		expectedMsgsFile: expectedMsgsFile,
-		clubCode:         clubCode,
-		botIsClubOwner:   clubCode == "",
-		gameCode:         gameCode,
-		botIsGameHost:    gameCode == "",
-		players:          players,
-		script:           script,
-		waitStart:        waitStart,
-		bots:             make([]*player.BotPlayer, 0),
-		botsByName:       make(map[string]*player.BotPlayer),
-		botsBySeat:       make(map[uint32]*player.BotPlayer),
-		observerBots:     make(map[string]*player.BotPlayer),
-		natsConn:         nc,
-		currentHandNum:   0,
-		resetDB:          resetDB,
+		logger:         driverLogger,
+		playerLogger:   playerLogger,
+		clubCode:       clubCode,
+		botIsClubOwner: clubCode == "",
+		gameCode:       gameCode,
+		botIsGameHost:  gameCode == "",
+		players:        players,
+		script:         script,
+		waitStart:      waitStart,
+		bots:           make([]*player.BotPlayer, 0),
+		botsByName:     make(map[string]*player.BotPlayer),
+		botsBySeat:     make(map[uint32]*player.BotPlayer),
+		observerBots:   make(map[string]*player.BotPlayer),
+		natsConn:       nc,
+		currentHandNum: 0,
+		resetDB:        resetDB,
 	}
 	return &d, nil
 }
@@ -110,7 +94,7 @@ func (br *BotRunner) Run() error {
 			GQLTimeoutSec:      10,
 			Script:             br.script,
 			Players:            br.players,
-		}, br.playerLogger, br.msgCollector)
+		}, br.playerLogger)
 		if err != nil {
 			return errors.Wrap(err, "Unable to create a new bot")
 		}
@@ -133,7 +117,7 @@ func (br *BotRunner) Run() error {
 		GQLTimeoutSec:      10,
 		Script:             br.script,
 		Players:            br.players,
-	}, br.playerLogger, br.msgCollector)
+	}, br.playerLogger)
 	if err != nil {
 		return errors.Wrap(err, "Unable to create observer bot")
 	}
@@ -448,23 +432,6 @@ func (br *BotRunner) Run() error {
 	err = br.verifyGameServerCrashLog()
 	if err != nil {
 		return err
-	}
-
-	if br.msgDumpFile != "" {
-		fmt.Printf("Dumping collected game/hand messages to %s\n", br.msgDumpFile)
-		jsonStr, err := br.msgCollector.ToPrettyJSONString()
-		if err != nil {
-			return err
-		}
-		ioutil.WriteFile(br.msgDumpFile, []byte(jsonStr), 0644)
-	}
-
-	if br.expectedMsgsFile != "" {
-		fmt.Println("Verifying received game/hand messages against the expected messages.")
-		err := br.msgCollector.Verify()
-		if err != nil {
-			return errors.Wrapf(err, "Messages verification failed. Check the message dump file (%s) and the expected messages file (%s)", br.msgDumpFile, br.expectedMsgsFile)
-		}
 	}
 
 	return nil
