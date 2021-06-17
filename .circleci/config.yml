@@ -26,3 +26,10 @@ jobs:
       - run:
           name: Run system test
           command: make system-test
+      - when:
+          condition:
+            equal: [ master, <<pipeline.git.branch>> ]
+          steps:
+            - run:
+                name: Publish Docker images (master only)
+                command: make publish
