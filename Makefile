@@ -1,5 +1,6 @@
 SERVER_DIR := server
 BOTRUNNER_DIR := botrunner
+TIMER_DIR := timer
 
 .PHONY: compile-proto
 compile-proto:
@@ -10,11 +11,19 @@ compile-proto:
 build:
 	$(MAKE) -C $(SERVER_DIR) build
 	$(MAKE) -C $(BOTRUNNER_DIR) build
+	$(MAKE) -C $(TIMER_DIR) build
 
 .PHONY: docker-build
 docker-build:
 	$(MAKE) -C $(SERVER_DIR) docker-build
 	$(MAKE) -C $(BOTRUNNER_DIR) docker-build
+	$(MAKE) -C $(TIMER_DIR) docker-build
+
+.PHONY: publish
+publish:
+	$(MAKE) -C $(SERVER_DIR) publish
+	$(MAKE) -C $(BOTRUNNER_DIR) publish
+	$(MAKE) -C $(TIMER_DIR) publish
 
 .PHONY: test
 test:

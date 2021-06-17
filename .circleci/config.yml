@@ -26,3 +26,6 @@ jobs:
       - run:
           name: Run system test
           command: make system-test
+      - run:
+          name: Publish Docker images
+          command: make publish
