@@ -33,6 +33,11 @@ services:
       NATS_URL: nats://nats:4222
       BOTRUNNER_URL: http://botrunner:8081
       TIMER_URL: http://timer:8082
+      POSTGRES_HOST: 'postgres'
+      POSTGRES_PORT: '5432'
+      POSTGRES_USER: 'game'
+      POSTGRES_PASSWORD: 'game'
+      POSTGRES_DB: 'game'
 
   game-server:
     image: ${GAME_SERVER_IMAGE}
