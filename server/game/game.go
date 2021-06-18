@@ -48,7 +48,7 @@ type Game struct {
 	actionTimeStart     time.Time
 	players             map[uint64]string
 	waitingPlayers      []uint64
-	remainingActionTime uint32
+	RemainingActionTime uint32
 	apiServerUrl        string
 	// test driver specific variables
 	autoDeal      bool
@@ -355,7 +355,7 @@ func (g *Game) resumeGame(handState *HandState) error {
 	return err
 }
 
-func (g *Game) maskCards(playerCards []byte, gameToken uint64) ([]uint32, uint64) {
+func (g *Game) MaskCards(playerCards []byte, gameToken uint64) ([]uint32, uint64) {
 	// playerCards is a map
 	card64 := make([]byte, 8)
 	cards := make([]uint32, len(playerCards))
@@ -641,7 +641,7 @@ func (g *Game) dealNewHand() error {
 		dealCards := HandDealCards{SeatNo: uint32(player.SeatNo)}
 
 		tmpGameToken := uint64(0)
-		cards, maskedCards := g.maskCards(playerCards, tmpGameToken)
+		cards, maskedCards := g.MaskCards(playerCards, tmpGameToken)
 		playersCards[player.SeatNo] = fmt.Sprintf("%d", maskedCards)
 		dealCards.Cards = fmt.Sprintf("%d", maskedCards)
 		dealCards.CardsStr = poker.CardsToString(cards)
@@ -706,6 +706,10 @@ func (g *Game) generateMsgID(prefix string, handNum uint32, handStatus HandStatu
 	return fmt.Sprintf("%s:%d:%s:%d:%s:%d", prefix, handNum, handStatus, playerID, originalMsgID, currentActionNum)
 }
 
+func (g *Game) GenerateMsgID(prefix string, handNum uint32, handStatus HandStatus, playerID uint64, originalMsgID string, currentActionNum uint32) string {
+	return g.generateMsgID(prefix, handNum, handStatus, playerID, originalMsgID, currentActionNum)
+}
+
 func (g *Game) saveHandState(handState *HandState) error {
 	err := g.manager.handStatePersist.Save(
 		g.config.GameCode,
@@ -719,6 +723,11 @@ func (g *Game) removeHandState() error {
 }
 
 func (g *Game) loadHandState() (*HandState, error) {
+	handState, err := g.manager.handStatePersist.Load(g.config.GameCode)
+	return handState, err
+}
+
+func (g *Game) GetHandState() (*HandState, error) {
 	handState, err := g.manager.handStatePersist.Load(g.config.GameCode)
 	return handState, err
 }
