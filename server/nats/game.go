@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/encoding/protojson"
 	"voyager.com/server/game"
+	"voyager.com/server/poker"
 )
 
 // NatsGame is an adapter that interacts with the NATS server and
@@ -239,7 +240,167 @@ func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
 		return
 	}
 
-	n.serverGame.SendHandMessage(&message)
+	messageHandled := false
+	if len(message.Messages) > 1 {
+		message1 := message.Messages[0]
+		if message1.MessageType == game.HandQueryCurrentHand {
+			n.onQueryHand(message.GameId, message.PlayerId, message.MessageId, message1)
+			messageHandled = true
+		}
+	}
+	if !messageHandled {
+		n.serverGame.SendHandMessage(&message)
+	}
+}
+
+func (n *NatsGame) onQueryHand(gameId uint64, playerId uint64, messageId string, message *game.HandMessageItem) error {
+	natsLogger.Info().Uint64("game", n.gameID).
+		Msgf("Player->Hand: Query current hand [%d]", playerId)
+
+	handState, err := n.serverGame.GetHandState()
+	if err != nil || handState == nil ||
+		handState.HandNum == 0 ||
+		handState.CurrentState == game.HandStatus_HAND_CLOSED {
+		natsLogger.Info().Uint64("game", n.gameID).
+			Msgf("Player->Hand: Query current hand [%d] handstate is not available", playerId)
+		currentHandState := game.CurrentHandState{
+			HandNum: 0,
+		}
+		handStateMsg := &game.HandMessageItem{
+			MessageType: game.HandQueryCurrentHand,
+			Content:     &game.HandMessageItem_CurrentHandState{CurrentHandState: &currentHandState},
+		}
+
+		serverMsg := &game.HandMessage{
+			GameId:    n.gameID,
+			PlayerId:  playerId,
+			HandNum:   0,
+			MessageId: n.serverGame.GenerateMsgID("CURRENT_HAND", handState.HandNum, handState.CurrentState, playerId, messageId, handState.CurrentActionNum),
+			Messages:  []*game.HandMessageItem{handStateMsg},
+		}
+		n.SendHandMessageToPlayer(serverMsg, playerId)
+		return nil
+	}
+
+	boardCards := make([]uint32, len(handState.BoardCards))
+	for i, card := range handState.BoardCards {
+		boardCards[i] = uint32(card)
+	}
+
+	pots := make([]float32, 0)
+	for _, pot := range handState.Pots {
+		pots = append(pots, pot.Pot)
+	}
+	currentPot := pots[len(pots)-1]
+	bettingInProgress := handState.CurrentState == game.HandStatus_PREFLOP ||
+		handState.CurrentState == game.HandStatus_FLOP ||
+		handState.CurrentState == game.HandStatus_TURN ||
+		handState.CurrentState == game.HandStatus_RIVER
+	if bettingInProgress {
+		currentRoundState, ok := handState.RoundState[uint32(handState.CurrentState)]
+		if !ok || currentRoundState == nil {
+			b, err := json.Marshal(handState)
+			if err != nil {
+				return fmt.Errorf("Unable to find current round state. currentRoundState: %+v. handState.CurrentState: %d handState.RoundState: %+v", currentRoundState, handState.CurrentState, handState.RoundState)
+			}
+			return fmt.Errorf("Unable to find current round state. handState: %s", string(b))
+		}
+		currentBettingRound := currentRoundState.Betting
+		for _, bet := range currentBettingRound.SeatBet {
+			currentPot = currentPot + bet
+		}
+	}
+
+	var boardCardsOut []uint32
+	switch handState.CurrentState {
+	case game.HandStatus_FLOP:
+		boardCardsOut = boardCards[:3]
+	case game.HandStatus_TURN:
+		boardCardsOut = boardCards[:4]
+
+	case game.HandStatus_RIVER:
+	case game.HandStatus_RESULT:
+	case game.HandStatus_SHOW_DOWN:
+		boardCardsOut = boardCards
+
+	default:
+		boardCardsOut = make([]uint32, 0)
+	}
+	cardsStr := poker.CardsToString(boardCardsOut)
+
+	currentHandState := game.CurrentHandState{
+		HandNum:       handState.HandNum,
+		GameType:      handState.GameType,
+		CurrentRound:  handState.CurrentState,
+		BoardCards:    boardCardsOut,
+		BoardCards_2:  nil,
+		CardsStr:      cardsStr,
+		Pots:          pots,
+		PotUpdates:    currentPot,
+		ButtonPos:     handState.ButtonPos,
+		SmallBlindPos: handState.SmallBlindPos,
+		BigBlindPos:   handState.BigBlindPos,
+		SmallBlind:    handState.SmallBlind,
+		BigBlind:      handState.BigBlind,
+		NoCards:       n.serverGame.NumCards(handState.GameType),
+	}
+	currentHandState.PlayersActed = make(map[uint32]*game.PlayerActRound, 0)
+
+	var playerSeatNo uint32
+	for seatNo, pid := range handState.GetPlayersInSeats() {
+		if pid == playerId {
+			playerSeatNo = uint32(seatNo)
+			break
+		}
+	}
+
+	for seatNo, action := range handState.GetPlayersActed() {
+		if action.State == game.PlayerActState_PLAYER_ACT_EMPTY_SEAT {
+			continue
+		}
+		currentHandState.PlayersActed[uint32(seatNo)] = action
+	}
+
+	if playerSeatNo != 0 {
+		player := n.serverGame.PlayersInSeats[playerSeatNo]
+		_, maskedCards := n.serverGame.MaskCards(handState.GetPlayersCards()[playerSeatNo], player.GameTokenInt)
+		currentHandState.PlayerCards = fmt.Sprintf("%d", maskedCards)
+		currentHandState.PlayerSeatNo = playerSeatNo
+	}
+
+	if bettingInProgress && handState.NextSeatAction != nil {
+		currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
+		currentHandState.RemainingActionTime = n.serverGame.RemainingActionTime
+		currentHandState.NextSeatAction = handState.NextSeatAction
+	}
+	currentHandState.PlayersStack = make(map[uint64]float32, 0)
+	playerState := handState.GetPlayersState()
+	for seatNo, playerID := range handState.GetPlayersInSeats() {
+		if playerID == 0 {
+			continue
+		}
+		currentHandState.PlayersStack[uint64(seatNo)] = playerState[playerID].Stack
+	}
+
+	handStateMsg := &game.HandMessageItem{
+		MessageType: game.HandQueryCurrentHand,
+		Content:     &game.HandMessageItem_CurrentHandState{CurrentHandState: &currentHandState},
+	}
+
+	serverMsg := &game.HandMessage{
+		GameId:     gameId,
+		PlayerId:   playerId,
+		HandNum:    handState.HandNum,
+		HandStatus: handState.CurrentState,
+		MessageId: n.serverGame.GenerateMsgID("CURRENT_HAND", handState.HandNum,
+			handState.CurrentState, playerId, messageId, handState.CurrentActionNum),
+		Messages: []*game.HandMessageItem{handStateMsg},
+	}
+	n.SendHandMessageToPlayer(serverMsg, playerId)
+	natsLogger.Info().Uint64("game", n.gameID).
+		Msgf("Player->Hand: Query current hand [%d] returned", playerId)
+
+	return nil
 }
 
 // messages sent from player to pong channel for network check
@@ -272,7 +433,6 @@ func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 		}
 		n.nc.Publish(n.game2AllPlayersSubject, data)
 	}
-
 }
 
 func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {

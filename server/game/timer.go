@@ -38,7 +38,7 @@ func (g *Game) timerLoop(stop <-chan bool, pause <-chan bool) {
 					remainingTime = 0
 				}
 				// track remainingActionTime to show the new observer how much time the current player has to act
-				g.remainingActionTime = uint32(remainingTime)
+				g.RemainingActionTime = uint32(remainingTime)
 
 				if remainingTime <= 0 {
 					// The player timed out.

@@ -173,14 +173,14 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 
 	if playerSeatNo != 0 {
 		player := g.PlayersInSeats[playerSeatNo]
-		_, maskedCards := g.maskCards(handState.GetPlayersCards()[playerSeatNo], player.GameTokenInt)
+		_, maskedCards := g.MaskCards(handState.GetPlayersCards()[playerSeatNo], player.GameTokenInt)
 		currentHandState.PlayerCards = fmt.Sprintf("%d", maskedCards)
 		currentHandState.PlayerSeatNo = playerSeatNo
 	}
 
 	if bettingInProgress && handState.NextSeatAction != nil {
 		currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
-		currentHandState.RemainingActionTime = g.remainingActionTime
+		currentHandState.RemainingActionTime = g.RemainingActionTime
 		currentHandState.NextSeatAction = handState.NextSeatAction
 	}
 	currentHandState.PlayersStack = make(map[uint64]float32, 0)
