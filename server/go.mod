@@ -26,6 +26,7 @@ require (
 	gopkg.in/yaml.v2 v2.3.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
 	nhooyr.io/websocket v1.8.6
+	voyager.com/encryption v0.0.0-00010101000000-000000000000
 )
 
 replace voyager.com/server/internal => ./internal
@@ -43,3 +44,5 @@ replace voyager.com/server/bot => ./bot
 replace voyager.com/server/apiserver => ./apiserver
 
 replace voyager.com/server/rest => ./rest
+
+replace voyager.com/encryption => ../encryption

@@ -11,3 +11,6 @@ protoc-3.7.1-linux-x86_64.zip
 game-server
 nats-server
 __debug_bin
+
+# Temporary build files
+build/

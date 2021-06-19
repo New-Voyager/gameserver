@@ -5,6 +5,7 @@ FROM golang:1.13.10-alpine3.11 AS builder
 RUN mkdir /build
 COPY . /build/botrunner
 COPY build/gamescript /build/gamescript
+COPY build/encryption /build/encryption
 WORKDIR /build/botrunner
 RUN --mount=type=cache,target=/go --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o botrunner ./cmd/botrunner
 RUN --mount=type=cache,target=/go --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o tester ./cmd/tester

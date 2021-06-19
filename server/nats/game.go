@@ -7,8 +7,10 @@ import (
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/encoding/protojson"
+	"voyager.com/encryption"
 	"voyager.com/server/game"
 	"voyager.com/server/poker"
+	"voyager.com/server/util"
 )
 
 // NatsGame is an adapter that interacts with the NATS server and
@@ -463,6 +465,16 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", fmt.Sprintf("%v", msgTypes)).
 		Str("subject", hand2PlayerSubject).
 		Msg(fmt.Sprintf("H->P: %s", string(data)))
+
+	if util.GameServerEnvironment.ShouldEncryptPlayerMsg() {
+		encryptedData, err := encryption.EncryptWithPlayerID(data, playerID)
+		if err != nil {
+			natsLogger.Error().Msgf("Unable to encrypt message to player %d", playerID)
+			return
+		}
+		data = encryptedData
+	}
+
 	n.nc.Publish(hand2PlayerSubject, data)
 }
 

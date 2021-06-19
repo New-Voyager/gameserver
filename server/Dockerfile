@@ -9,14 +9,15 @@ RUN wget https://github.com/eradman/entr/archive/4.6.tar.gz -O entr.tar.gz && \
     ./configure && make install && \
     find /usr/local/bin/entr
 RUN mkdir /build
-ADD . /build/
-WORKDIR /build
+COPY . /build/server
+COPY build/encryption /build/encryption
+WORKDIR /build/server
 RUN --mount=type=cache,target=/go --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o game-server .
 
 FROM alpine:latest
 COPY --from=builder /usr/local/bin/entr /usr/local/bin/entr
-COPY --from=builder /build/game-server /app/
-COPY --from=builder /build/test/game-scripts /app/test/game-scripts
+COPY --from=builder /build/server/game-server /app/
+COPY --from=builder /build/server/test/game-scripts /app/test/game-scripts
 COPY ./delays.yaml /app/delays.yaml
 
 WORKDIR /app

@@ -22,7 +22,10 @@ require (
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/godo.v2 v2.0.9
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	voyager.com/encryption v0.0.0-00010101000000-000000000000
 	voyager.com/gamescript v0.0.0-00010101000000-000000000000
 )
 
 replace voyager.com/gamescript => ../gamescript
+
+replace voyager.com/encryption => ../encryption

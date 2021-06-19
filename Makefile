@@ -28,6 +28,7 @@ publish:
 .PHONY: test
 test:
 	$(MAKE) -C gamescript test
+	$(MAKE) -C encryption test
 	$(MAKE) -C server test
 
 .PHONY: system-test

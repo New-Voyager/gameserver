@@ -50,8 +50,10 @@ docker-build: compile-proto
 	mkdir -p build
 	if [ "${CIRCLECI}" = "true" ]; then \
 		[ -d build/gamescript ] || cp -r $(PROJECT_ROOT)/gamescript build/gamescript; \
+		[ -d build/encryption ] || cp -r $(PROJECT_ROOT)/encryption build/encryption; \
 	else \
 		rsync -avu --delete $(PROJECT_ROOT)/gamescript/ build/gamescript; \
+		rsync -avu --delete $(PROJECT_ROOT)/encryption/ build/encryption; \
 	fi
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t botrunner
 

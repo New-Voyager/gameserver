@@ -27,6 +27,7 @@ import (
 	"voyager.com/botrunner/internal/gql"
 	"voyager.com/botrunner/internal/poker"
 	"voyager.com/botrunner/internal/util"
+	"voyager.com/encryption"
 	"voyager.com/gamescript"
 )
 
@@ -291,14 +292,32 @@ func (bp *BotPlayer) handleGameMsg(msg *natsgo.Msg) {
 }
 
 func (bp *BotPlayer) handleHandMsg(msg *natsgo.Msg) {
+	bp.unmarshalAndQueueHandMsg(msg.Data)
+}
+
+func (bp *BotPlayer) handlePrivateHandMsg(msg *natsgo.Msg) {
+	data := msg.Data
+	if util.Env.IsPlayerMsgEncrypted() {
+		decryptedMsg, err := encryption.DecryptWithPlayerID(msg.Data, bp.PlayerID)
+		if err != nil {
+			bp.logger.Error().Msgf("%s: Error [%s] while decrypting private hand message", bp.logPrefix, err)
+			return
+		}
+		data = decryptedMsg
+	}
+
+	bp.unmarshalAndQueueHandMsg(data)
+}
+
+func (bp *BotPlayer) unmarshalAndQueueHandMsg(data []byte) {
 	fmt.Printf("\n")
-	fmt.Printf(string(msg.Data))
+	fmt.Printf(string(data))
 	fmt.Printf("\n")
 
 	var message game.HandMessage
-	err := protojson.Unmarshal(msg.Data, &message)
+	err := protojson.Unmarshal(data, &message)
 	if err != nil {
-		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf hand message [%s]", bp.logPrefix, err, string(msg.Data))
+		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf hand message [%s]", bp.logPrefix, err, string(data))
 		return
 	}
 
@@ -1041,7 +1060,7 @@ func (bp *BotPlayer) Subscribe(gameToAll string, handToAll string, handToPlayer 
 
 	if bp.handMsgPlayerSub == nil || !bp.handMsgPlayerSub.IsValid() {
 		bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand messages sent to player: %s", bp.logPrefix, handToPlayer, bp.config.Name)
-		handToPlayerSub, err := bp.natsConn.Subscribe(handToPlayer, bp.handleHandMsg)
+		handToPlayerSub, err := bp.natsConn.Subscribe(handToPlayer, bp.handlePrivateHandMsg)
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the hand message subject [%s]", bp.logPrefix, handToPlayer))
 		}
