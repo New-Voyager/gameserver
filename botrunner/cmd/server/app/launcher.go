@@ -42,7 +42,7 @@ type Launcher struct {
 }
 
 // ApplyToBatch schedules the requested number of games to be applied to the batch.
-func (l *Launcher) ApplyToBatch(batchID string, players *gamescript.Players, script *gamescript.Script, desiredNumGames uint32, launchInterval *float32, waitStart bool) error {
+func (l *Launcher) ApplyToBatch(batchID string, players *gamescript.Players, script *gamescript.Script, desiredNumGames uint32, launchInterval *float32) error {
 	b, exists := l.batches[batchID]
 	if exists {
 		var launchIntervalMsg string
@@ -50,7 +50,7 @@ func (l *Launcher) ApplyToBatch(batchID string, players *gamescript.Players, scr
 			launchIntervalMsg = fmt.Sprintf(", LaunchInterval: %f", *launchInterval)
 		}
 		launcherLogger.Info().Msgf("Updating batch [%s]. NumGames: %d%s", batchID, desiredNumGames, launchIntervalMsg)
-		b.Apply(desiredNumGames, launchInterval, waitStart)
+		b.Apply(desiredNumGames, launchInterval)
 	} else {
 		if players == nil || script == nil {
 			return fmt.Errorf("There is no existing batch with ID [%s]. Player and script config must be provided to start a new batch", batchID)
@@ -65,7 +65,7 @@ func (l *Launcher) ApplyToBatch(batchID string, players *gamescript.Players, scr
 		if err != nil {
 			return errors.Wrap(err, "Unable to create a new BotRunnerBatch")
 		}
-		err = b.Apply(desiredNumGames, launchInterval, waitStart)
+		err = b.Apply(desiredNumGames, launchInterval)
 		if err != nil {
 			return errors.Wrap(err, "Unable to apply the desired number of games and launch interval")
 		}
@@ -82,7 +82,7 @@ func (l *Launcher) StopBatch(batchID string) error {
 	if !exists {
 		return fmt.Errorf("Batch [%s] does not exist", batchID)
 	}
-	err := b.Apply(0, nil, false)
+	err := b.Apply(0, nil)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("Unable to schedule the number of botrunners to 0 for batch [%s]", batchID))
 	}

@@ -24,7 +24,6 @@ type BotRunnerBatch struct {
 	script           *gamescript.Script
 	launchInterval   float32
 	desiredInstances uint32
-	waitStart        bool
 	terminate        bool
 }
 
@@ -47,13 +46,12 @@ func (b *BotRunnerBatch) Destroy() {
 }
 
 // Apply changes the desired number of bot runner instances, and optionally the launch interval.
-func (b *BotRunnerBatch) Apply(desiredInstances uint32, launchInterval *float32, waitStart bool) error {
+func (b *BotRunnerBatch) Apply(desiredInstances uint32, launchInterval *float32) error {
 	if launchInterval != nil && *launchInterval >= 0 {
 		b.launchInterval = *launchInterval
 	}
 
 	b.desiredInstances = desiredInstances
-	b.waitStart = waitStart
 	return nil
 }
 
@@ -109,7 +107,7 @@ func (b *BotRunnerBatch) mainLoop() {
 		botPlayerLogger := zerolog.New(f).With().Str("logger_name", "BotPlayer").Logger()
 
 		b.logger.Info().Msgf("Launching bot runner instance [%d]. Logging to %s.", nextInstanceNo, logFileName)
-		botRunner, err := driver.NewBotRunner("", "", b.script, b.players, b.waitStart, &botRunnerLogger, &botPlayerLogger, false)
+		botRunner, err := driver.NewBotRunner("", "", b.script, b.players, &botRunnerLogger, &botPlayerLogger, false)
 		if err != nil {
 			b.logger.Error().Msgf("Error while creating a BotRunner: %s", err)
 			time.Sleep(2 * time.Second)
