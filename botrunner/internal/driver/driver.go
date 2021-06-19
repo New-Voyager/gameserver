@@ -25,7 +25,6 @@ type BotRunner struct {
 	botIsClubOwner  bool
 	players         *gamescript.Players
 	script          *gamescript.Script
-	waitStart       bool
 	gameCode        string
 	botIsGameHost   bool
 	currentHandNum  uint32
@@ -41,7 +40,7 @@ type BotRunner struct {
 }
 
 // NewBotRunner creates new instance of BotRunner.
-func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, players *gamescript.Players, waitStart bool, driverLogger *zerolog.Logger, playerLogger *zerolog.Logger, resetDB bool) (*BotRunner, error) {
+func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, players *gamescript.Players, driverLogger *zerolog.Logger, playerLogger *zerolog.Logger, resetDB bool) (*BotRunner, error) {
 	natsURL := util.Env.GetNatsURL()
 	nc, err := natsgo.Connect(natsURL)
 	if err != nil {
@@ -57,7 +56,6 @@ func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, p
 		botIsGameHost:  gameCode == "",
 		players:        players,
 		script:         script,
-		waitStart:      waitStart,
 		bots:           make([]*player.BotPlayer, 0),
 		botsByName:     make(map[string]*player.BotPlayer),
 		botsBySeat:     make(map[uint32]*player.BotPlayer),
@@ -344,7 +342,7 @@ func (br *BotRunner) Run() error {
 
 		br.logger.Info().Msgf("Starting the new game")
 		// Have the owner bot start the game.
-		if !br.waitStart && !br.script.Game.DontStart {
+		if !br.script.Game.DontStart {
 			// Have the owner bot start the game.
 			err = br.bots[0].StartGame(br.gameCode)
 			if err != nil {
