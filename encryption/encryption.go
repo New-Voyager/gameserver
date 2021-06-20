@@ -4,26 +4,48 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"encoding/binary"
 	"io"
+
+	"github.com/google/uuid"
+	"github.com/pkg/errors"
 )
 
-func EncryptWithPlayerID(data []byte, playerID uint64) ([]byte, error) {
-	key := make([]byte, 32)
+func EncryptWithUUIDStrKey(data []byte, uuidStr string) ([]byte, error) {
+	var key uuid.UUID = uuid.MustParse(uuidStr)
+	return EncryptWithUUIDKey(data, key)
+}
 
-	// For exmaple player ID 31, key is
-	// [31 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-	binary.LittleEndian.PutUint64(key, playerID)
+func DecryptWithUUIDStrKey(data []byte, uuidStr string) ([]byte, error) {
+	var key uuid.UUID = uuid.MustParse(uuidStr)
+	return DecryptWithUUIDKey(data, key)
+}
+
+func EncryptWithUUIDKey(data []byte, _uuid uuid.UUID) ([]byte, error) {
+	key, err := uuidToBytes(_uuid)
+	if err != nil {
+		return nil, err
+	}
 	return Encrypt(data, key)
 }
 
-func DecryptWithPlayerID(data []byte, playerID uint64) ([]byte, error) {
-	key := make([]byte, 32)
-	binary.LittleEndian.PutUint64(key, playerID)
+func DecryptWithUUIDKey(data []byte, _uuid uuid.UUID) ([]byte, error) {
+	key, err := uuidToBytes(_uuid)
+	if err != nil {
+		return nil, err
+	}
 	return Decrypt(data, key)
 }
 
-// Encrypt encrypts the data. Key must be 32 bytes.
+func uuidToBytes(_uuid uuid.UUID) ([]byte, error) {
+	bytes, err := _uuid.MarshalBinary()
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to convert encryption key (uuid) to bytes")
+	}
+
+	return bytes, nil
+}
+
+// Encrypt encrypts the data.
 func Encrypt(data []byte, key []byte) ([]byte, error) {
 	c, err := aes.NewCipher(key)
 	if err != nil {

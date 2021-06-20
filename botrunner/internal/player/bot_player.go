@@ -67,6 +67,7 @@ type BotPlayer struct {
 	gameID          uint64
 	PlayerID        uint64
 	PlayerUUID      string
+	EncryptionKey   string
 	RewardsNameToID map[string]uint32
 	scriptedGame    bool
 	Reload          bool
@@ -298,7 +299,7 @@ func (bp *BotPlayer) handleHandMsg(msg *natsgo.Msg) {
 func (bp *BotPlayer) handlePrivateHandMsg(msg *natsgo.Msg) {
 	data := msg.Data
 	if util.Env.IsPlayerMsgEncrypted() {
-		decryptedMsg, err := encryption.DecryptWithPlayerID(msg.Data, bp.PlayerID)
+		decryptedMsg, err := encryption.DecryptWithUUIDStrKey(msg.Data, bp.EncryptionKey)
 		if err != nil {
 			bp.logger.Error().Msgf("%s: Error [%s] while decrypting private hand message", bp.logPrefix, err)
 			return
@@ -903,6 +904,13 @@ func (bp *BotPlayer) Register() error {
 	}
 
 	bp.PlayerID = playerID
+
+	encryptionKey, err := bp.getEncryptionKey()
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get the player encryption key", bp.logPrefix))
+	}
+
+	bp.EncryptionKey = encryptionKey
 	bp.logger.Info().Msgf("%s: Successfully registered as a user. Player UUID: [%s] Player ID: [%d].", bp.logPrefix, playerUUID, bp.PlayerID)
 	return nil
 }
@@ -1408,6 +1416,14 @@ func (bp *BotPlayer) getPlayerID() (uint64, error) {
 	return playerID.ID, nil
 }
 
+func (bp *BotPlayer) getEncryptionKey() (string, error) {
+	encryptionKey, err := bp.gqlHelper.GetEncryptionKey()
+	if err != nil {
+		return "", errors.Wrapf(err, "%s: Unable to get encryption key", bp.logPrefix)
+	}
+	return encryptionKey, nil
+}
+
 // StartGame starts the game.
 func (bp *BotPlayer) StartGame(gameCode string) error {
 	bp.logger.Info().Msgf("%s: Starting the game [%s].", bp.logPrefix, gameCode)
@@ -1884,6 +1900,13 @@ func (bp *BotPlayer) Login(playerUUID string, deviceID string) error {
 	}
 	bp.apiAuthToken = fmt.Sprintf("jwt %s", userJwt)
 	bp.gqlHelper.SetAuthToken(bp.apiAuthToken)
+
+	encryptionKey, err := bp.getEncryptionKey()
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get the player encryption key", bp.logPrefix))
+	}
+
+	bp.EncryptionKey = encryptionKey
 	return nil
 }
 

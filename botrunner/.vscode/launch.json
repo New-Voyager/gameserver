@@ -23,8 +23,8 @@
       },
       "args": [
         "-script",
-        "botrunner_scripts/system_test/river-action-3-bots-seat-change.yaml"
-        // "botrunner_scripts/system_test/river-action-3-bots.yaml"
+        // "botrunner_scripts/system_test/river-action-3-bots-seat-change.yaml"
+        "botrunner_scripts/system_test/river-action-3-bots.yaml"
       ]
     },
     {
