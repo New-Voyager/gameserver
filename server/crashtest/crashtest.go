@@ -6,7 +6,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
-	"voyager.com/server/util"
+	"voyager.com/server/internal"
 )
 
 // CrashPoint is an enum representing different points in the code that the server can crash.
@@ -99,7 +99,7 @@ func Hit(gameCode string, cp CrashPoint, playerID uint64) {
 }
 
 func saveToTracker(gameCode string, cp CrashPoint) error {
-	db := sqlx.MustConnect("postgres", getConnStr())
+	db := sqlx.MustConnect("postgres", internal.GetConnStr())
 	defer db.Close()
 	result := db.MustExec("INSERT INTO crash_test (game_code, crash_point) VALUES ($1, $2)", gameCode, string(cp))
 	numRows, err := result.RowsAffected()
@@ -110,15 +110,4 @@ func saveToTracker(gameCode string, cp CrashPoint) error {
 		return fmt.Errorf("Rows inserted != 1")
 	}
 	return nil
-}
-
-func getConnStr() string {
-	return fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		util.GameServerEnvironment.GetPostgresHost(),
-		util.GameServerEnvironment.GetPostgresPort(),
-		util.GameServerEnvironment.GetPostgresUser(),
-		util.GameServerEnvironment.GetPostgresPW(),
-		util.GameServerEnvironment.GetPostgresDB(),
-	)
 }

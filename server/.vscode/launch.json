@@ -5,6 +5,27 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Launch Server",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/main.go",
+      "env": {
+        "PERSIST_METHOD": "redis",
+        "REDIS_HOST": "localhost",
+        "REDIS_PORT": "6379",
+        "REDIS_DB": "0",
+        "API_SERVER_URL": "http://localhost:9501",
+        "POSTGRES_HOST": "localhost",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_DB": "game",
+        "POSTGRES_USER": "game",
+        "POSTGRES_PASSWORD": "game",
+        // "ENABLE_PLAYER_MSG_ENCRYPTION": "1",
+      },
+      "args": ["--server"]
+    },
+    {
       "name": "Script Test",
       "type": "go",
       "request": "launch",
@@ -24,26 +45,6 @@
       //   "--game-script",
       //   "test/game-scripts/test/allin.yaml"
       // ]
-    },
-    {
-      "name": "Launch Server",
-      "type": "go",
-      "request": "launch",
-      "mode": "auto",
-      "program": "${workspaceFolder}/main.go",
-      "env": {
-        "PERSIST_METHOD": "redis",
-        "REDIS_HOST": "localhost",
-        "REDIS_PORT": "6379",
-        "REDIS_DB": "0",
-        "API_SERVER_URL": "http://localhost:9501",
-        "POSTGRES_HOST": "localhost",
-        "POSTGRES_PORT": "5432",
-        "POSTGRES_DB": "game",
-        "POSTGRES_USER": "game",
-        "POSTGRES_PASSWORD": "game"
-      },
-      "args": ["--server"]
     }
   ]
 }

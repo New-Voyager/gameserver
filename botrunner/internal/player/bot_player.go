@@ -27,6 +27,7 @@ import (
 	"voyager.com/botrunner/internal/gql"
 	"voyager.com/botrunner/internal/poker"
 	"voyager.com/botrunner/internal/util"
+	"voyager.com/encryption"
 	"voyager.com/gamescript"
 )
 
@@ -66,6 +67,7 @@ type BotPlayer struct {
 	gameID          uint64
 	PlayerID        uint64
 	PlayerUUID      string
+	EncryptionKey   string
 	RewardsNameToID map[string]uint32
 	scriptedGame    bool
 	Reload          bool
@@ -291,14 +293,32 @@ func (bp *BotPlayer) handleGameMsg(msg *natsgo.Msg) {
 }
 
 func (bp *BotPlayer) handleHandMsg(msg *natsgo.Msg) {
+	bp.unmarshalAndQueueHandMsg(msg.Data)
+}
+
+func (bp *BotPlayer) handlePrivateHandMsg(msg *natsgo.Msg) {
+	data := msg.Data
+	if util.Env.IsPlayerMsgEncrypted() {
+		decryptedMsg, err := encryption.DecryptWithUUIDStrKey(msg.Data, bp.EncryptionKey)
+		if err != nil {
+			bp.logger.Error().Msgf("%s: Error [%s] while decrypting private hand message", bp.logPrefix, err)
+			return
+		}
+		data = decryptedMsg
+	}
+
+	bp.unmarshalAndQueueHandMsg(data)
+}
+
+func (bp *BotPlayer) unmarshalAndQueueHandMsg(data []byte) {
 	fmt.Printf("\n")
-	fmt.Printf(string(msg.Data))
+	fmt.Printf(string(data))
 	fmt.Printf("\n")
 
 	var message game.HandMessage
-	err := protojson.Unmarshal(msg.Data, &message)
+	err := protojson.Unmarshal(data, &message)
 	if err != nil {
-		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf hand message [%s]", bp.logPrefix, err, string(msg.Data))
+		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf hand message [%s]", bp.logPrefix, err, string(data))
 		return
 	}
 
@@ -884,6 +904,13 @@ func (bp *BotPlayer) Register() error {
 	}
 
 	bp.PlayerID = playerID
+
+	encryptionKey, err := bp.getEncryptionKey()
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get the player encryption key", bp.logPrefix))
+	}
+
+	bp.EncryptionKey = encryptionKey
 	bp.logger.Info().Msgf("%s: Successfully registered as a user. Player UUID: [%s] Player ID: [%d].", bp.logPrefix, playerUUID, bp.PlayerID)
 	return nil
 }
@@ -1041,7 +1068,7 @@ func (bp *BotPlayer) Subscribe(gameToAll string, handToAll string, handToPlayer 
 
 	if bp.handMsgPlayerSub == nil || !bp.handMsgPlayerSub.IsValid() {
 		bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand messages sent to player: %s", bp.logPrefix, handToPlayer, bp.config.Name)
-		handToPlayerSub, err := bp.natsConn.Subscribe(handToPlayer, bp.handleHandMsg)
+		handToPlayerSub, err := bp.natsConn.Subscribe(handToPlayer, bp.handlePrivateHandMsg)
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the hand message subject [%s]", bp.logPrefix, handToPlayer))
 		}
@@ -1387,6 +1414,14 @@ func (bp *BotPlayer) getPlayerID() (uint64, error) {
 		return 0, fmt.Errorf("%s: Unable to get player ID. Player name [%s] does not match the bot player's name [%s]", bp.logPrefix, playerID.Name, bp.config.Name)
 	}
 	return playerID.ID, nil
+}
+
+func (bp *BotPlayer) getEncryptionKey() (string, error) {
+	encryptionKey, err := bp.gqlHelper.GetEncryptionKey()
+	if err != nil {
+		return "", errors.Wrapf(err, "%s: Unable to get encryption key", bp.logPrefix)
+	}
+	return encryptionKey, nil
 }
 
 // StartGame starts the game.
@@ -1865,6 +1900,13 @@ func (bp *BotPlayer) Login(playerUUID string, deviceID string) error {
 	}
 	bp.apiAuthToken = fmt.Sprintf("jwt %s", userJwt)
 	bp.gqlHelper.SetAuthToken(bp.apiAuthToken)
+
+	encryptionKey, err := bp.getEncryptionKey()
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get the player encryption key", bp.logPrefix))
+	}
+
+	bp.EncryptionKey = encryptionKey
 	return nil
 }
 

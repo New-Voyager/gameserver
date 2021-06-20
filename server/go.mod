@@ -8,6 +8,7 @@ require (
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/go-redis/redis/v8 v8.3.3
 	github.com/golang/protobuf v1.5.2
+	github.com/hashicorp/golang-lru v0.5.4
 	github.com/jmoiron/sqlx v1.3.1
 	github.com/json-iterator/go v1.1.10
 	github.com/lib/pq v1.10.0
@@ -26,6 +27,7 @@ require (
 	gopkg.in/yaml.v2 v2.3.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
 	nhooyr.io/websocket v1.8.6
+	voyager.com/encryption v0.0.0-00010101000000-000000000000
 )
 
 replace voyager.com/server/internal => ./internal
@@ -43,3 +45,5 @@ replace voyager.com/server/bot => ./bot
 replace voyager.com/server/apiserver => ./apiserver
 
 replace voyager.com/server/rest => ./rest
+
+replace voyager.com/encryption => ../encryption

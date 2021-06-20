@@ -16,36 +16,38 @@ var environmentLogger = log.With().Str("logger_name", "util::environment").Logge
 var natsUrl string
 
 type gameServerEnvironment struct {
-	PersistMethod string
-	RedisHost     string
-	RedisPort     string
-	RedisPW       string
-	RedisDB       string
-	APIServerUrl  string
-	PlayTimeout   string
-	DisableDelays string
-	PostgresHost  string
-	PostgresPort  string
-	PostgresDB    string
-	PostgresUser  string
-	PostgresPW    string
+	PersistMethod             string
+	RedisHost                 string
+	RedisPort                 string
+	RedisPW                   string
+	RedisDB                   string
+	APIServerUrl              string
+	PlayTimeout               string
+	DisableDelays             string
+	PostgresHost              string
+	PostgresPort              string
+	PostgresDB                string
+	PostgresUser              string
+	PostgresPW                string
+	EnablePlayerMsgEncryption string
 }
 
 // GameServerEnvironment is a helper object for accessing environment variables.
 var GameServerEnvironment = &gameServerEnvironment{
-	PersistMethod: "PERSIST_METHOD",
-	RedisHost:     "REDIS_HOST",
-	RedisPort:     "REDIS_PORT",
-	RedisPW:       "REDIS_PW",
-	RedisDB:       "REDIS_DB",
-	APIServerUrl:  "API_SERVER_URL",
-	PlayTimeout:   "PLAY_TIMEOUT",
-	DisableDelays: "DISABLE_DELAYS",
-	PostgresHost:  "POSTGRES_HOST",
-	PostgresPort:  "POSTGRES_PORT",
-	PostgresDB:    "POSTGRES_DB",
-	PostgresUser:  "POSTGRES_USER",
-	PostgresPW:    "POSTGRES_PASSWORD",
+	PersistMethod:             "PERSIST_METHOD",
+	RedisHost:                 "REDIS_HOST",
+	RedisPort:                 "REDIS_PORT",
+	RedisPW:                   "REDIS_PW",
+	RedisDB:                   "REDIS_DB",
+	APIServerUrl:              "API_SERVER_URL",
+	PlayTimeout:               "PLAY_TIMEOUT",
+	DisableDelays:             "DISABLE_DELAYS",
+	PostgresHost:              "POSTGRES_HOST",
+	PostgresPort:              "POSTGRES_PORT",
+	PostgresDB:                "POSTGRES_DB",
+	PostgresUser:              "POSTGRES_USER",
+	PostgresPW:                "POSTGRES_PASSWORD",
+	EnablePlayerMsgEncryption: "ENABLE_PLAYER_MSG_ENCRYPTION",
 }
 
 func (g *gameServerEnvironment) GetNatsURL() string {
@@ -224,4 +226,16 @@ func (g *gameServerEnvironment) GetDisableDelays() string {
 
 func (g *gameServerEnvironment) ShouldDisableDelays() bool {
 	return g.GetDisableDelays() == "1" || strings.ToLower(g.GetDisableDelays()) == "true"
+}
+
+func (g *gameServerEnvironment) GetEnablePlayerMsgEncryption() string {
+	v := os.Getenv(g.EnablePlayerMsgEncryption)
+	if v == "" {
+		return "false"
+	}
+	return v
+}
+
+func (g *gameServerEnvironment) ShouldEncryptPlayerMsg() bool {
+	return g.GetEnablePlayerMsgEncryption() == "1" || strings.ToLower(g.GetEnablePlayerMsgEncryption()) == "true"
 }

@@ -423,6 +423,23 @@ func (g *GQLHelper) GetPlayerID() (PlayerID, error) {
 	return respData.Player, nil
 }
 
+// GetEncryptionKey queries for the player's encryption key.
+func (g *GQLHelper) GetEncryptionKey() (string, error) {
+	req := graphql.NewRequest(EncryptionKeyGQL)
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", fmt.Sprintf("%s", g.authToken))
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+
+	var respData EncryptionKeyResp
+	err := g.client.Run(ctx, req, &respData)
+	if err != nil {
+		return "", err
+	}
+	return respData.EncryptionKey, nil
+}
+
 // ApproveClubMember queries for club member data.
 func (g *GQLHelper) GetClubCode(clubName string) (string, error) {
 	req := graphql.NewRequest(MyClubsGQL)
@@ -976,6 +993,14 @@ type PlayerByIDResp struct {
 type PlayerID struct {
 	Name string
 	ID   uint64 `json:"id"`
+}
+
+const EncryptionKeyGQL = `query get_encryption_key {
+	encryptionKey: encryptionKey
+}`
+
+type EncryptionKeyResp struct {
+	EncryptionKey string
 }
 
 const BuyInGQL = `mutation buy_in($gameCode: String!, $amount: Float!) {

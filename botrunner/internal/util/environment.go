@@ -20,38 +20,40 @@ var environmentLogger = log.With().Str("logger_name", "util::environment").Logge
 var natsUrl string
 
 type environment struct {
-	RedisHost     string
-	RedisPort     string
-	RedisPW       string
-	RedisDB       string
-	PostgresHost  string
-	PostgresPort  string
-	PostgresUser  string
-	PostgresPW    string
-	PostgresDB    string
-	APIServerURL  string
-	PrintGameMsg  string
-	PrintHandMsg  string
-	PrintStateMsg string
-	DisableDelays string
+	RedisHost                 string
+	RedisPort                 string
+	RedisPW                   string
+	RedisDB                   string
+	PostgresHost              string
+	PostgresPort              string
+	PostgresUser              string
+	PostgresPW                string
+	PostgresDB                string
+	APIServerURL              string
+	PrintGameMsg              string
+	PrintHandMsg              string
+	PrintStateMsg             string
+	DisableDelays             string
+	EnablePlayerMsgEncryption string
 }
 
 // Env is a helper object for accessing environment variables.
 var Env = &environment{
-	RedisHost:     "REDIS_HOST",
-	RedisPort:     "REDIS_PORT",
-	RedisPW:       "REDIS_PW",
-	RedisDB:       "REDIS_DB",
-	PostgresHost:  "POSTGRES_HOST",
-	PostgresPort:  "POSTGRES_PORT",
-	PostgresUser:  "POSTGRES_USER",
-	PostgresPW:    "POSTGRES_PASSWORD",
-	PostgresDB:    "POSTGRES_DB",
-	APIServerURL:  "API_SERVER_URL",
-	PrintGameMsg:  "PRINT_GAME_MSG",
-	PrintHandMsg:  "PRINT_HAND_MSG",
-	PrintStateMsg: "PRINT_STATE_MSG",
-	DisableDelays: "DISABLE_DELAYS",
+	RedisHost:                 "REDIS_HOST",
+	RedisPort:                 "REDIS_PORT",
+	RedisPW:                   "REDIS_PW",
+	RedisDB:                   "REDIS_DB",
+	PostgresHost:              "POSTGRES_HOST",
+	PostgresPort:              "POSTGRES_PORT",
+	PostgresUser:              "POSTGRES_USER",
+	PostgresPW:                "POSTGRES_PASSWORD",
+	PostgresDB:                "POSTGRES_DB",
+	APIServerURL:              "API_SERVER_URL",
+	PrintGameMsg:              "PRINT_GAME_MSG",
+	PrintHandMsg:              "PRINT_HAND_MSG",
+	PrintStateMsg:             "PRINT_STATE_MSG",
+	DisableDelays:             "DISABLE_DELAYS",
+	EnablePlayerMsgEncryption: "ENABLE_PLAYER_MSG_ENCRYPTION",
 }
 
 func (e *environment) GetNatsURL() string {
@@ -263,6 +265,14 @@ func (e *environment) GetDisableDelays() string {
 	return v
 }
 
+func (e *environment) GetEnablePlayerMsgEncryption() string {
+	v := os.Getenv(e.EnablePlayerMsgEncryption)
+	if v == "" {
+		return "false"
+	}
+	return v
+}
+
 func (e *environment) ShouldPrintGameMsg() bool {
 	return e.GetPrintGameMsg() == "1" || strings.ToLower(e.GetPrintGameMsg()) == "true"
 }
@@ -277,4 +287,8 @@ func (e *environment) ShouldPrintStateMsg() bool {
 
 func (e *environment) ShouldDisableDelays() bool {
 	return e.GetDisableDelays() == "1" || strings.ToLower(e.GetDisableDelays()) == "true"
+}
+
+func (e *environment) IsPlayerMsgEncrypted() bool {
+	return e.GetEnablePlayerMsgEncryption() == "1" || strings.ToLower(e.GetEnablePlayerMsgEncryption()) == "true"
 }

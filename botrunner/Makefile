@@ -50,8 +50,10 @@ docker-build: compile-proto
 	mkdir -p build
 	if [ "${CIRCLECI}" = "true" ]; then \
 		[ -d build/gamescript ] || cp -r $(PROJECT_ROOT)/gamescript build/gamescript; \
+		[ -d build/encryption ] || cp -r $(PROJECT_ROOT)/encryption build/encryption; \
 	else \
 		rsync -avu --delete $(PROJECT_ROOT)/gamescript/ build/gamescript; \
+		rsync -avu --delete $(PROJECT_ROOT)/encryption/ build/encryption; \
 	fi
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t botrunner
 
@@ -134,7 +136,7 @@ do-login:
 TEST_DOCKER_NET := poker_test
 
 # These images are downloaded.
-API_SERVER_IMAGE := $(REGISTRY)/api-server:0.3.35
+API_SERVER_IMAGE := $(REGISTRY)/api-server:0.3.45
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
 REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
 POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5

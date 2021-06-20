@@ -4,11 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/jmoiron/sqlx"
 	natsgo "github.com/nats-io/nats.go"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/encoding/protojson"
+	"voyager.com/encryption"
 	"voyager.com/server/game"
+	"voyager.com/server/internal/encryptionkey"
 	"voyager.com/server/poker"
+	"voyager.com/server/util"
 )
 
 // NatsGame is an adapter that interacts with the NATS server and
@@ -63,9 +68,12 @@ type NatsGame struct {
 	player2HandSub *natsgo.Subscription
 	player2PongSub *natsgo.Subscription
 	nc             *natsgo.Conn
+
+	db                 *sqlx.DB
+	encryptionKeyCache *encryptionkey.Cache
 }
 
-func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.GameConfig) (*NatsGame, error) {
+func newNatsGame(nc *natsgo.Conn, db *sqlx.DB, clubID uint32, gameID uint64, config *game.GameConfig) (*NatsGame, error) {
 
 	// game subjects
 	//player2GameSubject := fmt.Sprintf("game.%d.player", gameID)
@@ -85,6 +93,7 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 		chEndGame:    make(chan bool),
 		chManageGame: make(chan []byte),
 		nc:           nc,
+		db:           db,
 		//		player2GameSubject:     player2GameSubject,
 		game2AllPlayersSubject: game2AllPlayersSubject,
 		player2HandSubject:     player2HandSubject,
@@ -110,6 +119,13 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 		config.ActionTime = 20
 	}
 
+	cache, err := encryptionkey.NewCache(32, db)
+	if err != nil || cache == nil {
+		return nil, errors.Wrap(err, "Unable to instantiate encryption key cache")
+	}
+	natsGame.encryptionKeyCache = cache
+
+	// TODO: Can we pass in the pointer to natsGame instead of the value here?
 	serverGame, gameID, err := game.GameManager.InitializeGame(*natsGame, config, true)
 	if err != nil {
 		return nil, err
@@ -463,6 +479,21 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", fmt.Sprintf("%v", msgTypes)).
 		Str("subject", hand2PlayerSubject).
 		Msg(fmt.Sprintf("H->P: %s", string(data)))
+
+	if util.GameServerEnvironment.ShouldEncryptPlayerMsg() {
+		encryptionKey, err := n.encryptionKeyCache.Get(playerID)
+		if err != nil {
+			natsLogger.Error().Msgf("Unable to get encryption key for player %d", playerID)
+			return
+		}
+		encryptedData, err := encryption.EncryptWithUUIDStrKey(data, encryptionKey)
+		if err != nil {
+			natsLogger.Error().Msgf("Unable to encrypt message to player %d", playerID)
+			return
+		}
+		data = encryptedData
+	}
+
 	n.nc.Publish(hand2PlayerSubject, data)
 }
 
