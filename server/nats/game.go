@@ -469,12 +469,12 @@ func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 }
 
 func (n NatsGame) BroadcastPingMessage(message *game.PingPongMessage) {
-	ping2PlayerSubject := fmt.Sprintf("ping.%s", n.gameCode)
+	pingSubject := fmt.Sprintf("ping.%s", n.gameCode)
 	data, _ := protojson.Marshal(message)
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
-		Str("subject", ping2PlayerSubject).
+		Str("subject", pingSubject).
 		Msg(fmt.Sprintf("Ping->All: %s", string(data)))
-	n.nc.Publish(ping2PlayerSubject, data)
+	n.nc.Publish(pingSubject, data)
 }
 
 func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID uint64) {
