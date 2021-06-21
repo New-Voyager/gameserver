@@ -40,7 +40,8 @@ const (
 	HighHandMsg string = "HIGH_HAND"
 
 	// Player Network Issue
-	GameNetworkIssue string = "NETWORK_ISSUE"
+	GamePlayerConnectivityLost     string = "PLAYER_CONNECTIVITY_LOST"
+	GamePlayerConnectivityRestored string = "PLAYER_CONNECTIVITY_RESTORED"
 )
 
 // Hand messages
