@@ -6,13 +6,9 @@ import (
 )
 
 type playerPingState struct {
-	pingSeq      uint32
-	pingSentTime time.Time
-
 	pongSeq      uint32
 	pongRecvTime time.Time
-
-	numMissedPings uint32
+	connLost     bool
 }
 
 func (g *Game) startPingLoop(stop <-chan bool) {
@@ -34,78 +30,109 @@ func (g *Game) startPingLoop(stop <-chan bool) {
 }
 
 func (g *Game) doPingCheck(pingSeq uint32) {
-	// Send ping to players.
-	func() {
+	// Get the list of player ID's that we are interested in getting the response (pong) back.
+	// Those are the players that are currently sitting in the table.
+	var seatedPlayerIds []uint64
+	for i := 0; i < len(g.PlayersInSeats); i++ {
+		playerID := g.PlayersInSeats[i].PlayerID
+		if playerID == 0 {
+			continue
+		}
+		seatedPlayerIds = append(seatedPlayerIds, playerID)
+	}
+
+	// Broadcast the ping to players.
+	pingSentTime := func() time.Time {
 		g.pingStatesLock.Lock()
 		defer g.pingStatesLock.Unlock()
-		for _, seatPlayer := range g.PlayersInSeats {
-			playerID := seatPlayer.PlayerID
-			if playerID == 0 {
-				continue
-			}
+		pingStates := make(map[uint64]*playerPingState)
+		for _, playerID := range seatedPlayerIds {
 			ps, exists := g.pingStates[playerID]
-			if !exists {
+			if exists {
+				// This player was there for the previous ping. Continue the existing state.
+				pingStates[playerID] = ps
+			} else {
+				// This is a new player that did not exist in the previous ping.
+				// Start a new state for him.
 				ps = &playerPingState{}
-				g.pingStates[playerID] = ps
+				pingStates[playerID] = ps
 			}
-			ps.pingSeq = pingSeq
-			ps.pingSentTime = time.Now()
-			g.sendPing(pingSeq, playerID)
 		}
+		g.pingStates = pingStates
+		g.broadcastPing(pingSeq)
+		return time.Now()
 	}()
+
+	// Give some time for all players to respond back.
 	time.Sleep(time.Duration(g.pingTimeoutSec) * time.Second)
 
 	// Verify the responses (pong) have been received.
-	var noPongPlayers []uint64
+	var connLostPlayers []uint64
+	var connRestoredPlayers []uint64
 	func() {
 		g.pingStatesLock.Lock()
 		defer g.pingStatesLock.Unlock()
-		for _, seatPlayer := range g.PlayersInSeats {
-			playerID := seatPlayer.PlayerID
-			if playerID == 0 {
-				continue
-			}
-			player, exists := g.pingStates[playerID]
-			if !exists {
-				continue
-			}
-			if player.pongSeq != pingSeq {
-				// Response (pong) not received in time.
-				player.numMissedPings++
-				channelGameLogger.Info().
-					Uint32("club", g.config.ClubId).
-					Str("game", g.config.GameCode).
-					Msgf("Player %d missed %d ping(s)", playerID, player.numMissedPings)
-				if player.numMissedPings > g.maxMissedPings {
-					noPongPlayers = append(noPongPlayers, playerID)
+		for _, playerID := range seatedPlayerIds {
+			ps := g.pingStates[playerID]
+			if ps.pongSeq == pingSeq {
+				// Pong is received as expected.
+				if g.debugConnectivityCheck {
+					fmt.Printf("Player %d pong response time: %.3f seconds\n", playerID, ps.pongRecvTime.Sub(pingSentTime).Seconds())
+				}
+				if ps.connLost {
+					// Player had previously lost connectivity, but is back online.
+					ps.connLost = false
+					connRestoredPlayers = append(connRestoredPlayers, playerID)
 				}
 			} else {
-				player.numMissedPings = 0
+				// Response (pong) not received in time.
+				ps.connLost = true
+				connLostPlayers = append(connLostPlayers, playerID)
 			}
 		}
 	}()
 
-	// Announce (broadcast) network issue.
-	if len(noPongPlayers) > 0 {
-		g.broadcastNetworkIssue(noPongPlayers)
+	// Announce the players who lost/restored connectivity.
+	if len(connLostPlayers) > 0 {
+		g.broadcastConnectivityLost(connLostPlayers)
+	}
+	if len(connRestoredPlayers) > 0 {
+		g.broadcastConnectivityRestored(connRestoredPlayers)
 	}
 }
 
-func (g *Game) sendPing(pingSeq uint32, playerID uint64) error {
+func (g *Game) broadcastPing(pingSeq uint32) error {
 	msg := PingPongMessage{
-		GameId:   g.config.GameId,
-		PlayerId: playerID,
-		Seq:      pingSeq,
+		GameId: g.config.GameId,
+		Seq:    pingSeq,
 	}
-	g.sendPingMessageToPlayer(&msg, playerID)
+	g.BroadcastPingMessage(&msg)
 	return nil
 }
 
-func (g *Game) broadcastNetworkIssue(networkIssuePlayers []uint64) {
-	gameMessage := GameMessage{MessageType: GameNetworkIssue, GameId: g.config.GameId, PlayerId: 0}
-	gameMessage.GameMessage = &GameMessage_NetworkIssue{
-		NetworkIssue: &GameNetworkIssueMessage{
-			PlayerIds: networkIssuePlayers,
+func (g *Game) broadcastConnectivityLost(connectivityLostPlayers []uint64) {
+	gameMessage := GameMessage{
+		MessageType: GamePlayerConnectivityLost,
+		GameId:      g.config.GameId,
+		PlayerId:    0,
+	}
+	gameMessage.GameMessage = &GameMessage_NetworkConnectivity{
+		NetworkConnectivity: &GameNetworkConnectivityMessage{
+			PlayerIds: connectivityLostPlayers,
+		},
+	}
+	g.broadcastGameMessage(&gameMessage)
+}
+
+func (g *Game) broadcastConnectivityRestored(connectivityRestoredPlayers []uint64) {
+	gameMessage := GameMessage{
+		MessageType: GamePlayerConnectivityRestored,
+		GameId:      g.config.GameId,
+		PlayerId:    0,
+	}
+	gameMessage.GameMessage = &GameMessage_NetworkConnectivity{
+		NetworkConnectivity: &GameNetworkConnectivityMessage{
+			PlayerIds: connectivityRestoredPlayers,
 		},
 	}
 	g.broadcastGameMessage(&gameMessage)
@@ -123,10 +150,8 @@ func (g *Game) onPlayerPong(playerPongMsg *PingPongMessage) error {
 	pongSeq := playerPongMsg.GetSeq()
 	pongRecvTime := time.Now()
 
-	debugPong := false
-
-	if debugPong {
-		fmt.Printf("PONG %d from player %d at %s", pongSeq, playerID, pongRecvTime.Format(time.RFC3339))
+	if g.debugConnectivityCheck {
+		fmt.Printf("PONG %d from player %d at %s\n", pongSeq, playerID, pongRecvTime.Format(time.RFC3339))
 	}
 
 	g.pingStatesLock.Lock()
@@ -134,26 +159,12 @@ func (g *Game) onPlayerPong(playerPongMsg *PingPongMessage) error {
 
 	ps, exists := g.pingStates[playerID]
 	if !exists {
-		fmt.Println()
 		return nil
 	}
 
 	if pongSeq > ps.pongSeq {
-		if pongSeq > ps.pingSeq {
-			// Should't happen.
-		} else {
-			if debugPong {
-				if pongSeq == ps.pingSeq {
-					fmt.Printf(" (received in %.3f seconds)", pongRecvTime.Sub(ps.pingSentTime).Seconds())
-				}
-			}
-			ps.pongSeq = pongSeq
-			ps.pongRecvTime = pongRecvTime
-		}
-	}
-
-	if debugPong {
-		fmt.Println()
+		ps.pongSeq = pongSeq
+		ps.pongRecvTime = pongRecvTime
 	}
 	return nil
 }

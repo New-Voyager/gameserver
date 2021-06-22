@@ -23,6 +23,7 @@ type gameServerEnvironment struct {
 	RedisDB                   string
 	APIServerUrl              string
 	PlayTimeout               string
+	PingTimeout               string
 	DisableDelays             string
 	PostgresHost              string
 	PostgresPort              string
@@ -30,6 +31,7 @@ type gameServerEnvironment struct {
 	PostgresUser              string
 	PostgresPW                string
 	EnablePlayerMsgEncryption string
+	DebugConnectivityCheck    string
 }
 
 // GameServerEnvironment is a helper object for accessing environment variables.
@@ -41,6 +43,7 @@ var GameServerEnvironment = &gameServerEnvironment{
 	RedisDB:                   "REDIS_DB",
 	APIServerUrl:              "API_SERVER_URL",
 	PlayTimeout:               "PLAY_TIMEOUT",
+	PingTimeout:               "PING_TIMEOUT",
 	DisableDelays:             "DISABLE_DELAYS",
 	PostgresHost:              "POSTGRES_HOST",
 	PostgresPort:              "POSTGRES_PORT",
@@ -48,6 +51,7 @@ var GameServerEnvironment = &gameServerEnvironment{
 	PostgresUser:              "POSTGRES_USER",
 	PostgresPW:                "POSTGRES_PASSWORD",
 	EnablePlayerMsgEncryption: "ENABLE_PLAYER_MSG_ENCRYPTION",
+	DebugConnectivityCheck:    "DEBUG_CONNECTIVITY_CHECK",
 }
 
 func (g *gameServerEnvironment) GetNatsURL() string {
@@ -216,6 +220,20 @@ func (g *gameServerEnvironment) GetPlayTimeout() int {
 	return timeoutSec
 }
 
+func (g *gameServerEnvironment) GetPingTimeout() int {
+	s := os.Getenv(g.PingTimeout)
+	if s == "" {
+		return 3
+	}
+	timeoutSec, err := strconv.Atoi(s)
+	if err != nil {
+		msg := fmt.Sprintf("Invalid integer [%s] for ping timeout value", s)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	return timeoutSec
+}
+
 func (g *gameServerEnvironment) GetDisableDelays() string {
 	v := os.Getenv(g.DisableDelays)
 	if v == "" {
@@ -238,4 +256,16 @@ func (g *gameServerEnvironment) GetEnablePlayerMsgEncryption() string {
 
 func (g *gameServerEnvironment) ShouldEncryptPlayerMsg() bool {
 	return g.GetEnablePlayerMsgEncryption() == "1" || strings.ToLower(g.GetEnablePlayerMsgEncryption()) == "true"
+}
+
+func (g *gameServerEnvironment) GetDebugConnectivityCheck() string {
+	v := os.Getenv(g.DebugConnectivityCheck)
+	if v == "" {
+		return "false"
+	}
+	return v
+}
+
+func (g *gameServerEnvironment) ShouldDebugConnectivityCheck() bool {
+	return g.GetDebugConnectivityCheck() == "1" || strings.ToLower(g.GetDebugConnectivityCheck()) == "true"
 }

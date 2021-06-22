@@ -46,7 +46,7 @@ type GameInfo struct {
 	HandToAllChannel    string
 	PlayerToHandChannel string
 	HandToPlayerChannel string
-	PingToPlayerChannel string
+	PingChannel         string
 	PongChannel         string
 	Start               bool
 }

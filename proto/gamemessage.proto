@@ -65,7 +65,7 @@ message GameQueryTableStateMessage {
   uint64 player_id = 1;     // the player asked for this
 }
 
-message GameNetworkIssueMessage {
+message GameNetworkConnectivityMessage {
   repeated uint64 player_ids = 1;     // the players who are having network issue
 }
 
@@ -90,6 +90,6 @@ message GameMessage {
     HighHand high_hand = 19;
     TableUpdate table_update = 20;
     PlayerConfigUpdate player_config_update = 21;
-    GameNetworkIssueMessage network_issue = 22;
+    GameNetworkConnectivityMessage network_connectivity = 22;
   }
 }

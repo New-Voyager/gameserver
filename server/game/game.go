@@ -28,9 +28,9 @@ var RunningTests bool
 type GameMessageReceiver interface {
 	BroadcastGameMessage(message *GameMessage)
 	BroadcastHandMessage(message *HandMessage)
+	BroadcastPingMessage(message *PingPongMessage)
 	SendHandMessageToPlayer(message *HandMessage, playerID uint64)
 	SendGameMessageToPlayer(message *GameMessage, playerID uint64)
-	SendPingMessageToPlayer(message *PingPongMessage, playerID uint64)
 }
 type Game struct {
 	manager             *Manager
@@ -77,27 +77,27 @@ type Game struct {
 	playerConfig atomic.Value
 
 	// For player network connnectivity check
-	pingTimeoutSec uint32
-	maxMissedPings uint32
-	pingStates     map[uint64]*playerPingState
-	pingStatesLock sync.Mutex
+	pingTimeoutSec         uint32
+	pingStates             map[uint64]*playerPingState
+	pingStatesLock         sync.Mutex
+	debugConnectivityCheck bool
 }
 
 func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver,
 	config *GameConfig, delays Delays, autoDeal bool, handStatePersist PersistHandState, handSetupPersist *RedisHandsSetupTracker,
 	apiServerUrl string) (*Game, error) {
 	g := Game{
-		manager:          gameManager,
-		messageReceiver:  messageReceiver,
-		config:           config,
-		delays:           delays,
-		autoDeal:         autoDeal,
-		testButtonPos:    -1,
-		handSetupPersist: handSetupPersist,
-		apiServerUrl:     apiServerUrl,
-		retryDelayMillis: 500,
-		pingTimeoutSec:   3,
-		maxMissedPings:   2,
+		manager:                gameManager,
+		messageReceiver:        messageReceiver,
+		config:                 config,
+		delays:                 delays,
+		autoDeal:               autoDeal,
+		testButtonPos:          -1,
+		handSetupPersist:       handSetupPersist,
+		apiServerUrl:           apiServerUrl,
+		retryDelayMillis:       500,
+		pingTimeoutSec:         uint32(util.GameServerEnvironment.GetPingTimeout()),
+		debugConnectivityCheck: util.GameServerEnvironment.ShouldDebugConnectivityCheck(),
 	}
 	g.allPlayers = make(map[uint64]*Player)
 	g.chGame = make(chan []byte)
@@ -794,10 +794,10 @@ func (g *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint64) {
 	}
 }
 
-func (g *Game) sendPingMessageToPlayer(message *PingPongMessage, playerID uint64) {
+func (g *Game) BroadcastPingMessage(message *PingPongMessage) {
 	message.GameCode = g.config.GameCode
 	if *g.messageReceiver != nil {
-		(*g.messageReceiver).SendPingMessageToPlayer(message, playerID)
+		(*g.messageReceiver).BroadcastPingMessage(message)
 	}
 }
 
