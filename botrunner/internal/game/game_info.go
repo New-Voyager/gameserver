@@ -85,4 +85,5 @@ type GameCreateOpt struct {
 	MuckLosingHand     bool
 	RoeGames           []string
 	DealerChoiceGames  []string
+	HighHandTracked    bool
 }

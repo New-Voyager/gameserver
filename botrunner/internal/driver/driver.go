@@ -253,6 +253,7 @@ func (br *BotRunner) Run() error {
 			MuckLosingHand:     br.script.Game.MuckLosingHand,
 			RoeGames:           br.script.Game.RoeGames,
 			DealerChoiceGames:  br.script.Game.DealerChoiceGames,
+			HighHandTracked:    br.script.Game.HighHandTracked,
 		})
 		if err != nil {
 			return err
