@@ -946,9 +946,10 @@ func (h *HandState) setupNextRound(state HandStatus) {
 	// track whether the player is active in this round or not
 	for seatNo := 1; seatNo <= int(h.GetMaxSeats()); seatNo++ {
 		playerID := h.GetPlayersInSeats()[seatNo]
-		if playerID == 0 {
+		if playerID == 0 || h.ActiveSeats[seatNo] == 0 {
 			continue
 		}
+
 		playerState, found := h.GetPlayersState()[playerID]
 		if found {
 			playerState.Round = state
