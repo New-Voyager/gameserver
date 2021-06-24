@@ -22,6 +22,7 @@
         "POSTGRES_USER": "game",
         "POSTGRES_PASSWORD": "game",
         // "ENABLE_PLAYER_MSG_ENCRYPTION": "1",
+        "DEBUG_CONNECTIVITY_CHECK": "1",
       },
       "args": ["--server"]
     },

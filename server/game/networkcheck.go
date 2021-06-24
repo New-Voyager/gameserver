@@ -41,6 +41,10 @@ func (g *Game) doPingCheck(pingSeq uint32) {
 		seatedPlayerIds = append(seatedPlayerIds, playerID)
 	}
 
+	if seatedPlayerIds == nil {
+		return
+	}
+
 	// Broadcast the ping to players.
 	pingSentTime := func() time.Time {
 		g.pingStatesLock.Lock()
@@ -68,7 +72,6 @@ func (g *Game) doPingCheck(pingSeq uint32) {
 
 	// Verify the responses (pong) have been received.
 	var connLostPlayers []uint64
-	var connRestoredPlayers []uint64
 	func() {
 		g.pingStatesLock.Lock()
 		defer g.pingStatesLock.Unlock()
@@ -79,11 +82,6 @@ func (g *Game) doPingCheck(pingSeq uint32) {
 				if g.debugConnectivityCheck {
 					fmt.Printf("Player %d pong response time: %.3f seconds\n", playerID, ps.pongRecvTime.Sub(pingSentTime).Seconds())
 				}
-				if ps.connLost {
-					// Player had previously lost connectivity, but is back online.
-					ps.connLost = false
-					connRestoredPlayers = append(connRestoredPlayers, playerID)
-				}
 			} else {
 				// Response (pong) not received in time.
 				ps.connLost = true
@@ -92,12 +90,9 @@ func (g *Game) doPingCheck(pingSeq uint32) {
 		}
 	}()
 
-	// Announce the players who lost/restored connectivity.
+	// Announce the players who lost connectivity.
 	if len(connLostPlayers) > 0 {
 		g.broadcastConnectivityLost(connLostPlayers)
-	}
-	if len(connRestoredPlayers) > 0 {
-		g.broadcastConnectivityRestored(connRestoredPlayers)
 	}
 }
 
@@ -145,6 +140,7 @@ func (g *Game) handlePongMessage(message *PingPongMessage) {
 	}
 }
 
+// Triggered when a player response (pong) comes back.
 func (g *Game) onPlayerPong(playerPongMsg *PingPongMessage) error {
 	playerID := playerPongMsg.GetPlayerId()
 	pongSeq := playerPongMsg.GetSeq()
@@ -165,6 +161,14 @@ func (g *Game) onPlayerPong(playerPongMsg *PingPongMessage) error {
 	if pongSeq > ps.pongSeq {
 		ps.pongSeq = pongSeq
 		ps.pongRecvTime = pongRecvTime
+	}
+
+	if ps.connLost {
+		// Player had previously lost connectivity, but is back online.
+		ps.connLost = false
+
+		// Immediately notify that this player is back on.
+		g.broadcastConnectivityRestored([]uint64{playerID})
 	}
 	return nil
 }
