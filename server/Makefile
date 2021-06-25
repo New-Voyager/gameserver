@@ -15,6 +15,8 @@ DEV_POSTGRES_DB := game
 DEV_POSTGRES_USER := game
 DEV_POSTGRES_PASSWORD := game
 
+ENABLE_PLAYER_MSG_ENCRYPTION ?= 1
+
 NATS_VERSION := 2.1.7-alpine3.11
 REDIS_VERSION := 6.0.9
 
@@ -120,6 +122,7 @@ run-server: export POSTGRES_PORT=$(DEV_POSTGRES_PORT)
 run-server: export POSTGRES_DB=$(DEV_POSTGRES_DB)
 run-server: export POSTGRES_USER=$(DEV_POSTGRES_USER)
 run-server: export POSTGRES_PASSWORD=$(DEV_POSTGRES_PASSWORD)
+run-server: export ENABLE_PLAYER_MSG_ENCRYPTION=$(ENABLE_PLAYER_MSG_ENCRYPTION)
 run-server:
 	go run ./main.go --server
 

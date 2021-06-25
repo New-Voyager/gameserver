@@ -19,7 +19,8 @@
         "POSTGRES_PASSWORD": "game",
         "POSTGRES_DB": "game",
         "PRINT_GAME_MSG": "false",
-        "PRINT_HAND_MSG": "false"
+        "PRINT_HAND_MSG": "false",
+        "ENABLE_PLAYER_MSG_ENCRYPTION": "1",
       },
       "args": [
         "-script",
@@ -37,7 +38,8 @@
       "env": {
         "API_SERVER_URL": "http://localhost:9501",
         "PRINT_GAME_MSG": "false",
-        "PRINT_HAND_MSG": "false"
+        "PRINT_HAND_MSG": "false",
+        "ENABLE_PLAYER_MSG_ENCRYPTION": "1",
       },
       "args": [
         "--config",
@@ -61,7 +63,8 @@
         "POSTGRES_PASSWORD": "game",
         "POSTGRES_DB": "game",
         "PRINT_GAME_MSG": "false",
-        "PRINT_HAND_MSG": "false"
+        "PRINT_HAND_MSG": "false",
+        "ENABLE_PLAYER_MSG_ENCRYPTION": "1",
       },
       "args": []
     }
