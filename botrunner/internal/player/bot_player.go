@@ -538,7 +538,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.flopCards = msgItem.GetFlop().GetBoard()
 		if bp.IsHuman() || bp.IsObserver() {
-			bp.logger.Info().Msgf("%s: Flop cards shown: %s", bp.logPrefix, msgItem.GetFlop().GetCardsStr())
+			bp.logger.Info().Msgf("%s: Flop cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetFlop().GetCardsStr(), msgItem.GetFlop().PlayerCardRank)
 		}
 		bp.verifyBoard()
 		//time.Sleep(1 * time.Second)
@@ -549,7 +549,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.turnCards = msgItem.GetTurn().GetBoard()
 		if bp.IsHuman() || bp.IsObserver() {
-			bp.logger.Info().Msgf("%s: Turn cards shown: %s", bp.logPrefix, msgItem.GetTurn().GetCardsStr())
+			bp.logger.Info().Msgf("%s: Turn cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetTurn().GetCardsStr(), msgItem.GetTurn().PlayerCardRank)
 		}
 		bp.verifyBoard()
 		//time.Sleep(1 * time.Second)
@@ -560,7 +560,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.riverCards = msgItem.GetRiver().GetBoard()
 		if bp.IsHuman() || bp.IsObserver() {
-			bp.logger.Info().Msgf("%s: River cards shown: %s", bp.logPrefix, msgItem.GetRiver().GetCardsStr())
+			bp.logger.Info().Msgf("%s: River cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetRiver().GetCardsStr(), msgItem.GetRiver().PlayerCardRank)
 		}
 		bp.verifyBoard()
 		//time.Sleep(1 * time.Second)

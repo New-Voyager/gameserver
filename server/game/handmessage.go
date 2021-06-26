@@ -607,6 +607,55 @@ func (g *Game) getPots(handState *HandState) ([]float32, []*SeatsInPots) {
 	return pots, seatsInPots
 }
 
+func (g *Game) getPlayerCardRank(handState *HandState, boardCards []uint32) *map[uint32]string {
+	// get rank
+	playerCardRank := make(map[uint32]string)
+
+	// get player card ranking
+	board := make([]byte, 0)
+	for _, c := range boardCards {
+		board = append(board, byte(c))
+	}
+
+	for seatNo, playerID := range handState.ActiveSeats {
+		if playerID == 0 {
+			continue
+		}
+		playersCards := handState.PlayersCards[uint32(seatNo)]
+
+		cards := make([]byte, len(board)+len(playersCards))
+		copy(cards, board)
+
+		playersCardsInBytes := make([]byte, len(playersCards))
+		i := len(board)
+		for idx, c := range playersCards {
+			cards[i] = byte(c)
+			playersCardsInBytes[idx] = byte(c)
+			i++
+		}
+		pokerCards := poker.FromByteCards(cards)
+		pokerBoardCards := poker.FromByteCards(board)
+		pokerPlayerCards := poker.FromByteCards(playersCardsInBytes)
+
+		var rank int32
+		if handState.GameType == GameType_HOLDEM {
+			rank, _ = poker.Evaluate(pokerCards)
+		} else if handState.GameType == GameType_PLO ||
+			handState.GameType == GameType_PLO_HILO ||
+			handState.GameType == GameType_FIVE_CARD_PLO_HILO ||
+			handState.GameType == GameType_FIVE_CARD_PLO {
+			result := poker.EvaluateOmaha(pokerBoardCards, pokerPlayerCards)
+			rank = result.HiRank
+		}
+
+		if rank != 0 {
+			playerCardRank[uint32(seatNo)] = poker.RankString(rank)
+		}
+	}
+
+	return &playerCardRank
+}
+
 func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
@@ -636,9 +685,10 @@ func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 		}
 		handState.PlayerStats[playerID].InFlop = true
 	}
+	playerCardRank := g.getPlayerCardRank(handState, flopCards)
 
 	cardsStr := poker.CardsToString(flopCards)
-	flop := &Flop{Board: flopCards, CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots, PlayerBalance: balance}
+	flop := &Flop{Board: flopCards, CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots, PlayerBalance: balance, PlayerCardRank: *playerCardRank}
 	msgItem := &HandMessageItem{
 		MessageType: HandFlop,
 		Content:     &HandMessageItem_Flop{Flop: flop},
@@ -661,6 +711,7 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 	for i, card := range handState.BoardCards[:4] {
 		boardCards[i] = uint32(card)
 	}
+	playerCardRank := g.getPlayerCardRank(handState, boardCards)
 
 	pots, seatsInPots := g.getPots(handState)
 
@@ -683,7 +734,7 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 	}
 
 	turn := &Turn{Board: boardCards, TurnCard: boardCards[3],
-		CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots, PlayerBalance: balance}
+		CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots, PlayerBalance: balance, PlayerCardRank: *playerCardRank}
 	msgItem := &HandMessageItem{
 		MessageType: HandTurn,
 		Content:     &HandMessageItem_Turn{Turn: turn},
@@ -725,8 +776,10 @@ func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
 		}
 		handState.PlayerStats[playerID].InRiver = true
 	}
+
+	playerCardRank := g.getPlayerCardRank(handState, boardCards)
 	river := &River{Board: boardCards, RiverCard: uint32(handState.BoardCards[4]),
-		CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots, PlayerBalance: balance}
+		CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots, PlayerBalance: balance, PlayerCardRank: *playerCardRank}
 	msgItem := &HandMessageItem{
 		MessageType: HandRiver,
 		Content:     &HandMessageItem_River{River: river},
