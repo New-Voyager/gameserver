@@ -688,7 +688,14 @@ func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 	playerCardRank := g.getPlayerCardRank(handState, flopCards)
 
 	cardsStr := poker.CardsToString(flopCards)
-	flop := &Flop{Board: flopCards, CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots, PlayerBalance: balance, PlayerCardRank: *playerCardRank}
+	flop := &Flop{
+		Board:          flopCards,
+		CardsStr:       cardsStr,
+		Pots:           pots,
+		SeatsPots:      seatsInPots,
+		PlayerBalance:  balance,
+		PlayerCardRank: *playerCardRank,
+	}
 	msgItem := &HandMessageItem{
 		MessageType: HandFlop,
 		Content:     &HandMessageItem_Flop{Flop: flop},
@@ -733,8 +740,15 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 		handState.PlayerStats[playerID].InTurn = true
 	}
 
-	turn := &Turn{Board: boardCards, TurnCard: boardCards[3],
-		CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots, PlayerBalance: balance, PlayerCardRank: *playerCardRank}
+	turn := &Turn{
+		Board:          boardCards,
+		TurnCard:       boardCards[3],
+		CardsStr:       cardsStr,
+		Pots:           pots,
+		SeatsPots:      seatsInPots,
+		PlayerBalance:  balance,
+		PlayerCardRank: *playerCardRank,
+	}
 	msgItem := &HandMessageItem{
 		MessageType: HandTurn,
 		Content:     &HandMessageItem_Turn{Turn: turn},
@@ -778,8 +792,15 @@ func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
 	}
 
 	playerCardRank := g.getPlayerCardRank(handState, boardCards)
-	river := &River{Board: boardCards, RiverCard: uint32(handState.BoardCards[4]),
-		CardsStr: cardsStr, Pots: pots, SeatsPots: seatsInPots, PlayerBalance: balance, PlayerCardRank: *playerCardRank}
+	river := &River{
+		Board:          boardCards,
+		RiverCard:      uint32(handState.BoardCards[4]),
+		CardsStr:       cardsStr,
+		Pots:           pots,
+		SeatsPots:      seatsInPots,
+		PlayerBalance:  balance,
+		PlayerCardRank: *playerCardRank,
+	}
 	msgItem := &HandMessageItem{
 		MessageType: HandRiver,
 		Content:     &HandMessageItem_River{River: river},
