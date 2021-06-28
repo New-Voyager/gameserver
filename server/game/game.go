@@ -10,9 +10,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/proto"
 	"voyager.com/server/crashtest"
+	"voyager.com/server/internal/encryptionkey"
 	"voyager.com/server/poker"
 	"voyager.com/server/util"
 )
@@ -80,11 +83,20 @@ type Game struct {
 	pingStates             map[uint64]*playerPingState
 	pingStatesLock         sync.Mutex
 	debugConnectivityCheck bool
+
+	db                 *sqlx.DB
+	encryptionKeyCache *encryptionkey.Cache
 }
 
 func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver,
 	config *GameConfig, delays Delays, autoDeal bool, handStatePersist PersistHandState, handSetupPersist *RedisHandsSetupTracker,
-	apiServerUrl string) (*Game, error) {
+	apiServerUrl string, db *sqlx.DB) (*Game, error) {
+
+	cache, err := encryptionkey.NewCache(32, db)
+	if err != nil || cache == nil {
+		return nil, errors.Wrap(err, "Unable to instantiate encryption key cache")
+	}
+
 	g := Game{
 		manager:                gameManager,
 		messageReceiver:        messageReceiver,
@@ -97,6 +109,8 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver,
 		retryDelayMillis:       500,
 		pingTimeoutSec:         uint32(util.GameServerEnvironment.GetPingTimeout()),
 		debugConnectivityCheck: util.GameServerEnvironment.ShouldDebugConnectivityCheck(),
+		db:                     db,
+		encryptionKeyCache:     cache,
 	}
 	g.allPlayers = make(map[uint64]*Player)
 	g.chGame = make(chan []byte)
@@ -908,9 +922,24 @@ func anyPendingUpdates(apiServerUrl string, gameID uint64, retryDelay uint32) (b
 	return updates.PendingUpdates, nil
 }
 
+func (g *Game) GameStarted() {
+	go g.runGame()
+	if !RunningTests {
+		go g.startNetworkCheck()
+	}
+}
+
 func (g *Game) GameEnded() error {
 	g.removeHandState()
 	g.end <- true
 	g.stopNetworkCheck <- true
 	return nil
+}
+
+func (g *Game) GetEncryptionKey(playerID uint64) (string, error) {
+	encryptionKey, err := g.encryptionKeyCache.Get(playerID)
+	if err != nil {
+		return "", err
+	}
+	return encryptionKey, nil
 }

@@ -3,6 +3,9 @@ package game
 import (
 	"fmt"
 
+	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
+	"voyager.com/server/internal"
 	"voyager.com/server/util"
 )
 
@@ -27,6 +30,20 @@ func CreateGameManager(apiServerUrl string, delays Delays) *Manager {
 		handPersist = NewMemoryHandStateTracker()
 	}
 
-	GameManager = NewGameManager(apiServerUrl, handPersist, handSetupPersist, delays)
+	db, err := sqlx.Open("postgres", internal.GetConnStr())
+	if err != nil {
+		panic(errors.Wrap(err, "Unable to create sqlx handle to postgres"))
+	}
+	err = db.Ping()
+	if err != nil {
+		panic(errors.Wrap(err, "Unable to verify postgres connection"))
+	}
+
+	gm, err := NewGameManager(apiServerUrl, handPersist, handSetupPersist, db, delays)
+	if err != nil {
+		panic(err)
+	}
+
+	GameManager = gm
 	return GameManager
 }

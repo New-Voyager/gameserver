@@ -28,7 +28,7 @@ func (c *Cache) Get(playerID uint64) (string, error) {
 	if !exists {
 		v, err = c.fetch(playerID)
 		if err != nil {
-			return "", errors.Wrapf(err, "Unable to fetch encryption key for player %d", playerID)
+			return "", errors.Wrapf(err, "Unable to fetch encryption key for player %d from database", playerID)
 		}
 		c.cache.Add(playerID, v)
 	}
