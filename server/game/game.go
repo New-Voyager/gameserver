@@ -47,7 +47,6 @@ type Game struct {
 	messageReceiver     *GameMessageReceiver // receives messages
 	actionTimeStart     time.Time
 	players             map[uint64]string
-	waitingPlayers      []uint64
 	RemainingActionTime uint32
 	apiServerUrl        string
 	// test driver specific variables
@@ -108,7 +107,6 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver,
 	g.chPauseTimer = make(chan bool)
 	g.end = make(chan bool)
 	g.stopNetworkCheck = make(chan bool)
-	g.waitingPlayers = make([]uint64, 0)
 	g.players = make(map[uint64]string)
 	g.pingStates = make(map[uint64]*playerPingState)
 
@@ -139,11 +137,6 @@ func (g *Game) runGame() {
 	ended := false
 	for !ended {
 		if !g.running {
-			// channelGameLogger.Info().
-			// 	Uint32("club", g.config.ClubId).
-			// 	Str("game", g.config.GameCode).
-			// 	Msg(fmt.Sprintf("Starting the game"))
-
 			started, err := g.startGame()
 			if err != nil {
 				channelGameLogger.Error().
@@ -299,8 +292,7 @@ func (g *Game) startGame() (bool, error) {
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
-		Msg(fmt.Sprintf("Game started. Good luck every one. Players in the table: %d. Waiting list players: %d",
-			numActivePlayers, len(g.waitingPlayers)))
+		Msg(fmt.Sprintf("Game started. Good luck every one. %d players are in the table.", numActivePlayers))
 
 	// assign the button pos to the first guy in the list
 	playersInSeat := g.PlayersInSeats
