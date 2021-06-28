@@ -7,7 +7,6 @@ import (
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/encoding/protojson"
-	"voyager.com/encryption"
 	"voyager.com/server/game"
 	"voyager.com/server/poker"
 	"voyager.com/server/util"
@@ -477,12 +476,7 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 		Msg(fmt.Sprintf("H->P: %s", string(data)))
 
 	if util.GameServerEnvironment.ShouldEncryptPlayerMsg() {
-		encryptionKey, err := n.serverGame.GetEncryptionKey(playerID)
-		if err != nil {
-			natsLogger.Error().Msgf("Unable to get encryption key for player %d", playerID)
-			return
-		}
-		encryptedData, err := encryption.EncryptWithUUIDStrKey(data, encryptionKey)
+		encryptedData, err := n.serverGame.EncryptForPlayer(data, playerID)
 		if err != nil {
 			natsLogger.Error().Msgf("Unable to encrypt message to player %d", playerID)
 			return

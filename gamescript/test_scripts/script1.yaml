@@ -99,6 +99,11 @@ hands:
     flop:
       verify:
         board: ["Ac", "Ad", "2c"]
+        ranks:
+          - seat: 1
+            rank: "Two Pair"
+          - seat: 5
+            rank: "Pair"
       seat-actions:
         - action: 5, CHECK
         - action: 8, BET, 2

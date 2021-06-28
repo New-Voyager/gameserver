@@ -196,13 +196,13 @@ func (g *gameServerEnvironment) GetPostgresDB() string {
 }
 
 func (g *gameServerEnvironment) GetApiServerUrl() string {
-	host := os.Getenv(g.APIServerUrl)
-	if host == "" {
+	url := os.Getenv(g.APIServerUrl)
+	if url == "" {
 		msg := fmt.Sprintf("%s is not defined", g.APIServerUrl)
 		environmentLogger.Error().Msg(msg)
-		return ""
+		panic(msg)
 	}
-	return host
+	return url
 }
 
 func (g *gameServerEnvironment) GetPlayTimeout() int {

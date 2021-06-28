@@ -304,10 +304,16 @@ func (b *BetOption) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 type BettingRoundVerification struct {
-	State        string   `yaml:"state"`
-	Board        []string `yaml:"board"`
-	Pots         []Pot    `yaml:"pots"`
-	NoMoreAction bool     `yaml:"no-more-action"`
+	State        string     `yaml:"state"`
+	Board        []string   `yaml:"board"`
+	Ranks        []SeatRank `yaml:"ranks"`
+	Pots         []Pot      `yaml:"pots"`
+	NoMoreAction bool       `yaml:"no-more-action"`
+}
+
+type SeatRank struct {
+	Seat    uint32 `yaml:"seat"`
+	RankStr string `yaml:"rank"`
 }
 
 type Pot struct {

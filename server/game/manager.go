@@ -7,6 +7,7 @@ import (
 )
 
 type Manager struct {
+	isScriptTest     bool
 	apiServerUrl     string
 	delays           Delays
 	handStatePersist PersistHandState
@@ -15,8 +16,9 @@ type Manager struct {
 	db               *sqlx.DB
 }
 
-func NewGameManager(apiServerUrl string, handPersist PersistHandState, handSetupPersist *RedisHandsSetupTracker, db *sqlx.DB, delays Delays) (*Manager, error) {
+func NewGameManager(isScriptTest bool, apiServerUrl string, handPersist PersistHandState, handSetupPersist *RedisHandsSetupTracker, db *sqlx.DB, delays Delays) (*Manager, error) {
 	return &Manager{
+		isScriptTest:     isScriptTest,
 		apiServerUrl:     apiServerUrl,
 		delays:           delays,
 		handStatePersist: handPersist,
@@ -28,7 +30,9 @@ func NewGameManager(apiServerUrl string, handPersist PersistHandState, handSetup
 
 func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver, config *GameConfig, autoDeal bool) (*Game, uint64, error) {
 	gameIDStr := fmt.Sprintf("%d", config.GameId)
-	game, err := NewPokerGame(gm,
+	game, err := NewPokerGame(
+		gm.isScriptTest,
+		gm,
 		&messageReceiver,
 		config,
 		gm.delays,

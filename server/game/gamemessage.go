@@ -143,7 +143,7 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 	}
 
 	// if this game is used by script test, don't look for pending updates
-	if g.scriptTest {
+	if g.isScriptTest {
 		return nil
 	}
 

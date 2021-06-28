@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"voyager.com/server/crashtest"
 	"voyager.com/server/poker"
+	"voyager.com/server/util"
 )
 
 const pauseTime = uint32(3000)
@@ -259,7 +260,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_1, playerMsg.PlayerId)
 
-	if messageSeatNo == 0 && !RunningTests {
+	if messageSeatNo == 0 && !g.isScriptTest {
 		errMsg := fmt.Sprintf("Invalid seat number [%d] for player ID %d. Ignoring the action message.", messageSeatNo, playerMsg.PlayerId)
 		channelGameLogger.Error().
 			Uint32("club", g.config.ClubId).
@@ -288,7 +289,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	}
 
 	if !actionMsg.GetPlayerActed().GetTimedOut() {
-		if playerMsg.MessageId == "" && !RunningTests {
+		if playerMsg.MessageId == "" && !g.isScriptTest {
 			errMsg := fmt.Sprintf("Missing message ID for player ID %d Seat %d. Ignoring the action message.", playerMsg.PlayerId, messageSeatNo)
 			channelGameLogger.Error().
 				Uint32("club", g.config.ClubId).
@@ -607,7 +608,7 @@ func (g *Game) getPots(handState *HandState) ([]float32, []*SeatsInPots) {
 	return pots, seatsInPots
 }
 
-func (g *Game) getPlayerCardRank(handState *HandState, boardCards []uint32) *map[uint32]string {
+func (g *Game) getPlayerCardRank(handState *HandState, boardCards []uint32) map[uint32]string {
 	// get rank
 	playerCardRank := make(map[uint32]string)
 
@@ -653,7 +654,7 @@ func (g *Game) getPlayerCardRank(handState *HandState, boardCards []uint32) *map
 		}
 	}
 
-	return &playerCardRank
+	return playerCardRank
 }
 
 func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
@@ -685,7 +686,14 @@ func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 		}
 		handState.PlayerStats[playerID].InFlop = true
 	}
-	playerCardRank := g.getPlayerCardRank(handState, flopCards)
+	playerCardRanks := g.getPlayerCardRank(handState, flopCards)
+	if util.GameServerEnvironment.ShouldEncryptPlayerMsg() {
+		var err error
+		playerCardRanks, err = g.encryptPlayerCardRanks(playerCardRanks, handState.PlayersInSeats)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	cardsStr := poker.CardsToString(flopCards)
 	flop := &Flop{
@@ -694,7 +702,7 @@ func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 		Pots:           pots,
 		SeatsPots:      seatsInPots,
 		PlayerBalance:  balance,
-		PlayerCardRank: *playerCardRank,
+		PlayerCardRank: playerCardRanks,
 	}
 	msgItem := &HandMessageItem{
 		MessageType: HandFlop,
@@ -718,7 +726,6 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 	for i, card := range handState.BoardCards[:4] {
 		boardCards[i] = uint32(card)
 	}
-	playerCardRank := g.getPlayerCardRank(handState, boardCards)
 
 	pots, seatsInPots := g.getPots(handState)
 
@@ -740,6 +747,15 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 		handState.PlayerStats[playerID].InTurn = true
 	}
 
+	playerCardRanks := g.getPlayerCardRank(handState, boardCards)
+	if util.GameServerEnvironment.ShouldEncryptPlayerMsg() {
+		var err error
+		playerCardRanks, err = g.encryptPlayerCardRanks(playerCardRanks, handState.PlayersInSeats)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	turn := &Turn{
 		Board:          boardCards,
 		TurnCard:       boardCards[3],
@@ -747,7 +763,7 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 		Pots:           pots,
 		SeatsPots:      seatsInPots,
 		PlayerBalance:  balance,
-		PlayerCardRank: *playerCardRank,
+		PlayerCardRank: playerCardRanks,
 	}
 	msgItem := &HandMessageItem{
 		MessageType: HandTurn,
@@ -791,7 +807,15 @@ func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
 		handState.PlayerStats[playerID].InRiver = true
 	}
 
-	playerCardRank := g.getPlayerCardRank(handState, boardCards)
+	playerCardRanks := g.getPlayerCardRank(handState, boardCards)
+	if util.GameServerEnvironment.ShouldEncryptPlayerMsg() {
+		var err error
+		playerCardRanks, err = g.encryptPlayerCardRanks(playerCardRanks, handState.PlayersInSeats)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	river := &River{
 		Board:          boardCards,
 		RiverCard:      uint32(handState.BoardCards[4]),
@@ -799,7 +823,7 @@ func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
 		Pots:           pots,
 		SeatsPots:      seatsInPots,
 		PlayerBalance:  balance,
-		PlayerCardRank: *playerCardRank,
+		PlayerCardRank: playerCardRanks,
 	}
 	msgItem := &HandMessageItem{
 		MessageType: HandRiver,
@@ -807,6 +831,19 @@ func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
 	}
 
 	return []*HandMessageItem{msgItem}, nil
+}
+
+func (g *Game) encryptPlayerCardRanks(playerCardRanks map[uint32]string, playersInSeats []uint64) (map[uint32]string, error) {
+	encryptedRanks := make(map[uint32]string)
+	for seatNo, cardRank := range playerCardRanks {
+		playerID := playersInSeats[seatNo]
+		encryptedCardRank, err := g.EncryptAndB64ForPlayer([]byte(cardRank), playerID)
+		if err != nil {
+			return nil, err
+		}
+		encryptedRanks[seatNo] = encryptedCardRank
+	}
+	return encryptedRanks, nil
 }
 
 func (g *Game) handEnded(handState *HandState) ([]*HandMessageItem, error) {

@@ -102,7 +102,6 @@ func (t *TestDriver) ReportResult() bool {
 }
 
 func RunGameScriptTests(fileOrDir string, testName string) {
-	game.RunningTests = true
 	info, err := os.Stat(fileOrDir)
 	if os.IsNotExist(err) {
 		fmt.Printf("%s does not exist\n", fileOrDir)

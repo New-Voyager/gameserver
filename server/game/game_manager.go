@@ -11,9 +11,25 @@ import (
 
 var GameManager *Manager
 
-func CreateGameManager(apiServerUrl string, delays Delays) *Manager {
+func CreateGameManager(isScriptTest bool, delays Delays) *Manager {
 	if GameManager != nil {
 		return GameManager
+	}
+
+	var apiServerURL string
+	var db *sqlx.DB
+	var err error
+	if !isScriptTest {
+		apiServerURL = util.GameServerEnvironment.GetApiServerUrl()
+
+		db, err = sqlx.Open("postgres", internal.GetConnStr())
+		if err != nil {
+			panic(errors.Wrap(err, "Unable to create sqlx handle to postgres"))
+		}
+		err = db.Ping()
+		if err != nil {
+			panic(errors.Wrap(err, "Unable to verify postgres connection"))
+		}
 	}
 
 	var redisHost = util.GameServerEnvironment.GetRedisHost()
@@ -30,16 +46,7 @@ func CreateGameManager(apiServerUrl string, delays Delays) *Manager {
 		handPersist = NewMemoryHandStateTracker()
 	}
 
-	db, err := sqlx.Open("postgres", internal.GetConnStr())
-	if err != nil {
-		panic(errors.Wrap(err, "Unable to create sqlx handle to postgres"))
-	}
-	err = db.Ping()
-	if err != nil {
-		panic(errors.Wrap(err, "Unable to verify postgres connection"))
-	}
-
-	gm, err := NewGameManager(apiServerUrl, handPersist, handSetupPersist, db, delays)
+	gm, err := NewGameManager(isScriptTest, apiServerURL, handPersist, handSetupPersist, db, delays)
 	if err != nil {
 		panic(err)
 	}
