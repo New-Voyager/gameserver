@@ -475,7 +475,7 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 		Str("subject", hand2PlayerSubject).
 		Msg(fmt.Sprintf("H->P: %s", string(data)))
 
-	if util.GameServerEnvironment.ShouldEncryptPlayerMsg() {
+	if util.GameServerEnvironment.IsEncryptionEnabled() {
 		encryptedData, err := n.serverGame.EncryptForPlayer(data, playerID)
 		if err != nil {
 			natsLogger.Error().Msgf("Unable to encrypt message to player %d", playerID)

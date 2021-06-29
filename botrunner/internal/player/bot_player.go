@@ -298,7 +298,7 @@ func (bp *BotPlayer) handleHandMsg(msg *natsgo.Msg) {
 
 func (bp *BotPlayer) handlePrivateHandMsg(msg *natsgo.Msg) {
 	data := msg.Data
-	if util.Env.IsPlayerMsgEncrypted() {
+	if util.Env.IsEncryptionEnabled() {
 		decryptedMsg, err := encryption.DecryptWithUUIDStrKey(msg.Data, bp.EncryptionKey)
 		if err != nil {
 			bp.logger.Error().Msgf("%s: Error [%s] while decrypting private hand message", bp.logPrefix, err)
@@ -810,7 +810,7 @@ func (bp *BotPlayer) verifyCardRank(currentRanks map[uint32]string) {
 	}
 
 	var actualRank string = currentRanks[bp.seatNo]
-	if util.Env.IsPlayerMsgEncrypted() {
+	if util.Env.IsEncryptionEnabled() {
 		// Player rank string is encrypted and base64 encoded by the game server.
 		// It first needs to be b64 decoded and then decrypted using the player's
 		// encryption key.
