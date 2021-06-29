@@ -68,6 +68,13 @@ hands:
     flop:
       verify:
         board: ["Ac", "Ad", "2c"]
+        ranks:
+          - seat: 1
+            rank: "Two Pair"
+          - seat: 5
+            rank: "Pair"
+          - seat: 8
+            rank: "Pair"
       seat-actions:
         - action: 5, CHECK
         - action: 8, BET, 2
@@ -79,6 +86,13 @@ hands:
     turn:
       verify:
         board: ["Ac", "Ad", "2c", "Td"]
+        ranks:
+          - seat: 1
+            rank: "Two Pair"
+          - seat: 5
+            rank: "Pair"
+          - seat: 8
+            rank: # folded
       seat-actions:
         - action: 5, CHECK
         - action: 1, BET, 10
@@ -87,6 +101,13 @@ hands:
     river:
       verify:
         board: ["Ac", "Ad", "2c", "Td", "4s"]
+        ranks:
+          - seat: 1
+            rank: "Two Pair"
+          - seat: 5
+            rank: "Pair"
+          - seat: 8
+            rank: # folded
       seat-actions:
         - action: 5, BET, 10
         - action: 1, CALL, 10

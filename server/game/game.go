@@ -10,9 +10,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/proto"
+	"voyager.com/encryption"
 	"voyager.com/server/crashtest"
+	"voyager.com/server/internal/encryptionkey"
 	"voyager.com/server/poker"
 	"voyager.com/server/util"
 )
@@ -23,8 +27,6 @@ NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 
 var channelGameLogger = log.With().Str("logger_name", "game::game").Logger()
 
-var RunningTests bool
-
 type GameMessageReceiver interface {
 	BroadcastGameMessage(message *GameMessage)
 	BroadcastHandMessage(message *HandMessage)
@@ -33,6 +35,7 @@ type GameMessageReceiver interface {
 	SendGameMessageToPlayer(message *GameMessage, playerID uint64)
 }
 type Game struct {
+	isScriptTest        bool
 	manager             *Manager
 	end                 chan bool
 	stopNetworkCheck    chan bool
@@ -47,7 +50,6 @@ type Game struct {
 	messageReceiver     *GameMessageReceiver // receives messages
 	actionTimeStart     time.Time
 	players             map[uint64]string
-	waitingPlayers      []uint64
 	RemainingActionTime uint32
 	apiServerUrl        string
 	// test driver specific variables
@@ -55,7 +57,6 @@ type Game struct {
 	testDeckToUse *poker.Deck
 	testButtonPos int32
 	prevHandNum   uint32
-	scriptTest    bool
 
 	handSetupPersist *RedisHandsSetupTracker
 
@@ -81,12 +82,30 @@ type Game struct {
 	pingStates             map[uint64]*playerPingState
 	pingStatesLock         sync.Mutex
 	debugConnectivityCheck bool
+
+	db                 *sqlx.DB
+	encryptionKeyCache *encryptionkey.Cache
 }
 
-func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver,
-	config *GameConfig, delays Delays, autoDeal bool, handStatePersist PersistHandState, handSetupPersist *RedisHandsSetupTracker,
-	apiServerUrl string) (*Game, error) {
+func NewPokerGame(
+	isScriptTest bool,
+	gameManager *Manager,
+	messageReceiver *GameMessageReceiver,
+	config *GameConfig,
+	delays Delays,
+	autoDeal bool,
+	handStatePersist PersistHandState,
+	handSetupPersist *RedisHandsSetupTracker,
+	apiServerURL string,
+	db *sqlx.DB) (*Game, error) {
+
+	cache, err := encryptionkey.NewCache(32, db)
+	if err != nil || cache == nil {
+		return nil, errors.Wrap(err, "Unable to instantiate encryption key cache")
+	}
+
 	g := Game{
+		isScriptTest:           isScriptTest,
 		manager:                gameManager,
 		messageReceiver:        messageReceiver,
 		config:                 config,
@@ -94,10 +113,12 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver,
 		autoDeal:               autoDeal,
 		testButtonPos:          -1,
 		handSetupPersist:       handSetupPersist,
-		apiServerUrl:           apiServerUrl,
+		apiServerUrl:           apiServerURL,
 		retryDelayMillis:       500,
 		pingTimeoutSec:         uint32(util.GameServerEnvironment.GetPingTimeout()),
 		debugConnectivityCheck: util.GameServerEnvironment.ShouldDebugConnectivityCheck(),
+		db:                     db,
+		encryptionKeyCache:     cache,
 	}
 	g.allPlayers = make(map[uint64]*Player)
 	g.chGame = make(chan []byte)
@@ -108,21 +129,16 @@ func NewPokerGame(gameManager *Manager, messageReceiver *GameMessageReceiver,
 	g.chPauseTimer = make(chan bool)
 	g.end = make(chan bool)
 	g.stopNetworkCheck = make(chan bool)
-	g.waitingPlayers = make([]uint64, 0)
 	g.players = make(map[uint64]string)
 	g.pingStates = make(map[uint64]*playerPingState)
 
 	playerConfig := make(map[uint64]PlayerConfigUpdate)
 	g.playerConfig.Store(playerConfig)
 
-	if RunningTests {
+	if g.isScriptTest {
 		g.initGameState()
 	}
 	return &g, nil
-}
-
-func (g *Game) SetScriptTest(scriptTest bool) {
-	g.scriptTest = scriptTest
 }
 
 func (g *Game) playersInSeatsCount() int {
@@ -139,11 +155,6 @@ func (g *Game) runGame() {
 	ended := false
 	for !ended {
 		if !g.running {
-			// channelGameLogger.Info().
-			// 	Uint32("club", g.config.ClubId).
-			// 	Str("game", g.config.GameCode).
-			// 	Msg(fmt.Sprintf("Starting the game"))
-
 			started, err := g.startGame()
 			if err != nil {
 				channelGameLogger.Error().
@@ -233,7 +244,7 @@ func (g *Game) countActivePlayers() int {
 
 func (g *Game) startGame() (bool, error) {
 	var numActivePlayers int
-	if !RunningTests {
+	if !g.isScriptTest {
 		// Get game config.
 		gameConfig, err := g.getGameInfo(g.apiServerUrl, g.config.GameCode, g.retryDelayMillis)
 		if err != nil {
@@ -259,7 +270,7 @@ func (g *Game) startGame() (bool, error) {
 		numActivePlayers = g.countActivePlayers()
 	}
 
-	if !RunningTests {
+	if !g.isScriptTest {
 		handState, err := g.loadHandState()
 		if err == nil {
 			// There is an existing hand state. The game must've crashed and is now restarting.
@@ -299,8 +310,7 @@ func (g *Game) startGame() (bool, error) {
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
-		Msg(fmt.Sprintf("Game started. Good luck every one. Players in the table: %d. Waiting list players: %d",
-			numActivePlayers, len(g.waitingPlayers)))
+		Msg(fmt.Sprintf("Game started. Good luck every one. %d players are in the table.", numActivePlayers))
 
 	// assign the button pos to the first guy in the list
 	playersInSeat := g.PlayersInSeats
@@ -415,7 +425,7 @@ func (g *Game) dealNewHand() error {
 		handSetup = testHandsSetup.Hands[0]
 	}
 
-	if !RunningTests {
+	if !g.isScriptTest {
 		// we are not running tests
 		// get new hand information from the API server
 		// new hand information contains players in seats/balance/status, game type, announce new game
@@ -916,9 +926,44 @@ func anyPendingUpdates(apiServerUrl string, gameID uint64, retryDelay uint32) (b
 	return updates.PendingUpdates, nil
 }
 
+func (g *Game) GameStarted() {
+	go g.runGame()
+	if !g.isScriptTest {
+		go g.startNetworkCheck()
+	}
+}
+
 func (g *Game) GameEnded() error {
 	g.removeHandState()
 	g.end <- true
 	g.stopNetworkCheck <- true
 	return nil
+}
+
+func (g *Game) GetEncryptionKey(playerID uint64) (string, error) {
+	encryptionKey, err := g.encryptionKeyCache.Get(playerID)
+	if err != nil {
+		return "", err
+	}
+	return encryptionKey, nil
+}
+
+func (g *Game) EncryptForPlayer(data []byte, playerID uint64) ([]byte, error) {
+	encryptionKey, err := g.GetEncryptionKey(playerID)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to get encryption key for player %d", playerID)
+	}
+	encryptedData, err := encryption.EncryptWithUUIDStrKey(data, encryptionKey)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to encrypt message to player %d", playerID)
+	}
+	return encryptedData, nil
+}
+
+func (g *Game) EncryptAndB64ForPlayer(data []byte, playerID uint64) (string, error) {
+	encryptedData, err := g.EncryptForPlayer(data, playerID)
+	if err != nil {
+		return "", err
+	}
+	return encryption.B64EncodeToString(encryptedData), nil
 }

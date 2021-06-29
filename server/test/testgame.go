@@ -65,7 +65,7 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	if err != nil {
 		return nil, nil, err
 	}
-	serverGame.SetScriptTest(true)
+	serverGame.GameStarted()
 
 	observerCh := make(chan observerChItem)
 	// add test driver as an observer/player

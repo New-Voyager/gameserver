@@ -3,12 +3,9 @@ package nats
 import (
 	"fmt"
 
-	"github.com/jmoiron/sqlx"
 	natsgo "github.com/nats-io/nats.go"
-	"github.com/pkg/errors"
 
 	"voyager.com/server/game"
-	"voyager.com/server/internal"
 	"voyager.com/server/poker"
 	"voyager.com/server/util"
 )
@@ -23,7 +20,6 @@ type GameManager struct {
 	gameCodes    map[string]string
 	gameCodeToId map[string]string
 	nc           *natsgo.Conn
-	db           *sqlx.DB
 }
 
 const (
@@ -43,18 +39,8 @@ func NewGameManager(nc *natsgo.Conn) (*GameManager, error) {
 		return nil, err
 	}
 
-	db, err := sqlx.Open("postgres", internal.GetConnStr())
-	if err != nil {
-		return nil, errors.Wrap(err, "Unable to create sqlx handle to postgres")
-	}
-	err = db.Ping()
-	if err != nil {
-		return nil, errors.Wrap(err, "Unable to verify postgres connection")
-	}
-
 	return &GameManager{
 		nc:           nc,
-		db:           db,
 		activeGames:  make(map[string]*NatsGame),
 		gameCodes:    make(map[string]string),
 		gameCodeToId: make(map[string]string),
@@ -64,7 +50,7 @@ func NewGameManager(nc *natsgo.Conn) (*GameManager, error) {
 func (gm *GameManager) NewGame(clubID uint32, gameID uint64, config *game.GameConfig) (*NatsGame, error) {
 	natsLogger.Info().Msgf("New game club %d game %d code %s", clubID, gameID, config.GameCode)
 	gameIDStr := fmt.Sprintf("%d", gameID)
-	game, err := newNatsGame(gm.nc, gm.db, clubID, gameID, config)
+	game, err := newNatsGame(gm.nc, clubID, gameID, config)
 	if err != nil {
 		return nil, err
 	}

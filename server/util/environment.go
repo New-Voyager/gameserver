@@ -16,42 +16,42 @@ var environmentLogger = log.With().Str("logger_name", "util::environment").Logge
 var natsUrl string
 
 type gameServerEnvironment struct {
-	PersistMethod             string
-	RedisHost                 string
-	RedisPort                 string
-	RedisPW                   string
-	RedisDB                   string
-	APIServerUrl              string
-	PlayTimeout               string
-	PingTimeout               string
-	DisableDelays             string
-	PostgresHost              string
-	PostgresPort              string
-	PostgresDB                string
-	PostgresUser              string
-	PostgresPW                string
-	EnablePlayerMsgEncryption string
-	DebugConnectivityCheck    string
+	PersistMethod          string
+	RedisHost              string
+	RedisPort              string
+	RedisPW                string
+	RedisDB                string
+	APIServerUrl           string
+	PlayTimeout            string
+	PingTimeout            string
+	DisableDelays          string
+	PostgresHost           string
+	PostgresPort           string
+	PostgresDB             string
+	PostgresUser           string
+	PostgresPW             string
+	EnableEncryption       string
+	DebugConnectivityCheck string
 }
 
 // GameServerEnvironment is a helper object for accessing environment variables.
 var GameServerEnvironment = &gameServerEnvironment{
-	PersistMethod:             "PERSIST_METHOD",
-	RedisHost:                 "REDIS_HOST",
-	RedisPort:                 "REDIS_PORT",
-	RedisPW:                   "REDIS_PW",
-	RedisDB:                   "REDIS_DB",
-	APIServerUrl:              "API_SERVER_URL",
-	PlayTimeout:               "PLAY_TIMEOUT",
-	PingTimeout:               "PING_TIMEOUT",
-	DisableDelays:             "DISABLE_DELAYS",
-	PostgresHost:              "POSTGRES_HOST",
-	PostgresPort:              "POSTGRES_PORT",
-	PostgresDB:                "POSTGRES_DB",
-	PostgresUser:              "POSTGRES_USER",
-	PostgresPW:                "POSTGRES_PASSWORD",
-	EnablePlayerMsgEncryption: "ENABLE_PLAYER_MSG_ENCRYPTION",
-	DebugConnectivityCheck:    "DEBUG_CONNECTIVITY_CHECK",
+	PersistMethod:          "PERSIST_METHOD",
+	RedisHost:              "REDIS_HOST",
+	RedisPort:              "REDIS_PORT",
+	RedisPW:                "REDIS_PW",
+	RedisDB:                "REDIS_DB",
+	APIServerUrl:           "API_SERVER_URL",
+	PlayTimeout:            "PLAY_TIMEOUT",
+	PingTimeout:            "PING_TIMEOUT",
+	DisableDelays:          "DISABLE_DELAYS",
+	PostgresHost:           "POSTGRES_HOST",
+	PostgresPort:           "POSTGRES_PORT",
+	PostgresDB:             "POSTGRES_DB",
+	PostgresUser:           "POSTGRES_USER",
+	PostgresPW:             "POSTGRES_PASSWORD",
+	EnableEncryption:       "ENABLE_ENCRYPTION",
+	DebugConnectivityCheck: "DEBUG_CONNECTIVITY_CHECK",
 }
 
 func (g *gameServerEnvironment) GetNatsURL() string {
@@ -196,13 +196,13 @@ func (g *gameServerEnvironment) GetPostgresDB() string {
 }
 
 func (g *gameServerEnvironment) GetApiServerUrl() string {
-	host := os.Getenv(g.APIServerUrl)
-	if host == "" {
+	url := os.Getenv(g.APIServerUrl)
+	if url == "" {
 		msg := fmt.Sprintf("%s is not defined", g.APIServerUrl)
 		environmentLogger.Error().Msg(msg)
-		return ""
+		panic(msg)
 	}
-	return host
+	return url
 }
 
 func (g *gameServerEnvironment) GetPlayTimeout() int {
@@ -246,16 +246,16 @@ func (g *gameServerEnvironment) ShouldDisableDelays() bool {
 	return g.GetDisableDelays() == "1" || strings.ToLower(g.GetDisableDelays()) == "true"
 }
 
-func (g *gameServerEnvironment) GetEnablePlayerMsgEncryption() string {
-	v := os.Getenv(g.EnablePlayerMsgEncryption)
+func (g *gameServerEnvironment) GetEnableEncryption() string {
+	v := os.Getenv(g.EnableEncryption)
 	if v == "" {
 		return "false"
 	}
 	return v
 }
 
-func (g *gameServerEnvironment) ShouldEncryptPlayerMsg() bool {
-	return g.GetEnablePlayerMsgEncryption() == "1" || strings.ToLower(g.GetEnablePlayerMsgEncryption()) == "true"
+func (g *gameServerEnvironment) IsEncryptionEnabled() bool {
+	return g.GetEnableEncryption() == "1" || strings.ToLower(g.GetEnableEncryption()) == "true"
 }
 
 func (g *gameServerEnvironment) GetDebugConnectivityCheck() string {

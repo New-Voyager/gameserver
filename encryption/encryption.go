@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"encoding/base64"
 	"io"
 
 	"github.com/google/uuid"
@@ -90,4 +91,14 @@ func Decrypt(data []byte, key []byte) ([]byte, error) {
 	}
 
 	return decrypted, nil
+}
+
+// bytes -> b64 str
+func B64EncodeToString(data []byte) string {
+	return base64.StdEncoding.EncodeToString(data)
+}
+
+// b64 str -> bytes
+func B64DecodeString(b64Str string) ([]byte, error) {
+	return base64.StdEncoding.DecodeString(b64Str)
 }

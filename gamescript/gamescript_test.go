@@ -176,6 +176,16 @@ func TestReadGameScript(t *testing.T) {
 				Flop: BettingRound{
 					Verify: BettingRoundVerification{
 						Board: []string{"Ac", "Ad", "2c"},
+						Ranks: []SeatRank{
+							{
+								Seat:    1,
+								RankStr: "Two Pair",
+							},
+							{
+								Seat:    5,
+								RankStr: "Pair",
+							},
+						},
 					},
 					SeatActions: []SeatAction{
 						{

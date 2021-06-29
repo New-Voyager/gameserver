@@ -58,7 +58,7 @@ services:
       POSTGRES_PASSWORD: 'game'
       POSTGRES_DB: 'game'
       DISABLE_DELAYS: 1
-      ENABLE_PLAYER_MSG_ENCRYPTION: 1
+      ENABLE_ENCRYPTION: 1
     command:
       - "/bin/sh"
       - "-c"
@@ -79,7 +79,7 @@ services:
       POSTGRES_PASSWORD: 'game'
       POSTGRES_DB: 'game'
       DISABLE_DELAYS: 1
-      ENABLE_PLAYER_MSG_ENCRYPTION: 1
+      ENABLE_ENCRYPTION: 1
 
   timer:
     image: ${TIMER_IMAGE}

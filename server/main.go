@@ -42,7 +42,7 @@ func main() {
 		mainLogger.Panic().Msg(err.Error())
 	}
 	// create game manager
-	game.CreateGameManager(util.GameServerEnvironment.GetApiServerUrl(), delays)
+	game.CreateGameManager(*runGameScriptTests, delays)
 
 	if *runGameScriptTests {
 		testScripts()
