@@ -697,12 +697,12 @@ func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 
 	cardsStr := poker.CardsToString(flopCards)
 	flop := &Flop{
-		Board:          flopCards,
-		CardsStr:       cardsStr,
-		Pots:           pots,
-		SeatsPots:      seatsInPots,
-		PlayerBalance:  balance,
-		PlayerCardRank: playerCardRanks,
+		Board:           flopCards,
+		CardsStr:        cardsStr,
+		Pots:            pots,
+		SeatsPots:       seatsInPots,
+		PlayerBalance:   balance,
+		PlayerCardRanks: playerCardRanks,
 	}
 	msgItem := &HandMessageItem{
 		MessageType: HandFlop,
@@ -757,13 +757,13 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 	}
 
 	turn := &Turn{
-		Board:          boardCards,
-		TurnCard:       boardCards[3],
-		CardsStr:       cardsStr,
-		Pots:           pots,
-		SeatsPots:      seatsInPots,
-		PlayerBalance:  balance,
-		PlayerCardRank: playerCardRanks,
+		Board:           boardCards,
+		TurnCard:        boardCards[3],
+		CardsStr:        cardsStr,
+		Pots:            pots,
+		SeatsPots:       seatsInPots,
+		PlayerBalance:   balance,
+		PlayerCardRanks: playerCardRanks,
 	}
 	msgItem := &HandMessageItem{
 		MessageType: HandTurn,
@@ -817,13 +817,13 @@ func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
 	}
 
 	river := &River{
-		Board:          boardCards,
-		RiverCard:      uint32(handState.BoardCards[4]),
-		CardsStr:       cardsStr,
-		Pots:           pots,
-		SeatsPots:      seatsInPots,
-		PlayerBalance:  balance,
-		PlayerCardRank: playerCardRanks,
+		Board:           boardCards,
+		RiverCard:       uint32(handState.BoardCards[4]),
+		CardsStr:        cardsStr,
+		Pots:            pots,
+		SeatsPots:       seatsInPots,
+		PlayerBalance:   balance,
+		PlayerCardRanks: playerCardRanks,
 	}
 	msgItem := &HandMessageItem{
 		MessageType: HandRiver,

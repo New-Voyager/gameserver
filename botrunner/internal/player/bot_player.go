@@ -538,9 +538,14 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.flopCards = msgItem.GetFlop().GetBoard()
 		if bp.IsHuman() || bp.IsObserver() {
-			bp.logger.Info().Msgf("%s: Flop cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetFlop().GetCardsStr(), msgItem.GetFlop().PlayerCardRank)
+			bp.logger.Info().Msgf("%s: Flop cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetFlop().GetCardsStr(), msgItem.GetFlop().PlayerCardRanks)
 		}
 		bp.verifyBoard()
+
+		// Game server evaluates player cards at every betting round and sends the rank string for each seat number.
+		// Verify they match the script.
+		bp.verifyCardRank(msgItem.GetFlop().GetPlayerCardRanks())
+
 		//time.Sleep(1 * time.Second)
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 
@@ -549,9 +554,10 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.turnCards = msgItem.GetTurn().GetBoard()
 		if bp.IsHuman() || bp.IsObserver() {
-			bp.logger.Info().Msgf("%s: Turn cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetTurn().GetCardsStr(), msgItem.GetTurn().PlayerCardRank)
+			bp.logger.Info().Msgf("%s: Turn cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetTurn().GetCardsStr(), msgItem.GetTurn().PlayerCardRanks)
 		}
 		bp.verifyBoard()
+		bp.verifyCardRank(msgItem.GetTurn().GetPlayerCardRanks())
 		//time.Sleep(1 * time.Second)
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 
@@ -560,9 +566,10 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.riverCards = msgItem.GetRiver().GetBoard()
 		if bp.IsHuman() || bp.IsObserver() {
-			bp.logger.Info().Msgf("%s: River cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetRiver().GetCardsStr(), msgItem.GetRiver().PlayerCardRank)
+			bp.logger.Info().Msgf("%s: River cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetRiver().GetCardsStr(), msgItem.GetRiver().PlayerCardRanks)
 		}
 		bp.verifyBoard()
+		bp.verifyCardRank(msgItem.GetRiver().GetPlayerCardRanks())
 		//time.Sleep(1 * time.Second)
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 
@@ -723,14 +730,13 @@ func (bp *BotPlayer) chooseNextGame(gameType game.GameType) {
 }
 
 func (bp *BotPlayer) verifyBoard() {
-	var expectedBoard []string
-	var currentBoard []uint32
-
 	// if the script is configured to auto play, return
 	if bp.config.Script.AutoPlay {
 		return
 	}
 
+	var expectedBoard []string
+	var currentBoard []uint32
 	scriptCurrentHand := bp.config.Script.GetHand(bp.game.handNum)
 	switch bp.game.handStatus {
 	case game.HandStatus_FLOP:
@@ -768,6 +774,60 @@ func (bp *BotPlayer) verifyBoard() {
 
 	if !match {
 		bp.logger.Panic().Msgf("%s: Hand %d %s verify failed. Board does not match the expected. Current board: %v. Expected board: %v.", bp.logPrefix, bp.game.handNum, bp.game.handStatus, currentBoardCards, expectedBoardCards)
+	}
+}
+
+func (bp *BotPlayer) verifyCardRank(currentRanks map[uint32]string) {
+	// if the script is configured to auto play, return
+	if bp.config.Script.AutoPlay {
+		return
+	}
+
+	var expectedRanks []gamescript.SeatRank
+	scriptCurrentHand := bp.config.Script.GetHand(bp.game.handNum)
+	switch bp.game.handStatus {
+	case game.HandStatus_FLOP:
+		expectedRanks = scriptCurrentHand.Flop.Verify.Ranks
+	case game.HandStatus_TURN:
+		expectedRanks = scriptCurrentHand.Turn.Verify.Ranks
+	case game.HandStatus_RIVER:
+		expectedRanks = scriptCurrentHand.River.Verify.Ranks
+	}
+	if len(expectedRanks) == 0 {
+		// No verify in yaml.
+		return
+	}
+
+	var expectedRank string
+	for _, r := range expectedRanks {
+		if r.Seat == bp.seatNo {
+			expectedRank = r.RankStr
+			break
+		}
+	}
+	if expectedRank == "" {
+		return
+	}
+
+	var actualRank string = currentRanks[bp.seatNo]
+	if util.Env.IsPlayerMsgEncrypted() {
+		// Player rank string is encrypted and base64 encoded by the game server.
+		// It first needs to be b64 decoded and then decrypted using the player's
+		// encryption key.
+		decodedRankStr, err := encryption.B64DecodeString(actualRank)
+		if err != nil {
+			bp.logger.Panic().Msgf("%s: Unable to decode player rank string %s", bp.logPrefix, actualRank)
+		}
+		decrypted, err := encryption.DecryptWithUUIDStrKey(decodedRankStr, bp.EncryptionKey)
+		if err != nil {
+			bp.logger.Error().Msgf("%s: Error [%s] while decrypting private hand message", bp.logPrefix, err)
+			return
+		}
+		actualRank = string(decrypted)
+	}
+
+	if actualRank != expectedRank {
+		bp.logger.Panic().Msgf("%s: Hand %d %s verify failed. Player rank string does not match the expected. Current rank: %s. Expected rank: %s.", bp.logPrefix, bp.game.handNum, bp.game.handStatus, actualRank, expectedRank)
 	}
 }
 
