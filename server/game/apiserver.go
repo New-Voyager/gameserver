@@ -10,7 +10,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-func (g *Game) saveHandResult(result *HandResult) (*SaveHandResult, error) {
+func (g *Game) saveHandResultToAPIServer(result *HandResult) (*SaveHandResult, error) {
 	// call the API server to save the hand result
 	var m protojson.MarshalOptions
 	m.EmitUnpopulated = true

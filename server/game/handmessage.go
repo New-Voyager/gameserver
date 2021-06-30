@@ -1213,7 +1213,7 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	handResult.BigBlind = handState.BigBlind
 	handResult.MaxPlayers = handState.MaxSeats
 
-	saveResult, _ := g.saveHandResult(handResult)
+	saveResult, _ := g.saveHandResultToAPIServer(handResult)
 
 	// send to all the players
 	handResult = handResultProcessor.getResult(false /*db*/)

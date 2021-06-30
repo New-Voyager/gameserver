@@ -116,3 +116,58 @@ hands:
           stack: 298
         - seat: 4
           stack: 300
+
+  # The previous hand has put players 3 and 4 in break due to consecutive timeouts.
+  # Only players 1 and 2 remain in this hand.
+  - setup:
+      board: ["5d", "7s", "4d", "4c", "3c"]
+      seat-cards:
+        - seat: 1
+          cards: ["3h", "4s"]
+        - seat: 2
+          cards: ["7h", "8c"]
+
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 2, CALL, 2
+        - action: 1, CHECK
+
+    flop:
+      verify:
+        board: ["5d", "7s", "4d"]
+      seat-actions:
+        - action: 1, CHECK
+        - action: 2, CHECK
+
+    turn:
+      verify:
+        board: ["5d", "7s", "4d", "4c"]
+      seat-actions:
+        - action: 1, CHECK
+        - action: 2, CHECK
+
+    river:
+      verify:
+        board: ["5d", "7s", "4d", "4c", "3c"]
+      seat-actions:
+        - action: 1, CHECK
+        - action: 2, CHECK
+
+    result:
+      winners:
+        - seat: 1
+          receive: 4
+          rank: Full House
+      action-ended: SHOW_DOWN
+      player-stats:
+        - seat: 1
+          consecutive-action-timeouts: 0
+        - seat: 2
+          consecutive-action-timeouts: 0
+      stacks:
+        - seat: 1
+          stack: 299
+        - seat: 2
+          stack: 98
