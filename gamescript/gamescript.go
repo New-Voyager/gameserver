@@ -348,6 +348,7 @@ type HighHandSeat struct {
 type PlayerStats struct {
 	Seat                      uint32 `yaml:"seat"`
 	ConsecutiveActionTimeouts uint32 `yaml:"consecutive-action-timeouts"`
+	ActedAtLeastOnce          bool   `yaml:"acted-at-least-once"`
 }
 
 // ReadGameScript reads game script yaml file.

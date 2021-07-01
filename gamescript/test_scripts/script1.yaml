@@ -1,3 +1,8 @@
+#
+# This script is only for testing the parser.
+# It does not make any sense in terms of the actual game play and the result.
+#
+
 club:
   name: Bad Robots
   description: Club for testing
@@ -150,7 +155,10 @@ hands:
       player-stats:
         - seat: 1
           consecutive-action-timeouts: 0
+          acted-at-least-once: true
         - seat: 5
           consecutive-action-timeouts: 3
+          acted-at-least-once: true
         - seat: 8
           consecutive-action-timeouts: 1
+          acted-at-least-once: false

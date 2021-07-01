@@ -440,6 +440,12 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 		handState.PlayerStats[playerID].ConsecutiveActionTimeouts++
 	} else {
 		handState.PlayerStats[playerID].ConsecutiveActionTimeouts = 0
+
+		// When the consecutive timeout counts get reported to the api server,
+		// the api server needs to know if the player has acted at all this hand
+		// so that it can clear the count from the previous hand and start a new counter
+		// instead of adding to it.
+		handState.PlayerStats[playerID].ActedAtLeastOnce = true
 	}
 
 	// This number is used to generate hand message IDs uniquely and deterministically across the server crashes.
