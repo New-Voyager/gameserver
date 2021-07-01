@@ -904,10 +904,15 @@ func (bp *BotPlayer) verifyResult() {
 		for _, scriptStat := range scriptResult.PlayerStats {
 			seatNo := scriptStat.Seat
 			playerID := bp.getPlayerIDBySeatNo(seatNo)
-			actual := actualPlayerStats[playerID].ConsecutiveActionTimeouts
-			expected := scriptStat.ConsecutiveActionTimeouts
-			if actual != expected {
-				bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Consecutive Action Timeouts for seat# %d player ID %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actual, expected)
+			actualTimeouts := actualPlayerStats[playerID].ConsecutiveActionTimeouts
+			expectedTimeouts := scriptStat.ConsecutiveActionTimeouts
+			if actualTimeouts != expectedTimeouts {
+				bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Consecutive Action Timeouts for seat# %d player ID %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actualTimeouts, expectedTimeouts)
+			}
+			actualActedAtLeastOnce := actualPlayerStats[playerID].ActedAtLeastOnce
+			expectedActedAtLeastOnce := scriptStat.ActedAtLeastOnce
+			if actualActedAtLeastOnce != expectedActedAtLeastOnce {
+				bp.logger.Panic().Msgf("%s: Hand %d result verify failed. ActedAtLeastOnce for seat# %d player ID %d: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actualActedAtLeastOnce, expectedActedAtLeastOnce)
 			}
 		}
 	}

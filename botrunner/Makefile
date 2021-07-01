@@ -140,7 +140,7 @@ do-login:
 TEST_DOCKER_NET := poker_test
 
 # These images are downloaded.
-API_SERVER_IMAGE := $(REGISTRY)/api-server:0.3.56
+API_SERVER_IMAGE := $(REGISTRY)/api-server:0.3.57
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
 REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
 POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5

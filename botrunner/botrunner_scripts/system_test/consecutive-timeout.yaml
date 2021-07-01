@@ -101,12 +101,16 @@ hands:
       player-stats:
         - seat: 1
           consecutive-action-timeouts: 0
+          acted-at-least-once: true
         - seat: 2
           consecutive-action-timeouts: 0
+          acted-at-least-once: true
         - seat: 3
           consecutive-action-timeouts: 3
+          acted-at-least-once: false
         - seat: 4
           consecutive-action-timeouts: 1
+          acted-at-least-once: true
       stacks:
         - seat: 1
           stack: 297
@@ -117,57 +121,222 @@ hands:
         - seat: 4
           stack: 300
 
-  # The previous hand has put players 3 and 4 in break due to consecutive timeouts.
-  # Only players 1 and 2 remain in this hand.
   - setup:
-      board: ["5d", "7s", "4d", "4c", "3c"]
+      board: ["2s", "Tc", "2d", "Ad", "9s"]
       seat-cards:
         - seat: 1
-          cards: ["3h", "4s"]
+          cards: ["9d", "6c"]
         - seat: 2
-          cards: ["7h", "8c"]
+          cards: ["Qs", "7s"]
+        - seat: 3
+          cards: ["3d", "2c"]
+        - seat: 4
+          cards: ["8d", "5h"]
 
     # simulate pre-flop action
     preflop:
       seat-actions:
         # seat number/action/amount
+        - action: 1, CALL, 2
         - action: 2, CALL, 2
-        - action: 1, CHECK
+        - action: 3, FOLD
+          timeout: true
+        - action: 4, CHECK
 
     flop:
       verify:
-        board: ["5d", "7s", "4d"]
+        board: ["2s", "Tc", "2d"]
       seat-actions:
+        - action: 4, CHECK
         - action: 1, CHECK
         - action: 2, CHECK
 
     turn:
       verify:
-        board: ["5d", "7s", "4d", "4c"]
+        board: ["2s", "Tc", "2d", "Ad"]
       seat-actions:
+        - action: 4, CHECK
+          timeout: true
         - action: 1, CHECK
         - action: 2, CHECK
 
     river:
       verify:
-        board: ["5d", "7s", "4d", "4c", "3c"]
+        board: ["2s", "Tc", "2d", "Ad", "9s"]
       seat-actions:
+        - action: 4, CHECK
+          timeout: true
         - action: 1, CHECK
         - action: 2, CHECK
 
     result:
       winners:
         - seat: 1
-          receive: 4
-          rank: Full House
+          receive: 7
+          rank: Three of a Kind
       action-ended: SHOW_DOWN
       player-stats:
         - seat: 1
           consecutive-action-timeouts: 0
+          acted-at-least-once: true
         - seat: 2
           consecutive-action-timeouts: 0
+          acted-at-least-once: true
+        - seat: 3
+          consecutive-action-timeouts: 1
+          acted-at-least-once: false
+        - seat: 4
+          consecutive-action-timeouts: 2
+          acted-at-least-once: true
       stacks:
         - seat: 1
-          stack: 299
+          stack: 302
         - seat: 2
           stack: 98
+        - seat: 3
+          stack: 297
+        - seat: 4
+          stack: 298
+
+  - setup:
+      board: ["8s", "6h", "8d", "5d", "4c"]
+      seat-cards:
+        - seat: 1
+          cards: ["9h", "5c"]
+        - seat: 2
+          cards: ["8c", "Ts"]
+        - seat: 3
+          cards: ["Qc", "Qh"]
+        - seat: 4
+          cards: ["Qd", "7c"]
+
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 2, CALL, 2
+        - action: 3, FOLD
+          timeout: true
+        - action: 4, CALL, 2
+        - action: 1, CHECK
+
+    flop:
+      verify:
+        board: ["8s", "6h", "8d"]
+      seat-actions:
+        - action: 4, CHECK
+        - action: 1, CHECK
+        - action: 2, CHECK
+
+    turn:
+      verify:
+        board: ["8s", "6h", "8d", "5d"]
+      seat-actions:
+        - action: 4, CHECK
+        - action: 1, CHECK
+        - action: 2, CHECK
+
+    river:
+      verify:
+        board: ["8s", "6h", "8d", "5d", "4c"]
+      seat-actions:
+        - action: 4, CHECK
+        - action: 1, CHECK
+        - action: 2, CHECK
+
+    result:
+      winners:
+        - seat: 1
+          receive: 6
+          rank: Three of a Kind
+      action-ended: SHOW_DOWN
+      player-stats:
+        - seat: 1
+          consecutive-action-timeouts: 0
+          acted-at-least-once: true
+        - seat: 2
+          consecutive-action-timeouts: 0
+          acted-at-least-once: true
+        - seat: 3
+          consecutive-action-timeouts: 1
+          acted-at-least-once: false
+        - seat: 4
+          consecutive-action-timeouts: 0
+          acted-at-least-once: true
+      stacks:
+        - seat: 1
+          stack: 306
+        - seat: 2
+          stack: 96
+        - seat: 3
+          stack: 297
+        - seat: 4
+          stack: 296
+
+  # Seat 3 got put in break after the previous hand due to 5 consecutive timeouts.
+  # This hand should start with only seats 1, 2, and 4.
+  - setup:
+      board: ["Ts", "8s", "5h", "Kc", "3d"]
+      seat-cards:
+        - seat: 1
+          cards: ["4h", "6d"]
+        - seat: 2
+          cards: ["Qs", "As"]
+        - seat: 4
+          cards: ["4c", "3c"]
+
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 4, CALL, 2
+        - action: 1, CALL, 2
+        - action: 2, CHECK
+
+    flop:
+      verify:
+        board: ["Ts", "8s", "5h"]
+      seat-actions:
+        - action: 1, CHECK
+        - action: 2, CHECK
+        - action: 4, CHECK
+
+    turn:
+      verify:
+        board: ["Ts", "8s", "5h", "Kc"]
+      seat-actions:
+        - action: 1, CHECK
+        - action: 2, CHECK
+        - action: 4, CHECK
+
+    river:
+      verify:
+        board: ["Ts", "8s", "5h", "Kc", "3d"]
+      seat-actions:
+        - action: 1, CHECK
+        - action: 2, CHECK
+        - action: 4, CHECK
+
+    result:
+      winners:
+        - seat: 4
+          receive: 6
+          rank: Pair
+      action-ended: SHOW_DOWN
+      player-stats:
+        - seat: 1
+          consecutive-action-timeouts: 0
+          acted-at-least-once: true
+        - seat: 2
+          consecutive-action-timeouts: 0
+          acted-at-least-once: true
+        - seat: 4
+          consecutive-action-timeouts: 0
+          acted-at-least-once: true
+      stacks:
+        - seat: 1
+          stack: 304
+        - seat: 2
+          stack: 94
+        - seat: 4
+          stack: 300

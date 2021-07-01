@@ -22,6 +22,7 @@ message PlayerStats {
   bool in_turn = 15;
   bool in_river = 16;
   uint32 consecutive_action_timeouts = 17;
+  bool acted_at_least_once = 18;
 }
 
 message HandStats {
