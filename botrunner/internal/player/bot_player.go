@@ -148,6 +148,10 @@ type BotPlayer struct {
 	isSeated             bool
 	hasNextHandBeenSetup bool // For host only
 
+	// The bot wants to leave after the current hand and has sent the
+	// leaveGame request to the api server.
+	hasSentLeaveGameRequest bool
+
 	// Error msg if the bot is in an error state (BotState__ERROR).
 	errorStateMsg string
 }
@@ -682,6 +686,9 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if bp.IsHost() {
 			// process post hand steps if specified
 			bp.processPostHandSteps()
+		}
+		if bp.hasSentLeaveGameRequest {
+			bp.LeaveGameImmediately()
 		}
 
 	case game.HandQueryCurrentHand:
@@ -1434,22 +1441,24 @@ func (bp *BotPlayer) BuyIn(gameCode string, amount float32) error {
 	return nil
 }
 
-// LeaveGame makes the bot leave the game.
-func (bp *BotPlayer) LeaveGame() error {
+// LeaveGameImmediately makes the bot leave the game.
+func (bp *BotPlayer) LeaveGameImmediately() error {
 	bp.logger.Info().Msgf("%s: Leaving game [%s].", bp.logPrefix, bp.gameCode)
 	err := bp.unsubscribe()
 	if err != nil {
 		return errors.Wrap(err, "Error while unsubscribing from NATS subjects")
 	}
-	if bp.isSeated {
+	if bp.isSeated && !bp.hasSentLeaveGameRequest {
 		_, err = bp.gqlHelper.LeaveGame(bp.gameCode)
 		if err != nil {
 			return errors.Wrap(err, "Error while making a GQL request to leave game")
 		}
-		bp.isSeated = false
 	}
-	bp.end <- true
-	bp.endPing <- true
+	go func() {
+		bp.end <- true
+		bp.endPing <- true
+	}()
+	bp.isSeated = false
 	bp.gameCode = ""
 	bp.gameID = 0
 	return nil

@@ -57,12 +57,6 @@ func (bp *BotPlayer) processGameMessage(message *game.GameMessage) {
 				bp.logPrefix, playerID, p.seatNo, playerUpdateMsg.OldSeat)
 			// a player switched seat, his old seat is empty
 			bp.game.table.playersBySeat[playerUpdateMsg.OldSeat] = nil
-		} else if playerUpdateMsg.GetNewUpdate() == game.NewUpdate_LEFT_THE_GAME {
-			if playerID == bp.PlayerID {
-				if bp.isSeated {
-					bp.LeaveGame()
-				}
-			}
 		}
 
 	case game.GameCurrentStatus:
@@ -84,7 +78,7 @@ func (bp *BotPlayer) processGameMessage(message *game.GameMessage) {
 		}
 		if gs == game.GameStatus_ENDED {
 			// The game just ended. Player should leave the game.
-			err := bp.LeaveGame()
+			err := bp.LeaveGameImmediately()
 			if err != nil {
 				bp.logger.Error().Msgf("%s: Error while leaving game: %s", bp.logPrefix, err)
 			}
@@ -362,6 +356,7 @@ func (bp *BotPlayer) setupLeaveGame() error {
 					if err != nil {
 						return errors.Wrap(err, "Error while making a GQL request to leave game")
 					}
+					bp.hasSentLeaveGameRequest = true
 				}
 			}
 		}
