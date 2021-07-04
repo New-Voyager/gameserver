@@ -96,4 +96,4 @@ hands:
         -
           seat: 1
           receive: 74.0
-      action-ended: RIVER
+      action-ended: SHOW_DOWN
