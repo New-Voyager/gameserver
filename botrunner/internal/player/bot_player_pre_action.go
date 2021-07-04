@@ -41,3 +41,8 @@ func (bp *BotPlayer) setupServerCrashWithRetry(crashPoint string, playerID uint6
 		bp.logger.Fatal().Msgf("%s: Unable to setup game server crash: %s", bp.logPrefix, err)
 	}
 }
+
+func (bp *BotPlayer) setupButtonPos(buttonPos uint32) error {
+	// separate REST API to setup the button position
+	return bp.restHelper.UpdateButtonPos(bp.gameCode, buttonPos)
+}

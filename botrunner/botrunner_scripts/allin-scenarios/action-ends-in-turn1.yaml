@@ -1,0 +1,75 @@
+# all players action is over in the turn
+# the player had to check in the river
+club:
+  name: Bug Testing
+  description: testing
+game:
+  create: true
+  title: bug testing
+  game-type: HOLDEM
+  small-blind: 1
+  big-blind: 2
+  min-players: 2
+  max-players: 9
+  game-length: 60
+  buy-in-approval: false
+  buy-in-min: 10
+  buy-in-max: 3000
+  action-time: 30
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 114
+  - seat: 2
+    player: brian
+    buy-in: 215
+  - seat: 3
+    player: tom
+    buy-in: 35
+  - seat: 4
+    player: jim
+    buy-in: 96
+hands:
+  - setup:
+      button-pos: 4
+      flop:
+        - 5d
+        - 4c
+        - 2c
+      turn: 6d
+      river: Jd
+      seat-cards:
+        - seat: 1
+          cards:
+            - 8h
+            - 7d
+        - seat: 2
+          cards:
+            - 3c
+            - Ts
+        - seat: 3
+          cards:
+            - Kc
+            - 7s
+        - seat: 4
+          cards:
+            - 8d
+            - 9d
+    preflop:
+      seat-actions:
+        - action: 3, CALL, 2
+        - action: 4, CALL, 2
+        - action: 1, CALL, 2
+        - action: 2, CHECK
+    flop:
+      seat-actions:
+        - action: 1, CHECK
+        - action: 2, CHECK
+        - action: 3, CHECK
+        - action: 4, CHECK
+    turn:
+      seat-actions:
+        - action: 1, BET, 52
+        - action: 2, FOLD
+        - action: 3, ALLIN, 33
+        - action: 4, FOLD

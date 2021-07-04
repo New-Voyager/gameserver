@@ -799,9 +799,12 @@ func (h *HandState) allActionComplete() bool {
 			noAllInPlayers++
 		}
 	}
-	if noActivePlayers-noAllInPlayers < 1 {
-		return true
+	if h.hasEveryOneActed() {
+		if noActivePlayers-noAllInPlayers <= 1 {
+			return true
+		}
 	}
+
 	return false
 }
 func (h *HandState) settleRound() {
