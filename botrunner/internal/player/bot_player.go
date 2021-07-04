@@ -26,6 +26,7 @@ import (
 	"voyager.com/botrunner/internal/game"
 	"voyager.com/botrunner/internal/gql"
 	"voyager.com/botrunner/internal/poker"
+	"voyager.com/botrunner/internal/rest"
 	"voyager.com/botrunner/internal/util"
 	"voyager.com/encryption"
 	"voyager.com/gamescript"
@@ -59,6 +60,7 @@ type BotPlayer struct {
 	logger          *zerolog.Logger
 	config          Config
 	gqlHelper       *gql.GQLHelper
+	restHelper      *rest.RestClient
 	natsConn        *natsgo.Conn
 	apiAuthToken    string
 	clubCode        string
@@ -166,12 +168,14 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 
 	gqlClient := graphql.NewClient(util.GetGqlURL(playerConfig.APIServerURL))
 	gqlHelper := gql.NewGQLHelper(gqlClient, uint32(playerConfig.GQLTimeoutSec), "")
+	restHelper := rest.NewRestClient(util.GetInternalRestURL(playerConfig.APIServerURL), uint32(playerConfig.GQLTimeoutSec), "")
 
 	bp := BotPlayer{
 		logger:           logger,
 		config:           playerConfig,
 		PlayerUUID:       playerConfig.DeviceID,
 		gqlHelper:        gqlHelper,
+		restHelper:       restHelper,
 		natsConn:         nc,
 		chGame:           make(chan *GameMessageChannelItem, 10),
 		chHand:           make(chan *game.HandMessage, 10),
@@ -2077,6 +2081,13 @@ func (bp *BotPlayer) setupNextHand() error {
 	nextHand := bp.config.Script.GetHand(nextHandNum)
 
 	bp.processPreDealItems(nextHand.Setup.PreDeal)
+
+	if nextHand.Setup.ButtonPos != 0 {
+		err := bp.setupButtonPos(nextHand.Setup.ButtonPos)
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("Unable to set button position"))
+		}
+	}
 
 	// setup deck
 	var setupDeckMsg *SetupDeck

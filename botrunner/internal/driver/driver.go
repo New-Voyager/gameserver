@@ -121,6 +121,7 @@ func (br *BotRunner) Run() error {
 	}
 	br.observerBot = b
 
+	//br.resetDB = false
 	if br.resetDB {
 		err = br.observerBot.ResetDB()
 		if err != nil {
