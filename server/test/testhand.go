@@ -317,11 +317,12 @@ func (h *TestHand) dealHand(t *TestDriver) error {
 	// new hand
 	h.gameScript.waitForObserver()
 
-	for _, player := range h.gameScript.testGame.players {
+	for _, player := range h.gameScript.testGame.playersInSeats {
 		_ = player
 		// wait for dealing to complete for each player
 		h.gameScript.waitForObserver()
 	}
+	h.gameScript.waitForObserver()
 
 	// verify current hand player position and cards dealt
 	actual := h.gameScript.observer.currentHand.GetNewHand()
@@ -390,6 +391,21 @@ func (h *TestHand) setup(t *TestDriver) error {
 	}
 
 	// setup hand
+	h.gameScript.testGame.Observer().resetBlinds(h.gameScript.testGame.gameID)
+
+	// add new players
+	if h.hand.Setup.NewPlayers != nil && len(h.hand.Setup.NewPlayers) > 0 {
+		t := h.gameScript.testGame
+		for _, testPlayer := range h.hand.Setup.NewPlayers {
+			player := t.players[testPlayer.Player]
+			player.joinGame(t.gameID, testPlayer.SeatNo,
+				testPlayer.BuyIn, testPlayer.RunItTwice,
+				testPlayer.RunItTwicePromptResponse,
+				testPlayer.PostBlind)
+			t.playersInSeats[testPlayer.SeatNo] = player
+		}
+	}
+
 	h.gameScript.testGame.Observer().setupNextHand(deck, h.hand.Setup.AutoDeal, h.hand.Setup.ButtonPos, h.hand.Num)
 	return nil
 }

@@ -18,6 +18,7 @@ type TestGame struct {
 	clubID           uint32
 	gameID           uint64
 	players          map[uint64]*TestPlayer
+	playersInSeats   map[uint32]*TestPlayer
 	nextActionPlayer *TestPlayer
 	observerCh       chan observerChItem // observer and game manager/club owner
 	observer         *TestPlayer
@@ -85,20 +86,23 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 
 	// wait for the cards to be dealt
 	return &TestGame{
-		clubID:     clubID,
-		gameID:     gameID,
-		players:    gamePlayers,
-		observerCh: observerCh,
-		observer:   observer,
+		clubID:         clubID,
+		gameID:         gameID,
+		players:        gamePlayers,
+		observerCh:     observerCh,
+		observer:       observer,
+		playersInSeats: make(map[uint32]*TestPlayer),
 	}, observer, nil
 }
 
 func (t *TestGame) Start(playerAtSeats []game.PlayerSeat) {
 	for _, testPlayer := range playerAtSeats {
-		t.players[testPlayer.Player].joinGame(t.gameID, testPlayer.SeatNo,
+		player := t.players[testPlayer.Player]
+		player.joinGame(t.gameID, testPlayer.SeatNo,
 			testPlayer.BuyIn, testPlayer.RunItTwice,
 			testPlayer.RunItTwicePromptResponse,
 			testPlayer.PostBlind)
+		t.playersInSeats[testPlayer.SeatNo] = player
 	}
 
 	// observer joins seat 0

@@ -836,6 +836,15 @@ func (g *Game) addPlayer(player *Player, buyIn float32, postBlind bool) error {
 	return nil
 }
 
+func (g *Game) resetBlinds() {
+	playerInSeats := make([]SeatPlayer, 0)
+	for _, player := range g.PlayersInSeats {
+		player.PostedBlind = false
+		playerInSeats = append(playerInSeats, player)
+	}
+	g.PlayersInSeats = playerInSeats
+}
+
 func (g *Game) getPlayersAtTable() ([]*PlayerAtTableState, error) {
 	ret := make([]*PlayerAtTableState, 0)
 	for _, player := range g.PlayersInSeats {
