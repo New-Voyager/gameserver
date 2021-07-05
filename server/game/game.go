@@ -57,6 +57,7 @@ type Game struct {
 	testDeckToUse *poker.Deck
 	testButtonPos int32
 	prevHandNum   uint32
+	testHandNum   uint32
 
 	handSetupPersist *RedisHandsSetupTracker
 
@@ -498,6 +499,8 @@ func (g *Game) dealNewHand() error {
 				RunItTwice   bool
 				BuyInTimeExpAt string
 				BreakTimeExpAt string
+				PostedBlind bool
+				ActiveSeat bool
 			}
 		*/
 		for _, playerInSeat := range newHandInfo.PlayersInSeats {
@@ -526,6 +529,9 @@ func (g *Game) dealNewHand() error {
 	} else {
 		g.SbPos = 0
 		g.BbPos = 0
+		if g.testHandNum != 0 {
+			newHandNum = g.testHandNum
+		}
 	}
 
 	if g.testButtonPos > 0 {
@@ -811,20 +817,21 @@ func (g *Game) BroadcastPingMessage(message *PingPongMessage) {
 	}
 }
 
-func (g *Game) addPlayer(player *Player, buyIn float32) error {
+func (g *Game) addPlayer(player *Player, buyIn float32, postBlind bool) error {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 	g.allPlayers[player.PlayerID] = player
 
 	// add the player to playerSeatInfos
 	g.PlayersInSeats[int(player.SeatNo)] = SeatPlayer{
-		Name:       player.PlayerName,
-		PlayerID:   player.PlayerID,
-		PlayerUUID: fmt.Sprintf("%d", player.PlayerID),
-		Status:     PlayerStatus_PLAYING,
-		Stack:      buyIn,
-		OpenSeat:   false,
-		SeatNo:     player.SeatNo,
+		Name:        player.PlayerName,
+		PlayerID:    player.PlayerID,
+		PlayerUUID:  fmt.Sprintf("%d", player.PlayerID),
+		Status:      PlayerStatus_PLAYING,
+		Stack:       buyIn,
+		OpenSeat:    false,
+		SeatNo:      player.SeatNo,
+		PostedBlind: postBlind,
 	}
 	return nil
 }

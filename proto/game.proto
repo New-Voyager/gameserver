@@ -21,6 +21,7 @@ enum PlayerStatus {
   WAITLIST_SEATING = 14;
   PENDING_UPDATES = 15;
   WAIT_FOR_BUYIN_APPROVAL = 16;
+  NEED_TO_POST_BLIND = 17;
 }
 
 message PlayerState {

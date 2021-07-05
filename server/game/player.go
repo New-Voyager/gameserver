@@ -360,7 +360,7 @@ func (p *Player) StartGame(clubID uint32, gameID uint64) error {
 	return e
 }
 
-func (p *Player) JoinGame(gameID uint64, seatNo uint32, buyIn float32, runItTwice bool, runItTwicePromptResponse bool) error {
+func (p *Player) JoinGame(gameID uint64, seatNo uint32, buyIn float32, runItTwice bool, runItTwicePromptResponse bool, postBlind bool) error {
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	if _, ok := GameManager.activeGames[gameIDStr]; !ok {
 		// game not found
@@ -370,7 +370,7 @@ func (p *Player) JoinGame(gameID uint64, seatNo uint32, buyIn float32, runItTwic
 	p.RunItTwice = runItTwice
 	p.RunItTwicePromptResponse = runItTwicePromptResponse
 	game, _ := GameManager.activeGames[gameIDStr]
-	game.addPlayer(p, buyIn)
+	game.addPlayer(p, buyIn, postBlind)
 	p.game = game
 
 	// start listenting for game/hand events
@@ -382,13 +382,14 @@ func (p *Player) JoinGame(gameID uint64, seatNo uint32, buyIn float32, runItTwic
 // SetupNextHand method can be called only from the test driver
 // and this is available only in test mode.
 // We will never allow hands to be set by any scripts in real games
-func (p *Player) SetupNextHand(deck []byte, autoDeal bool, buttonPos uint32) error {
+func (p *Player) SetupNextHand(deck []byte, autoDeal bool, buttonPos uint32, handNum uint32) error {
 	var gameMessage GameMessage
 
 	nextHand := &GameSetupNextHandMessage{
 		Deck:      deck,
 		ButtonPos: buttonPos,
 		AutoDeal:  autoDeal,
+		HandNum:   handNum,
 	}
 
 	gameMessage.ClubId = p.ClubID

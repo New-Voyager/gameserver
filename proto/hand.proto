@@ -17,6 +17,7 @@ enum ACTION {
   RUN_IT_TWICE_YES = 9;
   RUN_IT_TWICE_NO = 10;
   RUN_IT_TWICE_PROMPT = 11;
+  POST_BLIND = 12;
 }
 
 message HandAction {
@@ -100,6 +101,7 @@ enum PlayerActState {
   PLAYER_ACT_CALL = 8;
   PLAYER_ACT_RAISE = 9;
   PLAYER_ACT_CHECK = 10;
+  PLAYER_ACT_POST_BLIND = 11;
   
   // bet/raise/call/bb/straddle
 }

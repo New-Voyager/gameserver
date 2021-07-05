@@ -390,7 +390,7 @@ func (h *TestHand) setup(t *TestDriver) error {
 	}
 
 	// setup hand
-	h.gameScript.testGame.Observer().setupNextHand(deck, h.hand.Setup.AutoDeal, h.hand.Setup.ButtonPos)
+	h.gameScript.testGame.Observer().setupNextHand(deck, h.hand.Setup.AutoDeal, h.hand.Setup.ButtonPos, h.hand.Num)
 	return nil
 }
 

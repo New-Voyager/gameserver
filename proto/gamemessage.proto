@@ -55,6 +55,7 @@ message GameSetupNextHandMessage {
   uint32 button_pos = 2;
   uint32 pause = 3;
   bool auto_deal = 4;
+  uint32 hand_num = 5;
 }
 
 message GameStartMessage {

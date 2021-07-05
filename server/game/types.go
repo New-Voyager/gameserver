@@ -87,6 +87,7 @@ type PlayerSeat struct {
 	BuyIn                    float32 `yaml:"buy-in"`
 	RunItTwice               bool    `yaml:"run-it-twice"`
 	RunItTwicePromptResponse bool    `yaml:"run-it-twice-prompt"`
+	PostBlind                bool    `yaml:"post-blind"`
 }
 
 type SeatVerification struct {
@@ -140,15 +141,16 @@ type TestSeatCards struct {
 }
 
 type HandSetup struct {
-	ButtonPos uint32               `yaml:"button-pos"`
-	AutoDeal  bool                 `yaml:"auto-deal"`
-	Flop      []string             `yaml:"flop"`
-	Turn      string               `yaml:"turn"`
-	River     string               `yaml:"river"`
-	Board     []string             `yaml:"board"`
-	Board2    []string             `yaml:"board2"`
-	SeatCards []TestSeatCards      `yaml:"seat-cards"`
-	Verify    HandSetupVerfication `yaml:"verify"`
+	ButtonPos  uint32               `yaml:"button-pos"`
+	AutoDeal   bool                 `yaml:"auto-deal"`
+	Flop       []string             `yaml:"flop"`
+	Turn       string               `yaml:"turn"`
+	River      string               `yaml:"river"`
+	Board      []string             `yaml:"board"`
+	Board2     []string             `yaml:"board2"`
+	SeatCards  []TestSeatCards      `yaml:"seat-cards"`
+	NewPlayers []PlayerSeat         `yaml:"new-players"`
+	Verify     HandSetupVerfication `yaml:"verify"`
 }
 
 /*
@@ -305,6 +307,8 @@ type SeatPlayer struct {
 	BreakTimeExpAt   string
 	MuckLosingHand   bool
 	RunItTwicePrompt bool
+	PostedBlind      bool
+	ActiveSeat       bool
 }
 
 /*
