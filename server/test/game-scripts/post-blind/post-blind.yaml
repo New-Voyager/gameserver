@@ -41,7 +41,6 @@ take-seat:
       seat: 4 
       player: 4
       buy-in: 100
-      post-blind: true
 
   # wait for one second delay for the game to settle
   wait: 1
@@ -119,9 +118,11 @@ hands:
       actions:
         -
           seat: 4
-          action: CHECK
+          action: CALL
+          amount: 2
           verify-action:
-            actions: ["CHECK", "FOLD", "ALLIN", "BET", "STRADDLE"]
+            actions: ["CALL", "FOLD", "ALLIN", "BET", "STRADDLE"]
+            call-amount: 2
             all-in-amount: 100
             min-raise-amount: 4
             max-raise-amount: 100
