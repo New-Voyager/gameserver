@@ -32,7 +32,7 @@ func main() {
 	time.Sleep(1 * time.Second)
 	apiServerURL := util.Env.GetAPIServerURL()
 	waitForAPIServer(apiServerURL)
-	mainLogger.Info().Msg("Requesting to restart the active games.")
+	mainLogger.Info().Msg("Requesting to restart the active timers.")
 	requestRestartTimers(apiServerURL)
 
 	select {}
