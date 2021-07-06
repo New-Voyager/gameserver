@@ -546,15 +546,6 @@ func (g *Game) dealNewHand() error {
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
 
-	// deck := g.testDeckToUse
-	// if deck == nil || deck.Empty() {
-	// 	if handSetup != nil && handSetup.Deck != nil {
-	// 		deck = poker.DeckFromBytes(handSetup.Deck)
-	// 	} else {
-	// 		deck = poker.NewDeck(nil).Shuffle()
-	// 	}
-	// }
-
 	handState.initialize(g.config, handSetup, g.ButtonPos, g.SbPos, g.BbPos, moveButton, g.PlayersInSeats)
 
 	g.ButtonPos = handState.GetButtonPos()

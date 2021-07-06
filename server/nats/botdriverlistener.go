@@ -26,7 +26,7 @@ type PlayerCard struct {
 	Cards []string `json:"cards"`
 }
 
-type SetupDeck struct {
+type HandSetup struct {
 	MessageType string       `json:"message-type"`
 	GameCode    string       `json:"game-code"`
 	GameId      uint64       `json:"game-id"`
@@ -110,14 +110,14 @@ func (n *NatsDriverBotListener) listenForMessages(msg *natsgo.Msg) {
 
 		n.initializeGame(&botDriverMessage)
 	case BotDriverSetupDeck:
-		var setupDeck SetupDeck
+		var handSetup HandSetup
 		fmt.Printf("%s", string(msg.Data))
-		err := jsoniter.Unmarshal(msg.Data, &setupDeck)
+		err := jsoniter.Unmarshal(msg.Data, &handSetup)
 		if err != nil {
 			natsTestDriverLogger.Error().Msg(fmt.Sprintf("Invalid setup deck message. %s", string(msg.Data)))
 			return
 		}
-		n.gameManager.SetupDeck(setupDeck)
+		n.gameManager.SetupHand(handSetup)
 	default:
 		natsTestDriverLogger.Warn().Msg(fmt.Sprintf("Unhandled bot driver message: %s", string(msg.Data)))
 	}

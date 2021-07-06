@@ -374,23 +374,24 @@ func (h *TestHand) dealHand(t *TestDriver) error {
 }
 
 func (h *TestHand) setup(t *TestDriver) error {
-	playerCards := make([]poker.CardsInAscii, 0)
-	for _, cards := range h.hand.Setup.SeatCards {
-		playerCards = append(playerCards, cards.Cards)
-	}
-	var deck *poker.Deck
-	if !h.hand.Setup.AutoDeal {
+	// playerCards := make([]poker.CardsInAscii, 0)
+	// for _, cards := range h.hand.Setup.SeatCards {
+	// 	playerCards = append(playerCards, cards.Cards)
+	// }
+	// var deck *poker.Deck
+	// if !h.hand.Setup.AutoDeal {
 
-		if h.hand.Setup.Board != nil {
-			deck = poker.DeckFromBoard(playerCards, h.hand.Setup.Board, h.hand.Setup.Board2, false)
-		} else {
-			// arrange deck
-			deck = poker.DeckFromScript(playerCards, h.hand.Setup.Flop, poker.NewCard(h.hand.Setup.Turn), poker.NewCard(h.hand.Setup.River), false)
-		}
-	}
+	// 	if h.hand.Setup.Board != nil {
+	// 		deck = poker.DeckFromBoard(playerCards, h.hand.Setup.Board, h.hand.Setup.Board2, false)
+	// 	} else {
+	// 		// arrange deck
+	// 		deck = poker.DeckFromScript(playerCards, h.hand.Setup.Flop, poker.NewCard(h.hand.Setup.Turn), poker.NewCard(h.hand.Setup.River), false)
+	// 	}
+	// }
 
 	// setup hand
-	h.gameScript.testGame.Observer().setupNextHand(deck, h.hand.Setup.AutoDeal, h.hand.Setup.ButtonPos)
+	// h.gameScript.testGame.Observer().setupNextHand(deck, h.hand.Setup.AutoDeal, h.hand.Setup.ButtonPos)
+	h.gameScript.testGame.Observer().setupNextHand2(h.hand.Setup)
 	return nil
 }
 

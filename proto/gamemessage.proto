@@ -58,8 +58,7 @@ message GameSetupNextHandMessage {
 }
 
 message GameSetupSeatCards {
-  uint32 seat = 1;
-  repeated string cards = 2;
+  repeated string cards = 1;
 }
 
 message GameSetupNextHandMessage2 {
@@ -69,8 +68,9 @@ message GameSetupNextHandMessage2 {
   repeated string flop = 5;
   string turn = 6;
   string river = 7;
-  map <uint32, GameSetupSeatCards> player_cards_by_seat = 8;
-  uint32 pause = 9;
+  repeated GameSetupSeatCards player_cards = 8;
+  map <uint32, GameSetupSeatCards> player_cards_by_seat = 9;
+  uint32 pause = 10;
 }
 
 message TestHandsSetup2 {

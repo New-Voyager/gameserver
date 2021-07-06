@@ -105,51 +105,25 @@ func (gm *GameManager) PendingUpdatesDone(gameID uint64, gameStatusInt uint64, t
 	}
 }
 
-func (gm *GameManager) SetupDeck(setupDeck SetupDeck) {
+func (gm *GameManager) SetupHand(handSetup HandSetup) {
 	// first check whether the game is hosted by this game server
-	gameIDStr := fmt.Sprintf("%d", setupDeck.GameId)
-	if setupDeck.GameId == 0 {
-		gameIDStr = gm.gameCodeToId[setupDeck.GameCode]
+	gameIDStr := fmt.Sprintf("%d", handSetup.GameId)
+	if handSetup.GameId == 0 {
+		gameIDStr = gm.gameCodeToId[handSetup.GameCode]
 	}
 	var natsGame *NatsGame
 	var ok bool
 	if natsGame, ok = gm.activeGames[gameIDStr]; !ok {
 		// lookup using game code
-		gameIDStr, ok = gm.gameCodes[setupDeck.GameCode]
+		gameIDStr, ok = gm.gameCodes[handSetup.GameCode]
 		if !ok {
-			natsLogger.Error().Str("gameId", setupDeck.GameCode).Msg(fmt.Sprintf("Game code: %s does not exist. Aborting setup-deck.", setupDeck.GameCode))
+			natsLogger.Error().Str("gameId", handSetup.GameCode).Msg(fmt.Sprintf("Game code: %s does not exist. Aborting setup-deck.", handSetup.GameCode))
 			return
 		}
 	}
 
-	// send the message to the game to setup deck for next hand
-	natsGame.setupDeck2(setupDeck)
-
-	// if setupDeck.PlayerCards != nil {
-	// 	playerCards := make([]poker.CardsInAscii, 0)
-	// 	cardsBySeat := make(map[uint32]poker.CardsInAscii)
-	// 	for _, seatCards := range setupDeck.PlayerCards {
-	// 		cardsBySeat[seatCards.Seat] = seatCards.Cards
-	// 		playerCards = append(playerCards, seatCards.Cards)
-	// 	}
-
-	// 	var deck *poker.Deck
-	// 	if setupDeck.Board != nil {
-	// 		deck = poker.DeckFromBoard(playerCards, setupDeck.Board, setupDeck.Board2, false)
-	// 	} else {
-	// 		// arrange deck
-	// 		deck = poker.DeckFromScript(
-	// 			playerCards,
-	// 			setupDeck.Flop,
-	// 			poker.NewCard(setupDeck.Turn),
-	// 			poker.NewCard(setupDeck.River),
-	// 			false /* burn card */)
-	// 	}
-	// 	natsGame.setupDeck(deck.GetBytes(), setupDeck.ButtonPos, setupDeck.Pause)
-	// } else {
-	// 	//deck := poker.NewDeck(nil)
-	// 	natsGame.setupDeck(nil, setupDeck.ButtonPos, setupDeck.Pause)
-	// }
+	// send the message to the game to setup next hand
+	natsGame.setupHand(handSetup)
 }
 
 func (gm *GameManager) GetCurrentHandLog(gameID uint64, gameCode string) *map[string]interface{} {

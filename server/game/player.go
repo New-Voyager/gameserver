@@ -382,20 +382,58 @@ func (p *Player) JoinGame(gameID uint64, seatNo uint32, buyIn float32, runItTwic
 // SetupNextHand method can be called only from the test driver
 // and this is available only in test mode.
 // We will never allow hands to be set by any scripts in real games
-func (p *Player) SetupNextHand(deck []byte, autoDeal bool, buttonPos uint32) error {
-	var gameMessage GameMessage
+func (p *Player) SetupNextHand(handSetup HandSetup) error {
+	// var gameMessage GameMessage
 
-	nextHand := &GameSetupNextHandMessage{
-		Deck:      deck,
-		ButtonPos: buttonPos,
-		AutoDeal:  autoDeal,
+	// nextHand := &GameSetupNextHandMessage{
+	// 	Deck:      deck,
+	// 	ButtonPos: buttonPos,
+	// 	AutoDeal:  autoDeal,
+	// }
+
+	// gameMessage.ClubId = p.ClubID
+	// gameMessage.GameId = p.GameID
+	// gameMessage.MessageType = GameSetupNextHand
+	// gameMessage.GameMessage = &GameMessage_NextHand{NextHand: nextHand}
+	// e := p.GameProtoMessageFromAdapter(&gameMessage)
+
+	var message GameMessage
+	var playerCards []*GameSetupSeatCards
+	var playerCardsBySeat map[uint32]*GameSetupSeatCards
+	if handSetup.SeatCards != nil {
+		for _, sc := range handSetup.SeatCards {
+			seatCards := GameSetupSeatCards{
+				Cards: sc.Cards,
+			}
+			playerCards = append(playerCards, &seatCards)
+			if sc.SeatNo != 0 {
+				if playerCardsBySeat == nil {
+					playerCardsBySeat = make(map[uint32]*GameSetupSeatCards)
+				}
+				playerCardsBySeat[sc.SeatNo] = &seatCards
+			}
+		}
 	}
 
-	gameMessage.ClubId = p.ClubID
-	gameMessage.GameId = p.GameID
-	gameMessage.MessageType = GameSetupNextHand
-	gameMessage.GameMessage = &GameMessage_NextHand{NextHand: nextHand}
-	e := p.GameProtoMessageFromAdapter(&gameMessage)
+	nextHand := &GameSetupNextHandMessage2{
+		ButtonPos:         handSetup.ButtonPos,
+		Board:             handSetup.Board,
+		Board2:            handSetup.Board2,
+		Flop:              handSetup.Flop,
+		Turn:              handSetup.Turn,
+		River:             handSetup.River,
+		PlayerCards:       playerCards,
+		PlayerCardsBySeat: playerCardsBySeat,
+		Pause:             0,
+	}
+
+	message.ClubId = p.ClubID
+	message.GameId = p.GameID
+	message.MessageType = GameSetupNextHand
+	message.GameMessage = &GameMessage_NextHand2{NextHand2: nextHand}
+
+	e := p.GameProtoMessageFromAdapter(&message)
+
 	return e
 }
 

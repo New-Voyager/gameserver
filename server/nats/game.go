@@ -195,61 +195,46 @@ func (n *NatsGame) pendingUpdatesDone(gameStatus game.GameStatus, tableStatus ga
 }
 
 // message sent from bot to game
-func (n *NatsGame) setupDeck(deck []byte, buttonPos uint32, pause uint32) {
+func (n *NatsGame) setupHand(handSetup HandSetup) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
-		Msg(fmt.Sprintf("Bot->Game: Setup deck. GameID: %d, ButtonPos: %d", n.gameID, buttonPos))
+		Msg(fmt.Sprintf("Bot->Game: Setup deck. GameID: %d, ButtonPos: %d", n.gameID, handSetup.ButtonPos))
 	// build a game message and send to the game
 	var message game.GameMessage
 
-	nextHand := &game.GameSetupNextHandMessage{
-		Deck:      deck,
-		ButtonPos: buttonPos,
-		Pause:     pause,
-	}
-
-	message.ClubId = 0
-	message.GameId = n.gameID
-	message.GameCode = n.gameCode
-	message.MessageType = game.GameSetupNextHand
-	message.GameMessage = &game.GameMessage_NextHand{NextHand: nextHand}
-
-	n.serverGame.SendGameMessageToChannel(&message)
-}
-
-// message sent from bot to game
-func (n *NatsGame) setupDeck2(setupDeck SetupDeck) {
-	// natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
-	// 	Msg(fmt.Sprintf("Bot->Game: Setup deck. GameID: %d, ButtonPos: %d", n.gameID, buttonPos))
-	// build a game message and send to the game
-	var message game.GameMessage
-
-	var cardsBySeat map[uint32]*game.GameSetupSeatCards
-	if setupDeck.PlayerCards != nil {
-		cardsBySeat = make(map[uint32]*game.GameSetupSeatCards)
-		for _, pc := range setupDeck.PlayerCards {
-			cardsBySeat[pc.Seat] = &game.GameSetupSeatCards{
-				Seat:  pc.Seat,
+	var playerCards []*game.GameSetupSeatCards
+	var playerCardsBySeat map[uint32]*game.GameSetupSeatCards
+	if handSetup.PlayerCards != nil {
+		for _, pc := range handSetup.PlayerCards {
+			cards := game.GameSetupSeatCards{
 				Cards: pc.Cards,
+			}
+			playerCards = append(playerCards, &cards)
+			if pc.Seat != 0 {
+				if playerCardsBySeat == nil {
+					playerCardsBySeat = make(map[uint32]*game.GameSetupSeatCards)
+				}
+				playerCardsBySeat[pc.Seat] = &cards
 			}
 		}
 	}
 
-	nextHand := &game.GameSetupNextHandMessage2{
-		ButtonPos:         setupDeck.ButtonPos,
-		Board:             setupDeck.Board,
-		Board2:            setupDeck.Board2,
-		Flop:              setupDeck.Flop,
-		Turn:              setupDeck.Turn,
-		River:             setupDeck.River,
-		PlayerCardsBySeat: cardsBySeat,
-		Pause:             setupDeck.Pause,
+	nextHandSetup := &game.GameSetupNextHandMessage2{
+		ButtonPos:         handSetup.ButtonPos,
+		Board:             handSetup.Board,
+		Board2:            handSetup.Board2,
+		Flop:              handSetup.Flop,
+		Turn:              handSetup.Turn,
+		River:             handSetup.River,
+		PlayerCards:       playerCards,
+		PlayerCardsBySeat: playerCardsBySeat,
+		Pause:             handSetup.Pause,
 	}
 
 	message.ClubId = 0
 	message.GameId = n.gameID
 	message.GameCode = n.gameCode
 	message.MessageType = game.GameSetupNextHand
-	message.GameMessage = &game.GameMessage_NextHand2{NextHand2: nextHand}
+	message.GameMessage = &game.GameMessage_NextHand2{NextHand2: nextHandSetup}
 
 	n.serverGame.SendGameMessageToChannel(&message)
 }
