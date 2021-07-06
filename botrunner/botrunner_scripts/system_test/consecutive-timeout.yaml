@@ -49,14 +49,14 @@ hands:
       button-pos: 1
       board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-cards:
+        - seat: 1
+          cards: ["9h", "2s"]
         - seat: 2
           cards: ["Kh", "Qd"]
         - seat: 3
           cards: ["3s", "7s"]
         - seat: 4
           cards: ["Th", "Ks"]
-        - seat: 1
-          cards: ["9h", "2s"]
 
     # simulate pre-flop action
     preflop:
@@ -173,7 +173,7 @@ hands:
       winners:
         - seat: 1
           receive: 7
-          rank: Three of a Kind
+          rank: Two Pair
       action-ended: SHOW_DOWN
       player-stats:
         - seat: 1
@@ -246,9 +246,9 @@ hands:
 
     result:
       winners:
-        - seat: 1
+        - seat: 4
           receive: 6
-          rank: Three of a Kind
+          rank: Straight
       action-ended: SHOW_DOWN
       player-stats:
         - seat: 1
@@ -265,13 +265,13 @@ hands:
           acted-at-least-once: true
       stacks:
         - seat: 1
-          stack: 306
+          stack: 300
         - seat: 2
           stack: 96
         - seat: 3
           stack: 297
         - seat: 4
-          stack: 296
+          stack: 302
 
   # Seat 3 got put in break after the previous hand due to 5 consecutive timeouts.
   # This hand should start with only seats 1, 2, and 4.
@@ -335,8 +335,8 @@ hands:
           acted-at-least-once: true
       stacks:
         - seat: 1
-          stack: 304
+          stack: 298
         - seat: 2
           stack: 94
         - seat: 4
-          stack: 300
+          stack: 306

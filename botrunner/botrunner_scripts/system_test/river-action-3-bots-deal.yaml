@@ -48,10 +48,6 @@ hands:
       turn: Td
       river: 4s
       seat-cards:
-        # seat cards in the order players are sitting 
-        # seat 1 gets Kh Qd
-        # seat 5 gets 3s 7s
-        # seat 8 gets 9h 2s
         - seat: 1
           cards: ["Kh", "Qd"]
         - seat: 5
@@ -97,7 +93,7 @@ hands:
       winners:
         - seat: 1
           receive: 54.0
-          rank: Two Pair
+          rank: Pair
       action-ended: SHOW_DOWN
       
       stacks:
@@ -116,10 +112,6 @@ hands:
       turn: Td
       river: 4s
       seat-cards:
-        # seat cards in the order players are sitting 
-        # seat 1 gets Kh Qd
-        # seat 5 gets 3s 7s
-        # seat 8 gets 9h 2s
         - seat: 1
           cards: ["Kh", "Qd"]
         - seat: 5
@@ -163,7 +155,7 @@ hands:
 
     result:
       winners:
-        - seat: 5
+        - seat: 8
           receive: 54.0
           rank: Two Pair
       action-ended: SHOW_DOWN
@@ -172,9 +164,9 @@ hands:
         - seat: 1
           stack: 1024
         - seat: 5
-          stack: 1002
+          stack: 948
         - seat: 8
-          stack: 970
+          stack: 1024
 
   - setup:
       pre-deal:
@@ -184,10 +176,6 @@ hands:
       turn: Td
       river: 4s
       seat-cards:
-        # seat cards in the order players are sitting 
-        # seat 1 gets Kh Qd
-        # seat 5 gets 3s 7s
-        # seat 8 gets 9h 2s
         - seat: 1
           cards: ["Kh", "Qd"]
         - seat: 5
@@ -240,9 +228,9 @@ hands:
         - seat: 1
           stack: 998
         - seat: 5
-          stack: 998
+          stack: 944
         - seat: 8
-          stack: 998
+          stack: 1052
 
   - setup:
       pre-deal:
@@ -252,10 +240,6 @@ hands:
       turn: Td
       river: 4s
       seat-cards:
-        # seat cards in the order players are sitting 
-        # seat 1 gets Kh Qd
-        # seat 5 gets 3s 7s
-        # seat 8 gets 9h 2s
         - seat: 1
           cards: ["Kh", "Qd"]
         - seat: 5
@@ -301,16 +285,16 @@ hands:
       winners:
         - seat: 1
           receive: 54.0
-          rank: Two Pair
+          rank: Pair
       action-ended: SHOW_DOWN
       
       stacks:
         - seat: 1
           stack: 1026
         - seat: 5
-          stack: 972
+          stack: 918
         - seat: 8
-          stack: 994
+          stack: 1048
 
   - setup:
       pre-deal:
@@ -320,10 +304,6 @@ hands:
       turn: Td
       river: 4s
       seat-cards:
-        # seat cards in the order players are sitting 
-        # seat 1 gets Kh Qd
-        # seat 5 gets 3s 7s
-        # seat 8 gets 9h 2s
         - seat: 1
           cards: ["Kh", "Qd"]
         - seat: 5
@@ -367,7 +347,7 @@ hands:
 
     result:
       winners:
-        - seat: 5
+        - seat: 8
           receive: 54.0
           rank: Two Pair
       action-ended: SHOW_DOWN
@@ -376,9 +356,9 @@ hands:
         - seat: 1
           stack: 1022
         - seat: 5
-          stack: 1000
+          stack: 892
         - seat: 8
-          stack: 968
+          stack: 1076
 
   - setup:
       pre-deal:
@@ -388,10 +368,6 @@ hands:
       turn: Td
       river: 4s
       seat-cards:
-        # seat cards in the order players are sitting 
-        # seat 1 gets Kh Qd
-        # seat 5 gets 3s 7s
-        # seat 8 gets 9h 2s
         - seat: 1
           cards: ["Kh", "Qd"]
         - seat: 5
@@ -444,6 +420,6 @@ hands:
         - seat: 1
           stack: 996
         - seat: 5
-          stack: 996
+          stack: 888
         - seat: 8
-          stack: 996
+          stack: 1104

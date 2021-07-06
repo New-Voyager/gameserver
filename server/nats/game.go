@@ -216,6 +216,44 @@ func (n *NatsGame) setupDeck(deck []byte, buttonPos uint32, pause uint32) {
 	n.serverGame.SendGameMessageToChannel(&message)
 }
 
+// message sent from bot to game
+func (n *NatsGame) setupDeck2(setupDeck SetupDeck) {
+	// natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+	// 	Msg(fmt.Sprintf("Bot->Game: Setup deck. GameID: %d, ButtonPos: %d", n.gameID, buttonPos))
+	// build a game message and send to the game
+	var message game.GameMessage
+
+	var cardsBySeat map[uint32]*game.GameSetupSeatCards
+	if setupDeck.PlayerCards != nil {
+		cardsBySeat = make(map[uint32]*game.GameSetupSeatCards)
+		for _, pc := range setupDeck.PlayerCards {
+			cardsBySeat[pc.Seat] = &game.GameSetupSeatCards{
+				Seat:  pc.Seat,
+				Cards: pc.Cards,
+			}
+		}
+	}
+
+	nextHand := &game.GameSetupNextHandMessage2{
+		ButtonPos:         setupDeck.ButtonPos,
+		Board:             setupDeck.Board,
+		Board2:            setupDeck.Board2,
+		Flop:              setupDeck.Flop,
+		Turn:              setupDeck.Turn,
+		River:             setupDeck.River,
+		PlayerCardsBySeat: cardsBySeat,
+		Pause:             setupDeck.Pause,
+	}
+
+	message.ClubId = 0
+	message.GameId = n.gameID
+	message.GameCode = n.gameCode
+	message.MessageType = game.GameSetupNextHand
+	message.GameMessage = &game.GameMessage_NextHand2{NextHand2: nextHand}
+
+	n.serverGame.SendGameMessageToChannel(&message)
+}
+
 // messages sent from player to game
 func (n *NatsGame) player2Game(msg *natsgo.Msg) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).

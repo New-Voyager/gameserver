@@ -70,11 +70,11 @@ hands:
         board: ["Ac", "Ad", "2c"]
         ranks:
           - seat: 1
-            rank: "Two Pair"
+            rank: "Pair"
           - seat: 5
             rank: "Pair"
           - seat: 8
-            rank: "Pair"
+            rank: "Two Pair"
       seat-actions:
         - action: 5, CHECK
         - action: 8, BET, 2
@@ -88,7 +88,7 @@ hands:
         board: ["Ac", "Ad", "2c", "Td"]
         ranks:
           - seat: 1
-            rank: "Two Pair"
+            rank: "Pair"
           - seat: 5
             rank: "Pair"
           - seat: 8
@@ -103,7 +103,7 @@ hands:
         board: ["Ac", "Ad", "2c", "Td", "4s"]
         ranks:
           - seat: 1
-            rank: "Two Pair"
+            rank: "Pair"
           - seat: 5
             rank: "Pair"
           - seat: 8
@@ -116,9 +116,9 @@ hands:
       winners:
         - seat: 1
           receive: 54.0
-          rank: Two Pair
+          rank: Pair
       action-ended: SHOW_DOWN
-      
+
       # balance indicates the player balance after the hand
       # bb player won a chip
       stacks:

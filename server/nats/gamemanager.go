@@ -6,7 +6,6 @@ import (
 	natsgo "github.com/nats-io/nats.go"
 
 	"voyager.com/server/game"
-	"voyager.com/server/poker"
 	"voyager.com/server/util"
 )
 
@@ -124,29 +123,33 @@ func (gm *GameManager) SetupDeck(setupDeck SetupDeck) {
 	}
 
 	// send the message to the game to setup deck for next hand
+	natsGame.setupDeck2(setupDeck)
 
-	if setupDeck.PlayerCards != nil {
-		playerCards := make([]poker.CardsInAscii, 0)
-		for _, cards := range setupDeck.PlayerCards {
-			playerCards = append(playerCards, cards.Cards)
-		}
+	// if setupDeck.PlayerCards != nil {
+	// 	playerCards := make([]poker.CardsInAscii, 0)
+	// 	cardsBySeat := make(map[uint32]poker.CardsInAscii)
+	// 	for _, seatCards := range setupDeck.PlayerCards {
+	// 		cardsBySeat[seatCards.Seat] = seatCards.Cards
+	// 		playerCards = append(playerCards, seatCards.Cards)
+	// 	}
 
-		var deck *poker.Deck
-		if setupDeck.Board != nil {
-			deck = poker.DeckFromBoard(playerCards, setupDeck.Board, setupDeck.Board2, false)
-		} else {
-			// arrange deck
-			deck = poker.DeckFromScript(playerCards,
-				setupDeck.Flop,
-				poker.NewCard(setupDeck.Turn),
-				poker.NewCard(setupDeck.River),
-				false /* burn card */)
-		}
-		natsGame.setupDeck(deck.GetBytes(), setupDeck.ButtonPos, setupDeck.Pause)
-	} else {
-		//deck := poker.NewDeck(nil)
-		natsGame.setupDeck(nil, setupDeck.ButtonPos, setupDeck.Pause)
-	}
+	// 	var deck *poker.Deck
+	// 	if setupDeck.Board != nil {
+	// 		deck = poker.DeckFromBoard(playerCards, setupDeck.Board, setupDeck.Board2, false)
+	// 	} else {
+	// 		// arrange deck
+	// 		deck = poker.DeckFromScript(
+	// 			playerCards,
+	// 			setupDeck.Flop,
+	// 			poker.NewCard(setupDeck.Turn),
+	// 			poker.NewCard(setupDeck.River),
+	// 			false /* burn card */)
+	// 	}
+	// 	natsGame.setupDeck(deck.GetBytes(), setupDeck.ButtonPos, setupDeck.Pause)
+	// } else {
+	// 	//deck := poker.NewDeck(nil)
+	// 	natsGame.setupDeck(nil, setupDeck.ButtonPos, setupDeck.Pause)
+	// }
 }
 
 func (gm *GameManager) GetCurrentHandLog(gameID uint64, gameCode string) *map[string]interface{} {

@@ -103,7 +103,7 @@ func (h *HandState) board(deck *poker.Deck) []byte {
 	return board
 }
 
-func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonPos uint32, sbPos uint32, bbPos uint32, moveButton bool, playersInSeats []SeatPlayer) {
+func (h *HandState) initialize(gameConfig *GameConfig, handSetup *GameSetupNextHandMessage2, buttonPos uint32, sbPos uint32, bbPos uint32, moveButton bool, playersInSeats []SeatPlayer) {
 	// settle players in the seats
 	h.PlayersInSeats = make([]uint64, gameConfig.MaxPlayers+1) // seat 0 is dealer
 	h.NoActiveSeats = 0
@@ -183,8 +183,29 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 			&PlayerBalance{SeatNo: playerInSeat.SeatNo, PlayerId: playerInSeat.PlayerID, Balance: playerInSeat.Stack})
 	}
 
+	var deck *poker.Deck
+	if handSetup.PlayerCardsBySeat == nil {
+		deck = poker.NewDeck(nil).Shuffle()
+	} else {
+		playerCards := make([]poker.CardsInAscii, 0)
+		for _, seatCards := range handSetup.PlayerCardsBySeat {
+			playerCards = append(playerCards, seatCards.Cards)
+		}
+		if handSetup.Board != nil {
+			deck = poker.DeckFromBoard(playerCards, handSetup.Board, handSetup.Board2, false)
+		} else {
+			// arrange deck
+			deck = poker.DeckFromScript(
+				playerCards,
+				handSetup.Flop,
+				poker.NewCard(handSetup.Turn),
+				poker.NewCard(handSetup.River),
+				false /* burn card */)
+		}
+	}
+
 	h.Deck = deck.GetBytes()
-	h.PlayersCards = h.getPlayersCards(deck)
+	h.PlayersCards = h.getPlayersCards(deck, handSetup.PlayerCardsBySeat)
 
 	// setup main pot
 	h.Pots = make([]*SeatsInPots, 0)
@@ -436,7 +457,7 @@ func (h *HandState) getBlindPos() (uint32, uint32) {
 	return uint32(smallBlindPos), uint32(bigBlindPos)
 }
 
-func (h *HandState) getPlayersCards(deck *poker.Deck) map[uint32][]byte {
+func (h *HandState) getPlayersCards(deck *poker.Deck, testCardsBySeat map[uint32]*GameSetupSeatCards) map[uint32][]byte {
 	noOfCards := 2
 
 	switch h.GetGameType() {
@@ -469,20 +490,47 @@ func (h *HandState) getPlayersCards(deck *poker.Deck) map[uint32][]byte {
 	activeSeats := h.activeSeatsCount()
 	totalCards := activeSeats * noOfCards
 
-	for i := 0; i < noOfCards; i++ {
-		seatNo := h.ButtonPos
-		for {
-			seatNo = h.getNextActivePlayer(seatNo)
-			cards := deck.Draw(1)
+	// for i := 0; i < noOfCards; i++ {
+	// 	seatNo := h.ButtonPos
+	// 	for {
+	// 		seatNo = h.getNextActivePlayer(seatNo)
+	// 		cards := deck.Draw(1)
+	// 		totalCards--
+	// 		h.DeckIndex++
+	// 		playerCards[seatNo] = append(playerCards[seatNo], cards[0].GetByte())
+	// 		if seatNo == h.ButtonPos || totalCards == 0 {
+	// 			// next round of cards
+	// 			break
+	// 		}
+	// 	}
+	// 	if totalCards == 0 {
+	// 		break
+	// 	}
+	// }
+
+	seatNo := h.ButtonPos
+	for totalCards > 0 {
+		seatNo = h.getNextActivePlayer(seatNo)
+		testCardsWanted := testCardsBySeat[seatNo].Cards
+		for i := 0; i < noOfCards; i++ {
+			wantedCard := poker.NewCard(testCardsWanted[i])
+			drawnCard := deck.Draw(1)[0]
 			totalCards--
 			h.DeckIndex++
-			playerCards[seatNo] = append(playerCards[seatNo], cards[0].GetByte())
-			if seatNo == h.ButtonPos || totalCards == 0 {
-				// next round of cards
-				break
+			if drawnCard != wantedCard {
+				// We want the wantedCard, but drawnCard is what we drew out of the deck.
+				// Which means our wantedCard is still somewhere in the deck.
+				// Put back the drawnCard into the deck in the position where our
+				// wantedCard is, effectively erasing our wantedCard from the deck as
+				// if that is the card we drew.
+				deck.FindAndReplace(wantedCard, drawnCard)
 			}
+			playerCards[seatNo] = append(playerCards[seatNo], wantedCard.GetByte())
 		}
-		if totalCards == 0 {
+		if seatNo == h.ButtonPos {
+			if totalCards != 0 {
+				panic("totalCards != 0 after assigning cards to all active players")
+			}
 			break
 		}
 	}

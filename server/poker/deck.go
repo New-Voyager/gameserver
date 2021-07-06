@@ -14,8 +14,9 @@ func init() {
 }
 
 type Deck struct {
-	cards   []Card
-	randGen *rand.Rand
+	cards               []Card
+	scriptedCardsBySeat map[uint32]CardsInAscii
+	randGen             *rand.Rand
 }
 
 func newSeed() rand.Source {
@@ -81,6 +82,14 @@ func (deck *Deck) Draw(n int) []Card {
 	copy(cards, deck.cards[:n])
 	deck.cards = deck.cards[n:]
 	return cards
+}
+
+func (deck *Deck) FindAndReplace(cardInDeck Card, newCard Card) {
+	idx := deck.getCardLoc(cardInDeck)
+	if idx < 0 {
+		panic("Deck.FindAndReplace unable to find card in deck")
+	}
+	deck.cards[idx] = newCard
 }
 
 func (deck *Deck) Empty() bool {

@@ -2139,6 +2139,7 @@ func (bp *BotPlayer) getPlayerCardsFromConfig(seatCards []gamescript.SeatCards) 
 	for _, seatCard := range seatCards {
 		cards := seatCard.Cards
 		playerCards = append(playerCards, PlayerCard{
+			Seat:  seatCard.Seat,
 			Cards: cards,
 		})
 	}

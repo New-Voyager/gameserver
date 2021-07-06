@@ -58,6 +58,7 @@ type Game struct {
 	testButtonPos int32
 	prevHandNum   uint32
 
+	testHandSetup    *GameSetupNextHandMessage2
 	handSetupPersist *RedisHandsSetupTracker
 
 	pauseBeforeNextHand     uint32
@@ -407,7 +408,7 @@ func (g *Game) NumCards(gameType GameType) uint32 {
 
 func (g *Game) dealNewHand() error {
 	var handState *HandState
-	var handSetup *TestHandSetup
+	var handSetup *GameSetupNextHandMessage2
 	moveButton := true
 	newHandNum := g.prevHandNum + 1
 	var newHandInfo *NewHandInfo
@@ -545,16 +546,16 @@ func (g *Game) dealNewHand() error {
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
 
-	deck := g.testDeckToUse
-	if deck == nil || deck.Empty() {
-		if handSetup != nil && handSetup.Deck != nil {
-			deck = poker.DeckFromBytes(handSetup.Deck)
-		} else {
-			deck = poker.NewDeck(nil).Shuffle()
-		}
-	}
+	// deck := g.testDeckToUse
+	// if deck == nil || deck.Empty() {
+	// 	if handSetup != nil && handSetup.Deck != nil {
+	// 		deck = poker.DeckFromBytes(handSetup.Deck)
+	// 	} else {
+	// 		deck = poker.NewDeck(nil).Shuffle()
+	// 	}
+	// }
 
-	handState.initialize(g.config, deck, g.ButtonPos, g.SbPos, g.BbPos, moveButton, g.PlayersInSeats)
+	handState.initialize(g.config, handSetup, g.ButtonPos, g.SbPos, g.BbPos, moveButton, g.PlayersInSeats)
 
 	g.ButtonPos = handState.GetButtonPos()
 	g.testDeckToUse = nil

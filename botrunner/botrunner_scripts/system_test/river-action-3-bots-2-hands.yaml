@@ -46,10 +46,6 @@ hands:
       turn: Td
       river: 4s
       seat-cards:
-        # seat cards in the order players are sitting 
-        # seat 1 gets Kh Qd
-        # seat 5 gets 3s 7s
-        # seat 8 gets 9h 2s
         - seat: 1
           cards: ["Kh", "Qd"]
         - seat: 5
@@ -95,7 +91,7 @@ hands:
       winners:
         - seat: 1
           receive: 54.0
-          rank: Two Pair
+          rank: Pair
       action-ended: SHOW_DOWN
       
       # balance indicates the player balance after the hand
@@ -114,16 +110,12 @@ hands:
       turn: Td
       river: 4s
       seat-cards:
-        # seat cards in the order players are sitting 
-        # seat 5 gets Kh Qd
-        # seat 5 gets 3s 7s
-        # seat 8 gets 9h 2s
-        - seat: 8
-          cards: ["Kh", "Qd"]
         - seat: 1
           cards: ["3s", "7s"]
         - seat: 5
           cards: ["9h", "2s"]
+        - seat: 8
+          cards: ["Kh", "Qd"]
 
     # simulate pre-flop action
     preflop:

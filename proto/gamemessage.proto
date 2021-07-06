@@ -57,6 +57,26 @@ message GameSetupNextHandMessage {
   bool auto_deal = 4;
 }
 
+message GameSetupSeatCards {
+  uint32 seat = 1;
+  repeated string cards = 2;
+}
+
+message GameSetupNextHandMessage2 {
+  uint32 button_pos = 2;
+  repeated string board = 3;
+  repeated string board2 = 4;
+  repeated string flop = 5;
+  string turn = 6;
+  string river = 7;
+  map <uint32, GameSetupSeatCards> player_cards_by_seat = 8;
+  uint32 pause = 9;
+}
+
+message TestHandsSetup2 {
+  repeated GameSetupNextHandMessage2 hands = 1;
+}
+
 message GameStartMessage {
   uint64 requesting_player_id = 1;
 }
@@ -83,6 +103,7 @@ message GameMessage {
     GameDealHandMessage deal_hand = 12;
     GameTableStateMessage table_state = 13;
     GameSetupNextHandMessage next_hand = 14;
+    GameSetupNextHandMessage2 next_hand2 = 50;
     GameStartMessage start_game = 15;
     GameQueryTableStateMessage query_table_state = 16;
     GamePlayerUpdate player_update = 17;

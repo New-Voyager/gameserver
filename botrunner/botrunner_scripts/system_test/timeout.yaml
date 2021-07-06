@@ -43,20 +43,19 @@ bot-config:
   min-action-pause-time: 500
   max-action-pause-time: 1000
 
-# deal the following hands in the table
 hands:
   - setup:
       button-pos: 1
       board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-cards:
+        - seat: 1
+          cards: ["9h", "2s"]
         - seat: 2
           cards: ["Kh", "Qd"]
         - seat: 3
           cards: ["3s", "7s"]
         - seat: 4
           cards: ["Th", "Ks"]
-        - seat: 1
-          cards: ["9h", "2s"]
 
     # simulate pre-flop action
     preflop:

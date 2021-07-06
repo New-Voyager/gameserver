@@ -38,17 +38,12 @@ bot-config:
   min-action-pause-time: 0
   max-action-pause-time: 0
 
-# deal the following hands in the table
 hands:
   - setup:
       flop: ["Ac", "Ad", "2c"]
       turn: Td
       river: 4s
       seat-cards:
-        # seat cards in the order players are sitting 
-        # seat 1 gets Kh Qd
-        # seat 5 gets 3s 7s
-        # seat 8 gets 9h 2s
         - seat: 1
           cards: ["Kh", "Qd"]
         - seat: 5
@@ -99,7 +94,7 @@ hands:
       winners:
         - seat: 1
           receive: 54.0
-          rank: Two Pair
+          rank: Pair
       action-ended: SHOW_DOWN
       
       # balance indicates the player balance after the hand
@@ -113,18 +108,12 @@ hands:
           stack: 96
 
   - setup:
-      flop: ["Ac", "Ad", "2c"]
-      turn: Td
-      river: 4s
+      board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-cards:
-        # seat cards in the order players are sitting 
-        # seat 1 gets Kh Qd
-        # seat 5 gets 3s 7s
-        # seat 8 gets 9h 2s
-        - seat: 8
-          cards: ["Kh", "Qd"]
         - seat: 1
           cards: ["3s", "7s"]
+        - seat: 8
+          cards: ["Kh", "Qd"]
 
     # simulate pre-flop action
     preflop:
