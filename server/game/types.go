@@ -133,6 +133,7 @@ type HandSetupVerfication struct {
 	NextActionPos uint32          `yaml:"next-action-pos"`
 	State         string          `yaml:"state"`
 	DealtCards    []TestSeatCards `yaml:"dealt-cards"`
+	PostedBlinds  []uint32        `yaml:"posted-blinds"`
 }
 
 type TestSeatCards struct {

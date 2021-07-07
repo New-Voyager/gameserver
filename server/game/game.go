@@ -572,6 +572,14 @@ func (g *Game) dealNewHand() error {
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Table: %s", handState.PrintTable(g.players)))
 
+	playersActed := make(map[uint32]*PlayerActRound, 0)
+	for seatNo, action := range handState.GetPlayersActed() {
+		if action.State == PlayerActState_PLAYER_ACT_EMPTY_SEAT {
+			continue
+		}
+		playersActed[uint32(seatNo)] = action
+	}
+
 	// send a new hand message to all players
 	newHand := NewHand{
 		HandNum:        handState.HandNum,
@@ -587,6 +595,7 @@ func (g *Game) dealNewHand() error {
 		Straddle:       handState.Straddle,
 		Pause:          g.pauseBeforeNextHand,
 		PlayersInSeats: playersInSeats,
+		PlayersActed:   playersActed,
 	}
 
 	handMessage := HandMessage{

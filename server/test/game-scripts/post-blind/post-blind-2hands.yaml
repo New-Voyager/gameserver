@@ -119,6 +119,8 @@ hands:
           -
             seat-no: 1
             cards: ["9h", "2s"]
+        posted-blinds:
+          - 4
    
     # simulate pre-flop action
     preflop-action:
@@ -269,7 +271,10 @@ hands:
           -
             seat-no: 1
             cards: ["Qh", "Js"]
-   
+        posted-blinds:
+          - 5
+          - 3
+
     # simulate pre-flop action
     preflop-action:
       actions:
