@@ -198,16 +198,8 @@ func (g *Game) onStatusUpdate(message *GameMessage) error {
 func (g *Game) onNextHandSetup(message *GameMessage) error {
 	nextHandSetup := message.GetNextHand()
 
-	if nextHandSetup.ButtonPos != 0 {
-		g.ButtonPos = nextHandSetup.ButtonPos
-	}
-
-	g.testButtonPos = int32(nextHandSetup.ButtonPos)
-	g.testDeckToUse = nil
-	g.pauseBeforeNextHand = nextHandSetup.Pause
-
-	g.testHandSetup = nextHandSetup
-	// Also persist the next hand setup info in Redis to enable crash testing between hands.
+	// Hand setup is persisted in Redis instead of stored in memory
+	// so that we can continue with the same setup after crash during crash testing.
 	g.handSetupPersist.Save(g.config.GameCode, nextHandSetup)
 	return nil
 }

@@ -103,7 +103,7 @@ func (h *HandState) board(deck *poker.Deck) []byte {
 	return board
 }
 
-func (h *HandState) initialize(gameConfig *GameConfig, handSetup *TestHandSetup, buttonPos uint32, sbPos uint32, bbPos uint32, moveButton bool, playersInSeats []SeatPlayer) {
+func (h *HandState) initialize(gameConfig *GameConfig, handSetup *TestHandSetup, buttonPos uint32, sbPos uint32, bbPos uint32, playersInSeats []SeatPlayer) {
 	// settle players in the seats
 	h.PlayersInSeats = make([]uint64, gameConfig.MaxPlayers+1) // seat 0 is dealer
 	h.NoActiveSeats = 0
@@ -152,11 +152,6 @@ func (h *HandState) initialize(gameConfig *GameConfig, handSetup *TestHandSetup,
 	// if the players don't have money less than the blinds
 	// don't let them play
 	h.ActiveSeats = h.GetPlayersInSeats()
-
-	// determine button and blinds
-	if moveButton {
-		h.ButtonPos = h.moveButton()
-	}
 
 	if sbPos != 0 && bbPos != 0 {
 		h.SmallBlindPos = sbPos
@@ -554,16 +549,6 @@ func (h *HandState) drawPlayerCardsForTesting(deck *poker.Deck, numCardsPerPlaye
 		}
 	}
 	return playerCards
-}
-
-func (h *HandState) moveButton() uint32 {
-	seatNo := uint32(h.GetButtonPos())
-	newButtonPos := h.getNextActivePlayer(seatNo)
-	if newButtonPos == 0 {
-		// TODO: return proper error code
-		panic("Not enough players")
-	}
-	return newButtonPos
 }
 
 /**
