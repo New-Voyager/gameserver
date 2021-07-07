@@ -38,7 +38,6 @@ bot-config:
   min-action-pause-time: 0
   max-action-pause-time: 0
 
-# deal the following hands in the table
 hands:
   - setup:
       button-pos: 1
@@ -46,10 +45,6 @@ hands:
       turn: Td
       river: 4s
       seat-cards:
-        # seat cards in the order players are sitting 
-        # seat 1 gets Kh Qd
-        # seat 5 gets 3s 7s
-        # seat 8 gets 9h 2s
         - seat: 1
           cards: ["Kh", "Qd"]
         - seat: 5
@@ -70,11 +65,11 @@ hands:
         board: ["Ac", "Ad", "2c"]
         ranks:
           - seat: 1
-            rank: "Two Pair"
+            rank: "Pair"
           - seat: 5
             rank: "Pair"
           - seat: 8
-            rank: "Pair"
+            rank: "Two Pair"
       seat-actions:
         - action: 5, CHECK
         - action: 8, BET, 2
@@ -88,7 +83,7 @@ hands:
         board: ["Ac", "Ad", "2c", "Td"]
         ranks:
           - seat: 1
-            rank: "Two Pair"
+            rank: "Pair"
           - seat: 5
             rank: "Pair"
           - seat: 8
@@ -103,7 +98,7 @@ hands:
         board: ["Ac", "Ad", "2c", "Td", "4s"]
         ranks:
           - seat: 1
-            rank: "Two Pair"
+            rank: "Pair"
           - seat: 5
             rank: "Pair"
           - seat: 8
@@ -116,9 +111,9 @@ hands:
       winners:
         - seat: 1
           receive: 54.0
-          rank: Two Pair
+          rank: Pair
       action-ended: SHOW_DOWN
-      
+
       # balance indicates the player balance after the hand
       # bb player won a chip
       stacks:

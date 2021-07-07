@@ -2137,9 +2137,9 @@ func (bp *BotPlayer) setupNextHand() error {
 func (bp *BotPlayer) getPlayerCardsFromConfig(seatCards []gamescript.SeatCards) []PlayerCard {
 	var playerCards []PlayerCard
 	for _, seatCard := range seatCards {
-		cards := seatCard.Cards
 		playerCards = append(playerCards, PlayerCard{
-			Cards: cards,
+			Seat:  seatCard.Seat,
+			Cards: seatCard.Cards,
 		})
 	}
 	return playerCards

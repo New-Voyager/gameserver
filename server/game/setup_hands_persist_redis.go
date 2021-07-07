@@ -23,18 +23,18 @@ func NewRedisHandsSetupTracker(redisURL string, redisPW string, redisDB int) *Re
 	}
 }
 
-func (s *RedisHandsSetupTracker) Load(gameCode string) (*TestHandsSetup, error) {
+func (s *RedisHandsSetupTracker) Load(gameCode string) (*TestHandSetup, error) {
 	return s.load(s.getKey(gameCode))
 }
 
-func (s *RedisHandsSetupTracker) load(key string) (*TestHandsSetup, error) {
+func (s *RedisHandsSetupTracker) load(key string) (*TestHandSetup, error) {
 	handStateBytes, err := s.rdclient.Get(context.Background(), key).Result()
 	if err == redis.Nil {
 		return nil, fmt.Errorf("Hands setup for Key: %s is not found", key)
 	} else if err != nil {
 		return nil, err
 	}
-	handsSetup := &TestHandsSetup{}
+	handsSetup := &TestHandSetup{}
 	err = proto.Unmarshal([]byte(handStateBytes), handsSetup)
 	if err != nil {
 		return nil, err
@@ -42,11 +42,11 @@ func (s *RedisHandsSetupTracker) load(key string) (*TestHandsSetup, error) {
 	return handsSetup, nil
 }
 
-func (s *RedisHandsSetupTracker) Save(gameCode string, handsSetup *TestHandsSetup) error {
+func (s *RedisHandsSetupTracker) Save(gameCode string, handsSetup *TestHandSetup) error {
 	return s.save(s.getKey(gameCode), handsSetup)
 }
 
-func (s *RedisHandsSetupTracker) save(key string, handsSetup *TestHandsSetup) error {
+func (s *RedisHandsSetupTracker) save(key string, handsSetup *TestHandSetup) error {
 	stateInBytes, err := proto.Marshal(handsSetup)
 	if err != nil {
 		return err

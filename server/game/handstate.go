@@ -103,7 +103,7 @@ func (h *HandState) board(deck *poker.Deck) []byte {
 	return board
 }
 
-func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonPos uint32, sbPos uint32, bbPos uint32, moveButton bool, playersInSeats []SeatPlayer) {
+func (h *HandState) initialize(gameConfig *GameConfig, handSetup *TestHandSetup, buttonPos uint32, sbPos uint32, bbPos uint32, playersInSeats []SeatPlayer) {
 	// settle players in the seats
 	h.PlayersInSeats = make([]uint64, gameConfig.MaxPlayers+1) // seat 0 is dealer
 	h.NoActiveSeats = 0
@@ -153,11 +153,6 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 	// don't let them play
 	h.ActiveSeats = h.GetPlayersInSeats()
 
-	// determine button and blinds
-	if moveButton {
-		h.ButtonPos = h.moveButton()
-	}
-
 	if sbPos != 0 && bbPos != 0 {
 		h.SmallBlindPos = sbPos
 		h.BigBlindPos = bbPos
@@ -183,8 +178,29 @@ func (h *HandState) initialize(gameConfig *GameConfig, deck *poker.Deck, buttonP
 			&PlayerBalance{SeatNo: playerInSeat.SeatNo, PlayerId: playerInSeat.PlayerID, Balance: playerInSeat.Stack})
 	}
 
+	var deck *poker.Deck
+	if handSetup.PlayerCards == nil {
+		deck = poker.NewDeck(nil).Shuffle()
+	} else {
+		playerCards := make([]poker.CardsInAscii, 0)
+		for _, seatCards := range handSetup.PlayerCards {
+			playerCards = append(playerCards, seatCards.Cards)
+		}
+		if handSetup.Board != nil {
+			deck = poker.DeckFromBoard(playerCards, handSetup.Board, handSetup.Board2, false)
+		} else {
+			// arrange deck
+			deck = poker.DeckFromScript(
+				playerCards,
+				handSetup.Flop,
+				poker.NewCard(handSetup.Turn),
+				poker.NewCard(handSetup.River),
+				false /* burn card */)
+		}
+	}
+
 	h.Deck = deck.GetBytes()
-	h.PlayersCards = h.getPlayersCards(deck)
+	h.PlayersCards = h.getPlayersCards(deck, handSetup.PlayerCardsBySeat)
 
 	// setup main pot
 	h.Pots = make([]*SeatsInPots, 0)
@@ -436,7 +452,7 @@ func (h *HandState) getBlindPos() (uint32, uint32) {
 	return uint32(smallBlindPos), uint32(bigBlindPos)
 }
 
-func (h *HandState) getPlayersCards(deck *poker.Deck) map[uint32][]byte {
+func (h *HandState) getPlayersCards(deck *poker.Deck, scriptedCards map[uint32]*GameSetupSeatCards) map[uint32][]byte {
 	noOfCards := 2
 
 	switch h.GetGameType() {
@@ -452,52 +468,87 @@ func (h *HandState) getPlayersCards(deck *poker.Deck) map[uint32][]byte {
 		noOfCards = 5
 	}
 
-	playerCards := make(map[uint32][]byte)
-	for seatNo, playerID := range h.GetPlayersInSeats() {
-		if playerID != 0 {
-			if state, ok := h.GetPlayersState()[playerID]; ok {
-				if state.Status != PlayerStatus_PLAYING {
-					continue
-				}
-			} else {
-				continue
-			}
-
-			playerCards[uint32(seatNo)] = make([]byte, 0, 4)
-		}
-	}
 	activeSeats := h.activeSeatsCount()
 	totalCards := activeSeats * noOfCards
 
-	for i := 0; i < noOfCards; i++ {
-		seatNo := h.ButtonPos
-		for {
-			seatNo = h.getNextActivePlayer(seatNo)
-			cards := deck.Draw(1)
-			totalCards--
-			h.DeckIndex++
-			playerCards[seatNo] = append(playerCards[seatNo], cards[0].GetByte())
-			if seatNo == h.ButtonPos || totalCards == 0 {
-				// next round of cards
-				break
-			}
-		}
-		if totalCards == 0 {
-			break
-		}
+	playerCards := make(map[uint32][]byte)
+	if scriptedCards == nil {
+		// Draw cards normally.
+		playerCards = h.drawPlayerCards(deck, noOfCards, totalCards)
+	} else {
+		// We are running a botrunner test that wants to specify player cards by seat.
+		// Make sure each seat gets the cards they are supposed to get.
+		playerCards = h.drawPlayerCardsForTesting(deck, noOfCards, totalCards, scriptedCards)
 	}
 
 	return playerCards
 }
 
-func (h *HandState) moveButton() uint32 {
-	seatNo := uint32(h.GetButtonPos())
-	newButtonPos := h.getNextActivePlayer(seatNo)
-	if newButtonPos == 0 {
-		// TODO: return proper error code
-		panic("Not enough players")
+func (h *HandState) drawPlayerCards(deck *poker.Deck, numCardsPerPlayer int, numTotalCards int) map[uint32][]byte {
+	numRemainingCards := numTotalCards
+	playerCards := make(map[uint32][]byte)
+	for i := 0; i < numCardsPerPlayer; i++ {
+		seatNo := h.ButtonPos
+		for {
+			seatNo = h.getNextActivePlayer(seatNo)
+			cards := deck.Draw(1)
+			numRemainingCards--
+			h.DeckIndex++
+			if playerCards[seatNo] == nil {
+				playerCards[seatNo] = make([]byte, 0, numCardsPerPlayer)
+			}
+			playerCards[seatNo] = append(playerCards[seatNo], cards[0].GetByte())
+			if seatNo == h.ButtonPos || numRemainingCards == 0 {
+				// next round of cards
+				break
+			}
+		}
+		if numRemainingCards == 0 {
+			break
+		}
 	}
-	return newButtonPos
+	return playerCards
+}
+
+// Draw player cards and make sure each seat gets the scripted cards.
+func (h *HandState) drawPlayerCardsForTesting(deck *poker.Deck, numCardsPerPlayer int, numTotalCards int, scriptedCards map[uint32]*GameSetupSeatCards) map[uint32][]byte {
+	if scriptedCards == nil {
+		panic("scriptedCards == nil in drawPlayerCardsForTesting")
+	}
+
+	numRemainingCards := numTotalCards
+	playerCards := make(map[uint32][]byte)
+	seatNo := h.ButtonPos
+	for numRemainingCards > 0 {
+		seatNo = h.getNextActivePlayer(seatNo)
+		for i := 0; i < numCardsPerPlayer; i++ {
+			// In this case we need to make sure each seat gets the specified cards.
+			wantedCard := poker.NewCard(scriptedCards[seatNo].Cards[i])
+			drawnCard := deck.Draw(1)[0]
+			if drawnCard != wantedCard {
+				// We want the wantedCard, but drawnCard is what came out of the deck.
+				// Which means our wantedCard is still somewhere in the deck.
+				// Put back the drawnCard into the deck in the position where our
+				// wantedCard is, effectively erasing the wantedCard from the deck as
+				// if that was the card drawn out of the deck.
+				deck.FindAndReplace(wantedCard, drawnCard)
+				drawnCard = wantedCard
+			}
+			numRemainingCards--
+			h.DeckIndex++
+			if playerCards[seatNo] == nil {
+				playerCards[seatNo] = make([]byte, 0, numCardsPerPlayer)
+			}
+			playerCards[seatNo] = append(playerCards[seatNo], drawnCard.GetByte())
+		}
+		if seatNo == h.ButtonPos {
+			if numRemainingCards != 0 {
+				panic("numRemainingCards != 0 after assigning cards to all active players")
+			}
+			break
+		}
+	}
+	return playerCards
 }
 
 /**

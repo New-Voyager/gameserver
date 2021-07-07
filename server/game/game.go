@@ -53,14 +53,11 @@ type Game struct {
 	RemainingActionTime uint32
 	apiServerUrl        string
 	// test driver specific variables
-	autoDeal      bool
-	testDeckToUse *poker.Deck
-	testButtonPos int32
-	prevHandNum   uint32
+	autoDeal    bool
+	prevHandNum uint32
 
 	handSetupPersist *RedisHandsSetupTracker
 
-	pauseBeforeNextHand     uint32
 	inProcessPendingUpdates bool
 	config                  *GameConfig
 	delays                  Delays
@@ -69,9 +66,6 @@ type Game struct {
 	PlayersInSeats          []SeatPlayer
 	Status                  GameStatus
 	TableStatus             TableStatus
-	ButtonPos               uint32
-	SbPos                   uint32
-	BbPos                   uint32
 	retryDelayMillis        uint32
 
 	// used for storing player configuration of runItTwicePrompt, muckLosingHand
@@ -111,7 +105,6 @@ func NewPokerGame(
 		config:                 config,
 		delays:                 delays,
 		autoDeal:               autoDeal,
-		testButtonPos:          -1,
 		handSetupPersist:       handSetupPersist,
 		apiServerUrl:           apiServerURL,
 		retryDelayMillis:       500,
@@ -312,14 +305,6 @@ func (g *Game) startGame() (bool, error) {
 		Str("game", g.config.GameCode).
 		Msg(fmt.Sprintf("Game started. Good luck every one. %d players are in the table.", numActivePlayers))
 
-	// assign the button pos to the first guy in the list
-	playersInSeat := g.PlayersInSeats
-	for _, player := range playersInSeat {
-		if player.PlayerID != 0 {
-			g.ButtonPos = player.SeatNo
-			break
-		}
-	}
 	g.Status = GameStatus_ACTIVE
 
 	g.running = true
@@ -408,9 +393,12 @@ func (g *Game) NumCards(gameType GameType) uint32 {
 func (g *Game) dealNewHand() error {
 	var handState *HandState
 	var handSetup *TestHandSetup
-	moveButton := true
+	var buttonPos uint32
+	var sbPos uint32
+	var bbPos uint32
 	newHandNum := g.prevHandNum + 1
 	var newHandInfo *NewHandInfo
+	var pauseBeforeHand uint32
 	var err error
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_1, 0)
@@ -420,10 +408,9 @@ func (g *Game) dealNewHand() error {
 
 	testHandsSetup, err := g.handSetupPersist.Load(g.config.GameCode)
 	if err == nil {
-		// We're only setting up the very next hand for now.
-		// We'll setup multiple hands in the future if necessary.
-		handSetup = testHandsSetup.Hands[0]
+		handSetup = testHandsSetup
 	}
+	pauseBeforeHand = handSetup.Pause
 
 	if !g.isScriptTest {
 		// we are not running tests
@@ -438,12 +425,10 @@ func (g *Game) dealNewHand() error {
 			return nil
 		}
 
-		g.ButtonPos = newHandInfo.ButtonPos
-		g.SbPos = newHandInfo.SbPos
-		g.BbPos = newHandInfo.BbPos
+		buttonPos = newHandInfo.ButtonPos
+		sbPos = newHandInfo.SbPos
+		bbPos = newHandInfo.BbPos
 
-		// button is moved in the API server
-		moveButton = false
 		gameType = newHandInfo.GameType
 		newHandNum = newHandInfo.HandNum
 		playerUpdateConfig := make(map[uint64]PlayerConfigUpdate)
@@ -524,16 +509,22 @@ func (g *Game) dealNewHand() error {
 		g.config.SmallBlind = float64(newHandInfo.SmallBlind)
 		g.config.BigBlind = float64(newHandInfo.BigBlind)
 	} else {
-		g.SbPos = 0
-		g.BbPos = 0
+		// We're in a script test (no api server).
+
+		// assign the button pos to the first guy in the list
+		for _, player := range g.PlayersInSeats {
+			if player.PlayerID != 0 {
+				buttonPos = player.SeatNo
+				break
+			}
+		}
+
+		sbPos = 0
+		bbPos = 0
 	}
 
-	if g.testButtonPos > 0 {
-		g.ButtonPos = uint32(g.testButtonPos)
-		moveButton = false
-	} else if handSetup != nil && handSetup.ButtonPos > 0 {
-		g.ButtonPos = handSetup.ButtonPos
-		moveButton = false
+	if handSetup != nil && handSetup.ButtonPos > 0 {
+		buttonPos = handSetup.ButtonPos
 	}
 
 	handState = &HandState{
@@ -545,20 +536,7 @@ func (g *Game) dealNewHand() error {
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
 
-	deck := g.testDeckToUse
-	if deck == nil || deck.Empty() {
-		if handSetup != nil && handSetup.Deck != nil {
-			deck = poker.DeckFromBytes(handSetup.Deck)
-		} else {
-			deck = poker.NewDeck(nil).Shuffle()
-		}
-	}
-
-	handState.initialize(g.config, deck, g.ButtonPos, g.SbPos, g.BbPos, moveButton, g.PlayersInSeats)
-
-	g.ButtonPos = handState.GetButtonPos()
-	g.testDeckToUse = nil
-	g.testButtonPos = -1
+	handState.initialize(g.config, handSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
 
 	channelGameLogger.Trace().
 		Uint32("club", g.config.ClubId).
@@ -579,7 +557,7 @@ func (g *Game) dealNewHand() error {
 		BigBlind:       handState.BigBlind,
 		BringIn:        handState.BringIn,
 		Straddle:       handState.Straddle,
-		Pause:          g.pauseBeforeNextHand,
+		Pause:          pauseBeforeHand,
 		PlayersInSeats: playersInSeats,
 	}
 
@@ -604,13 +582,13 @@ func (g *Game) dealNewHand() error {
 		time.Sleep(time.Duration(g.delays.BeforeDeal) * time.Millisecond)
 	}
 
-	if g.pauseBeforeNextHand != 0 {
+	if pauseBeforeHand != 0 {
 		channelGameLogger.Info().
 			Uint32("club", g.config.ClubId).
 			Str("game", g.config.GameCode).
 			Uint32("hand", handState.HandNum).
-			Msg(fmt.Sprintf("PAUSING the game %d seconds", g.pauseBeforeNextHand))
-		time.Sleep(time.Duration(g.pauseBeforeNextHand) * time.Second)
+			Msg(fmt.Sprintf("PAUSING the game %d seconds", pauseBeforeHand))
+		time.Sleep(time.Duration(pauseBeforeHand) * time.Second)
 	}
 
 	// indicate the clients card distribution began

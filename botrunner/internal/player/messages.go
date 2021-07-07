@@ -24,6 +24,7 @@ type SetupDeck struct {
 }
 
 type PlayerCard struct {
+	Seat  uint32   `json:"seat"`
 	Cards []string `json:"cards"`
 }
 

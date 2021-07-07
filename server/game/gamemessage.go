@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"voyager.com/server/crashtest"
-	"voyager.com/server/poker"
 	"voyager.com/server/util"
 )
 
@@ -197,33 +196,11 @@ func (g *Game) onStatusUpdate(message *GameMessage) error {
 }
 
 func (g *Game) onNextHandSetup(message *GameMessage) error {
-	setupNextHand := message.GetNextHand()
+	nextHandSetup := message.GetNextHand()
 
-	if setupNextHand.ButtonPos != 0 {
-		g.ButtonPos = setupNextHand.ButtonPos
-	}
-
-	g.testButtonPos = int32(setupNextHand.ButtonPos)
-	g.testDeckToUse = nil
-	if setupNextHand.Deck != nil {
-		g.testDeckToUse = poker.DeckFromBytes(setupNextHand.Deck)
-	} else {
-		g.testDeckToUse = poker.NewDeck(nil)
-	}
-	g.pauseBeforeNextHand = setupNextHand.Pause
-
-	// Also persist the next deck in Redis to enable crash testing between hands.
-	t := TestHandsSetup{
-		Hands: []*TestHandSetup{
-			{
-				Deck:      setupNextHand.Deck,
-				ButtonPos: setupNextHand.ButtonPos,
-				Pause:     setupNextHand.Pause,
-				AutoDeal:  setupNextHand.AutoDeal,
-			},
-		},
-	}
-	g.handSetupPersist.Save(g.config.GameCode, &t)
+	// Hand setup is persisted in Redis instead of stored in memory
+	// so that we can continue with the same setup after crash during crash testing.
+	g.handSetupPersist.Save(g.config.GameCode, nextHandSetup)
 	return nil
 }
 
