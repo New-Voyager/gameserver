@@ -22,8 +22,7 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 		g.onStatusChanged(message)
 
 	case GameSetupNextHand:
-		// g.onNextHandSetup(message)
-		g.onNextHandSetup2(message)
+		g.onNextHandSetup(message)
 
 	case GameDealHand:
 		g.onDealHand(message)
@@ -196,39 +195,8 @@ func (g *Game) onStatusUpdate(message *GameMessage) error {
 	return nil
 }
 
-// func (g *Game) onNextHandSetup(message *GameMessage) error {
-// 	setupNextHand := message.GetNextHand()
-
-// 	if setupNextHand.ButtonPos != 0 {
-// 		g.ButtonPos = setupNextHand.ButtonPos
-// 	}
-
-// 	g.testButtonPos = int32(setupNextHand.ButtonPos)
-// 	g.testDeckToUse = nil
-// 	if setupNextHand.Deck != nil {
-// 		g.testDeckToUse = poker.DeckFromBytes(setupNextHand.Deck)
-// 	} else {
-// 		g.testDeckToUse = poker.NewDeck(nil)
-// 	}
-// 	g.pauseBeforeNextHand = setupNextHand.Pause
-
-// 	// Also persist the next deck in Redis to enable crash testing between hands.
-// 	t := TestHandsSetup{
-// 		Hands: []*TestHandSetup{
-// 			{
-// 				Deck:      setupNextHand.Deck,
-// 				ButtonPos: setupNextHand.ButtonPos,
-// 				Pause:     setupNextHand.Pause,
-// 				AutoDeal:  setupNextHand.AutoDeal,
-// 			},
-// 		},
-// 	}
-// 	g.handSetupPersist.Save(g.config.GameCode, &t)
-// 	return nil
-// }
-
-func (g *Game) onNextHandSetup2(message *GameMessage) error {
-	nextHandSetup := message.GetNextHand2()
+func (g *Game) onNextHandSetup(message *GameMessage) error {
+	nextHandSetup := message.GetNextHand()
 
 	if nextHandSetup.ButtonPos != 0 {
 		g.ButtonPos = nextHandSetup.ButtonPos
@@ -236,21 +204,11 @@ func (g *Game) onNextHandSetup2(message *GameMessage) error {
 
 	g.testButtonPos = int32(nextHandSetup.ButtonPos)
 	g.testDeckToUse = nil
-	// if nextHandSetup.Deck != nil {
-	// 	g.testDeckToUse = poker.DeckFromBytes(nextHandSetup.Deck)
-	// } else {
-	// 	g.testDeckToUse = poker.NewDeck(nil)
-	// }
 	g.pauseBeforeNextHand = nextHandSetup.Pause
 
 	g.testHandSetup = nextHandSetup
 	// Also persist the next hand setup info in Redis to enable crash testing between hands.
-	t := TestHandsSetup2{
-		Hands: []*GameSetupNextHandMessage2{
-			nextHandSetup,
-		},
-	}
-	g.handSetupPersist.Save(g.config.GameCode, &t)
+	g.handSetupPersist.Save(g.config.GameCode, nextHandSetup)
 	return nil
 }
 

@@ -218,7 +218,7 @@ func (n *NatsGame) setupHand(handSetup HandSetup) {
 		}
 	}
 
-	nextHandSetup := &game.GameSetupNextHandMessage2{
+	nextHandSetup := &game.TestHandSetup{
 		ButtonPos:         handSetup.ButtonPos,
 		Board:             handSetup.Board,
 		Board2:            handSetup.Board2,
@@ -234,7 +234,7 @@ func (n *NatsGame) setupHand(handSetup HandSetup) {
 	message.GameId = n.gameID
 	message.GameCode = n.gameCode
 	message.MessageType = game.GameSetupNextHand
-	message.GameMessage = &game.GameMessage_NextHand2{NextHand2: nextHandSetup}
+	message.GameMessage = &game.GameMessage_NextHand{NextHand: nextHandSetup}
 
 	n.serverGame.SendGameMessageToChannel(&message)
 }

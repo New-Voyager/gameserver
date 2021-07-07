@@ -45,13 +45,13 @@ pull:
 .PHONY: compile-proto
 compile-proto: install-protoc
 	go get -u github.com/golang/protobuf/protoc-gen-go
+	rm -f game/*.pb.go
 	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/game.proto
 	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/hand.proto
 	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/gamestate.proto
 	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/handstate.proto
 	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/gamemessage.proto
 	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/handmessage.proto
-	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/handsetup.proto
 	ls game/*.pb.go | xargs -n1 -IX bash -c 'sed s/,omitempty// X > X.tmp && mv X{.tmp,}'
 
 .PHONY: install-protoc

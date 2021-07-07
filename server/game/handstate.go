@@ -103,7 +103,7 @@ func (h *HandState) board(deck *poker.Deck) []byte {
 	return board
 }
 
-func (h *HandState) initialize(gameConfig *GameConfig, handSetup *GameSetupNextHandMessage2, buttonPos uint32, sbPos uint32, bbPos uint32, moveButton bool, playersInSeats []SeatPlayer) {
+func (h *HandState) initialize(gameConfig *GameConfig, handSetup *TestHandSetup, buttonPos uint32, sbPos uint32, bbPos uint32, moveButton bool, playersInSeats []SeatPlayer) {
 	// settle players in the seats
 	h.PlayersInSeats = make([]uint64, gameConfig.MaxPlayers+1) // seat 0 is dealer
 	h.NoActiveSeats = 0

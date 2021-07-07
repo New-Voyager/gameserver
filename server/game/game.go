@@ -58,7 +58,7 @@ type Game struct {
 	testButtonPos int32
 	prevHandNum   uint32
 
-	testHandSetup    *GameSetupNextHandMessage2
+	testHandSetup    *TestHandSetup
 	handSetupPersist *RedisHandsSetupTracker
 
 	pauseBeforeNextHand     uint32
@@ -408,7 +408,7 @@ func (g *Game) NumCards(gameType GameType) uint32 {
 
 func (g *Game) dealNewHand() error {
 	var handState *HandState
-	var handSetup *GameSetupNextHandMessage2
+	var handSetup *TestHandSetup
 	moveButton := true
 	newHandNum := g.prevHandNum + 1
 	var newHandInfo *NewHandInfo
@@ -421,9 +421,7 @@ func (g *Game) dealNewHand() error {
 
 	testHandsSetup, err := g.handSetupPersist.Load(g.config.GameCode)
 	if err == nil {
-		// We're only setting up the very next hand for now.
-		// We'll setup multiple hands in the future if necessary.
-		handSetup = testHandsSetup.Hands[0]
+		handSetup = testHandsSetup
 	}
 
 	if !g.isScriptTest {

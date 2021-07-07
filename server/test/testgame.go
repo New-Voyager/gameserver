@@ -111,15 +111,7 @@ func (o *TestPlayer) startGame(clubID uint32, gameID uint64) error {
 	return o.player.StartGame(clubID, gameID)
 }
 
-// func (o *TestPlayer) setupNextHand(deck *poker.Deck, autoDeal bool, buttonPos uint32) error {
-// 	var deckBytes []byte
-// 	if deck != nil {
-// 		deckBytes = deck.GetBytes()
-// 	}
-// 	return o.player.SetupNextHand(deckBytes, autoDeal, buttonPos)
-// }
-
-func (o *TestPlayer) setupNextHand2(handSetup game.HandSetup) error {
+func (o *TestPlayer) setupNextHand(handSetup game.HandSetup) error {
 	return o.player.SetupNextHand(handSetup)
 }
 
