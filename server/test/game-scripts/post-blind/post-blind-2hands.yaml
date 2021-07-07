@@ -273,7 +273,7 @@ hands:
             cards: ["Qh", "Js"]
         posted-blinds:
           - 5
-          - 3
+          - 6
 
     # simulate pre-flop action
     preflop-action:
