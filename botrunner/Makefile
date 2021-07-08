@@ -58,6 +58,7 @@ docker-build: compile-proto
 		rsync -avu --delete $(PROJECT_ROOT)/encryption/ build/encryption; \
 	fi
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t botrunner
+	rm -rf build/
 
 .PHONY: build
 build: compile-proto
