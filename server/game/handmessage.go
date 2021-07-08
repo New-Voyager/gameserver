@@ -181,7 +181,7 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 
 	if bettingInProgress && handState.NextSeatAction != nil {
 		currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
-		currentHandState.RemainingActionTime = g.RemainingActionTime
+		currentHandState.RemainingActionTime = g.GetRemainingActionTime()
 		currentHandState.NextSeatAction = handState.NextSeatAction
 	}
 	currentHandState.PlayersStack = make(map[uint64]float32, 0)
@@ -386,9 +386,9 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		return nil
 	}
 
-	actionResponseTime := time.Now().Sub(g.actionTimeStart)
+	actionResponseTime := g.actionTimer.GetElapsedTime()
 	actedSeconds := uint32(actionResponseTime.Seconds())
-	if messageSeatNo == g.timerSeatNo {
+	if messageSeatNo == g.actionTimer.GetCurrentTimerMsg().SeatNo {
 		// cancel action timer
 		g.pausePlayTimer(messageSeatNo)
 	}

@@ -395,7 +395,7 @@ func (n *NatsGame) onQueryHand(gameId uint64, playerId uint64, messageId string,
 
 	if bettingInProgress && handState.NextSeatAction != nil {
 		currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
-		currentHandState.RemainingActionTime = n.serverGame.RemainingActionTime
+		currentHandState.RemainingActionTime = n.serverGame.GetRemainingActionTime()
 		currentHandState.NextSeatAction = handState.NextSeatAction
 	}
 	currentHandState.PlayersStack = make(map[uint64]float32, 0)
