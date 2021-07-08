@@ -27,9 +27,6 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 	case GameDealHand:
 		g.onDealHand(message)
 
-	case GameJoin:
-		g.onJoinGame(message)
-
 	case GameMoveToNextHand:
 		g.onMoveToNextHand(message)
 
@@ -226,12 +223,6 @@ func (g *Game) broadcastTableState() error {
 	if *g.messageReceiver != nil {
 		(*g.messageReceiver).BroadcastGameMessage(&gameMessage)
 	}
-	return nil
-}
-
-func (g *Game) onJoinGame(message *GameMessage) error {
-	joinMessage := message.GetJoinGame()
-	g.players[joinMessage.PlayerId] = joinMessage.Name
 	return nil
 }
 

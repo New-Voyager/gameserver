@@ -12,7 +12,6 @@ const (
 // Game messages
 // These messages can be sent to game only from api server or test driver
 const (
-	GameJoin              string = "JOIN"
 	GameCurrentStatus     string = "GAME_STATUS"
 	GameStatusChanged     string = "STATUS_CHANGED"
 	GameCurrentState      string = "GAME_STATE"

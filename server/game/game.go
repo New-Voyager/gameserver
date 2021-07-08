@@ -46,10 +46,9 @@ type Game struct {
 	chPlayTimedOut      chan timerMsg
 	chResetTimer        chan timerMsg
 	chPauseTimer        chan bool
-	allPlayers          map[uint64]*Player   // players at the table and the players that are viewing
+	scriptTestPlayers   map[uint64]*Player   // players at the table and the players that are viewing
 	messageReceiver     *GameMessageReceiver // receives messages
 	actionTimeStart     time.Time
-	players             map[uint64]string
 	RemainingActionTime uint32
 	apiServerUrl        string
 	// test driver specific variables
@@ -113,7 +112,7 @@ func NewPokerGame(
 		db:                     db,
 		encryptionKeyCache:     cache,
 	}
-	g.allPlayers = make(map[uint64]*Player)
+	g.scriptTestPlayers = make(map[uint64]*Player)
 	g.chGame = make(chan []byte)
 	g.chHand = make(chan []byte, 1)
 	g.chPong = make(chan []byte, 100)
@@ -122,7 +121,6 @@ func NewPokerGame(
 	g.chPauseTimer = make(chan bool)
 	g.end = make(chan bool)
 	g.stopNetworkCheck = make(chan bool)
-	g.players = make(map[uint64]string)
 	g.pingStates = make(map[uint64]*playerPingState)
 
 	playerConfig := make(map[uint64]PlayerConfigUpdate)
@@ -542,7 +540,7 @@ func (g *Game) dealNewHand() error {
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
 		Uint32("hand", handState.HandNum).
-		Msg(fmt.Sprintf("Table: %s", handState.PrintTable(g.players)))
+		Msg(fmt.Sprintf("Table: %s", handState.PrintTable(g.scriptTestPlayers)))
 
 	// send a new hand message to all players
 	newHand := NewHand{
@@ -647,14 +645,8 @@ func (g *Game) dealNewHand() error {
 				},
 			},
 		}
-		b, _ := proto.Marshal(&handMessage)
 
-		if *g.messageReceiver != nil {
-			(*g.messageReceiver).SendHandMessageToPlayer(&handMessage, player.PlayerID)
-
-		} else {
-			g.allPlayers[player.PlayerID].chHand <- b
-		}
+		g.sendHandMessageToPlayer(&handMessage, player.PlayerID)
 
 		crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_4, 0)
 	}
@@ -726,7 +718,7 @@ func (g *Game) broadcastHandMessage(message *HandMessage) {
 		(*g.messageReceiver).BroadcastHandMessage(message)
 	} else {
 		b, _ := proto.Marshal(message)
-		for _, player := range g.allPlayers {
+		for _, player := range g.scriptTestPlayers {
 			player.chHand <- b
 		}
 	}
@@ -738,7 +730,7 @@ func (g *Game) broadcastGameMessage(message *GameMessage) {
 		(*g.messageReceiver).BroadcastGameMessage(message)
 	} else {
 		b, _ := proto.Marshal(message)
-		for _, player := range g.allPlayers {
+		for _, player := range g.scriptTestPlayers {
 			player.chGame <- b
 		}
 	}
@@ -773,7 +765,7 @@ func (g *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint64) {
 	if *g.messageReceiver != nil {
 		(*g.messageReceiver).SendHandMessageToPlayer(message, playerID)
 	} else {
-		player := g.allPlayers[playerID]
+		player := g.scriptTestPlayers[playerID]
 		if player == nil {
 			return
 		}
@@ -792,7 +784,7 @@ func (g *Game) BroadcastPingMessage(message *PingPongMessage) {
 func (g *Game) addPlayer(player *Player, buyIn float32) error {
 	g.lock.Lock()
 	defer g.lock.Unlock()
-	g.allPlayers[player.PlayerID] = player
+	g.scriptTestPlayers[player.PlayerID] = player
 
 	// add the player to playerSeatInfos
 	g.PlayersInSeats[int(player.SeatNo)] = SeatPlayer{
