@@ -60,7 +60,7 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	gameScript.gameScript.GameConfig.GameType = gameType
 	gameScript.gameScript.GameConfig.GameId = uint64(now)
 
-	serverGame, gameID, err := game.GameManager.InitializeGame(nil, &gameScript.gameScript.GameConfig, false)
+	serverGame, gameID, err := game.GameManager.InitializeGame(nil, &gameScript.gameScript.GameConfig)
 	if err != nil {
 		return nil, nil, err
 	}

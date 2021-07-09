@@ -36,22 +36,21 @@ type GameMessageReceiver interface {
 	SendGameMessageToPlayer(message *GameMessage, playerID uint64)
 }
 type Game struct {
-	isScriptTest      bool
-	manager           *Manager
-	end               chan bool
-	stopNetworkCheck  chan bool
-	running           bool
-	chHand            chan []byte
-	chGame            chan []byte
-	chPong            chan []byte
-	chPlayTimedOut    chan timer.TimerMsg
-	scriptTestPlayers map[uint64]*Player   // players at the table and the players that are viewing
-	messageReceiver   *GameMessageReceiver // receives messages
-	apiServerURL      string
+	isScriptTest     bool
+	manager          *Manager
+	end              chan bool
+	stopNetworkCheck chan bool
+	running          bool
+	chHand           chan []byte
+	chGame           chan []byte
+	chPong           chan []byte
+	chPlayTimedOut   chan timer.TimerMsg
+	messageReceiver  *GameMessageReceiver // receives messages
+	apiServerURL     string
 
 	// test driver specific variables
-	autoDeal    bool
-	prevHandNum uint32
+	scriptTestPrevHandNum uint32
+	scriptTestPlayers     map[uint64]*Player // players at the table and the players that are viewing
 
 	handSetupPersist *RedisHandsSetupTracker
 
@@ -84,7 +83,6 @@ func NewPokerGame(
 	messageReceiver *GameMessageReceiver,
 	config *GameConfig,
 	delays Delays,
-	autoDeal bool,
 	handStatePersist PersistHandState,
 	handSetupPersist *RedisHandsSetupTracker,
 	apiServerURL string,
@@ -101,7 +99,6 @@ func NewPokerGame(
 		messageReceiver:        messageReceiver,
 		config:                 config,
 		delays:                 delays,
-		autoDeal:               autoDeal,
 		handSetupPersist:       handSetupPersist,
 		apiServerURL:           apiServerURL,
 		retryDelayMillis:       500,
@@ -302,7 +299,7 @@ func (g *Game) startGame() (bool, error) {
 	gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: g.Status, TableStatus: g.TableStatus}}
 	g.broadcastGameMessage(&gameMessage)
 
-	if g.autoDeal {
+	if !g.isScriptTest {
 		err := g.moveAPIServerToNextHand(0)
 		for err != nil {
 			channelGameLogger.Error().Msg(err.Error())
@@ -385,7 +382,7 @@ func (g *Game) dealNewHand() error {
 	var buttonPos uint32
 	var sbPos uint32
 	var bbPos uint32
-	newHandNum := g.prevHandNum + 1
+	var newHandNum uint32
 	var newHandInfo *NewHandInfo
 	var pauseBeforeHand uint32
 	var err error
@@ -499,6 +496,7 @@ func (g *Game) dealNewHand() error {
 		g.config.BigBlind = float64(newHandInfo.BigBlind)
 	} else {
 		// We're in a script test (no api server).
+		newHandNum = g.scriptTestPrevHandNum + 1
 
 		// assign the button pos to the first guy in the list
 		for _, player := range g.PlayersInSeats {
@@ -519,7 +517,7 @@ func (g *Game) dealNewHand() error {
 	handState = &HandState{
 		ClubId:        g.config.ClubId,
 		GameId:        g.config.GameId,
-		HandNum:       uint32(newHandNum),
+		HandNum:       newHandNum,
 		GameType:      gameType,
 		CurrentState:  HandStatus_DEAL,
 		HandStartedAt: uint64(time.Now().Unix()),

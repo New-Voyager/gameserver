@@ -28,7 +28,7 @@ func NewGameManager(isScriptTest bool, apiServerUrl string, handPersist PersistH
 	}, nil
 }
 
-func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver, config *GameConfig, autoDeal bool) (*Game, uint64, error) {
+func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver, config *GameConfig) (*Game, uint64, error) {
 	gameIDStr := fmt.Sprintf("%d", config.GameId)
 	game, err := NewPokerGame(
 		gm.isScriptTest,
@@ -36,7 +36,6 @@ func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver, config *G
 		&messageReceiver,
 		config,
 		gm.delays,
-		autoDeal,
 		gm.handStatePersist,
 		gm.handSetupPersist,
 		gm.apiServerUrl,
