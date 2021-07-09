@@ -47,7 +47,8 @@ type Game struct {
 	chPlayTimedOut    chan timer.TimerMsg
 	scriptTestPlayers map[uint64]*Player   // players at the table and the players that are viewing
 	messageReceiver   *GameMessageReceiver // receives messages
-	apiServerUrl      string
+	apiServerURL      string
+
 	// test driver specific variables
 	autoDeal    bool
 	prevHandNum uint32
@@ -102,7 +103,7 @@ func NewPokerGame(
 		delays:                 delays,
 		autoDeal:               autoDeal,
 		handSetupPersist:       handSetupPersist,
-		apiServerUrl:           apiServerURL,
+		apiServerURL:           apiServerURL,
 		retryDelayMillis:       500,
 		pingTimeoutSec:         uint32(util.GameServerEnvironment.GetPingTimeout()),
 		debugConnectivityCheck: util.GameServerEnvironment.ShouldDebugConnectivityCheck(),
@@ -227,7 +228,7 @@ func (g *Game) startGame() (bool, error) {
 	var numActivePlayers int
 	if !g.isScriptTest {
 		// Get game config.
-		gameConfig, err := g.getGameInfo(g.apiServerUrl, g.config.GameCode, g.retryDelayMillis)
+		gameConfig, err := g.getGameInfo(g.apiServerURL, g.config.GameCode, g.retryDelayMillis)
 		if err != nil {
 			return false, err
 		}

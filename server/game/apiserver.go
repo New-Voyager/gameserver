@@ -17,7 +17,7 @@ func (g *Game) saveHandResultToAPIServer(result *HandResult) (*SaveHandResult, e
 	data, _ := m.Marshal(result)
 	fmt.Printf("%s\n", string(data))
 
-	url := fmt.Sprintf("%s/internal/post-hand/gameId/%d/handNum/%d", g.apiServerUrl, result.GameId, result.HandNum)
+	url := fmt.Sprintf("%s/internal/post-hand/gameId/%d/handNum/%d", g.apiServerURL, result.GameId, result.HandNum)
 	resp, _ := http.Post(url, "application/json", bytes.NewBuffer(data))
 	// if the api server returns nil, do nothing
 	if resp == nil {
@@ -46,7 +46,7 @@ func (g *Game) saveHandResultToAPIServer(result *HandResult) (*SaveHandResult, e
 func (g *Game) getNewHandInfo() (*NewHandInfo, error) {
 	// TODO: Implement retry.
 
-	url := fmt.Sprintf("%s/internal/next-hand-info/game_num/%s", g.apiServerUrl, g.config.GameCode)
+	url := fmt.Sprintf("%s/internal/next-hand-info/game_num/%s", g.apiServerURL, g.config.GameCode)
 
 	resp, _ := http.Get(url)
 	// if the api server returns nil, do nothing
@@ -70,7 +70,7 @@ func (g *Game) getNewHandInfo() (*NewHandInfo, error) {
 func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) error {
 	// TODO: Implement retry.
 
-	url := fmt.Sprintf("%s/internal/move-to-next-hand/game_num/%s/hand_num/%d", g.apiServerUrl, g.config.GameCode, gameServerHandNum)
+	url := fmt.Sprintf("%s/internal/move-to-next-hand/game_num/%s/hand_num/%d", g.apiServerURL, g.config.GameCode, gameServerHandNum)
 
 	resp, _ := http.Post(url, "text/plain", bytes.NewBuffer([]byte{}))
 	// if the api server returns nil, do nothing

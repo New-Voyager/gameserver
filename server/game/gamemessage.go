@@ -149,10 +149,10 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 	// if there are no pending updates, deal next hand
 
 	// check any pending updates
-	pendingUpdates, _ := anyPendingUpdates(g.apiServerUrl, g.config.GameId, g.delays.PendingUpdatesRetry)
+	pendingUpdates, _ := anyPendingUpdates(g.apiServerURL, g.config.GameId, g.delays.PendingUpdatesRetry)
 	if pendingUpdates {
 		g.inProcessPendingUpdates = true
-		go processPendingUpdates(g.apiServerUrl, g.config.GameId)
+		go processPendingUpdates(g.apiServerURL, g.config.GameId)
 	} else {
 		err := g.moveAPIServerToNextHand(handState.HandNum)
 		for err != nil {
