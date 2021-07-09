@@ -36,7 +36,6 @@ type GameMessageReceiver interface {
 	SendGameMessageToPlayer(message *GameMessage, playerID uint64)
 }
 type Game struct {
-	isScriptTest     bool
 	manager          *Manager
 	end              chan bool
 	stopNetworkCheck chan bool
@@ -49,6 +48,7 @@ type Game struct {
 	apiServerURL     string
 
 	// test driver specific variables
+	isScriptTest          bool
 	scriptTestPrevHandNum uint32
 	scriptTestPlayers     map[uint64]*Player // players at the table and the players that are viewing
 
