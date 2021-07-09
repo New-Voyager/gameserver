@@ -16,7 +16,6 @@ const (
 	GameStatusChanged     string = "STATUS_CHANGED"
 	GameCurrentState      string = "GAME_STATE"
 	GameQueryTableState   string = "QUERY_TABLE_STATE"
-	GameStart             string = "START_GAME"
 	GameTableState        string = "TABLE_STATE"
 	PlayerUpdate          string = "PLAYER_UPDATE"
 	GameTableUpdate       string = "TABLE_UPDATE"

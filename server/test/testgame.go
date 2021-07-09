@@ -92,23 +92,17 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	}, observer, nil
 }
 
-func (t *TestGame) Start(playerAtSeats []game.PlayerSeat) {
+func (t *TestGame) PopulateSeats(playerAtSeats []game.PlayerSeat) {
 	for _, testPlayer := range playerAtSeats {
 		t.players[testPlayer.Player].joinGame(t.gameID, testPlayer.SeatNo, testPlayer.BuyIn, testPlayer.RunItTwice, testPlayer.RunItTwicePromptResponse)
 	}
 
 	// observer joins seat 0
 	t.observer.player.JoinGame(t.gameID, 0, 0, false, false)
-
-	t.observer.player.StartGame(t.clubID, t.gameID)
 }
 
 func (t *TestGame) Observer() *TestPlayer {
 	return t.observer
-}
-
-func (o *TestPlayer) startGame(clubID uint32, gameID uint64) error {
-	return o.player.StartGame(clubID, gameID)
 }
 
 func (o *TestPlayer) setupNextHand(handSetup game.HandSetup) error {
