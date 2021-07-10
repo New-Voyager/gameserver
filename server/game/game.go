@@ -409,6 +409,9 @@ func (g *Game) dealNewHand() error {
 	testHandsSetup, err := g.handSetupPersist.Load(g.config.GameCode)
 	if err == nil {
 		handSetup = testHandsSetup
+		if handSetup.HandNum != 0 {
+			newHandNum = handSetup.HandNum
+		}
 	}
 	pauseBeforeHand = handSetup.Pause
 
@@ -789,20 +792,21 @@ func (g *Game) BroadcastPingMessage(message *PingPongMessage) {
 	}
 }
 
-func (g *Game) addPlayer(player *Player, buyIn float32) error {
+func (g *Game) addPlayer(player *Player, buyIn float32, postBlind bool) error {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 	g.allPlayers[player.PlayerID] = player
 
 	// add the player to playerSeatInfos
 	g.PlayersInSeats[int(player.SeatNo)] = SeatPlayer{
-		Name:       player.PlayerName,
-		PlayerID:   player.PlayerID,
-		PlayerUUID: fmt.Sprintf("%d", player.PlayerID),
-		Status:     PlayerStatus_PLAYING,
-		Stack:      buyIn,
-		OpenSeat:   false,
-		SeatNo:     player.SeatNo,
+		Name:        player.PlayerName,
+		PlayerID:    player.PlayerID,
+		PlayerUUID:  fmt.Sprintf("%d", player.PlayerID),
+		Status:      PlayerStatus_PLAYING,
+		Stack:       buyIn,
+		OpenSeat:    false,
+		SeatNo:      player.SeatNo,
+		PostedBlind: postBlind,
 	}
 	return nil
 }

@@ -94,11 +94,13 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 
 func (t *TestGame) Start(playerAtSeats []game.PlayerSeat) {
 	for _, testPlayer := range playerAtSeats {
-		t.players[testPlayer.Player].joinGame(t.gameID, testPlayer.SeatNo, testPlayer.BuyIn, testPlayer.RunItTwice, testPlayer.RunItTwicePromptResponse)
+		t.players[testPlayer.Player].joinGame(t.gameID, testPlayer.SeatNo, testPlayer.BuyIn,
+			testPlayer.RunItTwice, testPlayer.RunItTwicePromptResponse,
+			testPlayer.PostBlind)
 	}
 
 	// observer joins seat 0
-	t.observer.player.JoinGame(t.gameID, 0, 0, false, false)
+	t.observer.player.JoinGame(t.gameID, 0, 0, false, false, false)
 
 	t.observer.player.StartGame(t.clubID, t.gameID)
 }
@@ -111,8 +113,8 @@ func (o *TestPlayer) startGame(clubID uint32, gameID uint64) error {
 	return o.player.StartGame(clubID, gameID)
 }
 
-func (o *TestPlayer) setupNextHand(handSetup game.HandSetup) error {
-	return o.player.SetupNextHand(handSetup)
+func (o *TestPlayer) setupNextHand(handNum uint32, handSetup game.HandSetup) error {
+	return o.player.SetupNextHand(handNum, handSetup)
 }
 
 func (o *TestPlayer) getTableState() error {

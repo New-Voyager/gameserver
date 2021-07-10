@@ -374,7 +374,7 @@ func (h *TestHand) dealHand(t *TestDriver) error {
 }
 
 func (h *TestHand) setup(t *TestDriver) error {
-	h.gameScript.testGame.Observer().setupNextHand(h.hand.Setup)
+	h.gameScript.testGame.Observer().setupNextHand(h.hand.Num, h.hand.Setup)
 	return nil
 }
 
