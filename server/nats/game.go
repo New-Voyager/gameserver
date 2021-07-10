@@ -295,12 +295,15 @@ func (n *NatsGame) onQueryHand(gameId uint64, playerId uint64, messageId string,
 			MessageType: game.HandQueryCurrentHand,
 			Content:     &game.HandMessageItem_CurrentHandState{CurrentHandState: &currentHandState},
 		}
-
+		msgId := n.serverGame.GenerateMsgID("CURRENT_HAND", 0, game.HandStatus_DEAL, playerId, messageId, 0)
+		if handState != nil {
+			msgId = n.serverGame.GenerateMsgID("CURRENT_HAND", handState.HandNum, handState.CurrentState, playerId, messageId, handState.CurrentActionNum)
+		}
 		serverMsg := &game.HandMessage{
 			GameId:    n.gameID,
 			PlayerId:  playerId,
 			HandNum:   0,
-			MessageId: n.serverGame.GenerateMsgID("CURRENT_HAND", handState.HandNum, handState.CurrentState, playerId, messageId, handState.CurrentActionNum),
+			MessageId: msgId,
 			Messages:  []*game.HandMessageItem{handStateMsg},
 		}
 		n.SendHandMessageToPlayer(serverMsg, playerId)
