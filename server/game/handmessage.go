@@ -564,7 +564,7 @@ func (g *Game) handleHandEnded(allMsgItems []*HandMessageItem) {
 			GameId:      g.config.GameId,
 			MessageType: GameMoveToNextHand,
 		}
-		go g.SendGameMessageToChannel(gameMessage)
+		go g.QueueGameMessage(gameMessage)
 	}
 }
 

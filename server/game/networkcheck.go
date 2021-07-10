@@ -24,13 +24,13 @@ type NetworkCheck struct {
 	pingStates             map[uint64]*playerPingState
 	pingStatesLock         sync.Mutex
 	debugConnectivityCheck bool
-	messageReceiver        *GameMessageReceiver
+	messageSender          *MessageSender
 }
 
 func NewNetworkCheck(
 	gameID uint64,
 	gameCode string,
-	messageReceiver *GameMessageReceiver,
+	messageReceiver *MessageSender,
 ) *NetworkCheck {
 	n := NetworkCheck{
 		gameID:                 gameID,
@@ -38,7 +38,7 @@ func NewNetworkCheck(
 		chEndLoop:              make(chan bool),
 		pingTimeoutSec:         uint32(util.GameServerEnvironment.GetPingTimeout()),
 		debugConnectivityCheck: util.GameServerEnvironment.ShouldDebugConnectivityCheck(),
-		messageReceiver:        messageReceiver,
+		messageSender:          messageReceiver,
 	}
 	return &n
 }
@@ -164,17 +164,17 @@ func (n *NetworkCheck) broadcastConnectivityLost(playerIDs []uint64) {
 }
 
 func (n *NetworkCheck) broadcastPingMessage(msg *PingPongMessage) error {
-	if *n.messageReceiver != nil {
+	if *n.messageSender != nil {
 		msg.GameCode = n.gameCode
-		(*n.messageReceiver).BroadcastPingMessage(msg)
+		(*n.messageSender).BroadcastPingMessage(msg)
 	}
 	return nil
 }
 
 func (n *NetworkCheck) broadcastGameMessage(msg *GameMessage) error {
-	if *n.messageReceiver != nil {
+	if *n.messageSender != nil {
 		msg.GameCode = n.gameCode
-		(*n.messageReceiver).BroadcastGameMessage(msg)
+		(*n.messageSender).BroadcastGameMessage(msg)
 	}
 	return nil
 }

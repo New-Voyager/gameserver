@@ -38,7 +38,7 @@ func (g *Game) pausePlayTimer(seatNo uint32) {
 	g.actionTimer.Pause()
 }
 
-func (g *Game) timerCallback(msg timer.TimerMsg) {
+func (g *Game) queueActionTimeoutMsg(msg timer.TimerMsg) {
 	g.chPlayTimedOut <- msg
 }
 
@@ -76,7 +76,7 @@ func (g *Game) handlePlayTimeout(timeoutMsg timer.TimerMsg) error {
 				},
 			},
 		}
-		g.SendHandMessage(&handMessage)
+		g.QueueHandMessage(&handMessage)
 	}
 
 	return nil
