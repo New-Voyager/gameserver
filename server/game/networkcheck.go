@@ -18,7 +18,7 @@ type playerPingState struct {
 type NetworkCheck struct {
 	gameID                 uint64
 	gameCode               string
-	chDestroy              chan bool
+	chEndLoop              chan bool
 	playerIDsToPing        atomic.Value // []uint64
 	pingTimeoutSec         uint32
 	pingStates             map[uint64]*playerPingState
@@ -35,7 +35,7 @@ func NewNetworkCheck(
 	n := NetworkCheck{
 		gameID:                 gameID,
 		gameCode:               gameCode,
-		chDestroy:              make(chan bool),
+		chEndLoop:              make(chan bool),
 		pingTimeoutSec:         uint32(util.GameServerEnvironment.GetPingTimeout()),
 		debugConnectivityCheck: util.GameServerEnvironment.ShouldDebugConnectivityCheck(),
 		messageReceiver:        messageReceiver,
@@ -48,7 +48,7 @@ func (n *NetworkCheck) Run() {
 }
 func (n *NetworkCheck) Destroy() {
 	go func() {
-		n.chDestroy <- true
+		n.chEndLoop <- true
 	}()
 }
 
@@ -57,7 +57,7 @@ func (n *NetworkCheck) loop() {
 	var currentPingSeq uint32
 	for {
 		select {
-		case <-n.chDestroy:
+		case <-n.chEndLoop:
 			return
 		default:
 			if paused {
