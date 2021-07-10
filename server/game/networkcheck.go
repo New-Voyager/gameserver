@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"voyager.com/server/util"
@@ -18,12 +19,11 @@ type NetworkCheck struct {
 	gameID                 uint64
 	gameCode               string
 	chDestroy              chan bool
-	playerIDsToPing        []uint64
+	playerIDsToPing        atomic.Value // []uint64
 	pingTimeoutSec         uint32
 	pingStates             map[uint64]*playerPingState
 	pingStatesLock         sync.Mutex
 	debugConnectivityCheck bool
-	lock                   sync.RWMutex
 	messageReceiver        *GameMessageReceiver
 }
 
@@ -36,7 +36,6 @@ func NewNetworkCheck(
 		gameID:                 gameID,
 		gameCode:               gameCode,
 		chDestroy:              make(chan bool),
-		playerIDsToPing:        make([]uint64, 0),
 		pingTimeoutSec:         uint32(util.GameServerEnvironment.GetPingTimeout()),
 		debugConnectivityCheck: util.GameServerEnvironment.ShouldDebugConnectivityCheck(),
 		messageReceiver:        messageReceiver,
@@ -73,15 +72,15 @@ func (n *NetworkCheck) loop() {
 }
 
 func (n *NetworkCheck) SetPlayerIDs(playerIDs []uint64) {
-	n.lock.Lock()
-	n.playerIDsToPing = playerIDs
-	n.lock.Unlock()
+	n.playerIDsToPing.Store(playerIDs)
 }
 
 func (n *NetworkCheck) getPlayerIDs() []uint64 {
-	n.lock.RLock()
-	playerIDs := n.playerIDsToPing
-	n.lock.RUnlock()
+	var playerIDs []uint64
+	v := n.playerIDsToPing.Load()
+	if v != nil {
+		playerIDs = v.([]uint64)
+	}
 	return playerIDs
 }
 
@@ -135,7 +134,7 @@ func (n *NetworkCheck) doPingCheck(pingSeq uint32, playerIDs []uint64) {
 		}
 	}()
 
-	// Announce the players who lost connectivity.
+	// Announce the players who did not respond.
 	if len(connLostPlayers) > 0 {
 		n.broadcastConnectivityLost(connLostPlayers)
 	}
@@ -150,7 +149,7 @@ func (n *NetworkCheck) broadcastPing(pingSeq uint32) error {
 	return nil
 }
 
-func (n *NetworkCheck) broadcastConnectivityLost(connectivityLostPlayers []uint64) {
+func (n *NetworkCheck) broadcastConnectivityLost(playerIDs []uint64) {
 	gameMessage := GameMessage{
 		MessageType: GamePlayerConnectivityLost,
 		GameId:      n.gameID,
@@ -158,7 +157,7 @@ func (n *NetworkCheck) broadcastConnectivityLost(connectivityLostPlayers []uint6
 	}
 	gameMessage.GameMessage = &GameMessage_NetworkConnectivity{
 		NetworkConnectivity: &GameNetworkConnectivityMessage{
-			PlayerIds: connectivityLostPlayers,
+			PlayerIds: playerIDs,
 		},
 	}
 	n.broadcastGameMessage(&gameMessage)
@@ -181,14 +180,14 @@ func (n *NetworkCheck) broadcastGameMessage(msg *GameMessage) error {
 }
 
 func (n *NetworkCheck) handlePongMessage(message *PingPongMessage) {
-	err := n.onPlayerPong(message)
+	err := n.onPlayerResponse(message)
 	if err != nil {
 		channelGameLogger.Error().Msgf("Error while processing pong message. Error: %s", err.Error())
 	}
 }
 
 // Triggered when a player response (pong) comes back.
-func (n *NetworkCheck) onPlayerPong(playerPongMsg *PingPongMessage) error {
+func (n *NetworkCheck) onPlayerResponse(playerPongMsg *PingPongMessage) error {
 	playerID := playerPongMsg.GetPlayerId()
 	pongSeq := playerPongMsg.GetSeq()
 	pongRecvTime := time.Now()
@@ -220,7 +219,7 @@ func (n *NetworkCheck) onPlayerPong(playerPongMsg *PingPongMessage) error {
 	return nil
 }
 
-func (n *NetworkCheck) broadcastConnectivityRestored(connectivityRestoredPlayers []uint64) {
+func (n *NetworkCheck) broadcastConnectivityRestored(playerIDs []uint64) {
 	gameMessage := GameMessage{
 		MessageType: GamePlayerConnectivityRestored,
 		GameId:      n.gameID,
@@ -228,7 +227,7 @@ func (n *NetworkCheck) broadcastConnectivityRestored(connectivityRestoredPlayers
 	}
 	gameMessage.GameMessage = &GameMessage_NetworkConnectivity{
 		NetworkConnectivity: &GameNetworkConnectivityMessage{
-			PlayerIds: connectivityRestoredPlayers,
+			PlayerIds: playerIDs,
 		},
 	}
 	n.broadcastGameMessage(&gameMessage)
