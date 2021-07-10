@@ -266,7 +266,7 @@ func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
 	}
 
 	messageHandled := false
-	if len(message.Messages) > 1 {
+	if len(message.Messages) >= 1 {
 		message1 := message.Messages[0]
 		if message1.MessageType == game.HandQueryCurrentHand {
 			n.onQueryHand(message.GameId, message.PlayerId, message.MessageId, message1)
