@@ -96,6 +96,7 @@ docker-build: compile-proto
 		rsync -avu --delete $(PROJECT_ROOT)/encryption/ build/encryption; \
 	fi
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t game-server
+	rm -rf build/
 
 .PHONY: create-network
 create-network:
@@ -157,7 +158,7 @@ publish: do-publish
 
 .PHONY: do-login
 do-login:
-	docker login --username 69bf6de23225d8abd358d7c5c2dac07d64a7f6c0bd97d5a5a974847269f99455 --password 69bf6de23225d8abd358d7c5c2dac07d64a7f6c0bd97d5a5a974847269f99455 registry.digitalocean.com
+	@docker login -u 69bf6de23225d8abd358d7c5c2dac07d64a7f6c0bd97d5a5a974847269f99455 -p 69bf6de23225d8abd358d7c5c2dac07d64a7f6c0bd97d5a5a974847269f99455 registry.digitalocean.com
 
 .PHONY: do-publish
 do-publish: export REGISTRY=$(DO_REGISTRY)

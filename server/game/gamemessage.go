@@ -27,9 +27,6 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 	case GameDealHand:
 		g.onDealHand(message)
 
-	case GameJoin:
-		g.onJoinGame(message)
-
 	case GameMoveToNextHand:
 		g.onMoveToNextHand(message)
 
@@ -38,9 +35,6 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 
 	case GetHandLog:
 		g.onGetHandLog(message)
-
-	case GameStart:
-		break
 
 	case GameCurrentStatus:
 		g.onStatusUpdate(message)
@@ -155,10 +149,10 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 	// if there are no pending updates, deal next hand
 
 	// check any pending updates
-	pendingUpdates, _ := anyPendingUpdates(g.apiServerUrl, g.config.GameId, g.delays.PendingUpdatesRetry)
+	pendingUpdates, _ := anyPendingUpdates(g.apiServerURL, g.config.GameId, g.delays.PendingUpdatesRetry)
 	if pendingUpdates {
 		g.inProcessPendingUpdates = true
-		go processPendingUpdates(g.apiServerUrl, g.config.GameId)
+		go processPendingUpdates(g.apiServerURL, g.config.GameId)
 	} else {
 		err := g.moveAPIServerToNextHand(handState.HandNum)
 		for err != nil {
@@ -226,12 +220,6 @@ func (g *Game) broadcastTableState() error {
 	if *g.messageReceiver != nil {
 		(*g.messageReceiver).BroadcastGameMessage(&gameMessage)
 	}
-	return nil
-}
-
-func (g *Game) onJoinGame(message *GameMessage) error {
-	joinMessage := message.GetJoinGame()
-	g.players[joinMessage.PlayerId] = joinMessage.Name
 	return nil
 }
 

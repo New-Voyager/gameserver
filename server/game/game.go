@@ -18,6 +18,7 @@ import (
 	"voyager.com/server/crashtest"
 	"voyager.com/server/internal/encryptionkey"
 	"voyager.com/server/poker"
+	"voyager.com/server/timer"
 	"voyager.com/server/util"
 )
 
@@ -35,26 +36,21 @@ type GameMessageReceiver interface {
 	SendGameMessageToPlayer(message *GameMessage, playerID uint64)
 }
 type Game struct {
-	isScriptTest        bool
-	manager             *Manager
-	end                 chan bool
-	stopNetworkCheck    chan bool
-	running             bool
-	chHand              chan []byte
-	chGame              chan []byte
-	chPong              chan []byte
-	chPlayTimedOut      chan timerMsg
-	chResetTimer        chan timerMsg
-	chPauseTimer        chan bool
-	allPlayers          map[uint64]*Player   // players at the table and the players that are viewing
-	messageReceiver     *GameMessageReceiver // receives messages
-	actionTimeStart     time.Time
-	players             map[uint64]string
-	RemainingActionTime uint32
-	apiServerUrl        string
+	manager          *Manager
+	end              chan bool
+	stopNetworkCheck chan bool
+	running          bool
+	chHand           chan []byte
+	chGame           chan []byte
+	chPong           chan []byte
+	chPlayTimedOut   chan timer.TimerMsg
+	messageReceiver  *GameMessageReceiver // receives messages
+	apiServerURL     string
+
 	// test driver specific variables
-	autoDeal    bool
-	prevHandNum uint32
+	isScriptTest          bool
+	scriptTestPrevHandNum uint32
+	scriptTestPlayers     map[uint64]*Player // players at the table and the players that are viewing
 
 	handSetupPersist *RedisHandsSetupTracker
 
@@ -62,7 +58,6 @@ type Game struct {
 	config                  *GameConfig
 	delays                  Delays
 	lock                    sync.Mutex
-	timerSeatNo             uint32
 	PlayersInSeats          []SeatPlayer
 	Status                  GameStatus
 	TableStatus             TableStatus
@@ -77,6 +72,7 @@ type Game struct {
 	pingStatesLock         sync.Mutex
 	debugConnectivityCheck bool
 
+	actionTimer        *timer.ActionTimer
 	db                 *sqlx.DB
 	encryptionKeyCache *encryptionkey.Cache
 }
@@ -87,7 +83,6 @@ func NewPokerGame(
 	messageReceiver *GameMessageReceiver,
 	config *GameConfig,
 	delays Delays,
-	autoDeal bool,
 	handStatePersist PersistHandState,
 	handSetupPersist *RedisHandsSetupTracker,
 	apiServerURL string,
@@ -104,26 +99,23 @@ func NewPokerGame(
 		messageReceiver:        messageReceiver,
 		config:                 config,
 		delays:                 delays,
-		autoDeal:               autoDeal,
 		handSetupPersist:       handSetupPersist,
-		apiServerUrl:           apiServerURL,
+		apiServerURL:           apiServerURL,
 		retryDelayMillis:       500,
 		pingTimeoutSec:         uint32(util.GameServerEnvironment.GetPingTimeout()),
 		debugConnectivityCheck: util.GameServerEnvironment.ShouldDebugConnectivityCheck(),
 		db:                     db,
 		encryptionKeyCache:     cache,
 	}
-	g.allPlayers = make(map[uint64]*Player)
+	g.scriptTestPlayers = make(map[uint64]*Player)
 	g.chGame = make(chan []byte)
 	g.chHand = make(chan []byte, 1)
 	g.chPong = make(chan []byte, 100)
-	g.chPlayTimedOut = make(chan timerMsg)
-	g.chResetTimer = make(chan timerMsg)
-	g.chPauseTimer = make(chan bool)
 	g.end = make(chan bool)
 	g.stopNetworkCheck = make(chan bool)
-	g.players = make(map[uint64]string)
 	g.pingStates = make(map[uint64]*playerPingState)
+	g.actionTimer = timer.NewActionTimer(g.timerCallback)
+	g.chPlayTimedOut = make(chan timer.TimerMsg)
 
 	playerConfig := make(map[uint64]PlayerConfigUpdate)
 	g.playerConfig.Store(playerConfig)
@@ -139,12 +131,6 @@ func (g *Game) playersInSeatsCount() int {
 }
 
 func (g *Game) runGame() {
-	stopTimerLoop := make(chan bool)
-	defer func() {
-		stopTimerLoop <- true
-	}()
-	go g.timerLoop(stopTimerLoop, g.chPauseTimer)
-
 	ended := false
 	for !ended {
 		if !g.running {
@@ -239,7 +225,7 @@ func (g *Game) startGame() (bool, error) {
 	var numActivePlayers int
 	if !g.isScriptTest {
 		// Get game config.
-		gameConfig, err := g.getGameInfo(g.apiServerUrl, g.config.GameCode, g.retryDelayMillis)
+		gameConfig, err := g.getGameInfo(g.apiServerURL, g.config.GameCode, g.retryDelayMillis)
 		if err != nil {
 			return false, err
 		}
@@ -313,7 +299,7 @@ func (g *Game) startGame() (bool, error) {
 	gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: g.Status, TableStatus: g.TableStatus}}
 	g.broadcastGameMessage(&gameMessage)
 
-	if g.autoDeal {
+	if !g.isScriptTest {
 		err := g.moveAPIServerToNextHand(0)
 		for err != nil {
 			channelGameLogger.Error().Msg(err.Error())
@@ -396,7 +382,7 @@ func (g *Game) dealNewHand() error {
 	var buttonPos uint32
 	var sbPos uint32
 	var bbPos uint32
-	newHandNum := g.prevHandNum + 1
+	var newHandNum uint32
 	var newHandInfo *NewHandInfo
 	var pauseBeforeHand uint32
 	var err error
@@ -510,6 +496,7 @@ func (g *Game) dealNewHand() error {
 		g.config.BigBlind = float64(newHandInfo.BigBlind)
 	} else {
 		// We're in a script test (no api server).
+		newHandNum = g.scriptTestPrevHandNum + 1
 
 		// assign the button pos to the first guy in the list
 		for _, player := range g.PlayersInSeats {
@@ -530,7 +517,7 @@ func (g *Game) dealNewHand() error {
 	handState = &HandState{
 		ClubId:        g.config.ClubId,
 		GameId:        g.config.GameId,
-		HandNum:       uint32(newHandNum),
+		HandNum:       newHandNum,
 		GameType:      gameType,
 		CurrentState:  HandStatus_DEAL,
 		HandStartedAt: uint64(time.Now().Unix()),
@@ -538,11 +525,13 @@ func (g *Game) dealNewHand() error {
 
 	handState.initialize(g.config, handSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
 
-	channelGameLogger.Trace().
-		Uint32("club", g.config.ClubId).
-		Str("game", g.config.GameCode).
-		Uint32("hand", handState.HandNum).
-		Msg(fmt.Sprintf("Table: %s", handState.PrintTable(g.players)))
+	if g.isScriptTest {
+		channelGameLogger.Trace().
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
+			Uint32("hand", handState.HandNum).
+			Msg(fmt.Sprintf("Table: %s", handState.PrintTable(g.scriptTestPlayers)))
+	}
 
 	// send a new hand message to all players
 	newHand := NewHand{
@@ -647,14 +636,8 @@ func (g *Game) dealNewHand() error {
 				},
 			},
 		}
-		b, _ := proto.Marshal(&handMessage)
 
-		if *g.messageReceiver != nil {
-			(*g.messageReceiver).SendHandMessageToPlayer(&handMessage, player.PlayerID)
-
-		} else {
-			g.allPlayers[player.PlayerID].chHand <- b
-		}
+		g.sendHandMessageToPlayer(&handMessage, player.PlayerID)
 
 		crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_4, 0)
 	}
@@ -726,7 +709,7 @@ func (g *Game) broadcastHandMessage(message *HandMessage) {
 		(*g.messageReceiver).BroadcastHandMessage(message)
 	} else {
 		b, _ := proto.Marshal(message)
-		for _, player := range g.allPlayers {
+		for _, player := range g.scriptTestPlayers {
 			player.chHand <- b
 		}
 	}
@@ -738,7 +721,7 @@ func (g *Game) broadcastGameMessage(message *GameMessage) {
 		(*g.messageReceiver).BroadcastGameMessage(message)
 	} else {
 		b, _ := proto.Marshal(message)
-		for _, player := range g.allPlayers {
+		for _, player := range g.scriptTestPlayers {
 			player.chGame <- b
 		}
 	}
@@ -773,7 +756,7 @@ func (g *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint64) {
 	if *g.messageReceiver != nil {
 		(*g.messageReceiver).SendHandMessageToPlayer(message, playerID)
 	} else {
-		player := g.allPlayers[playerID]
+		player := g.scriptTestPlayers[playerID]
 		if player == nil {
 			return
 		}
@@ -792,7 +775,7 @@ func (g *Game) BroadcastPingMessage(message *PingPongMessage) {
 func (g *Game) addPlayer(player *Player, buyIn float32) error {
 	g.lock.Lock()
 	defer g.lock.Unlock()
-	g.allPlayers[player.PlayerID] = player
+	g.scriptTestPlayers[player.PlayerID] = player
 
 	// add the player to playerSeatInfos
 	g.PlayersInSeats[int(player.SeatNo)] = SeatPlayer{
@@ -915,6 +898,7 @@ func (g *Game) GameEnded() error {
 	g.removeHandState()
 	g.end <- true
 	g.stopNetworkCheck <- true
+	g.actionTimer.Destroy()
 	return nil
 }
 
@@ -944,4 +928,8 @@ func (g *Game) EncryptAndB64ForPlayer(data []byte, playerID uint64) (string, err
 		return "", err
 	}
 	return encryption.B64EncodeToString(encryptedData), nil
+}
+
+func (g *Game) GetRemainingActionTime() uint32 {
+	return g.actionTimer.GetRemainingSec()
 }

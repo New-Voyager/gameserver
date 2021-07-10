@@ -111,7 +111,7 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 		config.ActionTime = 20
 	}
 
-	serverGame, gameID, err := game.GameManager.InitializeGame(natsGame, config, true)
+	serverGame, gameID, err := game.GameManager.InitializeGame(natsGame, config)
 	if err != nil {
 		return nil, err
 	}
@@ -395,7 +395,7 @@ func (n *NatsGame) onQueryHand(gameId uint64, playerId uint64, messageId string,
 
 	if bettingInProgress && handState.NextSeatAction != nil {
 		currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
-		currentHandState.RemainingActionTime = n.serverGame.RemainingActionTime
+		currentHandState.RemainingActionTime = n.serverGame.GetRemainingActionTime()
 		currentHandState.NextSeatAction = handState.NextSeatAction
 	}
 	currentHandState.PlayersStack = make(map[uint64]float32, 0)

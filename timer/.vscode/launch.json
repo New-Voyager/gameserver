@@ -21,7 +21,7 @@
                 "POSTGRES_DB": "game",
                 "POSTGRES_USER": "game",
                 "POSTGRES_PASSWORD": "game"
-              }            
+            }
         }
     ]
 }
