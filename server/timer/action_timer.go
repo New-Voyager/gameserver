@@ -20,7 +20,7 @@ type TimerMsg struct {
 type ActionTimer struct {
 	chReset   chan TimerMsg
 	chPause   chan bool
-	chDestroy chan bool
+	chEndLoop chan bool
 
 	callback        func(TimerMsg)
 	currentTimerMsg TimerMsg
@@ -33,11 +33,20 @@ func NewActionTimer(callback func(TimerMsg)) *ActionTimer {
 	at := ActionTimer{
 		chReset:   make(chan TimerMsg),
 		chPause:   make(chan bool),
-		chDestroy: make(chan bool),
+		chEndLoop: make(chan bool),
 		callback:  callback,
 	}
-	go at.loop()
 	return &at
+}
+
+func (a *ActionTimer) Run() {
+	go a.loop()
+}
+
+func (a *ActionTimer) Destroy() {
+	go func() {
+		a.chEndLoop <- true
+	}()
 }
 
 func (a *ActionTimer) loop() {
@@ -45,7 +54,7 @@ func (a *ActionTimer) loop() {
 	paused := true
 	for {
 		select {
-		case <-a.chDestroy:
+		case <-a.chEndLoop:
 			return
 		case <-a.chPause:
 			paused = true
@@ -96,12 +105,6 @@ func (a *ActionTimer) Reset(t TimerMsg) error {
 	a.lastResetAt = time.Now()
 	a.chReset <- t
 	return nil
-}
-
-func (a *ActionTimer) Destroy() {
-	go func() {
-		a.chDestroy <- true
-	}()
 }
 
 func (a *ActionTimer) GetElapsedTime() time.Duration {
