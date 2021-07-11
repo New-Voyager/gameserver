@@ -8,7 +8,7 @@ import (
 
 type Manager struct {
 	isScriptTest     bool
-	apiServerUrl     string
+	apiServerURL     string
 	delays           Delays
 	handStatePersist PersistHandState
 	handSetupPersist *RedisHandsSetupTracker
@@ -16,10 +16,10 @@ type Manager struct {
 	db               *sqlx.DB
 }
 
-func NewGameManager(isScriptTest bool, apiServerUrl string, handPersist PersistHandState, handSetupPersist *RedisHandsSetupTracker, db *sqlx.DB, delays Delays) (*Manager, error) {
+func NewGameManager(isScriptTest bool, apiServerURL string, handPersist PersistHandState, handSetupPersist *RedisHandsSetupTracker, db *sqlx.DB, delays Delays) (*Manager, error) {
 	return &Manager{
 		isScriptTest:     isScriptTest,
-		apiServerUrl:     apiServerUrl,
+		apiServerURL:     apiServerURL,
 		delays:           delays,
 		handStatePersist: handPersist,
 		handSetupPersist: handSetupPersist,
@@ -28,18 +28,17 @@ func NewGameManager(isScriptTest bool, apiServerUrl string, handPersist PersistH
 	}, nil
 }
 
-func (gm *Manager) InitializeGame(messageReceiver GameMessageReceiver, config *GameConfig, autoDeal bool) (*Game, uint64, error) {
+func (gm *Manager) InitializeGame(messageSender MessageSender, config *GameConfig) (*Game, uint64, error) {
 	gameIDStr := fmt.Sprintf("%d", config.GameId)
 	game, err := NewPokerGame(
 		gm.isScriptTest,
 		gm,
-		&messageReceiver,
+		&messageSender,
 		config,
 		gm.delays,
-		autoDeal,
 		gm.handStatePersist,
 		gm.handSetupPersist,
-		gm.apiServerUrl,
+		gm.apiServerURL,
 		gm.db)
 	gm.activeGames[gameIDStr] = game
 

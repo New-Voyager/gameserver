@@ -370,7 +370,7 @@ func (p *Player) JoinGame(gameID uint64, seatNo uint32, buyIn float32, runItTwic
 	p.RunItTwice = runItTwice
 	p.RunItTwicePromptResponse = runItTwicePromptResponse
 	game, _ := GameManager.activeGames[gameIDStr]
-	game.addPlayer(p, buyIn, postBlind)
+	game.addScriptTestPlayer(p, buyIn, postBlind)
 	p.game = game
 
 	// start listenting for game/hand events

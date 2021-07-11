@@ -7,7 +7,7 @@ import (
 	"voyager.com/server/poker"
 )
 
-func (h *HandState) PrintTable(players map[uint64]string) string {
+func (h *HandState) PrintTable(players map[uint64]*Player) string {
 	var b strings.Builder
 	b.Grow(32)
 	fmt.Fprintf(&b, "Game ID: %d Hand Num: %d, Seats: [", h.GameId, h.HandNum)
@@ -26,13 +26,13 @@ func (h *HandState) PrintTable(players map[uint64]string) string {
 			playerCards, _ := h.PlayersCards[uint32(seatNo)]
 			cardString := poker.CardsToString(playerCards)
 			if uint32(seatNo) == h.ButtonPos {
-				fmt.Fprintf(&b, " {%d: %s, %f, %s, BUTTON} ", seatNo, player, playerState.Stack, cardString)
+				fmt.Fprintf(&b, " {%d: %s, %f, %s, BUTTON} ", seatNo, player.PlayerName, playerState.Stack, cardString)
 			} else if uint32(seatNo) == h.SmallBlindPos {
-				fmt.Fprintf(&b, " {%d: %s, %f, %s, SB} ", seatNo, player, playerState.Stack, cardString)
+				fmt.Fprintf(&b, " {%d: %s, %f, %s, SB} ", seatNo, player.PlayerName, playerState.Stack, cardString)
 			} else if uint32(seatNo) == h.BigBlindPos {
-				fmt.Fprintf(&b, " {%d: %s, %f, %s, BB} ", seatNo, player, playerState.Stack, cardString)
+				fmt.Fprintf(&b, " {%d: %s, %f, %s, BB} ", seatNo, player.PlayerName, playerState.Stack, cardString)
 			} else {
-				fmt.Fprintf(&b, " {%d: %s, %f, %s} ", seatNo, player, playerState.Stack, cardString)
+				fmt.Fprintf(&b, " {%d: %s, %f, %s} ", seatNo, player.PlayerName, playerState.Stack, cardString)
 			}
 		}
 	}

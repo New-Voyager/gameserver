@@ -111,7 +111,7 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 		config.ActionTime = 20
 	}
 
-	serverGame, gameID, err := game.GameManager.InitializeGame(natsGame, config, true)
+	serverGame, gameID, err := game.GameManager.InitializeGame(natsGame, config)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func (n *NatsGame) gameStatusChanged(gameID uint64, newStatus GameStatus) {
 	statusChangeMessage.MessageType = game.GameStatusChanged
 	statusChangeMessage.GameMessage = &game.GameMessage_StatusChange{StatusChange: &game.GameStatusChangeMessage{NewStatus: newStatus.GameStatus}}
 
-	n.serverGame.SendGameMessageToChannel(&statusChangeMessage)
+	n.serverGame.QueueGameMessage(&statusChangeMessage)
 	n.BroadcastGameMessage(&statusChangeMessage)
 
 	var message game.GameMessage
@@ -187,10 +187,10 @@ func (n *NatsGame) pendingUpdatesDone(gameStatus game.GameStatus, tableStatus ga
 
 		status := &game.GameStatusMessage{Status: gameStatus, TableStatus: tableStatus}
 		message.GameMessage = &game.GameMessage_Status{Status: status}
-		n.serverGame.SendGameMessageToChannel(&message)
+		n.serverGame.QueueGameMessage(&message)
 		message.MessageType = game.GamePendingUpdatesDone
 		message.GameMessage = nil
-		n.serverGame.SendGameMessageToChannel(&message)
+		n.serverGame.QueueGameMessage(&message)
 	}()
 }
 
@@ -236,7 +236,7 @@ func (n *NatsGame) setupHand(handSetup HandSetup) {
 	message.MessageType = game.GameSetupNextHand
 	message.GameMessage = &game.GameMessage_NextHand{NextHand: nextHandSetup}
 
-	n.serverGame.SendGameMessageToChannel(&message)
+	n.serverGame.QueueGameMessage(&message)
 }
 
 // messages sent from player to game
@@ -252,7 +252,7 @@ func (n *NatsGame) player2Game(msg *natsgo.Msg) {
 		return
 	}
 
-	n.serverGame.SendGameMessageToChannel(&message)
+	n.serverGame.QueueGameMessage(&message)
 }
 
 // messages sent from player to game hand
@@ -274,7 +274,7 @@ func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
 		}
 	}
 	if !messageHandled {
-		n.serverGame.SendHandMessage(&message)
+		n.serverGame.QueueHandMessage(&message)
 	}
 }
 
@@ -398,7 +398,7 @@ func (n *NatsGame) onQueryHand(gameId uint64, playerId uint64, messageId string,
 
 	if bettingInProgress && handState.NextSeatAction != nil {
 		currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
-		currentHandState.RemainingActionTime = n.serverGame.RemainingActionTime
+		currentHandState.RemainingActionTime = n.serverGame.GetRemainingActionTime()
 		currentHandState.NextSeatAction = handState.NextSeatAction
 	}
 	currentHandState.PlayersStack = make(map[uint64]float32, 0)
@@ -441,7 +441,7 @@ func (n *NatsGame) player2Pong(msg *natsgo.Msg) {
 		return
 	}
 
-	n.serverGame.SendPongMessage(&message)
+	n.serverGame.HandlePongMessage(&message)
 }
 
 func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
@@ -555,7 +555,7 @@ func (n *NatsGame) getHandLog() *map[string]interface{} {
 	message.GameCode = n.gameCode
 	message.MessageType = game.GetHandLog
 
-	n.serverGame.SendGameMessageToChannel(&message)
+	n.serverGame.QueueGameMessage(&message)
 	resp := <-n.chManageGame
 	var gameMessage game.GameMessage
 	protojson.Unmarshal(resp, &gameMessage)
@@ -638,6 +638,6 @@ func (n *NatsGame) playerConfigUpdate(update *PlayerConfigUpdate) error {
 			RunItTwicePrompt: update.RunItTwicePrompt,
 		},
 	}
-	n.serverGame.SendGameMessageToChannel(message)
+	n.serverGame.QueueGameMessage(message)
 	return nil
 }

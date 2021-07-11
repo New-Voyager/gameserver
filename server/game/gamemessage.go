@@ -27,9 +27,6 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 	case GameDealHand:
 		g.onDealHand(message)
 
-	case GameJoin:
-		g.onJoinGame(message)
-
 	case GameMoveToNextHand:
 		g.onMoveToNextHand(message)
 
@@ -38,9 +35,6 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 
 	case GetHandLog:
 		g.onGetHandLog(message)
-
-	case GameStart:
-		break
 
 	case GameCurrentStatus:
 		g.onStatusUpdate(message)
@@ -78,7 +72,7 @@ func (g *Game) onGetHandLog(message *GameMessage) error {
 	handState, err := g.loadHandState()
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			go g.sendGameMessageToReceiver(gameMessage)
+			go g.sendGameMessageToPlayer(gameMessage)
 			return nil
 		}
 		return err
@@ -88,7 +82,7 @@ func (g *Game) onGetHandLog(message *GameMessage) error {
 		return err
 	}
 	gameMessage.GameMessage = &GameMessage_HandLog{HandLog: logData}
-	go g.sendGameMessageToReceiver(gameMessage)
+	go g.sendGameMessageToPlayer(gameMessage)
 	return nil
 }
 
@@ -116,7 +110,7 @@ func (g *Game) onPendingUpdatesDone(message *GameMessage) error {
 			GameId:      g.config.GameId,
 			MessageType: GameDealHand,
 		}
-		go g.SendGameMessageToChannel(gameMessage)
+		go g.QueueGameMessage(gameMessage)
 	}
 	return nil
 }
@@ -155,10 +149,10 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 	// if there are no pending updates, deal next hand
 
 	// check any pending updates
-	pendingUpdates, _ := anyPendingUpdates(g.apiServerUrl, g.config.GameId, g.delays.PendingUpdatesRetry)
+	pendingUpdates, _ := anyPendingUpdates(g.apiServerURL, g.config.GameId, g.delays.PendingUpdatesRetry)
 	if pendingUpdates {
 		g.inProcessPendingUpdates = true
-		go processPendingUpdates(g.apiServerUrl, g.config.GameId)
+		go processPendingUpdates(g.apiServerURL, g.config.GameId)
 	} else {
 		err := g.moveAPIServerToNextHand(handState.HandNum)
 		for err != nil {
@@ -175,7 +169,7 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 			MessageType: GameDealHand,
 		}
 		crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_HAND_3, 0)
-		go g.SendGameMessageToChannel(gameMessage)
+		go g.QueueGameMessage(gameMessage)
 		crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_HAND_4, 0)
 	}
 
@@ -223,15 +217,9 @@ func (g *Game) broadcastTableState() error {
 	gameMessage.MessageType = GameTableState
 	gameMessage.GameMessage = &GameMessage_TableState{TableState: gameTableState}
 
-	if *g.messageReceiver != nil {
-		(*g.messageReceiver).BroadcastGameMessage(&gameMessage)
+	if *g.messageSender != nil {
+		(*g.messageSender).BroadcastGameMessage(&gameMessage)
 	}
-	return nil
-}
-
-func (g *Game) onJoinGame(message *GameMessage) error {
-	joinMessage := message.GetJoinGame()
-	g.players[joinMessage.PlayerId] = joinMessage.Name
 	return nil
 }
 

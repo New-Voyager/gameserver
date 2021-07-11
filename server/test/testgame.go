@@ -60,7 +60,7 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	gameScript.gameScript.GameConfig.GameType = gameType
 	gameScript.gameScript.GameConfig.GameId = uint64(now)
 
-	serverGame, gameID, err := game.GameManager.InitializeGame(nil, &gameScript.gameScript.GameConfig, false)
+	serverGame, gameID, err := game.GameManager.InitializeGame(nil, &gameScript.gameScript.GameConfig)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -92,7 +92,7 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	}, observer, nil
 }
 
-func (t *TestGame) Start(playerAtSeats []game.PlayerSeat) {
+func (t *TestGame) PopulateSeats(playerAtSeats []game.PlayerSeat) {
 	for _, testPlayer := range playerAtSeats {
 		t.players[testPlayer.Player].joinGame(t.gameID, testPlayer.SeatNo, testPlayer.BuyIn,
 			testPlayer.RunItTwice, testPlayer.RunItTwicePromptResponse,
@@ -109,9 +109,6 @@ func (t *TestGame) Observer() *TestPlayer {
 	return t.observer
 }
 
-func (o *TestPlayer) startGame(clubID uint32, gameID uint64) error {
-	return o.player.StartGame(clubID, gameID)
-}
 
 func (o *TestPlayer) setupNextHand(handNum uint32, handSetup game.HandSetup) error {
 	return o.player.SetupNextHand(handNum, handSetup)

@@ -46,4 +46,6 @@ replace voyager.com/server/apiserver => ./apiserver
 
 replace voyager.com/server/rest => ./rest
 
+replace voyager.com/server/timer => ./timer
+
 replace voyager.com/encryption => ../encryption
