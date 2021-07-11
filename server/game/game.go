@@ -343,7 +343,7 @@ func (g *Game) NumCards(gameType GameType) uint32 {
 
 func (g *Game) dealNewHand() error {
 	var handState *HandState
-	var handSetup *TestHandSetup
+	var testHandSetup *TestHandSetup
 	var buttonPos uint32
 	var sbPos uint32
 	var bbPos uint32
@@ -357,11 +357,10 @@ func (g *Game) dealNewHand() error {
 	gameType := g.config.GameType
 	playersInSeats := make(map[uint32]*PlayerInSeatState)
 
-	testHandsSetup, err := g.handSetupPersist.Load(g.config.GameCode)
+	v, err := g.handSetupPersist.Load(g.config.GameCode)
 	if err == nil {
-		handSetup = testHandsSetup
+		testHandSetup = v
 	}
-	pauseBeforeHand = handSetup.Pause
 
 	if !g.isScriptTest {
 		// we are not running tests
@@ -475,8 +474,11 @@ func (g *Game) dealNewHand() error {
 		bbPos = 0
 	}
 
-	if handSetup != nil && handSetup.ButtonPos > 0 {
-		buttonPos = handSetup.ButtonPos
+	if testHandSetup != nil {
+		pauseBeforeHand = testHandSetup.Pause
+		if testHandSetup.ButtonPos > 0 {
+			buttonPos = testHandSetup.ButtonPos
+		}
 	}
 
 	handState = &HandState{
@@ -488,7 +490,7 @@ func (g *Game) dealNewHand() error {
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
 
-	handState.initialize(g.config, handSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
+	handState.initialize(g.config, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
 
 	if !g.isScriptTest {
 		var playerIDs []uint64
