@@ -164,6 +164,8 @@ func (h *HandState) initialize(gameConfig *GameConfig, handSetup *TestHandSetup,
 	}
 
 	h.BalanceBeforeHand = make([]*PlayerBalance, 0)
+	postedBlinds := make([]uint32, 0)
+
 	// also populate current balance of the players in the table
 	for seatNo, player := range h.PlayersInSeats {
 		if player == 0 {
@@ -173,6 +175,9 @@ func (h *HandState) initialize(gameConfig *GameConfig, handSetup *TestHandSetup,
 		playerInSeat := playersInSeats[seatNo]
 		if playerInSeat.Status != PlayerStatus_PLAYING {
 			continue
+		}
+		if playerInSeat.PostedBlind {
+			postedBlinds = append(postedBlinds, playerInSeat.SeatNo)
 		}
 		h.BalanceBeforeHand = append(h.BalanceBeforeHand,
 			&PlayerBalance{SeatNo: playerInSeat.SeatNo, PlayerId: playerInSeat.PlayerID, Balance: playerInSeat.Stack})
@@ -216,7 +221,7 @@ func (h *HandState) initialize(gameConfig *GameConfig, handSetup *TestHandSetup,
 	h.initializeBettingRound()
 
 	// setup hand for preflop
-	h.setupPreflop()
+	h.setupPreflop(postedBlinds)
 }
 
 func (h *HandState) copyPlayersState(maxSeats uint32, playersInSeats []SeatPlayer) map[uint64]*PlayerInSeatState {
@@ -276,7 +281,7 @@ func (h *HandState) setupRound(state HandStatus) {
 	}
 }
 
-func (h *HandState) setupPreflop() {
+func (h *HandState) setupPreflop(postedBlinds []uint32) {
 	h.CurrentState = HandStatus_PREFLOP
 
 	// set next action information
@@ -291,6 +296,14 @@ func (h *HandState) setupPreflop() {
 	// add antes here
 	h.PreflopActions.PotStart = 0
 	h.setupRound(HandStatus_PREFLOP)
+
+	for _, seatNo := range postedBlinds {
+		h.actionReceived(&HandAction{
+			SeatNo: seatNo,
+			Action: ACTION_POST_BLIND,
+			Amount: h.BigBlind,
+		}, 0)
+	}
 
 	h.actionReceived(&HandAction{
 		SeatNo: h.SmallBlindPos,
@@ -653,6 +666,23 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 	if action.Action == ACTION_BB {
 		straddleAvailable = true
 	}
+
+	if action.Action == ACTION_POST_BLIND {
+		// handle posting blind as special
+		amount := action.Amount
+		if amount > playerBalance {
+			amount = playerBalance
+		}
+		bettingState.PlayerBalance[action.SeatNo] = bettingState.PlayerBalance[action.SeatNo] - amount
+		h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_POST_BLIND, amount)
+		action.Stack = bettingState.PlayerBalance[action.SeatNo]
+		action.ActionTime = uint32(actionResponseTime)
+		bettingRound.SeatBet[int(action.SeatNo)] = amount
+		// add the action to the log
+		log.Actions = append(log.Actions, action)
+		return nil
+	}
+
 	amount := action.Amount
 	if action.Action == ACTION_ALLIN {
 		amount = bettingState.PlayerBalance[action.SeatNo] + playerBetSoFar

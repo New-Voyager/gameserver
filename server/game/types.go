@@ -87,6 +87,7 @@ type PlayerSeat struct {
 	BuyIn                    float32 `yaml:"buy-in"`
 	RunItTwice               bool    `yaml:"run-it-twice"`
 	RunItTwicePromptResponse bool    `yaml:"run-it-twice-prompt"`
+	PostBlind                bool    `yaml:"post-blind"`
 }
 
 type SeatVerification struct {
@@ -305,6 +306,7 @@ type SeatPlayer struct {
 	BreakTimeExpAt   string
 	MuckLosingHand   bool
 	RunItTwicePrompt bool
+	PostedBlind      bool
 }
 
 /*

@@ -508,6 +508,14 @@ func (g *Game) dealNewHand() error {
 			Msg(fmt.Sprintf("Table: %s", handState.PrintTable(g.scriptTestPlayers)))
 	}
 
+	playersActed := make(map[uint32]*PlayerActRound, 0)
+	for seatNo, action := range handState.GetPlayersActed() {
+		if action.State == PlayerActState_PLAYER_ACT_EMPTY_SEAT {
+			continue
+		}
+		playersActed[uint32(seatNo)] = action
+	}
+
 	// send a new hand message to all players
 	newHand := NewHand{
 		HandNum:        handState.HandNum,
@@ -523,6 +531,7 @@ func (g *Game) dealNewHand() error {
 		Straddle:       handState.Straddle,
 		Pause:          pauseBeforeHand,
 		PlayersInSeats: playersInSeats,
+		PlayersActed:   playersActed,
 	}
 
 	handMessage := HandMessage{
@@ -738,22 +747,32 @@ func (g *Game) HandlePongMessage(message *PingPongMessage) {
 	g.networkCheck.handlePongMessage(message)
 }
 
-func (g *Game) addScriptTestPlayer(player *Player, buyIn float32) error {
+func (g *Game) addScriptTestPlayer(player *Player, buyIn float32, postBlind bool) error {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 	g.scriptTestPlayers[player.PlayerID] = player
 
 	// add the player to playerSeatInfos
 	g.PlayersInSeats[int(player.SeatNo)] = SeatPlayer{
-		Name:       player.PlayerName,
-		PlayerID:   player.PlayerID,
-		PlayerUUID: fmt.Sprintf("%d", player.PlayerID),
-		Status:     PlayerStatus_PLAYING,
-		Stack:      buyIn,
-		OpenSeat:   false,
-		SeatNo:     player.SeatNo,
+		Name:        player.PlayerName,
+		PlayerID:    player.PlayerID,
+		PlayerUUID:  fmt.Sprintf("%d", player.PlayerID),
+		Status:      PlayerStatus_PLAYING,
+		Stack:       buyIn,
+		OpenSeat:    false,
+		SeatNo:      player.SeatNo,
+		PostedBlind: postBlind,
 	}
 	return nil
+}
+
+func (g *Game) resetBlinds() {
+	playerInSeats := make([]SeatPlayer, 0)
+	for _, player := range g.PlayersInSeats {
+		player.PostedBlind = false
+		playerInSeats = append(playerInSeats, player)
+	}
+	g.PlayersInSeats = playerInSeats
 }
 
 func (g *Game) getPlayersAtTable() ([]*PlayerAtTableState, error) {
