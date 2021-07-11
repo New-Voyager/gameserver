@@ -73,6 +73,7 @@ type StartingSeat struct {
 	RunItTwicePromptResponse bool    `yaml:"run-it-twice-prompt"`
 	MuckLosingHand           bool    `yaml:"muck-losing-hand"`
 	Reload                   *bool   `yaml:"reload"`
+	PostBlind                bool    `yaml:"post-blind"`
 }
 
 // Observer contains entries of observers of game
@@ -148,6 +149,7 @@ type HandSetup struct {
 	LeaveGame  []LeaveGame          `yaml:"leave-game"`
 	WaitLists  []WaitList           `yaml:"wait-list"`
 	Pause      uint32               `yaml:"pause"` // bot runner pauses and waits before next hand
+	NewPlayers []StartingSeat       `yaml:"new-players"`
 }
 
 type PreDealSetup struct {
