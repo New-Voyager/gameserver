@@ -343,7 +343,7 @@ func (g *Game) NumCards(gameType GameType) uint32 {
 
 func (g *Game) dealNewHand() error {
 	var handState *HandState
-	var handSetup *TestHandSetup
+	var testHandSetup *TestHandSetup
 	var buttonPos uint32
 	var sbPos uint32
 	var bbPos uint32
@@ -357,11 +357,10 @@ func (g *Game) dealNewHand() error {
 	gameType := g.config.GameType
 	playersInSeats := make(map[uint32]*PlayerInSeatState)
 
-	testHandsSetup, err := g.handSetupPersist.Load(g.config.GameCode)
+	v, err := g.handSetupPersist.Load(g.config.GameCode)
 	if err == nil {
-		handSetup = testHandsSetup
+		testHandSetup = v
 	}
-	pauseBeforeHand = handSetup.Pause
 
 	if !g.isScriptTest {
 		// we are not running tests
@@ -479,8 +478,11 @@ func (g *Game) dealNewHand() error {
 		bbPos = 0
 	}
 
-	if handSetup != nil && handSetup.ButtonPos > 0 {
-		buttonPos = handSetup.ButtonPos
+	if testHandSetup != nil {
+		pauseBeforeHand = testHandSetup.Pause
+		if testHandSetup.ButtonPos > 0 {
+			buttonPos = testHandSetup.ButtonPos
+		}
 	}
 
 	handState = &HandState{
@@ -492,7 +494,7 @@ func (g *Game) dealNewHand() error {
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
 
-	handState.initialize(g.config, handSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
+	handState.initialize(g.config, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
 
 	if !g.isScriptTest {
 		var playerIDs []uint64
@@ -686,11 +688,6 @@ func (g *Game) loadHandState() (*HandState, error) {
 	return handState, err
 }
 
-func (g *Game) GetHandState() (*HandState, error) {
-	handState, err := g.manager.handStatePersist.Load(g.config.GameCode)
-	return handState, err
-}
-
 func (g *Game) broadcastHandMessage(message *HandMessage) {
 	message.GameCode = g.config.GameCode
 	if *g.messageSender != nil {
@@ -745,6 +742,151 @@ func (g *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint64) {
 		b, _ := proto.Marshal(message)
 		player.chHand <- b
 	}
+}
+
+func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
+	handState, err := g.loadHandState()
+	if err != nil || handState == nil ||
+		handState.HandNum == 0 ||
+		handState.CurrentState == HandStatus_HAND_CLOSED {
+		currentHandState := CurrentHandState{
+			HandNum: 0,
+		}
+		handStateMsg := &HandMessageItem{
+			MessageType: HandQueryCurrentHand,
+			Content:     &HandMessageItem_CurrentHandState{CurrentHandState: &currentHandState},
+		}
+		msgID := g.GenerateMsgID("CURRENT_HAND", 0, HandStatus_DEAL, playerID, messageID, 0)
+		if handState != nil {
+			msgID = g.GenerateMsgID("CURRENT_HAND", handState.HandNum, handState.CurrentState, playerID, messageID, handState.CurrentActionNum)
+		}
+		serverMsg := &HandMessage{
+			GameId:    g.config.GameId,
+			PlayerId:  playerID,
+			HandNum:   0,
+			MessageId: msgID,
+			Messages:  []*HandMessageItem{handStateMsg},
+		}
+		g.sendHandMessageToPlayer(serverMsg, playerID)
+		return nil
+	}
+
+	boardCards := make([]uint32, len(handState.BoardCards))
+	for i, card := range handState.BoardCards {
+		boardCards[i] = uint32(card)
+	}
+
+	pots := make([]float32, 0)
+	for _, pot := range handState.Pots {
+		pots = append(pots, pot.Pot)
+	}
+	currentPot := pots[len(pots)-1]
+	bettingInProgress := handState.CurrentState == HandStatus_PREFLOP ||
+		handState.CurrentState == HandStatus_FLOP ||
+		handState.CurrentState == HandStatus_TURN ||
+		handState.CurrentState == HandStatus_RIVER
+	if bettingInProgress {
+		currentRoundState, ok := handState.RoundState[uint32(handState.CurrentState)]
+		if !ok || currentRoundState == nil {
+			b, err := json.Marshal(handState)
+			if err != nil {
+				return fmt.Errorf("Unable to find current round state. currentRoundState: %+v. handState.CurrentState: %d handState.RoundState: %+v", currentRoundState, handState.CurrentState, handState.RoundState)
+			}
+			return fmt.Errorf("Unable to find current round state. handState: %s", string(b))
+		}
+		currentBettingRound := currentRoundState.Betting
+		for _, bet := range currentBettingRound.SeatBet {
+			currentPot = currentPot + bet
+		}
+	}
+
+	var boardCardsOut []uint32
+	switch handState.CurrentState {
+	case HandStatus_FLOP:
+		boardCardsOut = boardCards[:3]
+	case HandStatus_TURN:
+		boardCardsOut = boardCards[:4]
+
+	case HandStatus_RIVER:
+	case HandStatus_RESULT:
+	case HandStatus_SHOW_DOWN:
+		boardCardsOut = boardCards
+
+	default:
+		boardCardsOut = make([]uint32, 0)
+	}
+	cardsStr := poker.CardsToString(boardCardsOut)
+
+	currentHandState := CurrentHandState{
+		HandNum:       handState.HandNum,
+		GameType:      handState.GameType,
+		CurrentRound:  handState.CurrentState,
+		BoardCards:    boardCardsOut,
+		BoardCards_2:  nil,
+		CardsStr:      cardsStr,
+		Pots:          pots,
+		PotUpdates:    currentPot,
+		ButtonPos:     handState.ButtonPos,
+		SmallBlindPos: handState.SmallBlindPos,
+		BigBlindPos:   handState.BigBlindPos,
+		SmallBlind:    handState.SmallBlind,
+		BigBlind:      handState.BigBlind,
+		NoCards:       g.NumCards(handState.GameType),
+	}
+	currentHandState.PlayersActed = make(map[uint32]*PlayerActRound, 0)
+
+	var playerSeatNo uint32
+	for seatNo, pid := range handState.GetPlayersInSeats() {
+		if pid == playerID {
+			playerSeatNo = uint32(seatNo)
+			break
+		}
+	}
+
+	for seatNo, action := range handState.GetPlayersActed() {
+		if action.State == PlayerActState_PLAYER_ACT_EMPTY_SEAT {
+			continue
+		}
+		currentHandState.PlayersActed[uint32(seatNo)] = action
+	}
+
+	if playerSeatNo != 0 {
+		player := g.PlayersInSeats[playerSeatNo]
+		_, maskedCards := g.MaskCards(handState.GetPlayersCards()[playerSeatNo], player.GameTokenInt)
+		currentHandState.PlayerCards = fmt.Sprintf("%d", maskedCards)
+		currentHandState.PlayerSeatNo = playerSeatNo
+	}
+
+	if bettingInProgress && handState.NextSeatAction != nil {
+		currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
+		currentHandState.RemainingActionTime = g.GetRemainingActionTime()
+		currentHandState.NextSeatAction = handState.NextSeatAction
+	}
+	currentHandState.PlayersStack = make(map[uint64]float32, 0)
+	playerState := handState.GetPlayersState()
+	for seatNo, playerID := range handState.GetPlayersInSeats() {
+		if playerID == 0 {
+			continue
+		}
+		currentHandState.PlayersStack[uint64(seatNo)] = playerState[playerID].Stack
+	}
+
+	handStateMsg := &HandMessageItem{
+		MessageType: HandQueryCurrentHand,
+		Content:     &HandMessageItem_CurrentHandState{CurrentHandState: &currentHandState},
+	}
+
+	serverMsg := &HandMessage{
+		GameId:     g.config.GameId,
+		PlayerId:   playerID,
+		HandNum:    handState.HandNum,
+		HandStatus: handState.CurrentState,
+		MessageId: g.GenerateMsgID("CURRENT_HAND", handState.HandNum,
+			handState.CurrentState, playerID, messageID, handState.CurrentActionNum),
+		Messages: []*HandMessageItem{handStateMsg},
+	}
+	g.sendHandMessageToPlayer(serverMsg, playerID)
+	return nil
 }
 
 func (g *Game) HandlePongMessage(message *PingPongMessage) {
