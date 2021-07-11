@@ -66,8 +66,12 @@ func (t *TestPlayer) setPlayer(player *game.Player) {
 	t.player = player
 }
 
-func (t *TestPlayer) joinGame(gameID uint64, seatNo uint32, buyIn float32, runItTwice bool, runItTwicePromptResponse bool) {
-	t.player.JoinGame(gameID, seatNo, buyIn, runItTwice, runItTwicePromptResponse)
+func (t *TestPlayer) joinGame(gameID uint64, seatNo uint32, buyIn float32, runItTwice bool, runItTwicePromptResponse bool, postBlind bool) {
+	t.player.JoinGame(gameID, seatNo, buyIn, runItTwice, runItTwicePromptResponse, postBlind)
+}
+
+func (t *TestPlayer) resetBlinds(gameID uint64) {
+	t.player.ResetBlinds(gameID)
 }
 
 func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.HandMessage, msgItem *game.HandMessageItem, jsonb []byte) {

@@ -27,6 +27,7 @@ type PlayerCard struct {
 }
 
 type HandSetup struct {
+	Num         uint32       `json:"num"`
 	MessageType string       `json:"message-type"`
 	GameCode    string       `json:"game-code"`
 	GameId      uint64       `json:"game-id"`
