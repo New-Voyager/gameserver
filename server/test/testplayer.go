@@ -70,6 +70,10 @@ func (t *TestPlayer) joinGame(gameID uint64, seatNo uint32, buyIn float32, runIt
 	t.player.JoinGame(gameID, seatNo, buyIn, runItTwice, runItTwicePromptResponse, postBlind)
 }
 
+func (t *TestPlayer) resetBlinds(gameID uint64) {
+	t.player.ResetBlinds(gameID)
+}
+
 func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.HandMessage, msgItem *game.HandMessageItem, jsonb []byte) {
 
 	if msgItem.MessageType == game.HandNewHand {

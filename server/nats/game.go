@@ -219,6 +219,7 @@ func (n *NatsGame) setupHand(handSetup HandSetup) {
 	}
 
 	nextHandSetup := &game.TestHandSetup{
+		HandNum:           handSetup.Num,
 		ButtonPos:         handSetup.ButtonPos,
 		Board:             handSetup.Board,
 		Board2:            handSetup.Board2,

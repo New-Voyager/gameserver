@@ -133,6 +133,7 @@ type HandSetupVerfication struct {
 	NextActionPos uint32          `yaml:"next-action-pos"`
 	State         string          `yaml:"state"`
 	DealtCards    []TestSeatCards `yaml:"dealt-cards"`
+	PostedBlinds  []uint32        `yaml:"posted-blinds"`
 }
 
 type TestSeatCards struct {
@@ -141,15 +142,16 @@ type TestSeatCards struct {
 }
 
 type HandSetup struct {
-	ButtonPos uint32               `yaml:"button-pos"`
-	AutoDeal  bool                 `yaml:"auto-deal"`
-	Flop      []string             `yaml:"flop"`
-	Turn      string               `yaml:"turn"`
-	River     string               `yaml:"river"`
-	Board     []string             `yaml:"board"`
-	Board2    []string             `yaml:"board2"`
-	SeatCards []TestSeatCards      `yaml:"seat-cards"`
-	Verify    HandSetupVerfication `yaml:"verify"`
+	ButtonPos  uint32               `yaml:"button-pos"`
+	AutoDeal   bool                 `yaml:"auto-deal"`
+	Flop       []string             `yaml:"flop"`
+	Turn       string               `yaml:"turn"`
+	River      string               `yaml:"river"`
+	Board      []string             `yaml:"board"`
+	Board2     []string             `yaml:"board2"`
+	SeatCards  []TestSeatCards      `yaml:"seat-cards"`
+	NewPlayers []PlayerSeat         `yaml:"new-players"`
+	Verify     HandSetupVerfication `yaml:"verify"`
 }
 
 /*

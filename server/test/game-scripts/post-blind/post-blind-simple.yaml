@@ -1,0 +1,388 @@
+disabled: false
+game-config:
+  type: HOLDEM
+  max-players: 9
+  min-players: 3
+  min-buyin: 60.0
+  max-buyin: 300.0
+  auto-start: false
+  auto-approve: true
+  title: 3 players playing
+  sb: 1.0
+  bb: 2.0
+
+# players in the game
+players:
+  - name: player1
+    id: 1
+  - name: player2
+    id: 2
+  - name: player3
+    id: 3
+  - name: player4
+    id: 4
+  - name: player5
+    id: 5
+  - name: player6
+    id: 6
+
+take-seat:
+  button-pos: 1
+  seats:
+    -
+      seat: 1 
+      player: 1
+      buy-in: 100
+    -
+      seat: 2 
+      player: 2
+      buy-in: 100
+    -
+      seat: 3 
+      player: 3
+      buy-in: 100
+
+  # wait for one second delay for the game to settle
+  wait: 1
+
+  # verify the table/player configuration is correct
+  verify:
+    table:
+      players:
+        -
+          seat: 1 
+          player: 1
+          stack: 100
+        -
+          seat: 2 
+          player: 2
+          stack: 100
+        -
+          seat: 3 
+          player: 3
+          stack: 100
+        # -
+        #   seat: 4 
+        #   player: 4
+        #   stack: 100
+
+# deal the following hands in the table
+hands:
+  -
+    num: 1
+    setup:
+      new-players:
+        -
+          seat: 4 
+          player: 4
+          buy-in: 100
+          post-blind: true
+
+      button-pos: 1
+      flop: ["Ac", "Ad", "2c"]
+      turn: Td
+      river: 4s
+      seat-cards:
+        # seat cards in the order players are sitting 
+        # seat 1 gets Kh Qd
+        # seat 2 gets 3s 7s
+        # seat 3 gets 9h 2s
+        # seat 4 gets 8h Ks
+        - 
+          cards: ["Kh", "Qd"]
+        -
+          cards: ["3s", "7s"]
+        -
+          cards: ["8h", "Ks"]
+        -
+          cards: ["9h", "2s"]
+      # here the game engine sends the cards to the players
+      verify:
+        # verify button, sb, bb positions
+        # verify next action seat position
+        # verify current hand state
+        button: 1
+        sb: 2
+        bb: 3
+        next-action-pos: 4
+        state: PREFLOP
+        dealt-cards:
+          -
+            seat-no: 2
+            cards: ["Kh", "Qd"]
+          -
+            seat-no: 3
+            cards: ["3s", "7s"]
+          -
+            seat-no: 4
+            cards: ["8h", "Ks"]
+          -
+            seat-no: 1
+            cards: ["9h", "2s"]
+        posted-blinds:
+          - 4
+
+    # simulate pre-flop action
+    preflop-action:
+      actions:
+        -
+          seat: 4
+          action: CHECK
+          verify-action:
+            actions: ["CHECK", "FOLD", "ALLIN", "BET", "STRADDLE"]
+            all-in-amount: 100
+            min-raise-amount: 4
+            max-raise-amount: 100
+            bet-amounts:
+              - text: 3BB
+                amount: 6
+              - text: 5BB
+                amount: 10
+              - text: 10BB
+                amount: 20
+              - text: All-In
+                amount: 100            
+        - 
+          seat: 1
+          action: CALL
+          amount: 2
+        - 
+          seat: 2
+          action: CALL
+          amount: 2
+        -
+          seat: 3
+          action: CHECK
+
+      # verify preflop-action result
+      # since both players folded, the round ended with a hand result
+      verify:
+        state: FLOP
+        board: ["Ac", "Ad", "2c"]
+
+    flop-action:
+      actions:
+        -
+          seat: 2
+          action: CHECK
+        -
+          seat: 3
+          action: CHECK
+        -
+          seat: 4
+          action: CHECK
+        -
+          seat: 1
+          action: CHECK
+
+    turn-action:
+      actions:
+        -
+          seat: 2
+          action: CHECK
+        -
+          seat: 3
+          action: CHECK
+        -
+          seat: 4
+          action: CHECK
+        -
+          seat: 1
+          action: CHECK
+
+    river-action:
+      actions:
+        -
+          seat: 2
+          action: CHECK
+        -
+          seat: 3
+          action: CHECK
+        -
+          seat: 4
+          action: CHECK
+        -
+          seat: 1
+          action: CHECK
+
+  -
+    num: 2
+    setup:
+      new-players:
+        -
+          seat: 5 
+          player: 5
+          buy-in: 100
+          post-blind: true
+        -
+          seat: 6 
+          player: 6
+          buy-in: 100
+          post-blind: true
+
+      button-pos: 1
+      flop: ["Ac", "Ad", "2c"]
+      turn: Td
+      river: 4s
+      seat-cards:
+        # seat cards in the order players are sitting 
+        # seat 1 gets Kh Qd
+        # seat 2 gets 3s 7s
+        # seat 3 gets 9h 2s
+        # seat 4 gets 8h Ks
+        - 
+          cards: ["Kh", "Qd"]
+        -
+          cards: ["3s", "7s"]
+        -
+          cards: ["8h", "Ks"]
+        -
+          cards: ["9h", "2s"]
+        -
+          cards: ["4h", "9s"]
+        -
+          cards: ["Qh", "Js"]
+      # here the game engine sends the cards to the players
+      verify:
+        # verify button, sb, bb positions
+        # verify next action seat position
+        # verify current hand state
+        button: 1
+        sb: 2
+        bb: 3
+        next-action-pos: 4
+        state: PREFLOP
+        dealt-cards:
+          -
+            seat-no: 2
+            cards: ["Kh", "Qd"]
+          -
+            seat-no: 3
+            cards: ["3s", "7s"]
+          -
+            seat-no: 4
+            cards: ["8h", "Ks"]
+          -
+            seat-no: 5
+            cards: ["9h", "2s"]
+          -
+            seat-no: 6
+            cards: ["4h", "9s"]
+          -
+            seat-no: 1
+            cards: ["Qh", "Js"]
+        posted-blinds:
+          - 5
+          - 6
+
+    # simulate pre-flop action
+    preflop-action:
+      actions:
+        -
+          seat: 4
+          action: CALL
+          amount: 2
+          verify-action:
+            actions: ["CALL", "FOLD", "ALLIN", "BET", "STRADDLE"]
+            call-amount: 2
+            all-in-amount: 98
+            min-raise-amount: 4
+            max-raise-amount: 98
+        - 
+          seat: 5
+          action: CHECK
+          verify-action:
+            actions: ["CHECK", "FOLD", "ALLIN", "BET"]
+            call-amount: 2
+            all-in-amount: 100
+            min-raise-amount: 4
+            max-raise-amount: 100
+        - 
+          seat: 6
+          action: CHECK
+          verify-action:
+            actions: ["CHECK", "FOLD", "ALLIN", "BET"]
+            call-amount: 2
+            all-in-amount: 100
+            min-raise-amount: 4
+            max-raise-amount: 100
+        - 
+          seat: 1
+          action: CALL
+          amount: 2
+        - 
+          seat: 2
+          action: CALL
+          amount: 2
+        -
+          seat: 3
+          action: CHECK
+
+      # verify preflop-action result
+      # since both players folded, the round ended with a hand result
+      verify:
+        state: FLOP
+        board: ["Ac", "Ad", "2c"]
+
+    flop-action:
+      actions:
+        -
+          seat: 2
+          action: CHECK
+        -
+          seat: 3
+          action: CHECK
+        -
+          seat: 4
+          action: CHECK
+        -
+          seat: 5
+          action: CHECK
+        -
+          seat: 6
+          action: CHECK
+        -
+          seat: 1
+          action: CHECK
+
+    turn-action:
+      actions:
+        -
+          seat: 2
+          action: CHECK
+        -
+          seat: 3
+          action: CHECK
+        -
+          seat: 4
+          action: CHECK
+        -
+          seat: 5
+          action: CHECK
+        -
+          seat: 6
+          action: CHECK
+        -
+          seat: 1
+          action: CHECK
+
+    river-action:
+      actions:
+        -
+          seat: 2
+          action: CHECK
+        -
+          seat: 3
+          action: CHECK
+        -
+          seat: 4
+          action: CHECK
+        -
+          seat: 5
+          action: CHECK
+        -
+          seat: 6
+          action: CHECK
+        -
+          seat: 1
+          action: CHECK

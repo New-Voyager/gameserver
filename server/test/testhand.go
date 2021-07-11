@@ -317,11 +317,12 @@ func (h *TestHand) dealHand(t *TestDriver) error {
 	// new hand
 	h.gameScript.waitForObserver()
 
-	for _, player := range h.gameScript.testGame.players {
+	for _, player := range h.gameScript.testGame.playersInSeats {
 		_ = player
 		// wait for dealing to complete for each player
 		h.gameScript.waitForObserver()
 	}
+	h.gameScript.waitForObserver()
 
 	// verify current hand player position and cards dealt
 	actual := h.gameScript.observer.currentHand.GetNewHand()
@@ -345,6 +346,17 @@ func (h *TestHand) dealHand(t *TestDriver) error {
 	if verify.NextActionPos != 0 && actual.NextActionSeat != verify.NextActionPos {
 		h.addError(fmt.Errorf("Next action position did not match. Expected: %d actual: %d", verify.NextActionPos, actual.NextActionSeat))
 		passed = false
+	}
+
+	if verify.PostedBlinds != nil && len(verify.PostedBlinds) > 0 {
+		for _, blindSeat := range verify.PostedBlinds {
+			playerAct := actual.PlayersActed[blindSeat]
+			if playerAct.State != game.PlayerActState_PLAYER_ACT_POST_BLIND {
+				h.addError(fmt.Errorf("Post blind did not match for seat %d. Expected: %d actual: %d",
+					blindSeat, game.PlayerActState_PLAYER_ACT_POST_BLIND, playerAct.State))
+				passed = false
+			}
+		}
 	}
 
 	// verify hand status
@@ -374,6 +386,21 @@ func (h *TestHand) dealHand(t *TestDriver) error {
 }
 
 func (h *TestHand) setup(t *TestDriver) error {
+	h.gameScript.testGame.Observer().resetBlinds(h.gameScript.testGame.gameID)
+
+	// add new players
+	if h.hand.Setup.NewPlayers != nil && len(h.hand.Setup.NewPlayers) > 0 {
+		t := h.gameScript.testGame
+		for _, testPlayer := range h.hand.Setup.NewPlayers {
+			player := t.players[testPlayer.Player]
+			player.joinGame(t.gameID, testPlayer.SeatNo,
+				testPlayer.BuyIn, testPlayer.RunItTwice,
+				testPlayer.RunItTwicePromptResponse,
+				testPlayer.PostBlind)
+			t.playersInSeats[testPlayer.SeatNo] = player
+		}
+	}
+
 	h.gameScript.testGame.Observer().setupNextHand(h.hand.Num, h.hand.Setup)
 	return nil
 }

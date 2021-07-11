@@ -463,6 +463,10 @@ func (g *Game) dealNewHand() error {
 		// We're in a script test (no api server).
 		newHandNum = g.scriptTestPrevHandNum + 1
 
+		if handSetup.HandNum != 0 {
+			newHandNum = handSetup.HandNum
+		}
+
 		// assign the button pos to the first guy in the list
 		for _, player := range g.PlayersInSeats {
 			if player.PlayerID != 0 {
