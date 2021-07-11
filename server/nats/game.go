@@ -8,7 +8,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/encoding/protojson"
 	"voyager.com/server/game"
-	"voyager.com/server/poker"
 	"voyager.com/server/util"
 )
 
@@ -47,61 +46,57 @@ Test driver scenario:
 */
 
 type NatsGame struct {
-	clubID                 uint32
-	gameID                 uint64
-	chEndGame              chan bool
-	chManageGame           chan []byte
-	player2GameSubject     string
-	player2HandSubject     string
-	playerPongSubject      string
-	hand2PlayerAllSubject  string
+	clubID   uint32
+	gameID   uint64
+	gameCode string
+
+	chEndGame    chan bool
+	chManageGame chan []byte
+
+	hand2AllPlayersSubject string
 	game2AllPlayersSubject string
+	pingSubject            string
+
+	player2HandSubscription *natsgo.Subscription
+	pongSubscription        *natsgo.Subscription
+	natsConn                *natsgo.Conn
 
 	serverGame *game.Game
-
-	gameCode       string
-	player2GameSub *natsgo.Subscription
-	player2HandSub *natsgo.Subscription
-	player2PongSub *natsgo.Subscription
-	nc             *natsgo.Conn
 }
 
 func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.GameConfig) (*NatsGame, error) {
 
 	// game subjects
-	//player2GameSubject := fmt.Sprintf("game.%d.player", gameID)
-	game2AllPlayersSubject := fmt.Sprintf("game.%s.player", config.GameCode)
+	game2AllPlayersSubject := GetGame2AllPlayerSubject(config.GameCode)
 
 	// hand subjects
-	player2HandSubject := fmt.Sprintf("player.%s.hand", config.GameCode)
-	hand2AllPlayersSubject := fmt.Sprintf("hand.%s.player.all", config.GameCode)
-
-	// for receiving ping response
-	playerPongSubject := fmt.Sprintf("pong.%s", config.GameCode)
+	player2HandSubject := GetPlayer2HandSubject(config.GameCode)
+	hand2AllPlayersSubject := GetHand2AllPlayerSubject(config.GameCode)
 
 	// we need to use the API to get the game configuration
 	natsGame := &NatsGame{
-		clubID:       clubID,
-		gameID:       gameID,
-		chEndGame:    make(chan bool),
-		chManageGame: make(chan []byte),
-		nc:           nc,
-		//		player2GameSubject:     player2GameSubject,
-		game2AllPlayersSubject: game2AllPlayersSubject,
-		player2HandSubject:     player2HandSubject,
-		hand2PlayerAllSubject:  hand2AllPlayersSubject,
-		playerPongSubject:      playerPongSubject,
+		clubID:                 clubID,
+		gameID:                 gameID,
 		gameCode:               config.GameCode,
+		chEndGame:              make(chan bool),
+		chManageGame:           make(chan []byte),
+		game2AllPlayersSubject: game2AllPlayersSubject,
+		hand2AllPlayersSubject: hand2AllPlayersSubject,
+		pingSubject:            GetPingSubject(config.GameCode),
+		natsConn:               nc,
 	}
 
 	// subscribe to topics
 	var e error
-	natsGame.player2HandSub, e = nc.Subscribe(player2HandSubject, natsGame.player2Hand)
+	natsGame.player2HandSubscription, e = nc.Subscribe(player2HandSubject, natsGame.player2Hand)
 	if e != nil {
 		natsLogger.Error().Msg(fmt.Sprintf("Failed to subscribe to %s", player2HandSubject))
 		return nil, e
 	}
-	natsGame.player2PongSub, e = nc.Subscribe(playerPongSubject, natsGame.player2Pong)
+
+	// for receiving ping response
+	playerPongSubject := GetPongSubject(config.GameCode)
+	natsGame.pongSubscription, e = nc.Subscribe(playerPongSubject, natsGame.player2Pong)
 	if e != nil {
 		natsLogger.Error().Msg(fmt.Sprintf("Failed to subscribe to %s", playerPongSubject))
 		return nil, e
@@ -121,9 +116,8 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 }
 
 func (n *NatsGame) cleanup() {
-	n.player2HandSub.Unsubscribe()
-	n.player2GameSub.Unsubscribe()
-	n.player2PongSub.Unsubscribe()
+	n.player2HandSubscription.Unsubscribe()
+	n.pongSubscription.Unsubscribe()
 }
 
 // message sent from apiserver to game
@@ -269,7 +263,7 @@ func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
 	if len(message.Messages) >= 1 {
 		message1 := message.Messages[0]
 		if message1.MessageType == game.HandQueryCurrentHand {
-			n.onQueryHand(message.GameId, message.PlayerId, message.MessageId, message1)
+			n.onQueryHand(message.GameId, message.PlayerId, message.MessageId)
 			messageHandled = true
 		}
 	}
@@ -278,156 +272,15 @@ func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
 	}
 }
 
-func (n *NatsGame) onQueryHand(gameId uint64, playerId uint64, messageId string, message *game.HandMessageItem) error {
+func (n *NatsGame) onQueryHand(gameID uint64, playerID uint64, messageID string) error {
 	natsLogger.Info().Uint64("game", n.gameID).
-		Msgf("Player->Hand: Query current hand [%d]", playerId)
-
-	handState, err := n.serverGame.GetHandState()
-	if err != nil || handState == nil ||
-		handState.HandNum == 0 ||
-		handState.CurrentState == game.HandStatus_HAND_CLOSED {
-		natsLogger.Info().Uint64("game", n.gameID).
-			Msgf("Player->Hand: Query current hand [%d] handstate is not available", playerId)
-		currentHandState := game.CurrentHandState{
-			HandNum: 0,
-		}
-		handStateMsg := &game.HandMessageItem{
-			MessageType: game.HandQueryCurrentHand,
-			Content:     &game.HandMessageItem_CurrentHandState{CurrentHandState: &currentHandState},
-		}
-		msgId := n.serverGame.GenerateMsgID("CURRENT_HAND", 0, game.HandStatus_DEAL, playerId, messageId, 0)
-		if handState != nil {
-			msgId = n.serverGame.GenerateMsgID("CURRENT_HAND", handState.HandNum, handState.CurrentState, playerId, messageId, handState.CurrentActionNum)
-		}
-		serverMsg := &game.HandMessage{
-			GameId:    n.gameID,
-			PlayerId:  playerId,
-			HandNum:   0,
-			MessageId: msgId,
-			Messages:  []*game.HandMessageItem{handStateMsg},
-		}
-		n.SendHandMessageToPlayer(serverMsg, playerId)
-		return nil
-	}
-
-	boardCards := make([]uint32, len(handState.BoardCards))
-	for i, card := range handState.BoardCards {
-		boardCards[i] = uint32(card)
-	}
-
-	pots := make([]float32, 0)
-	for _, pot := range handState.Pots {
-		pots = append(pots, pot.Pot)
-	}
-	currentPot := pots[len(pots)-1]
-	bettingInProgress := handState.CurrentState == game.HandStatus_PREFLOP ||
-		handState.CurrentState == game.HandStatus_FLOP ||
-		handState.CurrentState == game.HandStatus_TURN ||
-		handState.CurrentState == game.HandStatus_RIVER
-	if bettingInProgress {
-		currentRoundState, ok := handState.RoundState[uint32(handState.CurrentState)]
-		if !ok || currentRoundState == nil {
-			b, err := json.Marshal(handState)
-			if err != nil {
-				return fmt.Errorf("Unable to find current round state. currentRoundState: %+v. handState.CurrentState: %d handState.RoundState: %+v", currentRoundState, handState.CurrentState, handState.RoundState)
-			}
-			return fmt.Errorf("Unable to find current round state. handState: %s", string(b))
-		}
-		currentBettingRound := currentRoundState.Betting
-		for _, bet := range currentBettingRound.SeatBet {
-			currentPot = currentPot + bet
-		}
-	}
-
-	var boardCardsOut []uint32
-	switch handState.CurrentState {
-	case game.HandStatus_FLOP:
-		boardCardsOut = boardCards[:3]
-	case game.HandStatus_TURN:
-		boardCardsOut = boardCards[:4]
-
-	case game.HandStatus_RIVER:
-	case game.HandStatus_RESULT:
-	case game.HandStatus_SHOW_DOWN:
-		boardCardsOut = boardCards
-
-	default:
-		boardCardsOut = make([]uint32, 0)
-	}
-	cardsStr := poker.CardsToString(boardCardsOut)
-
-	currentHandState := game.CurrentHandState{
-		HandNum:       handState.HandNum,
-		GameType:      handState.GameType,
-		CurrentRound:  handState.CurrentState,
-		BoardCards:    boardCardsOut,
-		BoardCards_2:  nil,
-		CardsStr:      cardsStr,
-		Pots:          pots,
-		PotUpdates:    currentPot,
-		ButtonPos:     handState.ButtonPos,
-		SmallBlindPos: handState.SmallBlindPos,
-		BigBlindPos:   handState.BigBlindPos,
-		SmallBlind:    handState.SmallBlind,
-		BigBlind:      handState.BigBlind,
-		NoCards:       n.serverGame.NumCards(handState.GameType),
-	}
-	currentHandState.PlayersActed = make(map[uint32]*game.PlayerActRound, 0)
-
-	var playerSeatNo uint32
-	for seatNo, pid := range handState.GetPlayersInSeats() {
-		if pid == playerId {
-			playerSeatNo = uint32(seatNo)
-			break
-		}
-	}
-
-	for seatNo, action := range handState.GetPlayersActed() {
-		if action.State == game.PlayerActState_PLAYER_ACT_EMPTY_SEAT {
-			continue
-		}
-		currentHandState.PlayersActed[uint32(seatNo)] = action
-	}
-
-	if playerSeatNo != 0 {
-		player := n.serverGame.PlayersInSeats[playerSeatNo]
-		_, maskedCards := n.serverGame.MaskCards(handState.GetPlayersCards()[playerSeatNo], player.GameTokenInt)
-		currentHandState.PlayerCards = fmt.Sprintf("%d", maskedCards)
-		currentHandState.PlayerSeatNo = playerSeatNo
-	}
-
-	if bettingInProgress && handState.NextSeatAction != nil {
-		currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
-		currentHandState.RemainingActionTime = n.serverGame.GetRemainingActionTime()
-		currentHandState.NextSeatAction = handState.NextSeatAction
-	}
-	currentHandState.PlayersStack = make(map[uint64]float32, 0)
-	playerState := handState.GetPlayersState()
-	for seatNo, playerID := range handState.GetPlayersInSeats() {
-		if playerID == 0 {
-			continue
-		}
-		currentHandState.PlayersStack[uint64(seatNo)] = playerState[playerID].Stack
-	}
-
-	handStateMsg := &game.HandMessageItem{
-		MessageType: game.HandQueryCurrentHand,
-		Content:     &game.HandMessageItem_CurrentHandState{CurrentHandState: &currentHandState},
-	}
-
-	serverMsg := &game.HandMessage{
-		GameId:     gameId,
-		PlayerId:   playerId,
-		HandNum:    handState.HandNum,
-		HandStatus: handState.CurrentState,
-		MessageId: n.serverGame.GenerateMsgID("CURRENT_HAND", handState.HandNum,
-			handState.CurrentState, playerId, messageId, handState.CurrentActionNum),
-		Messages: []*game.HandMessageItem{handStateMsg},
-	}
-	n.SendHandMessageToPlayer(serverMsg, playerId)
+		Msgf("Player->Hand: Player [%d] Query current hand", playerID)
+	err := n.serverGame.HandleQueryCurrentHand(playerID, messageID)
 	natsLogger.Info().Uint64("game", n.gameID).
-		Msgf("Player->Hand: Query current hand [%d] returned", playerId)
-
+		Msgf("Player->Hand: Query current hand [%d] returned", playerID)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -459,7 +312,7 @@ func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 			// update table status
 			UpdateTableStatus(message.GameId, message.GetStatus().GetTableStatus())
 		}
-		n.nc.Publish(n.game2AllPlayersSubject, data)
+		n.natsConn.Publish(n.game2AllPlayersSubject, data)
 	}
 }
 
@@ -475,18 +328,17 @@ func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 		msgTypes = append(msgTypes, msgItem.MessageType)
 	}
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Messages", fmt.Sprintf("%v", msgTypes)).
-		Str("subject", n.hand2PlayerAllSubject).
+		Str("subject", n.hand2AllPlayersSubject).
 		Msg(fmt.Sprintf("H->A: %s", string(data)))
-	n.nc.Publish(n.hand2PlayerAllSubject, data)
+	n.natsConn.Publish(n.hand2AllPlayersSubject, data)
 }
 
 func (n NatsGame) BroadcastPingMessage(message *game.PingPongMessage) {
-	pingSubject := fmt.Sprintf("ping.%s", n.gameCode)
 	data, _ := protojson.Marshal(message)
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
-		Str("subject", pingSubject).
+		Str("subject", n.pingSubject).
 		Msg(fmt.Sprintf("Ping->All: %s", string(data)))
-	n.nc.Publish(pingSubject, data)
+	n.natsConn.Publish(n.pingSubject, data)
 }
 
 func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID uint64) {
@@ -510,7 +362,7 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 		data = encryptedData
 	}
 
-	n.nc.Publish(hand2PlayerSubject, data)
+	n.natsConn.Publish(hand2PlayerSubject, data)
 }
 
 func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID uint64) {
@@ -523,7 +375,7 @@ func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID ui
 	} else {
 		subject := fmt.Sprintf("game.%s.player.%d", n.gameCode, playerID)
 		data, _ := protojson.Marshal(message)
-		n.nc.Publish(subject, data)
+		n.natsConn.Publish(subject, data)
 	}
 }
 
@@ -546,7 +398,7 @@ func (n *NatsGame) gameEnded() error {
 
 func (n *NatsGame) getHandLog() *map[string]interface{} {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
-		Msg(fmt.Sprintf("Bot->Game: Get HAND LOG: %d", n.gameID))
+		Msg(fmt.Sprintf("APIServer->Game: Get HAND LOG: %d", n.gameID))
 	// build a game message and send to the game
 	var message game.GameMessage
 
