@@ -347,19 +347,6 @@ func (p *Player) GameProtoMessageFromAdapter(message *GameMessage) error {
 	return nil
 }
 
-func (p *Player) StartGame(clubID uint32, gameID uint64) error {
-	var message GameMessage
-	message.ClubId = clubID
-	message.GameId = gameID
-	message.MessageType = GameStart
-
-	startGame := &GameStartMessage{RequestingPlayerId: p.PlayerID}
-	// only club owner/manager can start a game
-	message.GameMessage = &GameMessage_StartGame{StartGame: startGame}
-	e := p.GameProtoMessageFromAdapter(&message)
-	return e
-}
-
 func (p *Player) JoinGame(gameID uint64, seatNo uint32, buyIn float32, runItTwice bool, runItTwicePromptResponse bool, postBlind bool) error {
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	if _, ok := GameManager.activeGames[gameIDStr]; !ok {

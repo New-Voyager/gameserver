@@ -101,14 +101,11 @@ func (t *TestGame) PopulateSeats(playerAtSeats []game.PlayerSeat) {
 
 	// observer joins seat 0
 	t.observer.player.JoinGame(t.gameID, 0, 0, false, false, false)
-
-	t.observer.player.StartGame(t.clubID, t.gameID)
 }
 
 func (t *TestGame) Observer() *TestPlayer {
 	return t.observer
 }
-
 
 func (o *TestPlayer) setupNextHand(handNum uint32, handSetup game.HandSetup) error {
 	return o.player.SetupNextHand(handNum, handSetup)
