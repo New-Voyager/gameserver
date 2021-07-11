@@ -64,6 +64,7 @@ message TestHandSetup {
   repeated GameSetupSeatCards player_cards = 8;
   map <uint32, GameSetupSeatCards> player_cards_by_seat = 9;
   uint32 pause = 10;
+  uint32 hand_num = 11;
 }
 
 message GameStartMessage {
