@@ -121,6 +121,10 @@ func (br *BotRunner) Run() error {
 	}
 	br.observerBot = b
 
+	for _, bot := range br.bots {
+		bot.SetBotsInGame(br.bots)
+	}
+
 	//br.resetDB = false
 	if br.resetDB {
 		err = br.observerBot.ResetDB()
@@ -399,12 +403,12 @@ func (br *BotRunner) Run() error {
 	}
 
 	// get the game info and determine bots
-	gi, err := br.bots[0].GetGameInfo(br.gameCode)
-	if err == nil {
-		for _, bot := range br.bots {
-			bot.DetermineBots(gi)
-		}
-	}
+	// gi, err := br.bots[0].GetGameInfo(br.gameCode)
+	// if err == nil {
+	// 	for _, bot := range br.bots {
+	// 		bot.DetermineBots(gi)
+	// 	}
+	// }
 	br.logger.Info().Msgf("Game started")
 
 	// Wait till the game is over.
