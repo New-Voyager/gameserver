@@ -27,7 +27,7 @@ DOCKER_BUILDKIT ?= 1
 
 PROJECT_ROOT := ..
 PROTO_DIR := $(PROJECT_ROOT)/proto
-PLAYERS_YAML := $(PWD)/botrunner_scripts/common/players.yaml
+PLAYERS_YAML := $(PWD)/botrunner_scripts/players/default.yaml
 
 .PHONY: install-protoc
 install-protoc:
