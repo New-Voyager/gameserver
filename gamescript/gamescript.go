@@ -366,10 +366,11 @@ func ReadGameScript(fileName string) (*Script, error) {
 		return nil, errors.Wrapf(err, "Error parsing YAML file [%s]", fileName)
 	}
 
-	err = script.Validate()
-	if err != nil {
-		return nil, errors.Wrapf(err, "Error validating script [%s]", fileName)
-	}
+	// SOMA: I disabled this. We need to hand new players and players leaving the table
+	// err = script.Validate()
+	// if err != nil {
+	// 	return nil, errors.Wrapf(err, "Error validating script [%s]", fileName)
+	// }
 
 	return &script, nil
 }

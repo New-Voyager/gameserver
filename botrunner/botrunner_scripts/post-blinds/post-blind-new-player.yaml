@@ -90,11 +90,11 @@ hands:
         - seat: 4
           player: rob
           buy-in: 100
-          post-blind: false
-        - seat: 5
-          player: josh
-          buy-in: 100
           post-blind: true
+      #   - seat: 5
+      #     player: josh
+      #     buy-in: 100
+      #     post-blind: true
       button-pos: 1
       board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-cards:
@@ -102,6 +102,8 @@ hands:
           cards: ["Kh", "Qd"]
         - seat: 3
           cards: ["3s", "7s"]
+        - seat: 4
+          cards: ["3c", "7c"]
         - seat: 1
           cards: ["9h", "2s"]
 
@@ -109,6 +111,7 @@ hands:
     preflop:
       seat-actions:
         # seat number/action/amount
+        - action: 4, CALL, 2
         - action: 1, CALL, 2
         - action: 2, CALL, 2
         - action: 3, CHECK
@@ -119,9 +122,11 @@ hands:
       seat-actions:
         - action: 2, CHECK
         - action: 3, BET, 2
+        - action: 4, CALL, 2
         - action: 1, CALL, 2
         - action: 2, RAISE, 4
         - action: 3, FOLD
+        - action: 4, CALL, 4        
         - action: 1, CALL, 4
 
     turn:
@@ -129,12 +134,13 @@ hands:
         board: ["Ac", "Ad", "2c", "Td"]
       seat-actions:
         - action: 2, CHECK
-        - action: 1, BET, 10
-        - action: 2, CALL, 10
+        - action: 4, CHECK
+        - action: 1, CHECK
 
     river:
       verify:
         board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-actions:
-        - action: 2, BET, 10
-        - action: 1, CALL, 10
+        - action: 2, CHECK
+        - action: 4, CHECK
+        - action: 1, CHECK
