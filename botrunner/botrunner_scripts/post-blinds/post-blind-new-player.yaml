@@ -91,10 +91,10 @@ hands:
           player: rob
           buy-in: 100
           post-blind: true
-      #   - seat: 5
-      #     player: josh
-      #     buy-in: 100
-      #     post-blind: true
+        - seat: 5
+          player: josh
+          buy-in: 100
+          post-blind: true
       button-pos: 1
       board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-cards:

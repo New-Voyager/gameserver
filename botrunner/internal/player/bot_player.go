@@ -467,18 +467,6 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 
 		bp.hasNextHandBeenSetup = false // Not this hand, but the next one.
 
-		// // update table view who is playing and who is observing
-		// for _, player := range bp.game.table.playersBySeat {
-		// 	player.status = game.PlayerStatus_NOT_PLAYING
-		// }
-
-		// for seatNo, playerInSeat := range newHand.PlayersInSeats {
-		// 	if playerInSeat.Status == game.PlayerStatus_PLAYING {
-		// 		player := bp.game.table.playersBySeat[seatNo]
-		// 		player.status = game.PlayerStatus_PLAYING
-		// 	}
-		// }
-
 		if bp.IsHost() {
 			data, _ := protojson.Marshal(message)
 			fmt.Printf("==========================\n")
@@ -827,19 +815,6 @@ func (bp *BotPlayer) verifyCardRank(currentRanks map[uint32]string) {
 	if bp.observing {
 		return
 	}
-
-	// playing := false
-	// for _, playerInSeat := range bp.game.table.playersBySeat {
-	// 	if playerInSeat.playerID == bp.PlayerID {
-	// 		if playerInSeat.status == game.PlayerStatus_PLAYING {
-	// 			playing = true
-	// 			break
-	// 		}
-	// 	}
-	// }
-	// if !playing {
-	// 	return
-	// }
 
 	var expectedRanks []gamescript.SeatRank
 	scriptCurrentHand := bp.config.Script.GetHand(bp.game.handNum)
@@ -1523,33 +1498,6 @@ func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
 
 	return nil
 }
-
-// // GetGameInfo queries the game info from the api server.
-// func (bp *BotPlayer) DetermineBots(gameInfo game.GameInfo) {
-
-// 	if bp.game == nil {
-// 		// this player is neither playing nor observing
-// 		return
-// 	}
-
-// 	for _, p := range gameInfo.SeatInfo.PlayersInSeats {
-// 		seatPlayer := bp.game.table.playersBySeat[p.SeatNo]
-// 		if seatPlayer == nil {
-// 			seatPlayer = &player{
-// 				seatNo:   p.SeatNo,
-// 				playerID: p.PlayerId,
-// 				status:   game.PlayerStatus(game.PlayerStatus_value[p.Status]),
-// 				buyIn:    p.BuyIn,
-// 				stack:    p.Stack,
-// 				isBot:    p.IsBot,
-// 			}
-// 			bp.game.table.playersBySeat[p.SeatNo] = seatPlayer
-// 		} else {
-// 			seatPlayer.isBot = p.IsBot
-// 		}
-// 	}
-// 	return
-// }
 
 // SitIn takes a seat in a game as a player.
 func (bp *BotPlayer) SitIn(gameCode string, seatNo uint32) error {
@@ -2348,7 +2296,7 @@ func (bp *BotPlayer) reloadBotFromGameInfo() error {
 		bp.seatNo = 0
 	}
 
-	bp.observing = false
+	bp.observing = true
 	if isPlaying {
 		bp.observing = false
 	}
