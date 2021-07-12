@@ -1,3 +1,5 @@
+# SYSTEM_TEST_TIMEOUT_SEC:60
+
 club:
   name: Manchester PLO Club
   description: Club used for testing with PLO hands

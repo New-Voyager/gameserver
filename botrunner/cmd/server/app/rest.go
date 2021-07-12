@@ -15,8 +15,8 @@ import (
 var (
 	restLogger      = log.With().Str("logger_name", "app::rest").Logger()
 	baseLogDir      = "log"
-	humanGameScript = "botrunner_scripts/human-game.yaml"
-	playersConfig   = "botrunner_scripts/common/players.yaml"
+	humanGameScript = "botrunner_scripts/human_game/human-game.yaml"
+	playersConfig   = "botrunner_scripts/players/default.yaml"
 )
 
 // RunRestServer registers http endpoints and handlers and runs the server.
@@ -189,7 +189,7 @@ func listAppGameScripts() (map[string]string, error) {
 	}
 	res := make(map[string]string)
 	for _, scriptFile := range fileNames {
-		if strings.HasSuffix(scriptFile, "/common/players.yaml") {
+		if strings.HasSuffix(scriptFile, "/players/default.yaml") {
 			continue
 		}
 		appGameTitle, err := getAppGameTitle(scriptFile)

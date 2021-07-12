@@ -17,17 +17,17 @@ PRINT_HAND_MSG ?= false
 ENABLE_ENCRYPTION ?= 1
 
 # Script used to join the human-created game.
-HUMAN_GAME_SCRIPT := botrunner_scripts/human-game.yaml
+HUMAN_GAME_SCRIPT := botrunner_scripts/human_game/human-game.yaml
 
 # Script used to drive the botrunner & tester.
 BOTRUNNER_SCRIPT ?= botrunner_scripts/river-action-3-bots.yaml
-# BOTRUNNER_SCRIPT ?= botrunner_scripts/river-action-2-bots-1-human.yaml
+# BOTRUNNER_SCRIPT ?= botrunner_scripts/human_game/river-action-2-bots-1-human.yaml
 
 DOCKER_BUILDKIT ?= 1
 
 PROJECT_ROOT := ..
 PROTO_DIR := $(PROJECT_ROOT)/proto
-PLAYERS_YAML := $(PWD)/botrunner_scripts/common/players.yaml
+PLAYERS_YAML := $(PWD)/botrunner_scripts/players/default.yaml
 
 .PHONY: install-protoc
 install-protoc:
@@ -159,7 +159,7 @@ endif
 
 .PHONY: system-test
 system-test: system-test-down system-test-up
-	docker exec -t system_test_botrunner_1 bash -c "./system_test.sh"
+	docker exec -t system_test_botrunner_1 bash -c "ABORT_ON_FAIL=$(ABORT_ON_FAIL) ./system_test.sh"
 
 .PHONY: system-test-build
 system-test-build:
