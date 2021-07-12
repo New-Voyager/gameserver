@@ -15,7 +15,7 @@ import (
 var (
 	restLogger      = log.With().Str("logger_name", "app::rest").Logger()
 	baseLogDir      = "log"
-	humanGameScript = "botrunner_scripts/human-game.yaml"
+	humanGameScript = "botrunner_scripts/human_game/human-game.yaml"
 	playersConfig   = "botrunner_scripts/players/default.yaml"
 )
 
