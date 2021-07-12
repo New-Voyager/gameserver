@@ -14,7 +14,6 @@ DEFAULT_TIMEOUT_SEC=${DEFAULT_TIMEOUT_SEC:-30}
 
 tested_scripts=(
     $(find . -path './botrunner_scripts/system_test/*.yaml')
-    $(find . -path './botrunner_scripts/system_test/**/*.yaml')
 )
 # tested_scripts=(
 #     './botrunner_scripts/system_test/timeout/timeout.yaml'
