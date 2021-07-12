@@ -88,6 +88,9 @@ type BotPlayer struct {
 	clientLastMsgType string
 	ackMaxWait        int
 
+	// bots in game
+	bots []*BotPlayer
+
 	// Remember the most recent message ID's for deduplicating server messages.
 	serverLastMsgIDs *util.Queue
 
@@ -249,6 +252,10 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 	go bp.messageLoop()
 	go bp.pingMessageLoop()
 	return &bp, nil
+}
+
+func (bp *BotPlayer) SetBotsInGame(bots []*BotPlayer) {
+	bp.bots = bots
 }
 
 func (bp *BotPlayer) enterState(e *fsm.Event) {
@@ -459,6 +466,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.game.table.actionTracker = game.NewHandActionTracker()
 
 		bp.hasNextHandBeenSetup = false // Not this hand, but the next one.
+
 		if bp.IsHost() {
 			data, _ := protojson.Marshal(message)
 			fmt.Printf("==========================\n")
@@ -548,7 +556,9 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if bp.IsHuman() || bp.IsObserver() {
 			bp.logger.Info().Msgf("%s: Flop cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetFlop().GetCardsStr(), msgItem.GetFlop().PlayerCardRanks)
 		}
-		bp.verifyBoard()
+		if bp.IsHost() {
+			bp.verifyBoard()
+		}
 
 		// Game server evaluates player cards at every betting round and sends the rank string for each seat number.
 		// Verify they match the script.
@@ -746,6 +756,10 @@ func (bp *BotPlayer) verifyBoard() {
 		return
 	}
 
+	if bp.game.handNum == 0 {
+		return
+	}
+
 	var expectedBoard []string
 	var currentBoard []uint32
 	scriptCurrentHand := bp.config.Script.GetHand(bp.game.handNum)
@@ -791,6 +805,14 @@ func (bp *BotPlayer) verifyBoard() {
 func (bp *BotPlayer) verifyCardRank(currentRanks map[uint32]string) {
 	// if the script is configured to auto play, return
 	if bp.config.Script.AutoPlay {
+		return
+	}
+
+	if bp.game.handNum == 0 {
+		return
+	}
+
+	if bp.observing {
 		return
 	}
 
@@ -845,6 +867,10 @@ func (bp *BotPlayer) verifyCardRank(currentRanks map[uint32]string) {
 func (bp *BotPlayer) verifyResult() {
 	// don't verify result for auto play
 	if bp.config.Script.AutoPlay {
+		return
+	}
+
+	if bp.game.handNum == 0 {
 		return
 	}
 
@@ -1332,6 +1358,98 @@ func (bp *BotPlayer) JoinGame(gameCode string) error {
 	return nil
 }
 
+func (bp *BotPlayer) NewPlayer(gameCode string, startingSeat *gamescript.StartingSeat) error {
+	bp.logger.Info().Msgf("%s: Player joining the game next hand.", bp.logPrefix)
+	bp.observing = true
+	scriptSeatNo := startingSeat.Seat
+	if scriptSeatNo == 0 {
+		return fmt.Errorf("%s: Unable to get the scripted seat number", bp.logPrefix)
+	}
+	scriptBuyInAmount := startingSeat.BuyIn
+	if scriptBuyInAmount == 0 {
+		return fmt.Errorf("%s: Unable to get the scripted buy-in amount", bp.logPrefix)
+	}
+
+	err := bp.enterGame(gameCode)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("%s: Unable to enter game %s", bp.logPrefix, gameCode))
+	}
+
+	playerInMySeat := bp.getPlayerInSeat(scriptSeatNo)
+	if playerInMySeat != nil && playerInMySeat.Name == bp.config.Name {
+		// I was already sitting in this game and still have my seat. Just rejoining after a crash.
+
+		bp.event(BotEvent__REJOIN)
+
+		if bp.gameInfo.PlayerGameStatus == game.PlayerStatus_WAIT_FOR_BUYIN.String() {
+			// I was sitting, but crashed before submitting a buy-in.
+			// The game's waiting for me to buy in, so that it can start a hand. Go ahead and submit a buy-in request.
+			if bp.IsHuman() {
+				bp.logger.Info().Msgf("%s: Press ENTER to buy in [%f] chips...", bp.logPrefix, scriptBuyInAmount)
+				bufio.NewReader(os.Stdin).ReadBytes('\n')
+			}
+			err := bp.BuyIn(gameCode, scriptBuyInAmount)
+			if err != nil {
+				return errors.Wrap(err, fmt.Sprintf("%s: Unable to buy in after rejoining game", bp.logPrefix))
+			}
+			bp.balance = scriptBuyInAmount
+
+			bp.event(BotEvent__SUCCEED_BUYIN)
+		} else {
+			// I was playing, but crashed in the middle of an ongoing hand. What is the state of the hand now?
+			err := bp.queryCurrentHandState()
+			if err != nil {
+				return errors.Wrap(err, fmt.Sprintf("%s: Unable to query current hand state", bp.logPrefix))
+			}
+		}
+	} else {
+		// Joining a game from fresh.
+		if bp.IsHuman() {
+			bp.logger.Info().Msgf("%s: Press ENTER to take seat [%d]...", bp.logPrefix, scriptSeatNo)
+			bufio.NewReader(os.Stdin).ReadBytes('\n')
+		} else {
+
+		}
+
+		bp.event(BotEvent__REQUEST_SIT)
+
+		err := bp.SitIn(gameCode, scriptSeatNo)
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("%s: Unable to sit in", bp.logPrefix))
+		}
+
+		if bp.IsHuman() {
+			bp.logger.Info().Msgf("%s: Press ENTER to buy in [%f] chips...", bp.logPrefix, scriptBuyInAmount)
+			bufio.NewReader(os.Stdin).ReadBytes('\n')
+		} else {
+			// update player config
+			scriptSeatConfig := bp.config.Script.GetSeatConfigByPlayerName(bp.config.Name)
+			if scriptSeatConfig != nil {
+				bp.UpdateGameConfig(gameCode, scriptSeatConfig.RunItTwicePromptResponse, scriptSeatConfig.MuckLosingHand)
+			}
+		}
+		bp.buyInAmount = uint32(scriptBuyInAmount)
+		err = bp.BuyIn(gameCode, scriptBuyInAmount)
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("%s: Unable to buy in", bp.logPrefix))
+		}
+
+		bp.event(BotEvent__SUCCEED_BUYIN)
+
+		// post blind
+		if startingSeat.PostBlind {
+			bp.logger.Info().Msgf("%s: Posted blind", bp.logPrefix)
+			bp.gqlHelper.PostBlind(bp.gameCode)
+		}
+	}
+
+	bp.seatNo = scriptSeatNo
+	bp.balance = scriptBuyInAmount
+	bp.updateLogPrefix()
+
+	return nil
+}
+
 func (bp *BotPlayer) reload() error {
 	err := bp.BuyIn(bp.gameCode, bp.gameInfo.BuyInMax)
 	if err != nil {
@@ -1379,33 +1497,6 @@ func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
 	bp.event(BotEvent__SUCCEED_BUYIN)
 
 	return nil
-}
-
-// GetGameInfo queries the game info from the api server.
-func (bp *BotPlayer) DetermineBots(gameInfo game.GameInfo) {
-
-	if bp.game == nil {
-		// this player is neither playing nor observing
-		return
-	}
-
-	for _, p := range gameInfo.SeatInfo.PlayersInSeats {
-		seatPlayer := bp.game.table.playersBySeat[p.SeatNo]
-		if seatPlayer == nil {
-			seatPlayer = &player{
-				seatNo:   p.SeatNo,
-				playerID: p.PlayerId,
-				status:   game.PlayerStatus(game.PlayerStatus_value[p.Status]),
-				buyIn:    p.BuyIn,
-				stack:    p.Stack,
-				isBot:    p.IsBot,
-			}
-			bp.game.table.playersBySeat[p.SeatNo] = seatPlayer
-		} else {
-			seatPlayer.isBot = p.IsBot
-		}
-	}
-	return
 }
 
 // SitIn takes a seat in a game as a player.
@@ -2080,6 +2171,28 @@ func (bp *BotPlayer) getPlayerInSeat(seatNo uint32) *game.SeatInfo {
 	return nil
 }
 
+func (bp *BotPlayer) AddNewPlayers(setup *gamescript.HandSetup) error {
+	var err error
+	for _, startingSeat := range setup.NewPlayers {
+		playerName := startingSeat.Player
+		var botByName *BotPlayer
+		for _, bot := range bp.bots {
+			if bot.config.Name == playerName {
+				botByName = bot
+				break
+			}
+		}
+		if botByName != nil {
+			// new player joining the table
+			err = botByName.NewPlayer(bp.gameCode, &startingSeat)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (bp *BotPlayer) setupNextHand() error {
 	nextHandNum := bp.game.handNum + 1
 
@@ -2088,6 +2201,8 @@ func (bp *BotPlayer) setupNextHand() error {
 	}
 
 	nextHand := bp.config.Script.GetHand(nextHandNum)
+
+	bp.AddNewPlayers(&nextHand.Setup)
 
 	bp.processPreDealItems(nextHand.Setup.PreDeal)
 
@@ -2151,9 +2266,10 @@ func (bp *BotPlayer) reloadBotFromGameInfo() error {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get game info %s", bp.logPrefix, bp.gameCode))
 	}
 	bp.gameInfo = &gameInfo
-
+	bp.game.table.playersBySeat = make(map[uint32]*player)
 	var seatNo uint32
 	var isSeated bool
+	var isPlaying bool
 	for _, p := range gameInfo.SeatInfo.PlayersInSeats {
 		pl := &player{
 			playerID: p.PlayerId,
@@ -2167,6 +2283,9 @@ func (bp *BotPlayer) reloadBotFromGameInfo() error {
 		if p.PlayerUUID == bp.PlayerUUID {
 			isSeated = true
 			seatNo = p.SeatNo
+			if pl.status == game.PlayerStatus_PLAYING {
+				isPlaying = true
+			}
 		}
 	}
 	if isSeated {
@@ -2175,6 +2294,11 @@ func (bp *BotPlayer) reloadBotFromGameInfo() error {
 	} else {
 		bp.isSeated = false
 		bp.seatNo = 0
+	}
+
+	bp.observing = true
+	if isPlaying {
+		bp.observing = false
 	}
 
 	bp.updateLogPrefix()

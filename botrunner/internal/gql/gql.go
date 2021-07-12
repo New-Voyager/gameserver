@@ -728,6 +728,29 @@ func (g *GQLHelper) UpdateGameConfig(gameCode string, runItTwiceAllowed bool, mu
 	return nil
 }
 
+// PostBlind posts blind in the game
+func (g *GQLHelper) PostBlind(gameCode string) (bool, error) {
+	req := graphql.NewRequest(PostBlindGQL)
+
+	req.Var("gameCode", gameCode)
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", g.authToken)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+	type PostBlindResp struct {
+		Status bool
+	}
+
+	var respData PostBlindResp
+	err := g.client.Run(ctx, req, &respData)
+	if err != nil {
+		return respData.Status, err
+	}
+
+	return respData.Status, nil
+}
+
 // GameInfoGQL is the gql query string for gameinfo api.
 const GameInfoGQL = `query game_info($gameCode: String!) {
     gameInfo(gameCode: $gameCode) {
@@ -1200,5 +1223,11 @@ const DealerChoiceGQL = `mutation dealerChoice($gameCode: String!, $gameType: Ga
 	ret: dealerChoice(
 		gameCode: $gameCode
 		gameType: $gameType
+	)
+}`
+
+const PostBlindGQL = `mutation post_blind($gameCode: String!) {
+	status: postBlind(
+		gameCode: $gameCode
 	)
 }`

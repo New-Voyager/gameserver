@@ -32,7 +32,9 @@ func (bp *BotPlayer) processGameMessage(message *game.GameMessage) {
 			buyIn:    buyIn,
 			stack:    stack,
 		}
-		bp.game.table.playersBySeat[seatNo] = p
+		// SOMA: Don't update table view here
+		// table view is updated for every hand
+		//bp.game.table.playersBySeat[seatNo] = p
 		if playerID == bp.PlayerID {
 			// me
 			bp.seatNo = p.seatNo
