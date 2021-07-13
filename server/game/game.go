@@ -66,7 +66,8 @@ type Game struct {
 
 	actionTimer        *timer.ActionTimer
 	networkCheck       *NetworkCheck
-	db                 *sqlx.DB
+	crashdb            *sqlx.DB
+	userdb             *sqlx.DB
 	encryptionKeyCache *encryptionkey.Cache
 }
 
@@ -79,9 +80,10 @@ func NewPokerGame(
 	handStatePersist PersistHandState,
 	handSetupPersist *RedisHandsSetupTracker,
 	apiServerURL string,
-	db *sqlx.DB) (*Game, error) {
+	crashdb *sqlx.DB,
+	userdb *sqlx.DB) (*Game, error) {
 
-	cache, err := encryptionkey.NewCache(32, db)
+	cache, err := encryptionkey.NewCache(32, userdb)
 	if err != nil || cache == nil {
 		return nil, errors.Wrap(err, "Unable to instantiate encryption key cache")
 	}
@@ -95,7 +97,8 @@ func NewPokerGame(
 		handSetupPersist:   handSetupPersist,
 		apiServerURL:       apiServerURL,
 		retryDelayMillis:   500,
-		db:                 db,
+		userdb:             userdb,
+		crashdb:            crashdb,
 		encryptionKeyCache: cache,
 	}
 	g.scriptTestPlayers = make(map[uint64]*Player)
@@ -1044,11 +1047,11 @@ func (g *Game) GetEncryptionKey(playerID uint64) (string, error) {
 func (g *Game) EncryptForPlayer(data []byte, playerID uint64) ([]byte, error) {
 	encryptionKey, err := g.GetEncryptionKey(playerID)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to get encryption key for player %d", playerID)
+		return nil, errors.Wrapf(err, "Unable to get encryption key for player %d", playerID)
 	}
 	encryptedData, err := encryption.EncryptWithUUIDStrKey(data, encryptionKey)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to encrypt message to player %d", playerID)
+		return nil, errors.Wrapf(err, "Unable to encrypt message to player %d", playerID)
 	}
 	return encryptedData, nil
 }

@@ -184,12 +184,11 @@ func (e *environment) GetPostgresDB() string {
 
 func (e *environment) GetPostgresConnStr() string {
 	return fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		"host=%s port=%d user=%s password=%s dbname=livegames sslmode=disable",
 		e.GetPostgresHost(),
 		e.GetPostgresPort(),
 		e.GetPostgresUser(),
 		e.GetPostgresPW(),
-		e.GetPostgresDB(),
 	)
 }
 

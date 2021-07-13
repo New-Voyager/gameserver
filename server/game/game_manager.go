@@ -17,16 +17,26 @@ func CreateGameManager(isScriptTest bool, delays Delays) *Manager {
 	}
 
 	var apiServerURL string
-	var db *sqlx.DB
+	var usersdb *sqlx.DB
+	var crashdb *sqlx.DB
 	var err error
 	if !isScriptTest {
 		apiServerURL = util.GameServerEnvironment.GetApiServerUrl()
 
-		db, err = sqlx.Open("postgres", internal.GetConnStr())
+		crashdb, err = sqlx.Open("postgres", internal.GetGamesConnStr())
 		if err != nil {
 			panic(errors.Wrap(err, "Unable to create sqlx handle to postgres"))
 		}
-		err = db.Ping()
+		err = crashdb.Ping()
+		if err != nil {
+			panic(errors.Wrap(err, "Unable to verify postgres connection"))
+		}
+
+		usersdb, err = sqlx.Open("postgres", internal.GetUsersConnStr())
+		if err != nil {
+			panic(errors.Wrap(err, "Unable to create sqlx handle to postgres"))
+		}
+		err = usersdb.Ping()
 		if err != nil {
 			panic(errors.Wrap(err, "Unable to verify postgres connection"))
 		}
@@ -46,7 +56,7 @@ func CreateGameManager(isScriptTest bool, delays Delays) *Manager {
 		handPersist = NewMemoryHandStateTracker()
 	}
 
-	gm, err := NewGameManager(isScriptTest, apiServerURL, handPersist, handSetupPersist, db, delays)
+	gm, err := NewGameManager(isScriptTest, apiServerURL, handPersist, handSetupPersist, usersdb, crashdb, delays)
 	if err != nil {
 		panic(err)
 	}
