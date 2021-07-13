@@ -43,7 +43,7 @@
       },
       "args": [
         "--config",
-        "botrunner_scripts/river-action-2-bots-1-human.yaml",
+        "botrunner_scripts/human_game/river-action-2-bots-1-human.yaml",
         "--game-code",
         "REPLACE_ME_WITH_THE_REAL_CODE"
       ]

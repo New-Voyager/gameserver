@@ -24,7 +24,7 @@ type arg struct {
 func init() {
 	flag.StringVar(&cmdArgs.gameCode, "game-code", "", "Game code to join")
 	flag.StringVar(&cmdArgs.scriptFile, "script", "", "Game script YAML file")
-	flag.StringVar(&cmdArgs.playersFile, "players", "botrunner_scripts/common/players.yaml", "Players YAML file")
+	flag.StringVar(&cmdArgs.playersFile, "players", "botrunner_scripts/players/default.yaml", "Players YAML file")
 	flag.Parse()
 }
 
