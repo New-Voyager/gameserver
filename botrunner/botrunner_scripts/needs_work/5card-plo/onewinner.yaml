@@ -44,12 +44,12 @@ hands:
       button-pos: 1
       board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-cards:
+        - seat: 1
+          cards: ["9h", "3c", "7c", "Js", "Kd"]
         - seat: 2
           cards: ["Kh", "Qd", "3h", "5s", "6s"]
         - seat: 3
           cards: ["3s", "7s", "9d", "8h", "Qh"]
-        - seat: 1
-          cards: ["9h", "3c", "7c", "Js", "Kd"]
 
     # simulate pre-flop action
     preflop:
@@ -96,8 +96,8 @@ hands:
       # bb player won a chip
       stacks:
         - seat: 1
-          stack: 84
-        - seat: 5
-          stack: 120
-        - seat: 8
+          stack: 74
+        - seat: 2
+          stack: 128
+        - seat: 3
           stack: 96
