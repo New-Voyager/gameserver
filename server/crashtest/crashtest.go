@@ -27,27 +27,6 @@ const (
 	CrashPoint_PREPARE_NEXT_ACTION_1  CrashPoint = "PREPARE_NEXT_ACTION_1"
 	CrashPoint_PREPARE_NEXT_ACTION_2  CrashPoint = "PREPARE_NEXT_ACTION_2"
 	CrashPoint_PREPARE_NEXT_ACTION_3  CrashPoint = "PREPARE_NEXT_ACTION_3"
-	CrashPoint_PREPARE_NEXT_ACTION_4  CrashPoint = "PREPARE_NEXT_ACTION_4"
-	CrashPoint_MOVE_TO_NEXT_ACTION_1  CrashPoint = "MOVE_TO_NEXT_ACTION_1"
-	CrashPoint_MOVE_TO_NEXT_ACTION_2  CrashPoint = "MOVE_TO_NEXT_ACTION_2"
-	CrashPoint_MOVE_TO_NEXT_ACTION_3  CrashPoint = "MOVE_TO_NEXT_ACTION_3"
-	CrashPoint_MOVE_TO_NEXT_ACTION_4  CrashPoint = "MOVE_TO_NEXT_ACTION_4"
-	CrashPoint_MOVE_TO_NEXT_ROUND_1   CrashPoint = "MOVE_TO_NEXT_ROUND_1"
-	CrashPoint_MOVE_TO_NEXT_ROUND_2   CrashPoint = "MOVE_TO_NEXT_ROUND_2"
-	CrashPoint_MOVE_TO_NEXT_ROUND_3   CrashPoint = "MOVE_TO_NEXT_ROUND_3"
-	CrashPoint_ALL_PLAYERS_ALL_IN_1   CrashPoint = "ALL_PLAYERS_ALL_IN_1"
-	CrashPoint_ALL_PLAYERS_ALL_IN_2   CrashPoint = "ALL_PLAYERS_ALL_IN_2"
-	CrashPoint_ALL_PLAYERS_ALL_IN_3   CrashPoint = "ALL_PLAYERS_ALL_IN_3"
-	CrashPoint_ALL_PLAYERS_ALL_IN_4   CrashPoint = "ALL_PLAYERS_ALL_IN_4"
-	CrashPoint_ALL_PLAYERS_ALL_IN_5   CrashPoint = "ALL_PLAYERS_ALL_IN_5"
-	CrashPoint_ALL_PLAYERS_ALL_IN_6   CrashPoint = "ALL_PLAYERS_ALL_IN_6"
-	CrashPoint_ALL_PLAYERS_ALL_IN_7   CrashPoint = "ALL_PLAYERS_ALL_IN_7"
-	CrashPoint_ALL_PLAYERS_ALL_IN_8   CrashPoint = "ALL_PLAYERS_ALL_IN_8"
-	CrashPoint_MOVE_TO_NEXT_HAND_1    CrashPoint = "MOVE_TO_NEXT_HAND_1"
-	CrashPoint_MOVE_TO_NEXT_HAND_2    CrashPoint = "MOVE_TO_NEXT_HAND_2"
-	CrashPoint_MOVE_TO_NEXT_HAND_3    CrashPoint = "MOVE_TO_NEXT_HAND_3"
-	CrashPoint_MOVE_TO_NEXT_HAND_4    CrashPoint = "MOVE_TO_NEXT_HAND_4"
-	CrashPoint_MOVE_TO_NEXT_HAND_5    CrashPoint = "MOVE_TO_NEXT_HAND_5"
 
 	ExitCode int = 66
 )
@@ -59,7 +38,7 @@ var (
 // IsValid checks if cp is a valid enum value for CrashPoint.
 func (cp CrashPoint) IsValid() bool {
 	switch cp {
-	case CrashPoint_NO_CRASH, CrashPoint_NOW, CrashPoint_DEAL_1, CrashPoint_DEAL_2, CrashPoint_DEAL_3, CrashPoint_DEAL_4, CrashPoint_DEAL_5, CrashPoint_DEAL_6, CrashPoint_WAIT_FOR_NEXT_ACTION_1, CrashPoint_WAIT_FOR_NEXT_ACTION_2, CrashPoint_PREPARE_NEXT_ACTION_1, CrashPoint_PREPARE_NEXT_ACTION_2, CrashPoint_PREPARE_NEXT_ACTION_3, CrashPoint_PREPARE_NEXT_ACTION_4, CrashPoint_MOVE_TO_NEXT_ACTION_1, CrashPoint_MOVE_TO_NEXT_ACTION_2, CrashPoint_MOVE_TO_NEXT_ACTION_3, CrashPoint_MOVE_TO_NEXT_ACTION_4, CrashPoint_MOVE_TO_NEXT_ROUND_1, CrashPoint_MOVE_TO_NEXT_ROUND_2, CrashPoint_MOVE_TO_NEXT_ROUND_3, CrashPoint_ALL_PLAYERS_ALL_IN_1, CrashPoint_ALL_PLAYERS_ALL_IN_2, CrashPoint_ALL_PLAYERS_ALL_IN_3, CrashPoint_ALL_PLAYERS_ALL_IN_4, CrashPoint_ALL_PLAYERS_ALL_IN_5, CrashPoint_ALL_PLAYERS_ALL_IN_6, CrashPoint_ALL_PLAYERS_ALL_IN_7, CrashPoint_ALL_PLAYERS_ALL_IN_8, CrashPoint_MOVE_TO_NEXT_HAND_1, CrashPoint_MOVE_TO_NEXT_HAND_2, CrashPoint_MOVE_TO_NEXT_HAND_3, CrashPoint_MOVE_TO_NEXT_HAND_4, CrashPoint_MOVE_TO_NEXT_HAND_5:
+	case CrashPoint_NO_CRASH, CrashPoint_NOW, CrashPoint_DEAL_1, CrashPoint_DEAL_2, CrashPoint_DEAL_3, CrashPoint_DEAL_4, CrashPoint_DEAL_5, CrashPoint_DEAL_6, CrashPoint_WAIT_FOR_NEXT_ACTION_1, CrashPoint_WAIT_FOR_NEXT_ACTION_2, CrashPoint_PREPARE_NEXT_ACTION_1, CrashPoint_PREPARE_NEXT_ACTION_2, CrashPoint_PREPARE_NEXT_ACTION_3:
 		return true
 	}
 	return false
