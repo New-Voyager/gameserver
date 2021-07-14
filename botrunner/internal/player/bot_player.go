@@ -454,6 +454,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 
 	case game.HandNewHand:
 		/* MessageType: NEW_HAND */
+		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 		bp.reloadBotFromGameInfo()
 		bp.game.handNum = message.HandNum
 		bp.game.handStatus = message.GetHandStatus()
@@ -462,7 +463,6 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.game.table.sbPos = newHand.GetSbPos()
 		bp.game.table.bbPos = newHand.GetBbPos()
 		bp.game.table.nextActionSeat = newHand.GetNextActionSeat()
-		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 		bp.game.table.actionTracker = game.NewHandActionTracker()
 
 		bp.hasNextHandBeenSetup = false // Not this hand, but the next one.
@@ -711,6 +711,9 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.game.handStatus = handStatus
 		bp.game.table.nextActionSeat = actionSeatNo
 		bp.game.table.playersActed = playersActed
+		if bp.game.table.playersActed == nil {
+			bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
+		}
 		bp.game.handNum = message.HandNum
 
 		if actionSeatNo != bp.seatNo {
@@ -2261,12 +2264,12 @@ func (bp *BotPlayer) getPlayerCardsFromConfig(seatCards []gamescript.SeatCards) 
 }
 
 func (bp *BotPlayer) reloadBotFromGameInfo() error {
+	bp.game.table.playersBySeat = make(map[uint32]*player)
 	gameInfo, err := bp.GetGameInfo(bp.gameCode)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get game info %s", bp.logPrefix, bp.gameCode))
 	}
 	bp.gameInfo = &gameInfo
-	bp.game.table.playersBySeat = make(map[uint32]*player)
 	var seatNo uint32
 	var isSeated bool
 	var isPlaying bool
