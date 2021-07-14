@@ -87,7 +87,7 @@ func (deck *Deck) Draw(n int) []Card {
 func (deck *Deck) FindAndReplace(cardInDeck Card, newCard Card) {
 	idx := deck.getCardLoc(cardInDeck)
 	if idx < 0 {
-		panic("Deck.FindAndReplace unable to find card in deck")
+		panic(fmt.Sprintf("Deck.FindAndReplace unable to find card %s in deck\nDeck: %s\n", CardToString(cardInDeck), CardsToString(deck.GetBytes())))
 	}
 	deck.cards[idx] = newCard
 }
