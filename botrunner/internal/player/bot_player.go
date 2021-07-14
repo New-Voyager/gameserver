@@ -960,11 +960,19 @@ func (bp *BotPlayer) verifyResult() {
 		passed := true
 		for _, scriptResultPlayer := range scriptResult.Players {
 			seatNo := scriptResultPlayer.Seat
-			expectedBalance := scriptResultPlayer.Balance.After
-			if expectedBalance != nil {
-				actualBalance := resultPlayers[seatNo].GetBalance().After
-				if actualBalance != *expectedBalance {
-					bp.logger.Error().Msgf("%s: Hand %d result verify failed. Remaining balance for seat# %d: %f. Expected: %f.", bp.logPrefix, bp.game.handNum, seatNo, actualBalance, *expectedBalance)
+			expectedBalanceBefore := scriptResultPlayer.Balance.Before
+			if expectedBalanceBefore != nil {
+				actualBalanceBefore := resultPlayers[seatNo].GetBalance().Before
+				if actualBalanceBefore != *expectedBalanceBefore {
+					bp.logger.Error().Msgf("%s: Hand %d result verify failed. Starting balance for seat# %d: %f. Expected: %f.", bp.logPrefix, bp.game.handNum, seatNo, actualBalanceBefore, *expectedBalanceBefore)
+					passed = false
+				}
+			}
+			expectedBalanceAfter := scriptResultPlayer.Balance.After
+			if expectedBalanceAfter != nil {
+				actualBalanceAfter := resultPlayers[seatNo].GetBalance().After
+				if actualBalanceAfter != *expectedBalanceAfter {
+					bp.logger.Error().Msgf("%s: Hand %d result verify failed. Remaining balance for seat# %d: %f. Expected: %f.", bp.logPrefix, bp.game.handNum, seatNo, actualBalanceAfter, *expectedBalanceAfter)
 					passed = false
 				}
 			}

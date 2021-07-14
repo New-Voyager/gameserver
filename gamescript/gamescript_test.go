@@ -316,7 +316,8 @@ func TestReadGameScript(t *testing.T) {
 							Seat:   1,
 							HhRank: getUint32Pointer(127),
 							Balance: PlayerBalance{
-								After: getFloat32Pointer(84),
+								Before: getFloat32Pointer(100),
+								After:  getFloat32Pointer(84),
 							},
 						},
 						{
