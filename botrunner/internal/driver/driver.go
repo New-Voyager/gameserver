@@ -225,7 +225,7 @@ func (br *BotRunner) Run() error {
 	if br.script.Game.Rewards != "" {
 		// rewards can be listed with comma delimited string
 		//rewardID := br.bots[0].RewardsNameToID[br.script.Game.Rewards]
-		rewardID, err := br.bots[0].GetRewardId(br.clubCode, br.script.Game.Rewards)
+		rewardID, err := br.bots[0].GetRewardID(br.clubCode, br.script.Game.Rewards)
 		if err != nil {
 			br.logger.Error().Msgf("Could not get reward info for %s", br.script.Game.Rewards)
 		} else {
