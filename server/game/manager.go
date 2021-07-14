@@ -13,10 +13,11 @@ type Manager struct {
 	handStatePersist PersistHandState
 	handSetupPersist *RedisHandsSetupTracker
 	activeGames      map[string]*Game
-	db               *sqlx.DB
+	crashdb          *sqlx.DB
+	userdb           *sqlx.DB
 }
 
-func NewGameManager(isScriptTest bool, apiServerURL string, handPersist PersistHandState, handSetupPersist *RedisHandsSetupTracker, db *sqlx.DB, delays Delays) (*Manager, error) {
+func NewGameManager(isScriptTest bool, apiServerURL string, handPersist PersistHandState, handSetupPersist *RedisHandsSetupTracker, userdb *sqlx.DB, crashdb *sqlx.DB, delays Delays) (*Manager, error) {
 	return &Manager{
 		isScriptTest:     isScriptTest,
 		apiServerURL:     apiServerURL,
@@ -24,7 +25,8 @@ func NewGameManager(isScriptTest bool, apiServerURL string, handPersist PersistH
 		handStatePersist: handPersist,
 		handSetupPersist: handSetupPersist,
 		activeGames:      make(map[string]*Game),
-		db:               db,
+		userdb:           userdb,
+		crashdb:          crashdb,
 	}, nil
 }
 
@@ -39,7 +41,8 @@ func (gm *Manager) InitializeGame(messageSender MessageSender, config *GameConfi
 		gm.handStatePersist,
 		gm.handSetupPersist,
 		gm.apiServerURL,
-		gm.db)
+		gm.crashdb,
+		gm.userdb)
 	gm.activeGames[gameIDStr] = game
 
 	if err != nil {
