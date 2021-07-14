@@ -3,6 +3,7 @@ package crashtest
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
@@ -51,6 +52,10 @@ const (
 	ExitCode int = 66
 )
 
+var (
+	CrashSetLock sync.Mutex
+)
+
 // IsValid checks if cp is a valid enum value for CrashPoint.
 func (cp CrashPoint) IsValid() bool {
 	switch cp {
@@ -71,6 +76,13 @@ var (
 // Set schedules for crashing at the specified point.
 // If cp == CrashPoint_NOW, the function will crash immediately without returning.
 func Set(gameCode string, cp CrashPoint, playerID uint64) error {
+	CrashSetLock.Lock()
+	defer CrashSetLock.Unlock()
+
+	if crashPoint != CrashPoint_NO_CRASH {
+		return fmt.Errorf("Cannot set crashpoint [%s] when previous crash point [%s/%d/%s] hasn't been hit", cp, crashGameCode, crashPlayerID, crashPoint)
+	}
+
 	if !cp.IsValid() {
 		return fmt.Errorf("Invalid crash point enum: [%s]", cp)
 	}
@@ -85,6 +97,9 @@ func Set(gameCode string, cp CrashPoint, playerID uint64) error {
 
 // Hit will crash the process if cp matches the crash point scheduled by Set.
 func Hit(gameCode string, cp CrashPoint, playerID uint64) {
+	CrashSetLock.Lock()
+	defer CrashSetLock.Unlock()
+
 	if cp != crashPoint || playerID != crashPlayerID {
 		return
 	}
