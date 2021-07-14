@@ -112,15 +112,19 @@ hands:
         - seat: 4
           consecutive-action-timeouts: 1
           acted-at-least-once: true
-      stacks:
+      players:
         - seat: 1
-          stack: 297
+          balance:
+            after: 297
         - seat: 2
-          stack: 100
+          balance:
+            after: 100
         - seat: 3
-          stack: 298
+          balance:
+            after: 298
         - seat: 4
-          stack: 300
+          balance:
+            after: 300
 
   - setup:
       board: ["2s", "Tc", "2d", "Ad", "9s"]
@@ -189,15 +193,19 @@ hands:
         - seat: 4
           consecutive-action-timeouts: 2
           acted-at-least-once: true
-      stacks:
+      players:
         - seat: 1
-          stack: 302
+          balance:
+            after: 302
         - seat: 2
-          stack: 98
+          balance:
+            after: 98
         - seat: 3
-          stack: 297
+          balance:
+            after: 297
         - seat: 4
-          stack: 298
+          balance:
+            after: 298
 
   - setup:
       board: ["8s", "6h", "8d", "5d", "4c"]
@@ -264,15 +272,19 @@ hands:
         - seat: 4
           consecutive-action-timeouts: 0
           acted-at-least-once: true
-      stacks:
+      players:
         - seat: 1
-          stack: 300
+          balance:
+            after: 300
         - seat: 2
-          stack: 96
+          balance:
+            after: 96
         - seat: 3
-          stack: 297
+          balance:
+            after: 297
         - seat: 4
-          stack: 302
+          balance:
+            after: 302
 
   # Seat 3 got put in break after the previous hand due to 5 consecutive timeouts.
   # This hand should start with only seats 1, 2, and 4.
@@ -334,10 +346,13 @@ hands:
         - seat: 4
           consecutive-action-timeouts: 0
           acted-at-least-once: true
-      stacks:
+      players:
         - seat: 1
-          stack: 298
+          balance:
+            after: 298
         - seat: 2
-          stack: 94
+          balance:
+            after: 94
         - seat: 4
-          stack: 306
+          balance:
+            after: 306

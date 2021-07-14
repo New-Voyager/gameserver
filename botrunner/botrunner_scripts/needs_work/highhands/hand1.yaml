@@ -47,12 +47,12 @@ hands:
       button-pos: 1
       board: ["5d", "5s", "5h", "3s", "2d"]
       seat-cards:
+        - seat: 1
+          cards: ["8s", "7c"]
         - seat: 2
           cards: ["5c", "6c"]
         - seat: 3
           cards: ["9c", "8c"]
-        - seat: 1
-          cards: ["8s", "7c"]
 
     # simulate pre-flop action
     preflop:
@@ -83,3 +83,12 @@ hands:
       seat-actions:
         - action: 2, BET, 10
         - action: 1, CALL, 10
+
+    result:
+      players:
+        - seat: 1
+          hhRank: 2255
+        - seat: 2
+          hhRank: 127
+        - seat: 3
+          hhRank: 0

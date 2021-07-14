@@ -94,13 +94,14 @@ hands:
           receive: 27.0
           rank: Straight
       action-ended: SHOW_DOWN
-      
-      # balance indicates the player balance after the hand
-      # bb player won a chip
-      stacks:
+
+      players:
         - seat: 1
-          stack: 101
+          balance:
+            after: 101
         - seat: 2
-          stack: 101
+          balance:
+            after: 101
         - seat: 3
-          stack: 96
+          balance:
+            after: 96

@@ -114,12 +114,13 @@ hands:
           rank: Pair
       action-ended: SHOW_DOWN
 
-      # balance indicates the player balance after the hand
-      # bb player won a chip
-      stacks:
+      players:
         - seat: 1
-          stack: 128
+          balance:
+            after: 128
         - seat: 5
-          stack: 74
+          balance:
+            after: 74
         - seat: 8
-          stack: 96
+          balance:
+            after: 96
