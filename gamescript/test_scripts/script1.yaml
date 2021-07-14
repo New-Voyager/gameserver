@@ -76,6 +76,18 @@ hands:
           confirm: true
           buy-in: 500
       pause: 5
+      verify:
+        button-pos: 1
+        sb-pos: 2
+        bb-pos: 3
+        next-action-pos: 4
+        seats:
+          - seat: 1
+            player: tom
+          - seat: 2
+            player: brian
+          - seat: 3
+            player: yong
 
     preflop:
       seat-actions:

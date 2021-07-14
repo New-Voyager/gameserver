@@ -494,34 +494,45 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			bp.pauseGameIfNeeded()
 
 			if !bp.config.Script.AutoPlay {
-				currentHand := bp.config.Script.Hands[message.HandNum-1]
+				currentHand := bp.config.Script.GetHand(message.HandNum)
 				verify := currentHand.Setup.Verify
 				if len(verify.Seats) > 0 {
 					for _, seat := range currentHand.Setup.Verify.Seats {
 						seatPlayer := newHand.PlayersInSeats[seat.Seat]
 						if seatPlayer.Name != seat.Player {
-							bp.logger.Error().Msgf("Player %s should be in seat %d, but found another player: %s", seatPlayer.Name, seat.Seat, seat.Player)
-							panic(fmt.Sprintf("Player %s should be in seat %d, but found another player: %s", seatPlayer.Name, seat.Seat, seat.Player))
+							errMsg := fmt.Sprintf("Player %s should be in seat %d, but found another player: %s", seat.Player, seat.Seat, seatPlayer.Name)
+							bp.logger.Error().Msg(errMsg)
+							panic(errMsg)
 						}
 					}
 				}
 
 				if verify.ButtonPos != nil {
 					if newHand.ButtonPos != *verify.ButtonPos {
-						bp.logger.Error().Msgf("Button position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.ButtonPos, newHand.ButtonPos)
-						panic(fmt.Sprintf("Button position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.ButtonPos, newHand.ButtonPos))
+						errMsg := fmt.Sprintf("Button position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.ButtonPos, newHand.ButtonPos)
+						bp.logger.Error().Msg(errMsg)
+						panic(errMsg)
 					}
 				}
 				if verify.SBPos != nil {
 					if newHand.SbPos != *verify.SBPos {
-						bp.logger.Error().Msgf("SB position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.SBPos, newHand.SbPos)
-						panic(fmt.Sprintf("SB position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.SBPos, newHand.SbPos))
+						errMsg := fmt.Sprintf("SB position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.SBPos, newHand.SbPos)
+						bp.logger.Error().Msg(errMsg)
+						panic(errMsg)
 					}
 				}
 				if verify.BBPos != nil {
 					if newHand.BbPos != *verify.BBPos {
-						bp.logger.Error().Msgf("BB position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.BBPos, newHand.BbPos)
-						panic(fmt.Sprintf("BB position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.BBPos, newHand.BbPos))
+						errMsg := fmt.Sprintf("BB position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.BBPos, newHand.BbPos)
+						bp.logger.Error().Msg(errMsg)
+						panic(errMsg)
+					}
+				}
+				if verify.NextActionPos != nil {
+					if newHand.NextActionSeat != *verify.NextActionPos {
+						errMsg := fmt.Sprintf("Next action seat does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.NextActionPos, newHand.NextActionSeat)
+						bp.logger.Error().Msg(errMsg)
+						panic(errMsg)
 					}
 				}
 			}

@@ -162,16 +162,11 @@ type SeatCards struct {
 }
 
 type HandSetupVerfication struct {
-	Button        uint32       `yaml:"button"`
-	SB            uint32       `yaml:"sb"`
-	BB            uint32       `yaml:"bb"`
-	NextActionPos uint32       `yaml:"next-action-pos"`
-	State         string       `yaml:"state"`
-	DealtCards    []SeatCards  `yaml:"dealt-cards"`
-	Seats         []VerifySeat `yaml:"seats"`
 	ButtonPos     *uint32      `yaml:"button-pos"`
 	SBPos         *uint32      `yaml:"sb-pos"`
 	BBPos         *uint32      `yaml:"bb-pos"`
+	NextActionPos *uint32      `yaml:"next-action-pos"`
+	Seats         []VerifySeat `yaml:"seats"`
 }
 
 type SeatChangeConfirm struct {
