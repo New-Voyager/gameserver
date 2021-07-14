@@ -52,7 +52,7 @@ hands:
         - seat: 3
           cards: ["9c", "8c"]
         - seat: 1
-          cards: ["8c", "7c"]
+          cards: ["8s", "7c"]
 
     # simulate pre-flop action
     preflop:
