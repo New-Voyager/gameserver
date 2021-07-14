@@ -327,8 +327,8 @@ type HandResult struct {
 	Winners       []HandWinner   `yaml:"winners"`
 	LoWinners     []HandWinner   `yaml:"lo-winners"`
 	ActionEndedAt string         `yaml:"action-ended"`
-	Stacks        []PlayerStack  `yaml:"stacks"`
 	HighHand      []HighHandSeat `yaml:"high-hand"`
+	Players       []ResultPlayer `yaml:"players"`
 	PlayerStats   []PlayerStats  `yaml:"player-stats"`
 }
 
@@ -338,9 +338,15 @@ type HandWinner struct {
 	RankStr string  `yaml:"rank"`
 }
 
-type PlayerStack struct {
-	Seat  uint32  `yaml:"seat"`
-	Stack float32 `yaml:"stack"`
+type ResultPlayer struct {
+	Seat    uint32        `yaml:"seat"`
+	Balance PlayerBalance `yaml:"balance"`
+	HhRank  uint32        `yaml:"hhRank"`
+}
+
+type PlayerBalance struct {
+	Before float32 `yaml:"before"`
+	After  float32 `yaml:"after"`
 }
 
 type HighHandSeat struct {

@@ -291,18 +291,27 @@ func TestReadGameScript(t *testing.T) {
 						},
 					},
 					ActionEndedAt: "SHOW_DOWN",
-					Stacks: []PlayerStack{
+					Players: []ResultPlayer{
 						{
-							Seat:  1,
-							Stack: 84,
+							Seat:   1,
+							HhRank: 127,
+							Balance: PlayerBalance{
+								After: 84,
+							},
 						},
 						{
-							Seat:  5,
-							Stack: 120,
+							Seat:   5,
+							HhRank: 2255,
+							Balance: PlayerBalance{
+								After: 120,
+							},
 						},
 						{
-							Seat:  8,
-							Stack: 96,
+							Seat:   8,
+							HhRank: 0,
+							Balance: PlayerBalance{
+								After: 96,
+							},
 						},
 					},
 					HighHand: []HighHandSeat{
