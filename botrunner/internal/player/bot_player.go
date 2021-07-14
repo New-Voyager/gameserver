@@ -494,36 +494,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			bp.pauseGameIfNeeded()
 
 			if !bp.config.Script.AutoPlay {
-				currentHand := bp.config.Script.Hands[message.HandNum-1]
-				verify := currentHand.Setup.Verify
-				if len(verify.Seats) > 0 {
-					for _, seat := range currentHand.Setup.Verify.Seats {
-						seatPlayer := newHand.PlayersInSeats[seat.Seat]
-						if seatPlayer.Name != seat.Player {
-							bp.logger.Error().Msgf("Player %s should be in seat %d, but found another player: %s", seatPlayer.Name, seat.Seat, seat.Player)
-							panic(fmt.Sprintf("Player %s should be in seat %d, but found another player: %s", seatPlayer.Name, seat.Seat, seat.Player))
-						}
-					}
-				}
-
-				if verify.ButtonPos != nil {
-					if newHand.ButtonPos != *verify.ButtonPos {
-						bp.logger.Error().Msgf("Button position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.ButtonPos, newHand.ButtonPos)
-						panic(fmt.Sprintf("Button position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.ButtonPos, newHand.ButtonPos))
-					}
-				}
-				if verify.SBPos != nil {
-					if newHand.SbPos != *verify.SBPos {
-						bp.logger.Error().Msgf("SB position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.SBPos, newHand.SbPos)
-						panic(fmt.Sprintf("SB position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.SBPos, newHand.SbPos))
-					}
-				}
-				if verify.BBPos != nil {
-					if newHand.BbPos != *verify.BBPos {
-						bp.logger.Error().Msgf("BB position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.BBPos, newHand.BbPos)
-						panic(fmt.Sprintf("BB position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.BBPos, newHand.BbPos))
-					}
-				}
+				bp.verifyNewHand(message.HandNum, newHand)
 			}
 		}
 
@@ -845,7 +816,7 @@ func (bp *BotPlayer) verifyCardRank(currentRanks map[uint32]string) {
 		return
 	}
 
-	var actualRank string = currentRanks[bp.seatNo]
+	var actualRank = currentRanks[bp.seatNo]
 	if util.Env.IsEncryptionEnabled() {
 		// Player rank string is encrypted and base64 encoded by the game server.
 		// It first needs to be b64 decoded and then decrypted using the player's
@@ -867,6 +838,50 @@ func (bp *BotPlayer) verifyCardRank(currentRanks map[uint32]string) {
 	}
 }
 
+func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
+	currentHand := bp.config.Script.GetHand(handNum)
+	verify := currentHand.Setup.Verify
+	if len(verify.Seats) > 0 {
+		for _, seat := range currentHand.Setup.Verify.Seats {
+			seatPlayer := newHand.PlayersInSeats[seat.Seat]
+			if seatPlayer.Name != seat.Player {
+				errMsg := fmt.Sprintf("Player %s should be in seat %d, but found another player: %s", seat.Player, seat.Seat, seatPlayer.Name)
+				bp.logger.Error().Msg(errMsg)
+				panic(errMsg)
+			}
+		}
+	}
+
+	if verify.ButtonPos != nil {
+		if newHand.ButtonPos != *verify.ButtonPos {
+			errMsg := fmt.Sprintf("Button position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.ButtonPos, newHand.ButtonPos)
+			bp.logger.Error().Msg(errMsg)
+			panic(errMsg)
+		}
+	}
+	if verify.SBPos != nil {
+		if newHand.SbPos != *verify.SBPos {
+			errMsg := fmt.Sprintf("SB position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.SBPos, newHand.SbPos)
+			bp.logger.Error().Msg(errMsg)
+			panic(errMsg)
+		}
+	}
+	if verify.BBPos != nil {
+		if newHand.BbPos != *verify.BBPos {
+			errMsg := fmt.Sprintf("BB position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.BBPos, newHand.BbPos)
+			bp.logger.Error().Msg(errMsg)
+			panic(errMsg)
+		}
+	}
+	if verify.NextActionPos != nil {
+		if newHand.NextActionSeat != *verify.NextActionPos {
+			errMsg := fmt.Sprintf("Next action seat does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.NextActionPos, newHand.NextActionSeat)
+			bp.logger.Error().Msg(errMsg)
+			panic(errMsg)
+		}
+	}
+}
+
 func (bp *BotPlayer) verifyResult() {
 	// don't verify result for auto play
 	if bp.config.Script.AutoPlay {
@@ -878,41 +893,42 @@ func (bp *BotPlayer) verifyResult() {
 	}
 
 	scriptResult := bp.config.Script.GetHand(bp.game.handNum).Result
-	expectedWonAt := scriptResult.ActionEndedAt
-	wonAt := bp.GetHandResult().GetHandLog().GetWonAt()
-	if expectedWonAt != "" {
-		if expectedWonAt != wonAt.String() {
+
+	if scriptResult.ActionEndedAt != "" {
+		expectedWonAt := scriptResult.ActionEndedAt
+		wonAt := bp.GetHandResult().GetHandLog().GetWonAt()
+		if wonAt.String() != expectedWonAt {
 			bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Won at: %s. Expected won at: %s.", bp.logPrefix, bp.game.handNum, wonAt, expectedWonAt)
 		}
 	}
-	if len(scriptResult.Winners) == 0 {
-		// No verify
-		return
-	}
+
 	type winner struct {
 		SeatNo  uint32
 		Amount  float32
 		RankStr string
 	}
-	expectedWinnersBySeat := make(map[uint32]winner)
-	for _, expectedWinner := range scriptResult.Winners {
-		expectedWinnersBySeat[expectedWinner.Seat] = winner{
-			SeatNo:  expectedWinner.Seat,
-			Amount:  expectedWinner.Receive,
-			RankStr: expectedWinner.RankStr,
+
+	if len(scriptResult.Winners) > 0 {
+		expectedWinnersBySeat := make(map[uint32]winner)
+		for _, expectedWinner := range scriptResult.Winners {
+			expectedWinnersBySeat[expectedWinner.Seat] = winner{
+				SeatNo:  expectedWinner.Seat,
+				Amount:  expectedWinner.Receive,
+				RankStr: expectedWinner.RankStr,
+			}
 		}
-	}
-	actualWinnersBySeat := make(map[uint32]winner)
-	pots := bp.GetHandResult().GetHandLog().GetPotWinners()
-	for _, w := range pots[0].HiWinners {
-		actualWinnersBySeat[w.GetSeatNo()] = winner{
-			SeatNo:  w.GetSeatNo(),
-			Amount:  w.GetAmount(),
-			RankStr: w.GetRankStr(),
+		actualWinnersBySeat := make(map[uint32]winner)
+		pots := bp.GetHandResult().GetHandLog().GetPotWinners()
+		for _, w := range pots[0].HiWinners {
+			actualWinnersBySeat[w.GetSeatNo()] = winner{
+				SeatNo:  w.GetSeatNo(),
+				Amount:  w.GetAmount(),
+				RankStr: w.GetRankStr(),
+			}
 		}
-	}
-	if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
-		bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
+		if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
+			bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
+		}
 	}
 
 	if len(scriptResult.LoWinners) > 0 {
@@ -925,7 +941,7 @@ func (bp *BotPlayer) verifyResult() {
 			}
 		}
 		actualLoWinnersBySeat := make(map[uint32]winner)
-		pots = bp.GetHandResult().GetHandLog().GetPotWinners()
+		pots := bp.GetHandResult().GetHandLog().GetPotWinners()
 		for _, w := range pots[0].LowWinners {
 			actualLoWinnersBySeat[w.GetSeatNo()] = winner{
 				SeatNo:  w.GetSeatNo(),
@@ -936,6 +952,33 @@ func (bp *BotPlayer) verifyResult() {
 
 		if !cmp.Equal(expectedLoWinnersBySeat, actualLoWinnersBySeat) {
 			bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Low Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualLoWinnersBySeat, expectedLoWinnersBySeat)
+		}
+	}
+
+	if len(scriptResult.Players) > 0 {
+		resultPlayers := bp.GetHandResult().GetPlayers()
+		passed := true
+		for _, scriptResultPlayer := range scriptResult.Players {
+			seatNo := scriptResultPlayer.Seat
+			expectedBalance := scriptResultPlayer.Balance.After
+			if expectedBalance != 0 {
+				actualBalance := resultPlayers[seatNo].GetBalance().After
+				if actualBalance != expectedBalance {
+					bp.logger.Error().Msgf("%s: Hand %d result verify failed. Remaining balance for seat# %d: %f. Expected: %f.", bp.logPrefix, bp.game.handNum, seatNo, actualBalance, expectedBalance)
+					passed = false
+				}
+			}
+			expectedHhRank := scriptResultPlayer.HhRank
+			if expectedHhRank != 0 {
+				actualHhRank := resultPlayers[seatNo].GetHhRank()
+				if actualHhRank != expectedHhRank {
+					bp.logger.Error().Msgf("%s: Hand %d result verify failed. HhRank for seat# %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, actualHhRank, expectedHhRank)
+					passed = false
+				}
+			}
+		}
+		if !passed {
+			panic(fmt.Sprintf("Hand %d result verify failed.", bp.game.handNum))
 		}
 	}
 
@@ -954,23 +997,6 @@ func (bp *BotPlayer) verifyResult() {
 			if actualActedAtLeastOnce != expectedActedAtLeastOnce {
 				bp.logger.Panic().Msgf("%s: Hand %d result verify failed. ActedAtLeastOnce for seat# %d player ID %d: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actualActedAtLeastOnce, expectedActedAtLeastOnce)
 			}
-		}
-	}
-
-	if len(scriptResult.Stacks) > 0 {
-		resultPlayers := bp.GetHandResult().GetPlayers()
-		passed := true
-		for _, scriptPlayerStack := range scriptResult.Stacks {
-			seatNo := scriptPlayerStack.Seat
-			actualBalance := resultPlayers[seatNo].GetBalance().After
-			expectedBalance := scriptPlayerStack.Stack
-			if actualBalance != expectedBalance {
-				bp.logger.Error().Msgf("%s: Hand %d result verify failed. Remaining balance for seat# %d: %f. Expected: %f.", bp.logPrefix, bp.game.handNum, seatNo, actualBalance, expectedBalance)
-				passed = false
-			}
-		}
-		if !passed {
-			panic(fmt.Sprintf("Hand %d result verify failed.", bp.game.handNum))
 		}
 	}
 }
@@ -1066,7 +1092,7 @@ func (bp *BotPlayer) GetClubMemberStatus(clubCode string) (int, error) {
 	return status, nil
 }
 
-func (bp *BotPlayer) GetRewardId(clubCode string, name string) (uint32, error) {
+func (bp *BotPlayer) GetRewardID(clubCode string, name string) (uint32, error) {
 	var rewardID uint32
 	// if the reward already exists, use the existing reward
 	clubRewards, err := bp.gqlHelper.GetClubRewards(clubCode)
@@ -1084,7 +1110,7 @@ func (bp *BotPlayer) GetRewardId(clubCode string, name string) (uint32, error) {
 // CreateClubReward creates a new club reward.
 func (bp *BotPlayer) CreateClubReward(clubCode string, name string, rewardType string, scheduleType string, amount float32) (uint32, error) {
 	bp.logger.Info().Msgf("%s: Creating a new club reward [%s].", bp.logPrefix, name)
-	rewardID, err := bp.GetRewardId(clubCode, name)
+	rewardID, err := bp.GetRewardID(clubCode, name)
 
 	if rewardID == 0 {
 		rewardID, err = bp.gqlHelper.CreateClubReward(clubCode, name, rewardType, scheduleType, amount)

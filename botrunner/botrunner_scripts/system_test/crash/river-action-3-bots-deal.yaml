@@ -96,14 +96,17 @@ hands:
           receive: 54.0
           rank: Pair
       action-ended: SHOW_DOWN
-      
-      stacks:
+
+      players:
         - seat: 1
-          stack: 1028
+          balance:
+            after: 1028
         - seat: 5
-          stack: 974
+          balance:
+            after: 974
         - seat: 8
-          stack: 996
+          balance:
+            after: 996
 
   - setup:
       pre-deal:
@@ -160,14 +163,17 @@ hands:
           receive: 54.0
           rank: Two Pair
       action-ended: SHOW_DOWN
-      
-      stacks:
+
+      players:
         - seat: 1
-          stack: 1024
+          balance:
+            after: 1024
         - seat: 5
-          stack: 948
+          balance:
+            after: 948
         - seat: 8
-          stack: 1024
+          balance:
+            after: 1024
 
   - setup:
       pre-deal:
@@ -224,14 +230,17 @@ hands:
           receive: 54.0
           rank: Two Pair
       action-ended: SHOW_DOWN
-      
-      stacks:
+
+      players:
         - seat: 1
-          stack: 998
+          balance:
+            after: 998
         - seat: 5
-          stack: 944
+          balance:
+            after: 944
         - seat: 8
-          stack: 1052
+          balance:
+            after: 1052
 
   - setup:
       pre-deal:
@@ -288,14 +297,17 @@ hands:
           receive: 54.0
           rank: Pair
       action-ended: SHOW_DOWN
-      
-      stacks:
+
+      players:
         - seat: 1
-          stack: 1026
+          balance:
+            after: 1026
         - seat: 5
-          stack: 918
+          balance:
+            after: 918
         - seat: 8
-          stack: 1048
+          balance:
+            after: 1048
 
   - setup:
       pre-deal:
@@ -352,14 +364,17 @@ hands:
           receive: 54.0
           rank: Two Pair
       action-ended: SHOW_DOWN
-      
-      stacks:
+
+      players:
         - seat: 1
-          stack: 1022
+          balance:
+            after: 1022
         - seat: 5
-          stack: 892
+          balance:
+            after: 892
         - seat: 8
-          stack: 1076
+          balance:
+            after: 1076
 
   - setup:
       pre-deal:
@@ -416,11 +431,14 @@ hands:
           receive: 54.0
           rank: Two Pair
       action-ended: SHOW_DOWN
-      
-      stacks:
+
+      players:
         - seat: 1
-          stack: 996
+          balance:
+            after: 996
         - seat: 5
-          stack: 888
+          balance:
+            after: 888
         - seat: 8
-          stack: 1104
+          balance:
+            after: 1104

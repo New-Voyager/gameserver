@@ -64,7 +64,7 @@ hands:
         - seat: 2
           decline: true
         - seat: 3
-          accept: true          
+          accept: true    
       leave-game:
         - seat: 6
 

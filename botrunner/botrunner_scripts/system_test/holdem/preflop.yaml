@@ -66,13 +66,14 @@ hands:
         - seat: 2
           receive: 16.0
       action-ended: PREFLOP
-      
-      # balance indicates the player balance after the hand
-      # bb player won a chip
-      stacks:
+
+      players:
         - seat: 1
-          stack: 96
+          balance:
+            after: 96
         - seat: 2
-          stack: 106
+          balance:
+            after: 106
         - seat: 3
-          stack: 98
+          balance:
+            after: 98

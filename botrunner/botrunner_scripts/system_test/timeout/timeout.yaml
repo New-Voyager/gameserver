@@ -105,12 +105,16 @@ hands:
           receive: 395
           rank: Two Pair
       action-ended: SHOW_DOWN
-      stacks:
+      players:
         - seat: 1
-          stack: 0
+          balance:
+            after: 0
         - seat: 2
-          stack: 0
+          balance:
+            after: 0
         - seat: 3
-          stack: 0
+          balance:
+            after: 0
         - seat: 4
-          stack: 995
+          balance:
+            after: 995

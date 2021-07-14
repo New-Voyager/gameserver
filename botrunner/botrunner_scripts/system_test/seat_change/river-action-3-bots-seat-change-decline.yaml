@@ -96,16 +96,17 @@ hands:
           receive: 54.0
           rank: Pair
       action-ended: SHOW_DOWN
-      
-      # balance indicates the player balance after the hand
-      # bb player won a chip
-      stacks:
+
+      players:
         - seat: 1
-          stack: 128
+          balance:
+            after: 128
         - seat: 5
-          stack: 74
+          balance:
+            after: 74
         - seat: 8
-          stack: 96
+          balance:
+            after: 96
 
   - setup:
       board: ["Ac", "Ad", "2c", "Td", "4s"]
@@ -128,8 +129,10 @@ hands:
           receive: 187
           rank: Pair
       action-ended: SHOW_DOWN
-      stacks:
+      players:
         - seat: 1
-          stack: 32
+          balance:
+            after: 32
         - seat: 8
-          stack: 187
+          balance:
+            after: 187

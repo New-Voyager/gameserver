@@ -76,6 +76,18 @@ hands:
           confirm: true
           buy-in: 500
       pause: 5
+      verify:
+        button-pos: 1
+        sb-pos: 2
+        bb-pos: 3
+        next-action-pos: 4
+        seats:
+          - seat: 1
+            player: tom
+          - seat: 2
+            player: brian
+          - seat: 3
+            player: yong
 
     preflop:
       seat-actions:
@@ -141,14 +153,19 @@ hands:
           receive: 12.0
       action-ended: SHOW_DOWN
 
-      # player balance after the hand
-      stacks:
+      # player result after the hand
+      players:
         - seat: 1
-          stack: 84
+          hhRank: 127
+          balance:
+            after: 84
         - seat: 5
-          stack: 120
+          hhRank: 2255
+          balance:
+            after: 120
         - seat: 8
-          stack: 96
+          balance:
+            after: 96
       high-hand:
         - seat: 1
 

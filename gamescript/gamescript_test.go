@@ -118,6 +118,26 @@ func TestReadGameScript(t *testing.T) {
 						},
 					},
 					Pause: 5,
+					Verify: HandSetupVerfication{
+						ButtonPos:     getUint32Pointer(1),
+						SBPos:         getUint32Pointer(2),
+						BBPos:         getUint32Pointer(3),
+						NextActionPos: getUint32Pointer(4),
+						Seats: []VerifySeat{
+							{
+								Seat:   1,
+								Player: "tom",
+							},
+							{
+								Seat:   2,
+								Player: "brian",
+							},
+							{
+								Seat:   3,
+								Player: "yong",
+							},
+						},
+					},
 				},
 				Preflop: BettingRound{
 					SeatActions: []SeatAction{
@@ -291,18 +311,27 @@ func TestReadGameScript(t *testing.T) {
 						},
 					},
 					ActionEndedAt: "SHOW_DOWN",
-					Stacks: []PlayerStack{
+					Players: []ResultPlayer{
 						{
-							Seat:  1,
-							Stack: 84,
+							Seat:   1,
+							HhRank: 127,
+							Balance: PlayerBalance{
+								After: 84,
+							},
 						},
 						{
-							Seat:  5,
-							Stack: 120,
+							Seat:   5,
+							HhRank: 2255,
+							Balance: PlayerBalance{
+								After: 120,
+							},
 						},
 						{
-							Seat:  8,
-							Stack: 96,
+							Seat:   8,
+							HhRank: 0,
+							Balance: PlayerBalance{
+								After: 96,
+							},
 						},
 					},
 					HighHand: []HighHandSeat{
@@ -335,4 +364,8 @@ func TestReadGameScript(t *testing.T) {
 	if !cmp.Equal(*script, expectedScript) {
 		t.Errorf(cmp.Diff(*script, expectedScript))
 	}
+}
+
+func getUint32Pointer(v uint32) *uint32 {
+	return &v
 }

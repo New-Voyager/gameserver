@@ -126,7 +126,7 @@ hands:
         - action: 1, CALL, 2
         - action: 2, RAISE, 4
         - action: 3, FOLD
-        - action: 4, CALL, 4        
+        - action: 4, CALL, 4  
         - action: 1, CALL, 4
 
     turn:

@@ -96,13 +96,16 @@ hands:
           receive: 54.0
           rank: Pair
       action-ended: SHOW_DOWN
-      stacks:
+      players:
         - seat: 1
-          stack: 128
+          balance:
+            after: 128
         - seat: 5
-          stack: 74
+          balance:
+            after: 74
         - seat: 8
-          stack: 96
+          balance:
+            after: 96
 
   # Seat 5 has left the game after the previous hand.
   # The player who was sitting in seat 8 in the previous hand is now sitting in seat 5.
@@ -127,7 +130,7 @@ hands:
           receive: 187
           rank: Pair
       action-ended: SHOW_DOWN
-      stacks:
+      players:
         # Both players went all-in after seat 8 switched to seat 5.
         # The winning seat (seat 1) remaining balance
         # = (this hand's starting balance for seat 1 + seat 5) - (this hand's rake cap 5.0)
@@ -135,6 +138,8 @@ hands:
         # = (128 + 96) - 5.0
         # = 219
         - seat: 1
-          stack: 219
+          balance:
+            after: 219
         - seat: 5
-          stack: 0
+          balance:
+            after: 0

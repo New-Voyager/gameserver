@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"voyager.com/server/crashtest"
 	"voyager.com/server/util"
 )
 
@@ -129,8 +128,6 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 		return fmt.Errorf("moveToNextHand called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_HAND_1, 0)
-
 	if !util.GameServerEnvironment.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.OnMoveToNextHand) * time.Millisecond)
 	}
@@ -168,9 +165,7 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 			GameId:      g.config.GameId,
 			MessageType: GameDealHand,
 		}
-		crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_HAND_3, 0)
 		go g.QueueGameMessage(gameMessage)
-		crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_MOVE_TO_NEXT_HAND_4, 0)
 	}
 
 	return nil

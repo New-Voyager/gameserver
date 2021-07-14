@@ -44,12 +44,12 @@ hands:
       button-pos: 1
       board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-cards:
+        - seat: 1
+          cards: ["9h", "3c", "Ts", "5c", "Js"]
         - seat: 2
-          cards: ["Kh", "Qd", "3h", "5s", "6s"]
+          cards: ["Kh", "Qd", "3h", "5s", "8c"]
         - seat: 3
           cards: ["3s", "7s", "9d", "8h", "Qh"]
-        - seat: 1
-          cards: ["9h", "3c", "7c", "Js", "Kd"]
 
     # simulate pre-flop action
     preflop:
@@ -88,16 +88,20 @@ hands:
     result:
       winners:
         - seat: 2
-          receive: 54.0
+          receive: 27.0
+          rank: Straight
+        - seat: 1
+          receive: 27.0
           rank: Straight
       action-ended: SHOW_DOWN
-      
-      # balance indicates the player balance after the hand
-      # bb player won a chip
-      stacks:
+
+      players:
         - seat: 1
-          stack: 84
-        - seat: 5
-          stack: 120
-        - seat: 8
-          stack: 96
+          balance:
+            after: 101
+        - seat: 2
+          balance:
+            after: 101
+        - seat: 3
+          balance:
+            after: 96

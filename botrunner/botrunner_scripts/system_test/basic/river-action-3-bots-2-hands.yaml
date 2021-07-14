@@ -92,16 +92,17 @@ hands:
           receive: 54.0
           rank: Pair
       action-ended: SHOW_DOWN
-      
-      # balance indicates the player balance after the hand
-      # bb player won a chip
-      stacks:
+
+      players:
         - seat: 1
-          stack: 128
+          balance:
+            after: 128
         - seat: 5
-          stack: 74
+          balance:
+            after: 74
         - seat: 8
-          stack: 96
+          balance:
+            after: 96
 
   # button is 5, sb 8, bb 1
   - setup:
@@ -156,13 +157,14 @@ hands:
           receive: 54.0
           rank: Two Pair
       action-ended: SHOW_DOWN
-      
-      # balance indicates the player balance after the hand
-      # bb player won a chip
-      stacks:
+
+      players:
         - seat: 1
-          stack: 124
+          balance:
+            after: 124
         - seat: 5
-          stack: 102
+          balance:
+            after: 102
         - seat: 8
-          stack: 70
+          balance:
+            after: 70

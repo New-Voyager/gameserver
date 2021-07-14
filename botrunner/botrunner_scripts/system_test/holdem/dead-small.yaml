@@ -1,5 +1,3 @@
-app-game: High hand tracking (Quad)
-
 club:
   name: Manchester Club
   description: Club used for testing with the bot runner
@@ -17,22 +15,27 @@ game:
   game-length: 60
   buy-in-approval: true
   rake-percentage: 5.0
-  highhand-tracked: true
   rake-cap: 5.0
-  buy-in-min: 100
+  buy-in-min: 40
   buy-in-max: 300
   action-time: 100
 
 starting-seats:
   - seat: 1
     player: yong
-    buy-in: 100
+    buy-in: 300
+    reload: false
   - seat: 2
     player: brian
-    buy-in: 100
+    buy-in: 300
+    reload: false
   - seat: 3
     player: tom
-    buy-in: 100
+    buy-in: 40
+    reload: false
+  - seat: 4
+    player: emma
+    buy-in: 300
 
 tester:
 auto-play: false
@@ -45,41 +48,41 @@ bot-config:
 hands:
   - setup:
       button-pos: 1
-      board: ["5d", "5s", "5h", "3s", "2d"]
+      board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-cards:
-        - seat: 2
-          cards: ["5c", "6c"]
-        - seat: 3
-          cards: ["9c", "8c"]
         - seat: 1
-          cards: ["8c", "7c"]
+          cards: ["9s", "3c"]
+        - seat: 2
+          cards: ["9h", "8s"]
+        - seat: 3
+          cards: ["Kh", "Qd"]
+        - seat: 4
+          cards: ["3s", "Ts"]
 
     # simulate pre-flop action
     preflop:
       seat-actions:
         # seat number/action/amount
+        - action: 4, CALL, 2
         - action: 1, CALL, 2
         - action: 2, CALL, 2
         - action: 3, CHECK
 
     flop:
       verify:
+        board: ["Ac", "Ad", "2c"]
       seat-actions:
         - action: 2, CHECK
-        - action: 3, BET, 2
-        - action: 1, CALL, 2
-        - action: 2, RAISE, 4
-        - action: 3, FOLD
-        - action: 1, CALL, 4
+        - action: 3, ALLIN
+        - action: 4, ALLIN
+        - action: 1, FOLD
+        - action: 2, FOLD
 
-    turn:
+
+  # dead small. Button position should be 1, and small blind is 2, big blind is 3
+  - setup:
+      auto: true
       verify:
-      seat-actions:
-        - action: 2, CHECK
-        - action: 1, BET, 10
-        - action: 2, CALL, 10
-
-    river:
-      seat-actions:
-        - action: 2, BET, 10
-        - action: 1, CALL, 10
+        button-pos: 2
+        sb-pos: 3
+        bb-pos: 4

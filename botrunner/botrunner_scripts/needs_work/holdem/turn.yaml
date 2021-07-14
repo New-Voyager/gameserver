@@ -82,13 +82,14 @@ hands:
         - seat: 2
           receive: 37
       action-ended: TURN
-      
-      # balance indicates the player balance after the hand
-      # bb player won a chip
-      stacks:
+
+      players:
         - seat: 1
-          stack: 88
+          balance:
+            after: 88
         - seat: 5
-          stack: 115
+          balance:
+            after: 115
         - seat: 8
-          stack: 96
+          balance:
+            after: 96
