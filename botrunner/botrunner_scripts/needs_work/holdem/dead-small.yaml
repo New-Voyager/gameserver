@@ -50,14 +50,14 @@ hands:
       button-pos: 1
       board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-cards:
+        - seat: 1
+          cards: ["9s", "3c"]
         - seat: 2
           cards: ["9h", "8s"]
         - seat: 3
           cards: ["Kh", "Qd"]
         - seat: 4
           cards: ["3s", "Ts"]
-        - seat: 1
-          cards: ["9s", "3c"]
 
     # simulate pre-flop action
     preflop:
@@ -72,7 +72,7 @@ hands:
       verify:
         board: ["Ac", "Ad", "2c"]
       seat-actions:
-        - action: 2, CHECCK
+        - action: 2, CHECK
         - action: 3, ALLIN
         - action: 4, ALLIN
         - action: 1, FOLD
@@ -83,6 +83,6 @@ hands:
   - setup:
       auto: true
       verify:
-          button-pos: 2
-          sb-pos: 3
-          bb-pos: 4
+        button-pos: 2
+        sb-pos: 3
+        bb-pos: 4
