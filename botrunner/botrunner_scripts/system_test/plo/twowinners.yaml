@@ -4,8 +4,8 @@ club:
 
 game:
   create: true
-  title: "NLH Testing Game"
-  game-type: "HOLDEM"
+  title: "PLO Testing Game"
+  game-type: "PLO"
   small-blind: 1.0
   big-blind: 2.0
   utg-straddle-allowed: true
@@ -35,8 +35,8 @@ tester:
 auto-play: false
 
 bot-config:
-  min-action-pause-time: 500
-  max-action-pause-time: 1000
+  min-action-pause-time: 0
+  max-action-pause-time: 0
 
 # deal the following hands in the table
 hands:
@@ -44,12 +44,12 @@ hands:
       button-pos: 1
       board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-cards:
-        - seat: 2
-          cards: ["Kh", "Qd"]
-        - seat: 3
-          cards: ["3s", "7s"]
         - seat: 1
-          cards: ["9h", "2s"]
+          cards: ["9h", "3c", "Ts", "5c"]
+        - seat: 2
+          cards: ["Kh", "Qd", "3h", "5s"]
+        - seat: 3
+          cards: ["3s", "7s", "9d", "8h"]
 
     # simulate pre-flop action
     preflop:
@@ -66,30 +66,42 @@ hands:
         - action: 2, CHECK
         - action: 3, BET, 2
         - action: 1, CALL, 2
-        - action: 2, RAISE, 10
+        - action: 2, RAISE, 4
         - action: 3, FOLD
-        - action: 1, CALL, 10
+        - action: 1, CALL, 4
 
     turn:
       verify:
         board: ["Ac", "Ad", "2c", "Td"]
       seat-actions:
+        - action: 2, CHECK
+        - action: 1, BET, 10
+        - action: 2, CALL, 10
+
+    river:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-actions:
         - action: 2, BET, 10
-        - action: 1, FOLD 
+        - action: 1, CALL, 10
 
     result:
       winners:
         - seat: 2
-          receive: 37
-      action-ended: TURN
+          receive: 27.0
+          rank: Straight
+        - seat: 1
+          receive: 27.0
+          rank: Straight
+      action-ended: SHOW_DOWN
 
       players:
         - seat: 1
           balance:
-            after: 88
-        - seat: 5
+            after: 101
+        - seat: 2
           balance:
-            after: 115
-        - seat: 8
+            after: 101
+        - seat: 3
           balance:
             after: 96

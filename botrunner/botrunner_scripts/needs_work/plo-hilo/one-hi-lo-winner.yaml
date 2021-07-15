@@ -35,8 +35,8 @@ tester:
 auto-play: false
 
 bot-config:
-  min-action-pause-time: 500
-  max-action-pause-time: 1000
+  min-action-pause-time: 0
+  max-action-pause-time: 0
 
 # deal the following hands in the table
 hands:
@@ -93,16 +93,15 @@ hands:
       lo-winners:
         - seat: 2
           receive: 27.0
-
           action-ended: SHOW_DOWN
 
       players:
         - seat: 1
           balance:
-            after: 84
-        - seat: 5
+            after: 101
+        - seat: 2
           balance:
-            after: 120
-        - seat: 8
+            after: 101
+        - seat: 3
           balance:
             after: 96
