@@ -9,19 +9,19 @@ import (
 func GetUsersConnStr() string {
 	return fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=users sslmode=disable",
-		util.GameServerEnvironment.GetPostgresHost(),
-		util.GameServerEnvironment.GetPostgresPort(),
-		util.GameServerEnvironment.GetPostgresUser(),
-		util.GameServerEnvironment.GetPostgresPW(),
+		util.Env.GetPostgresHost(),
+		util.Env.GetPostgresPort(),
+		util.Env.GetPostgresUser(),
+		util.Env.GetPostgresPW(),
 	)
 }
 
 func GetGamesConnStr() string {
 	return fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=livegames sslmode=disable",
-		util.GameServerEnvironment.GetPostgresHost(),
-		util.GameServerEnvironment.GetPostgresPort(),
-		util.GameServerEnvironment.GetPostgresUser(),
-		util.GameServerEnvironment.GetPostgresPW(),
+		util.Env.GetPostgresHost(),
+		util.Env.GetPostgresPort(),
+		util.Env.GetPostgresUser(),
+		util.Env.GetPostgresPW(),
 	)
 }

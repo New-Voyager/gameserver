@@ -21,7 +21,7 @@ func CreateGameManager(isScriptTest bool, delays Delays) *Manager {
 	var crashdb *sqlx.DB
 	var err error
 	if !isScriptTest {
-		apiServerURL = util.GameServerEnvironment.GetApiServerUrl()
+		apiServerURL = util.Env.GetApiServerUrl()
 
 		crashdb, err = sqlx.Open("postgres", internal.GetGamesConnStr())
 		if err != nil {
@@ -42,14 +42,14 @@ func CreateGameManager(isScriptTest bool, delays Delays) *Manager {
 		}
 	}
 
-	var redisHost = util.GameServerEnvironment.GetRedisHost()
-	var redisPort = util.GameServerEnvironment.GetRedisPort()
-	var redisPW = util.GameServerEnvironment.GetRedisPW()
-	var redisDB = util.GameServerEnvironment.GetRedisDB()
+	var redisHost = util.Env.GetRedisHost()
+	var redisPort = util.Env.GetRedisPort()
+	var redisPW = util.Env.GetRedisPW()
+	var redisDB = util.Env.GetRedisDB()
 	handSetupPersist := NewRedisHandsSetupTracker(fmt.Sprintf("%s:%d", redisHost, redisPort), redisPW, redisDB)
 
 	var handPersist PersistHandState
-	var persistMethod = util.GameServerEnvironment.GetPersistMethod()
+	var persistMethod = util.Env.GetPersistMethod()
 	if persistMethod == "redis" {
 		handPersist = NewRedisHandStateTracker(fmt.Sprintf("%s:%d", redisHost, redisPort), redisPW, redisDB)
 	} else {

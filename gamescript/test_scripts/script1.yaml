@@ -158,6 +158,7 @@ hands:
         - seat: 1
           hhRank: 127
           balance:
+            before: 100
             after: 84
         - seat: 5
           hhRank: 2255

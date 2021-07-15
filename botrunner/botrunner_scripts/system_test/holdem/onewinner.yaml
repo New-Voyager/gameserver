@@ -44,12 +44,12 @@ hands:
       button-pos: 1
       board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-cards:
+        - seat: 1
+          cards: ["9h", "2s"]
         - seat: 2
           cards: ["Kh", "Qd"]
         - seat: 3
           cards: ["3s", "7s"]
-        - seat: 1
-          cards: ["9h", "2s"]
 
     # simulate pre-flop action
     preflop:
@@ -66,23 +66,39 @@ hands:
         - action: 2, CHECK
         - action: 3, BET, 2
         - action: 1, CALL, 2
-        - action: 2, RAISE, 10
+        - action: 2, RAISE, 4
         - action: 3, FOLD
-        - action: 1, FOLD 
+        - action: 1, CALL, 4
+
+    turn:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td"]
+      seat-actions:
+        - action: 2, CHECK
+        - action: 1, BET, 10
+        - action: 2, CALL, 10
+
+    river:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-actions:
+        - action: 2, BET, 10
+        - action: 1, CALL, 10
 
     result:
       winners:
-        - seat: 2
-          receive: 19
-      action-ended: FLOP
+        - seat: 1
+          receive: 54.0
+          rank: Two Pair
+      action-ended: SHOW_DOWN
 
       players:
         - seat: 1
           balance:
-            after: 84
-        - seat: 5
+            after: 128
+        - seat: 2
           balance:
-            after: 120
-        - seat: 8
+            after: 74
+        - seat: 3
           balance:
             after: 96

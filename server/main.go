@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -41,6 +42,12 @@ func main() {
 	if err != nil {
 		mainLogger.Panic().Msg(err.Error())
 	}
+
+	if !*runGameScriptTests {
+		apiServerURL := util.Env.GetApiServerUrl()
+		waitForAPIServer(apiServerURL)
+	}
+
 	// create game manager
 	game.CreateGameManager(*runGameScriptTests, delays)
 
@@ -52,9 +59,27 @@ func main() {
 	runWithNats()
 }
 
+func waitForAPIServer(apiServerURL string) {
+	readyURL := fmt.Sprintf("%s/internal/ready", apiServerURL)
+	client := http.Client{Timeout: 2 * time.Second}
+	for {
+		mainLogger.Info().Msgf("Checking API server ready")
+		resp, err := client.Get(readyURL)
+		if err == nil && resp.StatusCode == 200 {
+			resp.Body.Close()
+			break
+		}
+		if err == nil {
+			mainLogger.Error().Msgf("%s returend %d", readyURL, resp.StatusCode)
+			resp.Body.Close()
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
 func runWithNats() {
 	fmt.Printf("Running the server with NATS\n")
-	natsURL := util.GameServerEnvironment.GetNatsURL()
+	natsURL := util.Env.GetNatsURL()
 	fmt.Printf("NATS URL: %s\n", natsURL)
 
 	nc, err := natsgo.Connect(natsURL)
@@ -76,7 +101,7 @@ func runWithNats() {
 	}
 	_ = listener
 
-	apiServerURL := util.GameServerEnvironment.GetApiServerUrl()
+	apiServerURL := util.Env.GetApiServerUrl()
 
 	// subscribe to api server events
 	nats.RegisterGameServer(apiServerURL, natsGameManager)

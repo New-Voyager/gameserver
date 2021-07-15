@@ -693,7 +693,7 @@ func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 		handState.PlayerStats[playerID].InFlop = true
 	}
 	playerCardRanks := g.getPlayerCardRank(handState, flopCards)
-	if util.GameServerEnvironment.IsEncryptionEnabled() {
+	if util.Env.IsEncryptionEnabled() {
 		var err error
 		playerCardRanks, err = g.encryptPlayerCardRanks(playerCardRanks, handState.PlayersInSeats)
 		if err != nil {
@@ -754,7 +754,7 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 	}
 
 	playerCardRanks := g.getPlayerCardRank(handState, boardCards)
-	if util.GameServerEnvironment.IsEncryptionEnabled() {
+	if util.Env.IsEncryptionEnabled() {
 		var err error
 		playerCardRanks, err = g.encryptPlayerCardRanks(playerCardRanks, handState.PlayersInSeats)
 		if err != nil {
@@ -814,7 +814,7 @@ func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
 	}
 
 	playerCardRanks := g.getPlayerCardRank(handState, boardCards)
-	if util.GameServerEnvironment.IsEncryptionEnabled() {
+	if util.Env.IsEncryptionEnabled() {
 		var err error
 		playerCardRanks, err = g.encryptPlayerCardRanks(playerCardRanks, handState.PlayersInSeats)
 		if err != nil {

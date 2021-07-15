@@ -36,8 +36,8 @@ func NewNetworkCheck(
 		gameID:                 gameID,
 		gameCode:               gameCode,
 		chEndLoop:              make(chan bool),
-		pingTimeoutSec:         uint32(util.GameServerEnvironment.GetPingTimeout()),
-		debugConnectivityCheck: util.GameServerEnvironment.ShouldDebugConnectivityCheck(),
+		pingTimeoutSec:         uint32(util.Env.GetPingTimeout()),
+		debugConnectivityCheck: util.Env.ShouldDebugConnectivityCheck(),
 		messageSender:          messageReceiver,
 	}
 	return &n

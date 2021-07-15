@@ -336,12 +336,12 @@ type HandWinner struct {
 type ResultPlayer struct {
 	Seat    uint32        `yaml:"seat"`
 	Balance PlayerBalance `yaml:"balance"`
-	HhRank  uint32        `yaml:"hhRank"`
+	HhRank  *uint32       `yaml:"hhRank"`
 }
 
 type PlayerBalance struct {
-	Before float32 `yaml:"before"`
-	After  float32 `yaml:"after"`
+	Before *float32 `yaml:"before"`
+	After  *float32 `yaml:"after"`
 }
 
 type HighHandSeat struct {
