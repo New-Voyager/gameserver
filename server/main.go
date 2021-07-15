@@ -43,8 +43,10 @@ func main() {
 		mainLogger.Panic().Msg(err.Error())
 	}
 
-	apiServerURL := util.GameServerEnvironment.GetApiServerUrl()
-	waitForAPIServer(apiServerURL)
+	if !*runGameScriptTests {
+		apiServerURL := util.GameServerEnvironment.GetApiServerUrl()
+		waitForAPIServer(apiServerURL)
+	}
 
 	// create game manager
 	game.CreateGameManager(*runGameScriptTests, delays)
