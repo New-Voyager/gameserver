@@ -284,7 +284,7 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 				Content:     &HandMessageItem_RunItTwice{RunItTwice: runItTwiceMessage},
 			}
 			allMsgItems = append(allMsgItems, msgItem)
-			if !util.GameServerEnvironment.ShouldDisableDelays() {
+			if !util.Env.ShouldDisableDelays() {
 				time.Sleep(time.Duration(g.delays.GoToFlop) * time.Millisecond)
 			}
 

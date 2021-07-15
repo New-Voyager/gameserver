@@ -561,7 +561,7 @@ func (g *Game) dealNewHand() error {
 	g.broadcastHandMessage(&handMessage)
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_2, 0)
 
-	if !util.GameServerEnvironment.ShouldDisableDelays() {
+	if !util.Env.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.BeforeDeal) * time.Millisecond)
 	}
 
@@ -635,7 +635,7 @@ func (g *Game) dealNewHand() error {
 
 		crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_4, 0)
 	}
-	if !util.GameServerEnvironment.ShouldDisableDelays() {
+	if !util.Env.ShouldDisableDelays() {
 		time.Sleep(cardAnimationTime * time.Millisecond)
 	}
 

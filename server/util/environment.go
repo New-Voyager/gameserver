@@ -34,8 +34,8 @@ type gameServerEnvironment struct {
 	DebugConnectivityCheck string
 }
 
-// GameServerEnvironment is a helper object for accessing environment variables.
-var GameServerEnvironment = &gameServerEnvironment{
+// Env is a helper object for accessing environment variables.
+var Env = &gameServerEnvironment{
 	PersistMethod:          "PERSIST_METHOD",
 	RedisHost:              "REDIS_HOST",
 	RedisPort:              "REDIS_PORT",

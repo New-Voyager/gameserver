@@ -44,7 +44,7 @@ func main() {
 	}
 
 	if !*runGameScriptTests {
-		apiServerURL := util.GameServerEnvironment.GetApiServerUrl()
+		apiServerURL := util.Env.GetApiServerUrl()
 		waitForAPIServer(apiServerURL)
 	}
 
@@ -79,7 +79,7 @@ func waitForAPIServer(apiServerURL string) {
 
 func runWithNats() {
 	fmt.Printf("Running the server with NATS\n")
-	natsURL := util.GameServerEnvironment.GetNatsURL()
+	natsURL := util.Env.GetNatsURL()
 	fmt.Printf("NATS URL: %s\n", natsURL)
 
 	nc, err := natsgo.Connect(natsURL)
@@ -101,7 +101,7 @@ func runWithNats() {
 	}
 	_ = listener
 
-	apiServerURL := util.GameServerEnvironment.GetApiServerUrl()
+	apiServerURL := util.Env.GetApiServerUrl()
 
 	// subscribe to api server events
 	nats.RegisterGameServer(apiServerURL, natsGameManager)

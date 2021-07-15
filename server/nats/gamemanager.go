@@ -30,7 +30,7 @@ const (
 )
 
 func NewGameManager(nc *natsgo.Conn) (*GameManager, error) {
-	NatsURL = util.GameServerEnvironment.GetNatsURL()
+	NatsURL = util.Env.GetNatsURL()
 	// let us try to connect to nats server
 	nc, err := natsgo.Connect(NatsURL)
 	if err != nil {

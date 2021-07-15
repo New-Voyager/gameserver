@@ -128,7 +128,7 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 		return fmt.Errorf("moveToNextHand called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
 
-	if !util.GameServerEnvironment.ShouldDisableDelays() {
+	if !util.Env.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.OnMoveToNextHand) * time.Millisecond)
 	}
 
