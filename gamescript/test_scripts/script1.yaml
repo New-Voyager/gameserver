@@ -30,6 +30,7 @@ game:
   buy-in-max: 300
   action-time: 100
   rewards: High Hand
+  roe-games: ["HOLDEM", "PLO"]
 
 starting-seats:
   - seat: 1
@@ -77,6 +78,7 @@ hands:
           buy-in: 500
       pause: 5
       verify:
+        game-type: HOLDEM
         button-pos: 1
         sb-pos: 2
         bb-pos: 3

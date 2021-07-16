@@ -845,6 +845,14 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 		}
 	}
 
+	if verify.GameType != "" {
+		if newHand.GameType.String() != verify.GameType {
+			errMsg := fmt.Sprintf("Game type does not match for hand num: %d. Expected: %s, Actual: %s", newHand.HandNum, verify.GameType, newHand.GameType.String())
+			bp.logger.Error().Msg(errMsg)
+			panic(errMsg)
+		}
+	}
+
 	if verify.ButtonPos != nil {
 		if newHand.ButtonPos != *verify.ButtonPos {
 			errMsg := fmt.Sprintf("Button position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.ButtonPos, newHand.ButtonPos)
