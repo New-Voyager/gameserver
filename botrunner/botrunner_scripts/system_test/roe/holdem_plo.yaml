@@ -169,7 +169,7 @@ hands:
   - setup:
       auto: true
       verify:
-        game-type: HOLDEM
+        game-type: PLO
 
   # Hand 7 - HOLDEM
   - setup:
