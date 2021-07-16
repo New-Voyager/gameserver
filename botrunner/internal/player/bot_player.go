@@ -480,13 +480,6 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 
 					// The host bot should schedule to end the game after this hand is over.
 					go func() {
-						// API server caches game status for 1 second (typeorm cache).
-						// Since bots are fast and change the game status more than once
-						// (configure game -> start game -> request to end game) within a second,
-						// the endGame request is acting on stale game status (thinks it's not active yet)
-						// ending the game immediately instead of waiting for the hand that just started.
-						// Give some delay for the cache to clear and the game to be recognized as active.
-						time.Sleep(1 * time.Second)
 						bp.RequestEndGame(bp.gameCode)
 					}()
 				}
