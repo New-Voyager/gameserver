@@ -556,7 +556,9 @@ func (g *Game) handleHandEnded(allMsgItems []*HandMessageItem) {
 
 		fmt.Printf("\n\n===============================\n[%s] Hand ended. Pausing the game. Pause: %d\n",
 			now.String(), totalPauseTime)
-		time.Sleep(time.Duration(totalPauseTime) * time.Millisecond)
+		if !util.Env.ShouldDisableDelays() {
+			time.Sleep(time.Duration(totalPauseTime) * time.Millisecond)
+		}
 		//time.Sleep(5000 * time.Millisecond)
 		fmt.Printf("[%s] Resuming the game\n===============================\n\n", time.Now().String())
 
