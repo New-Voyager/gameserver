@@ -646,9 +646,9 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		/* MessageType: RESULT */
 		bp.game.handStatus = message.GetHandStatus()
 		bp.game.handResult = msgItem.GetHandResult()
-		bp.verifyResult()
 		if bp.IsObserver() {
 			bp.PrintHandResult()
+			bp.verifyResult()
 		}
 
 		result := bp.game.handResult
@@ -892,13 +892,15 @@ func (bp *BotPlayer) verifyResult() {
 		return
 	}
 
+	bp.logger.Info().Msgf("%s: Verifying result for hand %d", bp.logPrefix, bp.game.handNum)
 	scriptResult := bp.config.Script.GetHand(bp.game.handNum).Result
+	passed := true
 
 	if scriptResult.ActionEndedAt != "" {
 		expectedWonAt := scriptResult.ActionEndedAt
 		wonAt := bp.GetHandResult().GetHandLog().GetWonAt()
 		if wonAt.String() != expectedWonAt {
-			bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Won at: %s. Expected won at: %s.", bp.logPrefix, bp.game.handNum, wonAt, expectedWonAt)
+			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Won at: %s. Expected won at: %s.", bp.logPrefix, bp.game.handNum, wonAt, expectedWonAt)
 		}
 	}
 
@@ -927,7 +929,8 @@ func (bp *BotPlayer) verifyResult() {
 			}
 		}
 		if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
-			bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
+			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
+			passed = false
 		}
 	}
 
@@ -951,13 +954,13 @@ func (bp *BotPlayer) verifyResult() {
 		}
 
 		if !cmp.Equal(expectedLoWinnersBySeat, actualLoWinnersBySeat) {
-			bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Low Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualLoWinnersBySeat, expectedLoWinnersBySeat)
+			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Low Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualLoWinnersBySeat, expectedLoWinnersBySeat)
+			passed = false
 		}
 	}
 
 	if len(scriptResult.Players) > 0 {
 		resultPlayers := bp.GetHandResult().GetPlayers()
-		passed := true
 		for _, scriptResultPlayer := range scriptResult.Players {
 			seatNo := scriptResultPlayer.Seat
 			expectedBalanceBefore := scriptResultPlayer.Balance.Before
@@ -985,9 +988,6 @@ func (bp *BotPlayer) verifyResult() {
 				}
 			}
 		}
-		if !passed {
-			panic(fmt.Sprintf("Hand %d result verify failed.", bp.game.handNum))
-		}
 	}
 
 	if len(scriptResult.PlayerStats) > 0 {
@@ -998,14 +998,20 @@ func (bp *BotPlayer) verifyResult() {
 			actualTimeouts := actualPlayerStats[playerID].ConsecutiveActionTimeouts
 			expectedTimeouts := scriptStat.ConsecutiveActionTimeouts
 			if actualTimeouts != expectedTimeouts {
-				bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Consecutive Action Timeouts for seat# %d player ID %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actualTimeouts, expectedTimeouts)
+				bp.logger.Error().Msgf("%s: Hand %d result verify failed. Consecutive Action Timeouts for seat# %d player ID %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actualTimeouts, expectedTimeouts)
+				passed = false
 			}
 			actualActedAtLeastOnce := actualPlayerStats[playerID].ActedAtLeastOnce
 			expectedActedAtLeastOnce := scriptStat.ActedAtLeastOnce
 			if actualActedAtLeastOnce != expectedActedAtLeastOnce {
-				bp.logger.Panic().Msgf("%s: Hand %d result verify failed. ActedAtLeastOnce for seat# %d player ID %d: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actualActedAtLeastOnce, expectedActedAtLeastOnce)
+				bp.logger.Error().Msgf("%s: Hand %d result verify failed. ActedAtLeastOnce for seat# %d player ID %d: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actualActedAtLeastOnce, expectedActedAtLeastOnce)
+				passed = false
 			}
 		}
+	}
+
+	if !passed {
+		panic(fmt.Sprintf("Hand %d result verify failed. Please check the logs.", bp.game.handNum))
 	}
 }
 
