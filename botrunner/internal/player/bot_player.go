@@ -480,13 +480,6 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 
 					// The host bot should schedule to end the game after this hand is over.
 					go func() {
-						// API server caches game status for 1 second (typeorm cache).
-						// Since bots are fast and change the game status more than once
-						// (configure game -> start game -> request to end game) within a second,
-						// the endGame request is acting on stale game status (thinks it's not active yet)
-						// ending the game immediately instead of waiting for the hand that just started.
-						// Give some delay for the cache to clear and the game to be recognized as active.
-						time.Sleep(1 * time.Second)
 						bp.RequestEndGame(bp.gameCode)
 					}()
 				}
@@ -646,9 +639,9 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		/* MessageType: RESULT */
 		bp.game.handStatus = message.GetHandStatus()
 		bp.game.handResult = msgItem.GetHandResult()
-		bp.verifyResult()
 		if bp.IsObserver() {
 			bp.PrintHandResult()
+			bp.verifyResult()
 		}
 
 		result := bp.game.handResult
@@ -852,6 +845,14 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 		}
 	}
 
+	if verify.GameType != "" {
+		if newHand.GameType.String() != verify.GameType {
+			errMsg := fmt.Sprintf("Game type does not match for hand num: %d. Expected: %s, Actual: %s", newHand.HandNum, verify.GameType, newHand.GameType.String())
+			bp.logger.Error().Msg(errMsg)
+			panic(errMsg)
+		}
+	}
+
 	if verify.ButtonPos != nil {
 		if newHand.ButtonPos != *verify.ButtonPos {
 			errMsg := fmt.Sprintf("Button position does not match for hand num: %d. Expected: %d, Actual %d", newHand.HandNum, *verify.ButtonPos, newHand.ButtonPos)
@@ -892,13 +893,15 @@ func (bp *BotPlayer) verifyResult() {
 		return
 	}
 
+	bp.logger.Info().Msgf("%s: Verifying result for hand %d", bp.logPrefix, bp.game.handNum)
 	scriptResult := bp.config.Script.GetHand(bp.game.handNum).Result
+	passed := true
 
 	if scriptResult.ActionEndedAt != "" {
 		expectedWonAt := scriptResult.ActionEndedAt
 		wonAt := bp.GetHandResult().GetHandLog().GetWonAt()
 		if wonAt.String() != expectedWonAt {
-			bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Won at: %s. Expected won at: %s.", bp.logPrefix, bp.game.handNum, wonAt, expectedWonAt)
+			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Won at: %s. Expected won at: %s.", bp.logPrefix, bp.game.handNum, wonAt, expectedWonAt)
 		}
 	}
 
@@ -927,7 +930,8 @@ func (bp *BotPlayer) verifyResult() {
 			}
 		}
 		if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
-			bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
+			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
+			passed = false
 		}
 	}
 
@@ -951,15 +955,21 @@ func (bp *BotPlayer) verifyResult() {
 		}
 
 		if !cmp.Equal(expectedLoWinnersBySeat, actualLoWinnersBySeat) {
-			bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Low Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualLoWinnersBySeat, expectedLoWinnersBySeat)
+			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Low Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualLoWinnersBySeat, expectedLoWinnersBySeat)
+			passed = false
 		}
 	}
 
 	if len(scriptResult.Players) > 0 {
 		resultPlayers := bp.GetHandResult().GetPlayers()
-		passed := true
 		for _, scriptResultPlayer := range scriptResult.Players {
 			seatNo := scriptResultPlayer.Seat
+			if _, exists := resultPlayers[seatNo]; !exists {
+				bp.logger.Error().Msgf("%s: Hand %d result verify failed. Expected seat# %d to be found in the result, but the result does not contain that seat.", bp.logPrefix, bp.game.handNum, seatNo)
+				passed = false
+				continue
+			}
+
 			expectedBalanceBefore := scriptResultPlayer.Balance.Before
 			if expectedBalanceBefore != nil {
 				actualBalanceBefore := resultPlayers[seatNo].GetBalance().Before
@@ -985,9 +995,6 @@ func (bp *BotPlayer) verifyResult() {
 				}
 			}
 		}
-		if !passed {
-			panic(fmt.Sprintf("Hand %d result verify failed.", bp.game.handNum))
-		}
 	}
 
 	if len(scriptResult.PlayerStats) > 0 {
@@ -998,14 +1005,20 @@ func (bp *BotPlayer) verifyResult() {
 			actualTimeouts := actualPlayerStats[playerID].ConsecutiveActionTimeouts
 			expectedTimeouts := scriptStat.ConsecutiveActionTimeouts
 			if actualTimeouts != expectedTimeouts {
-				bp.logger.Panic().Msgf("%s: Hand %d result verify failed. Consecutive Action Timeouts for seat# %d player ID %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actualTimeouts, expectedTimeouts)
+				bp.logger.Error().Msgf("%s: Hand %d result verify failed. Consecutive Action Timeouts for seat# %d player ID %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actualTimeouts, expectedTimeouts)
+				passed = false
 			}
 			actualActedAtLeastOnce := actualPlayerStats[playerID].ActedAtLeastOnce
 			expectedActedAtLeastOnce := scriptStat.ActedAtLeastOnce
 			if actualActedAtLeastOnce != expectedActedAtLeastOnce {
-				bp.logger.Panic().Msgf("%s: Hand %d result verify failed. ActedAtLeastOnce for seat# %d player ID %d: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actualActedAtLeastOnce, expectedActedAtLeastOnce)
+				bp.logger.Error().Msgf("%s: Hand %d result verify failed. ActedAtLeastOnce for seat# %d player ID %d: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actualActedAtLeastOnce, expectedActedAtLeastOnce)
+				passed = false
 			}
 		}
+	}
+
+	if !passed {
+		panic(fmt.Sprintf("Hand %d result verify failed. Please check the logs.", bp.game.handNum))
 	}
 }
 

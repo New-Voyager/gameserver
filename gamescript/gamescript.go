@@ -162,6 +162,7 @@ type SeatCards struct {
 }
 
 type HandSetupVerfication struct {
+	GameType      string       `yaml:"game-type"`
 	ButtonPos     *uint32      `yaml:"button-pos"`
 	SBPos         *uint32      `yaml:"sb-pos"`
 	BBPos         *uint32      `yaml:"bb-pos"`

@@ -46,6 +46,7 @@ func TestReadGameScript(t *testing.T) {
 			BuyInMax:           300,
 			ActionTime:         100,
 			Rewards:            "High Hand",
+			RoeGames:           []string{"HOLDEM", "PLO"},
 		},
 		StartingSeats: []StartingSeat{
 			{
@@ -119,6 +120,7 @@ func TestReadGameScript(t *testing.T) {
 					},
 					Pause: 5,
 					Verify: HandSetupVerfication{
+						GameType:      "HOLDEM",
 						ButtonPos:     getUint32Pointer(1),
 						SBPos:         getUint32Pointer(2),
 						BBPos:         getUint32Pointer(3),
@@ -308,6 +310,17 @@ func TestReadGameScript(t *testing.T) {
 						{
 							Seat:    5,
 							Receive: 12.0,
+						},
+					},
+					LoWinners: []HandWinner{
+						{
+							Seat:    2,
+							Receive: 12.0,
+							RankStr: "Pair",
+						},
+						{
+							Seat:    3,
+							Receive: 13.0,
 						},
 					},
 					ActionEndedAt: "SHOW_DOWN",

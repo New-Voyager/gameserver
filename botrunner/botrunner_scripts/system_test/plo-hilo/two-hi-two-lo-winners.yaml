@@ -47,7 +47,7 @@ hands:
         - seat: 2
           cards: ["Kh", "Qd", "3h", "5s"]
         - seat: 3
-          cards: ["Js", "7s", "9d", "8h"]
+          cards: ["As", "Ts", "9d", "8h"]
         - seat: 1
           cards: ["Ah", "Tc", "5c", "3s"]
 
@@ -67,7 +67,7 @@ hands:
         - action: 3, BET, 2
         - action: 1, CALL, 2
         - action: 2, RAISE, 4
-        - action: 3, FOLD
+        - action: 3, CALL, 4
         - action: 1, CALL, 4
 
     turn:
@@ -75,36 +75,43 @@ hands:
         board: ["Ac", "Ad", "2c", "Td"]
       seat-actions:
         - action: 2, CHECK
+        - action: 3, CHECK
         - action: 1, BET, 10
         - action: 2, CALL, 10
+        - action: 3, CALL, 10
 
     river:
       verify:
         board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-actions:
         - action: 2, BET, 10
+        - action: 3, CALL, 10
         - action: 1, CALL, 10
 
     result:
       winners:
         - seat: 1
-          receive: 27.0
+          receive: 18.0
           rank: Full House
+        - seat: 3
+          receive: 19.0
+          rank: Full House
+
       lo-winners:
         - seat: 1
-          receive: 13.0
+          receive: 18.0
         - seat: 2
-          receive: 14.0
+          receive: 20.0
 
           action-ended: SHOW_DOWN
 
       players:
         - seat: 1
           balance:
-            after: 84
-        - seat: 5
+            after: 110
+        - seat: 2
           balance:
-            after: 120
-        - seat: 8
+            after: 94
+        - seat: 3
           balance:
-            after: 96
+            after: 93

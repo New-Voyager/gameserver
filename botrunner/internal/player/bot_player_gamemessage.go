@@ -245,7 +245,7 @@ func (bp *BotPlayer) pauseGameIfNeeded() error {
 		return nil
 	}
 
-	currentHand := bp.config.Script.Hands[bp.game.handNum-1]
+	currentHand := bp.config.Script.GetHand(bp.game.handNum)
 	if currentHand.PauseGame {
 		bp.logger.Info().Msgf("%s: Player [%s] requested to pause the game.", bp.logPrefix, bp.config.Name)
 		bp.gqlHelper.PauseGame(bp.gameCode)
@@ -259,7 +259,7 @@ func (bp *BotPlayer) processPostHandSteps() error {
 	}
 	bp.logger.Info().Msgf("%s: Running post hand steps.", bp.logPrefix)
 
-	currentHand := bp.config.Script.Hands[bp.game.handNum-1]
+	currentHand := bp.config.Script.GetHand(bp.game.handNum)
 	if len(currentHand.PostHandSteps) == 0 {
 		bp.logger.Info().Msgf("%s: No post hand steps.", bp.logPrefix)
 		return nil
@@ -380,7 +380,7 @@ func (bp *BotPlayer) setupWaitList() error {
 		return nil
 	}
 
-	currentHand := bp.config.Script.Hands[bp.game.handNum-1]
+	currentHand := bp.config.Script.GetHand(bp.game.handNum)
 	waitLists := currentHand.Setup.WaitLists
 	if waitLists != nil {
 		for _, waitlistPlayer := range waitLists {
