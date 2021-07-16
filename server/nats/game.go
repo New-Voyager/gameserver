@@ -287,8 +287,10 @@ func (n *NatsGame) onQueryHand(gameID uint64, playerID uint64, messageID string)
 
 // messages sent from player to pong channel for network check
 func (n *NatsGame) player2Pong(msg *natsgo.Msg) {
-	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
-		Msg(fmt.Sprintf("Player->Pong: %s", string(msg.Data)))
+	if util.Env.ShouldDebugConnectivityCheck() {
+		natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+			Msg(fmt.Sprintf("Player->Pong: %s", string(msg.Data)))
+	}
 	var message game.PingPongMessage
 	e := protojson.Unmarshal(msg.Data, &message)
 	if e != nil {
@@ -336,9 +338,11 @@ func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 
 func (n NatsGame) BroadcastPingMessage(message *game.PingPongMessage) {
 	data, _ := protojson.Marshal(message)
-	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
-		Str("subject", n.pingSubject).
-		Msg(fmt.Sprintf("Ping->All: %s", string(data)))
+	if util.Env.ShouldDebugConnectivityCheck() {
+		natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+			Str("subject", n.pingSubject).
+			Msg(fmt.Sprintf("Ping->All: %s", string(data)))
+	}
 	n.natsConn.Publish(n.pingSubject, data)
 }
 
