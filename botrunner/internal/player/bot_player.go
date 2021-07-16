@@ -963,6 +963,12 @@ func (bp *BotPlayer) verifyResult() {
 		resultPlayers := bp.GetHandResult().GetPlayers()
 		for _, scriptResultPlayer := range scriptResult.Players {
 			seatNo := scriptResultPlayer.Seat
+			if _, exists := resultPlayers[seatNo]; !exists {
+				bp.logger.Error().Msgf("%s: Hand %d result verify failed. Expected seat# %d to be found in the result, but the result does not contain that seat.", bp.logPrefix, bp.game.handNum, seatNo)
+				passed = false
+				continue
+			}
+
 			expectedBalanceBefore := scriptResultPlayer.Balance.Before
 			if expectedBalanceBefore != nil {
 				actualBalanceBefore := resultPlayers[seatNo].GetBalance().Before
