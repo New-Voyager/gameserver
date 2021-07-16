@@ -101,10 +101,10 @@ hands:
       players:
         - seat: 1
           balance:
-            after: 84
-        - seat: 5
+            after: 114
+        - seat: 2
           balance:
-            after: 120
-        - seat: 8
+            after: 88
+        - seat: 3
           balance:
             after: 96
