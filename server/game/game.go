@@ -105,8 +105,8 @@ func NewPokerGame(
 	g.chGame = make(chan []byte)
 	g.chHand = make(chan []byte, 1)
 	g.end = make(chan bool)
-	g.actionTimer = timer.NewActionTimer(g.queueActionTimeoutMsg)
 	g.chPlayTimedOut = make(chan timer.TimerMsg)
+	g.actionTimer = timer.NewActionTimer(g.queueActionTimeoutMsg)
 	g.networkCheck = NewNetworkCheck(g.config.GameId, g.config.GameCode, messageSender)
 
 	playerConfig := make(map[uint64]PlayerConfigUpdate)
