@@ -310,6 +310,17 @@ func TestReadGameScript(t *testing.T) {
 							Receive: 12.0,
 						},
 					},
+					LoWinners: []HandWinner{
+						{
+							Seat:    2,
+							Receive: 12.0,
+							RankStr: "Pair",
+						},
+						{
+							Seat:    3,
+							Receive: 13.0,
+						},
+					},
 					ActionEndedAt: "SHOW_DOWN",
 					Players: []ResultPlayer{
 						{

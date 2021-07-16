@@ -151,6 +151,12 @@ hands:
           rank: Two Pair
         - seat: 5
           receive: 12.0
+      lo-winners:
+        - seat: 2
+          receive: 12.0
+          rank: Pair
+        - seat: 3
+          receive: 13.0
       action-ended: SHOW_DOWN
 
       # player result after the hand
