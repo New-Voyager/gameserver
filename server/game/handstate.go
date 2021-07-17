@@ -1211,6 +1211,7 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 			nextAction.MaxRaiseAmount = ploPot
 			if ploPot > allIn {
 				nextAction.MaxRaiseAmount = allIn
+				allInAvailable = true
 			}
 		}
 
@@ -1238,6 +1239,7 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 					// this player can go only all-in to raise
 					nextAction.MinRaiseAmount = 0
 					nextAction.MaxRaiseAmount = 0
+					allInAvailable = true
 				}
 			}
 		}
