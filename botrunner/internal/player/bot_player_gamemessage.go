@@ -317,19 +317,16 @@ func (bp *BotPlayer) hostSeatChange(hostSeatChange *gamescript.HostSeatChange) e
 		bp.logger.Error().Msgf("%s: Error setting up host seat change process game %s: %s", bp.logPrefix, bp.gameCode, err)
 		return err
 	}
-	time.Sleep(2 * time.Second)
 	// make seat changes
 	for _, change := range hostSeatChange.Changes {
 		bp.logger.Error().Msgf("%s: game %s: Swapping seat: %d to seat2: %d", bp.logPrefix, bp.gameCode, change.Seat1, change.Seat2)
 		_, err := bp.gqlHelper.HostRequestSeatChangeSwap(bp.gameCode, change.Seat1, change.Seat2)
-		time.Sleep(1 * time.Second)
 		if err != nil {
 			bp.logger.Error().Msgf("%s: Error swapping seat1: %d to seat2: %d failed. game %s: %s", bp.logPrefix, change.Seat1, change.Seat2, bp.gameCode, err)
 			return err
 		}
 	}
 
-	time.Sleep(2 * time.Second)
 	bp.logger.Error().Msgf("%s: game %s: Completing seat change updates", bp.logPrefix, bp.gameCode)
 	// complete seat change process
 	_, err = bp.gqlHelper.HostRequestSeatChangeComplete(bp.gameCode)
