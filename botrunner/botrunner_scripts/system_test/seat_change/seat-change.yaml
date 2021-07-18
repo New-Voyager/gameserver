@@ -62,52 +62,31 @@ hands:
       auto: true
       seat-change:
         - seat: 2
-          decline: true
+          confirm: false
         - seat: 3
-          accept: true    
+          confirm: true
       leave-game:
         - seat: 6
 
   - setup:
-      pause: 5
+      pause: 3
       auto: true
-
-  - setup:
-      pause: 5
-      auto: true
-
-  # - num: 4
-  #   setup:
-  #     auto: true
-
-  # - num: 4
-  #   setup:
-  #     button-pos: 4
-  #     auto: true
-
-  # - num: 3
-  #   setup:
-  #     button-pos: 2
-  #     auto: true
-  #     leave-game:
-  #       - 3
-  #     verify:
-  #       table-pos:
-  #         - seat: 1
-  #           player-name: yong
-  #         - seat: 2
-  #           empty: true
-  #         - seat: 3
-  #           empty: tom
-  #         - seat: 4
-  #           player-name: jim
-  #         - seat: 5
-  #           player-name: rob
-  #         - seat: 6
-  #           player-name: rich
-  #         - seat: 7
-  #           player-name: josh
-  #         - seat: 8
-  #           player-name: chris
-  #         - seat: 9
-  #           player-name: michael
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+          - seat: 2
+            player: brian
+          - seat: 3
+          - seat: 4
+            player: jim
+          - seat: 5
+            player: rob
+          - seat: 6
+            player: tom
+          - seat: 7
+            player: josh
+          - seat: 8
+            player: chris
+          - seat: 9
+            player: michael

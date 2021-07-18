@@ -116,6 +116,13 @@ hands:
           cards: ["Kh", "Qd"]
         - seat: 5
           cards: ["3s", "7s"]
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+          - seat: 5
+            player: tom
+          - seat: 8
 
     # simulate pre-flop action
     preflop:

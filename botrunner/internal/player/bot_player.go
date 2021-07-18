@@ -838,7 +838,7 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 		for _, seat := range currentHand.Setup.Verify.Seats {
 			seatPlayer := newHand.PlayersInSeats[seat.Seat]
 			if seatPlayer.Name != seat.Player {
-				errMsg := fmt.Sprintf("Player %s should be in seat %d, but found another player: %s", seat.Player, seat.Seat, seatPlayer.Name)
+				errMsg := fmt.Sprintf("Player [%s] should be in seat %d, but found another player: [%s]", seat.Player, seat.Seat, seatPlayer.Name)
 				bp.logger.Error().Msg(errMsg)
 				panic(errMsg)
 			}
@@ -1012,6 +1012,33 @@ func (bp *BotPlayer) verifyResult() {
 			expectedActedAtLeastOnce := scriptStat.ActedAtLeastOnce
 			if actualActedAtLeastOnce != expectedActedAtLeastOnce {
 				bp.logger.Error().Msgf("%s: Hand %d result verify failed. ActedAtLeastOnce for seat# %d player ID %d: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actualActedAtLeastOnce, expectedActedAtLeastOnce)
+				passed = false
+			}
+		}
+	}
+
+	if len(scriptResult.HighHand) > 0 {
+		actualHighHand := bp.GetHandResult().GetHighHand()
+		if actualHighHand == nil {
+			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Expected high-hand in result, but got null.")
+			passed = false
+		}
+		hhWinners := actualHighHand.GetWinners()
+		if len(hhWinners) != len(scriptResult.HighHand) {
+			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Number of high-hand winners: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, len(hhWinners), len(scriptResult.HighHand))
+			passed = false
+		}
+		for _, expectedWinner := range scriptResult.HighHand {
+			expectedSeatNo := expectedWinner.Seat
+			seatFound := false
+			for _, winner := range hhWinners {
+				if winner.SeatNo == expectedSeatNo {
+					seatFound = true
+					break
+				}
+			}
+			if !seatFound {
+				bp.logger.Error().Msgf("%s: Hand %d result verify failed. Expected high-hand winner seat# %d was not found in the result high-hand winners.", bp.logPrefix, bp.game.handNum, expectedSeatNo)
 				passed = false
 			}
 		}

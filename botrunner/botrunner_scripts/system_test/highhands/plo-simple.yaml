@@ -75,7 +75,7 @@ hands:
         - action: 1, CHECK
     result:
       winners:
-        - seat: 1
+        - seat: 3
           receive: 43.0
           rank: Full House
       action-ended: SHOW_DOWN
@@ -83,10 +83,13 @@ hands:
       players:
         - seat: 1
           balance:
-            after: 1026
-        - seat: 5
+            after: 85
+        - seat: 2
           balance:
-            after: 985
-        - seat: 8
+            after: 85
+        - seat: 3
           balance:
-            after: 985
+            after: 128
+
+      high-hand:
+        - seat: 3

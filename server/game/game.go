@@ -489,6 +489,15 @@ func (g *Game) dealNewHand() error {
 		}
 	}
 
+	if pauseBeforeHand != 0 {
+		channelGameLogger.Info().
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
+			Uint32("hand", newHandNum).
+			Msg(fmt.Sprintf("PAUSING the game %d seconds", pauseBeforeHand))
+		time.Sleep(time.Duration(pauseBeforeHand) * time.Second)
+	}
+
 	handState = &HandState{
 		ClubId:        g.config.ClubId,
 		GameId:        g.config.GameId,
@@ -563,15 +572,6 @@ func (g *Game) dealNewHand() error {
 
 	if !util.Env.ShouldDisableDelays() {
 		time.Sleep(time.Duration(g.delays.BeforeDeal) * time.Millisecond)
-	}
-
-	if pauseBeforeHand != 0 {
-		channelGameLogger.Info().
-			Uint32("club", g.config.ClubId).
-			Str("game", g.config.GameCode).
-			Uint32("hand", handState.HandNum).
-			Msg(fmt.Sprintf("PAUSING the game %d seconds", pauseBeforeHand))
-		time.Sleep(time.Duration(pauseBeforeHand) * time.Second)
 	}
 
 	// indicate the clients card distribution began
