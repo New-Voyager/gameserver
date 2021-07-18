@@ -1,0 +1,94 @@
+# SYSTEM_TEST_TIMEOUT_SEC:60
+
+disabled: true
+club:
+  name: Manchester PLO Club
+  description: Club used for testing with PLO hands
+  rewards:
+    - name: High Hand
+      type: HIGH_HAND
+      amount: 100
+      schedule: ENTIRE_GAME
+
+game:
+  create: true
+  title: "PLO Testing Game"
+  game-type: "PLO"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 9
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 100
+  buy-in-max: 300
+  action-time: 100
+  rewards: High Hand
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 100
+  - seat: 2
+    player: brian
+    buy-in: 100
+  - seat: 3
+    player: tom
+    buy-in: 100
+  - seat: 5
+    player: rob
+    buy-in: 100
+  - seat: 6
+    player: john
+    buy-in: 100
+  - seat: 8
+    player: bill
+    buy-in: 100
+  - seat: 9
+    player: david
+    buy-in: 100
+
+
+# deal the following hands in the table
+hands:
+  - setup:
+      button-pos: 1
+      auto: true
+    pause-game: true
+    post-hand:
+      - host-seat-change:
+          changes:
+            - seat1: 1
+              seat2: 4
+            - seat1: 4
+              seat2: 7
+            - seat1: 7
+              seat2: 1
+            - seat1: 9
+              seat2: 1
+      - resume-game: true
+
+  - setup:
+      auto: true
+      verify:
+        seats:
+          - seat: 1
+            player: david
+          - seat: 2
+            player: brian
+          - seat: 3
+            player: tom
+          - seat: 4
+          - seat: 5
+            player: rob
+          - seat: 6
+            player: john
+          - seat: 7
+          - seat: 8
+            player: bill
+          - seat: 9
+            player: yong
