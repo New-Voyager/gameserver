@@ -109,10 +109,10 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *NonProtoMessage) {
 		for _, sc := range scriptHandConf.Setup.SeatChange {
 			if sc.Seat == bp.seatNo {
 				if sc.Confirm {
-					bp.logger.Info().Msgf("%s: CONFIRM seat change", bp.logPrefix)
+					bp.logger.Info().Msgf("%s: CONFIRM seat change (per hand %d setup)", bp.logPrefix, bp.game.handNum)
 					bp.gqlHelper.ConfirmSeatChange(bp.gameCode, openedSeatNo)
 				} else {
-					bp.logger.Info().Msgf("%s: DECLINE seat change", bp.logPrefix)
+					bp.logger.Info().Msgf("%s: DECLINE seat change (per hand %d setup)", bp.logPrefix, bp.game.handNum)
 					bp.gqlHelper.DeclineSeatChange(bp.gameCode)
 				}
 			}

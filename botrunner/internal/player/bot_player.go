@@ -838,7 +838,7 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 		for _, seat := range currentHand.Setup.Verify.Seats {
 			seatPlayer := newHand.PlayersInSeats[seat.Seat]
 			if seatPlayer.Name != seat.Player {
-				errMsg := fmt.Sprintf("Player %s should be in seat %d, but found another player: %s", seat.Player, seat.Seat, seatPlayer.Name)
+				errMsg := fmt.Sprintf("Player [%s] should be in seat %d, but found another player: [%s]", seat.Player, seat.Seat, seatPlayer.Name)
 				bp.logger.Error().Msg(errMsg)
 				panic(errMsg)
 			}
