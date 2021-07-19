@@ -53,16 +53,19 @@ func TestReadGameScript(t *testing.T) {
 				Seat:   1,
 				Player: "yong",
 				BuyIn:  100,
+				Reload: getBoolPointer(true),
 			},
 			{
 				Seat:   5,
 				Player: "brian",
 				BuyIn:  100,
+				Reload: getBoolPointer(false),
 			},
 			{
 				Seat:   8,
 				Player: "tom",
 				BuyIn:  100,
+				Reload: nil,
 			},
 		},
 		Tester:   "tom",
@@ -100,10 +103,22 @@ func TestReadGameScript(t *testing.T) {
 						},
 					},
 					Auto: true,
-					SeatChange: []SeatChangeConfirm{
+					SeatChange: []SeatChangeSetup{
 						{
 							Seat:    2,
 							Confirm: true,
+						},
+					},
+					RunItTwice: []RunItTwiceSetup{
+						{
+							Seat:        2,
+							AllowPrompt: true,
+							Confirm:     true,
+						},
+						{
+							Seat:        3,
+							AllowPrompt: true,
+							Confirm:     true,
 						},
 					},
 					LeaveGame: []LeaveGame{
@@ -370,6 +385,45 @@ func TestReadGameScript(t *testing.T) {
 							ActedAtLeastOnce:          false,
 						},
 					},
+					RunItTwice: &RunItTwiceResult{
+						StartedAt: "FLOP",
+						Board1Winners: []WinnerPot{
+							{
+								Amount: 126,
+								Winners: []HandWinner{
+									{
+										Seat:    3,
+										Receive: 96,
+										RankStr: "Two Pair",
+									},
+								},
+								LoWinners: []HandWinner{
+									{
+										Seat:    2,
+										Receive: 30,
+									},
+								},
+							},
+						},
+						Board2Winners: []WinnerPot{
+							{
+								Amount: 121,
+								Winners: []HandWinner{
+									{
+										Seat:    2,
+										Receive: 101,
+										RankStr: "Pair",
+									},
+								},
+								LoWinners: []HandWinner{
+									{
+										Seat:    3,
+										Receive: 20,
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -385,5 +439,9 @@ func getUint32Pointer(v uint32) *uint32 {
 }
 
 func getFloat32Pointer(v float32) *float32 {
+	return &v
+}
+
+func getBoolPointer(v bool) *bool {
 	return &v
 }

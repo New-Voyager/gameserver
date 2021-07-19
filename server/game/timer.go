@@ -49,8 +49,28 @@ func (g *Game) handlePlayTimeout(timeoutMsg timer.TimerMsg) error {
 	}
 
 	if timeoutMsg.RunItTwice {
-		// the players did not respond to run it twice prompt
-		g.handleRunitTwiceTimeout(handState)
+		// The players did not respond to run it twice prompt
+		// Force a default action for the timed-out player.
+		handAction := HandAction{
+			SeatNo:   timeoutMsg.SeatNo,
+			Action:   ACTION_RUN_IT_TWICE_NO,
+			TimedOut: true,
+		}
+
+		handMessage := HandMessage{
+			GameId:     g.config.GameId,
+			ClubId:     g.config.ClubId,
+			HandNum:    handState.HandNum,
+			HandStatus: handState.CurrentState,
+			PlayerId:   timeoutMsg.PlayerID,
+			Messages: []*HandMessageItem{
+				{
+					MessageType: HandPlayerActed,
+					Content:     &HandMessageItem_PlayerActed{PlayerActed: &handAction},
+				},
+			},
+		}
+		g.QueueHandMessage(&handMessage)
 	} else {
 		// Force a default action for the timed-out player.
 		handAction := HandAction{

@@ -318,6 +318,11 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 	// is it run it twice prompt response?
 	if handState.RunItTwicePrompt {
+		actionMsg := g.getClientMsgItem(playerMsg)
+		action := actionMsg.GetPlayerActed().Action
+		if !(action == ACTION_RUN_IT_TWICE_YES || action == ACTION_RUN_IT_TWICE_NO) {
+			return fmt.Errorf("Unexpected action %v. Was expecting %v or %v", action, ACTION_RUN_IT_TWICE_YES, ACTION_RUN_IT_TWICE_NO)
+		}
 		msgItems, err := g.runItTwiceConfirmation(handState, playerMsg)
 		if err != nil {
 			return err
@@ -334,8 +339,8 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 			Messages:   msgItems,
 		}
 
-		g.saveHandState(handState)
 		g.broadcastHandMessage(&msg)
+		g.saveHandState(handState)
 		g.handleHandEnded(msgItems)
 
 		return nil

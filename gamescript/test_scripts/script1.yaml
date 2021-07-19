@@ -36,9 +36,11 @@ starting-seats:
   - seat: 1
     player: yong
     buy-in: 100
+    reload: true
   - seat: 5
     player: brian
     buy-in: 100
+    reload: false
   - seat: 8
     player: tom
     buy-in: 100
@@ -69,6 +71,13 @@ hands:
       auto: true
       seat-change:
         - seat: 2
+          confirm: true
+      run-it-twice:
+        - seat: 2
+          allow-prompt: true
+          confirm: true
+        - seat: 3
+          allow-prompt: true
           confirm: true
       leave-game:
         - seat: 6
@@ -188,3 +197,24 @@ hands:
         - seat: 8
           consecutive-action-timeouts: 1
           acted-at-least-once: false
+
+      run-it-twice:
+        started-at: FLOP
+        board1-winners:
+          - amount: 126
+            winners:
+              - seat: 3
+                receive: 96
+                rank: Two Pair
+            lo-winners:
+              - seat: 2
+                receive: 30
+        board2-winners:
+          - amount: 121
+            winners:
+              - seat: 2
+                receive: 101
+                rank: Pair
+            lo-winners:
+              - seat: 3
+                receive: 20

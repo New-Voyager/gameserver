@@ -19,7 +19,6 @@ game:
   buy-in-min: 100
   buy-in-max: 300
   action-time: 10
-  # dont-start: true
   run-it-twice-allowed: true
   muck-losing-hand: true
 
@@ -27,23 +26,15 @@ starting-seats:
   - seat: 1
     player: yong
     buy-in: 100
-    run-it-twice: true
-    run-it-twice-prompt: true
   - seat: 2
     player: brian
     buy-in: 100
-    run-it-twice: true
-    run-it-twice-prompt: true
   - seat: 3
     player: chris
     buy-in: 100
-    run-it-twice: true
-    run-it-twice-prompt: true
   - seat: 4
     player: tom
     buy-in: 100
-    run-it-twice: true
-    run-it-twice-prompt: true
 
 # Human plays this user.
 #tester: yong
@@ -63,6 +54,13 @@ hands:
           cards: ["9h", "2s"]
         - seat: 4
           cards: ["9c", "5s"]
+      run-it-twice:
+        - seat: 2
+          allow-prompt: true
+          confirm: true
+        - seat: 3
+          allow-prompt: true
+          confirm: true
 
     # simulate pre-flop action
     preflop:
@@ -79,5 +77,23 @@ hands:
       seat-actions:
         - action: 2, CHECK
         - action: 3, ALLIN
-        - action: 1, FOLD
+        - action: 4, FOLD
         - action: 2, ALLIN
+
+    result:
+      run-it-twice:
+        started-at: FLOP
+        board1-winners:
+          - amount: 101
+            winners:
+              - seat: 3
+                receive: 96
+                rank: Two Pair
+            lo-winners: []
+        board2-winners:
+          - amount: 101
+            winners:
+              - seat: 2
+                receive: 101
+                rank: Two Pair
+            lo-winners: []
