@@ -1143,30 +1143,36 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 		// the player can bet
 		canBet = true
 	} else {
-		if playerBalance > h.CurrentRaise {
-			actedState := h.PlayersActed[actionSeat]
-
-			if (actedState.State == PlayerActState_PLAYER_ACT_BB && h.CurrentRaise > h.BigBlind) ||
-				(actedState.State == PlayerActState_PLAYER_ACT_STRADDLE && h.CurrentRaise > h.Straddle) {
-				availableActions = append(availableActions, ACTION_CALL)
-			} else if actedState.Amount == h.CurrentRaise {
-				availableActions = append(availableActions, ACTION_CHECK)
-			} else {
-				availableActions = append(availableActions, ACTION_CALL)
-			}
-			nextAction.CallAmount = h.CurrentRaiseDiff + h.BetBeforeRaise
-
-			canRaise = true
-			// if the call amount is less than bring in amount, use bring in amount
-			if h.CurrentState == HandStatus_PREFLOP {
-				if nextAction.CallAmount <= h.BringIn {
-					nextAction.CallAmount = h.BringIn
-					canBet = true
-					canRaise = false
+		actedState := h.PlayersActed[actionSeat]
+		if (actedState.State == PlayerActState_PLAYER_ACT_BB ||
+			actedState.State == PlayerActState_PLAYER_ACT_STRADDLE) &&
+			h.GetCurrentRaise() <= actedState.Amount {
+			// we can check
+			availableActions = append(availableActions, ACTION_CHECK)
+		} else {
+			if playerBalance+actedState.Amount >= h.CurrentRaise {
+				if (actedState.State == PlayerActState_PLAYER_ACT_BB && h.CurrentRaise > h.BigBlind) ||
+					(actedState.State == PlayerActState_PLAYER_ACT_STRADDLE && h.CurrentRaise > h.Straddle) {
+					availableActions = append(availableActions, ACTION_CALL)
+				} else if actedState.Amount == h.CurrentRaise {
+					availableActions = append(availableActions, ACTION_CHECK)
+				} else {
+					availableActions = append(availableActions, ACTION_CALL)
 				}
-				if h.BetBeforeRaise == 0 {
-					canBet = true
-					canRaise = false
+				nextAction.CallAmount = h.CurrentRaiseDiff + h.BetBeforeRaise
+
+				canRaise = true
+				// if the call amount is less than bring in amount, use bring in amount
+				if h.CurrentState == HandStatus_PREFLOP {
+					if nextAction.CallAmount <= h.BringIn {
+						nextAction.CallAmount = h.BringIn
+						canBet = true
+						canRaise = false
+					}
+					if h.BetBeforeRaise == 0 {
+						canBet = true
+						canRaise = false
+					}
 				}
 			}
 		}
