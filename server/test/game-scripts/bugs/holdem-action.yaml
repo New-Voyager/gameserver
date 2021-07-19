@@ -1,0 +1,105 @@
+club:
+  name: Bug Testing
+  description: testing
+game-config:
+  type: HOLDEM
+  max-players: 4
+  min-players: 2
+  min-buyin: 10.0
+  max-buyin: 300.0
+  auto-start: false
+  auto-approve: true
+  title: Fix for HOLDEM incorrect action
+  sb: 1.0
+  bb: 2.0  
+
+
+# players in the game
+players:
+  - name: yong
+    id: 1
+  - name: brian
+    id: 2
+  - name: tom
+    id: 3
+  - name: jim
+    id: 4
+
+take-seat:
+  seats:
+    - seat: 1
+      player: 1
+      buy-in: 100
+    - seat: 2
+      player: 2
+      buy-in: 213
+    - seat: 3
+      player: 3
+      buy-in: 92
+    - seat: 4
+      player: 4
+      buy-in: 85
+
+hands:
+  - num: 1
+    setup:
+      button-pos: 3
+      flop:
+        - 7d
+        - 3d
+        - Js
+      turn: 3c
+      river: 4h
+      seat-cards:
+        - seat: 1
+          cards:
+            - 9h
+            - Tc
+        - seat: 2
+          cards:
+            - 6s
+            - Qh
+        - seat: 3
+          cards:
+            - 8c
+            - 7s
+        - seat: 4
+          cards:
+            - As
+            - Ad
+    preflop-action:
+      actions:
+        -
+          seat: 2
+          action: BET
+          amount: 10
+        -
+          seat: 3
+          action: CALL
+          amount: 10
+        -
+          seat: 4
+          action: RAISE
+          amount: 54
+        -
+          seat: 1
+          action: CALL
+          amount: 54
+        -
+          seat: 2
+          action: FOLD
+        -
+          seat: 3
+          action: ALLIN
+        -
+          seat: 4
+          action: FOLD
+          verify-action:
+            actions: ["FOLD", "ALLIN"]
+            all-in-amount: 85
+        -
+          seat: 1
+          action: FOLD
+          verify-action:
+            actions: ["FOLD", "CALL"]
+            call-amount: 92
