@@ -290,7 +290,6 @@ hands:
         - 
           seat: 2
           action: ALLIN
-          amount: 20
           verify-action:
             actions: ["FOLD", "ALLIN"]
             all-in-amount: 55

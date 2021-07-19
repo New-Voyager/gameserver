@@ -1,0 +1,132 @@
+disabled: false
+club:
+  name: Bug Testing
+  description: testing
+game-config:
+  type: HOLDEM
+  max-players: 4
+  min-players: 2
+  min-buyin: 1.0
+  max-buyin: 300.0
+  auto-start: false
+  auto-approve: true
+  title: Fix for HOLDEM incorrect action
+  sb: 1.0
+  bb: 2.0  
+
+
+# players in the game
+players:
+  - name: yong
+    id: 1
+  - name: brian
+    id: 2
+  - name: tom
+    id: 3
+  - name: jim
+    id: 4
+
+take-seat:
+  seats:
+    - seat: 1
+      player: 1
+      buy-in: 122
+    - seat: 2
+      player: 2
+      buy-in: 74
+    - seat: 3
+      player: 3
+      buy-in: 4
+    - seat: 4
+      player: 4
+      buy-in: 130
+
+hands:
+  - num: 1
+    setup:
+      button-pos: 1
+      flop:
+        - 6c
+        - Qs
+        - 5s
+      turn: 8h
+      river: As
+      seat-cards:
+        - seat: 1
+          cards:
+            - 2d
+            - Kd
+        - seat: 2
+          cards:
+            - Qh
+            - 8s
+        - seat: 3
+          cards:
+            - 7h
+            - 2c
+        - seat: 4
+          cards:
+            - 3d
+            - 6h
+    preflop-action:
+      actions:
+        -
+          seat: 4
+          action: CALL
+          amount: 2
+        -
+          seat: 1
+          action: CALL
+          amount: 2
+        -
+          seat: 2
+          action: CALL
+          amount: 2
+        -
+          seat: 3
+          action: CHECK
+          verify-action:
+            actions: ["FOLD", "ALLIN", "CHECK"]     # big blind can fold, allin or check
+            all-in-amount: 4
+    flop-action:
+      actions:
+        -
+          seat: 2
+          action: CHECK
+        -
+          seat: 3
+          action: CHECK
+        -
+          seat: 4
+          action: CHECK
+        -
+          seat: 1
+          action: CHECK
+    turn-action:
+      actions:
+        -
+          seat: 2
+          action: CHECK
+        -
+          seat: 3
+          action: CHECK
+        -
+          seat: 4
+          action: CHECK
+        -
+          seat: 1
+          action: CHECK
+    river-action:
+      actions:
+        -
+          seat: 2
+          action: CHECK
+        -
+          seat: 3
+          action: CHECK
+        -
+          seat: 4
+          action: CHECK
+        -
+          seat: 1
+          action: CHECK
