@@ -37,10 +37,14 @@ starting-seats:
     player: yong
     buy-in: 100
     reload: true
+    muck-losing-hand: true
+    post-blind: true
   - seat: 5
     player: brian
     buy-in: 100
     reload: false
+    muck-losing-hand: false
+    post-blind: false
   - seat: 8
     player: tom
     buy-in: 100
