@@ -1238,14 +1238,13 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 				betOptions = h.betOptions(actionSeat, h.CurrentState, playerID, nextAction.CallAmount)
 				canBet = true
 				canRaise = false
-				//availableActions = append(availableActions, ACTION_BET)
 			} else {
 				if allIn > nextAction.MinRaiseAmount {
 					// calculate the maximum amount the player can raise
-					//availableActions = append(availableActions, ACTION_RAISE)
 					canRaise = true
 					betOptions = h.raiseOptions(actionSeat, nextAction.MinRaiseAmount, nextAction.MaxRaiseAmount, playerID)
 				} else {
+					canRaise = false
 					// this player can go only all-in to raise
 					nextAction.MinRaiseAmount = 0
 					nextAction.MaxRaiseAmount = 0
