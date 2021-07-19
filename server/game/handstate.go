@@ -1281,6 +1281,18 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 		nextAction.AllInAmount = allIn
 	}
 
+	// if all in amount is equal to call amount, then don't use CALL action
+	if nextAction.AllInAmount == nextAction.CallAmount {
+		actions := make([]ACTION, 0)
+		for _, action := range availableActions {
+			if action != ACTION_CALL {
+				actions = append(actions, action)
+			}
+		}
+		availableActions = actions
+		nextAction.CallAmount = 0
+	}
+
 	if nextAction.MaxRaiseAmount == allIn {
 		nextAction.AllInAmount = allIn
 	}
