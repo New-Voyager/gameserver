@@ -161,12 +161,22 @@ func (g *Game) runItTwiceConfirmation(h *HandState, message *HandMessage) ([]*Ha
 	if runItTwice.Seat2 == message.SeatNo {
 		g.pausePlayTimer2(message.SeatNo)
 	}
+
+	var allMsgItems []*HandMessageItem
+
+	// Broadcast this player's confirmation msg (or the default timeout msg) back to everyone.
+	allMsgItems = append(allMsgItems, actionMsg)
+
 	msgItems, err := g.handleRunItTwice(h)
 	if err != nil {
 		return nil, err
 	}
 
-	return msgItems, nil
+	for _, msgItem := range msgItems {
+		allMsgItems = append(allMsgItems, msgItem)
+	}
+
+	return allMsgItems, nil
 }
 
 func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {

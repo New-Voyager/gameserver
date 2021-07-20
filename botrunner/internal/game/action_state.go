@@ -3,7 +3,7 @@ package game
 import "fmt"
 
 // ActionToActionState converts ACTION to the corresponding PlayerActState.
-func ActionToActionState(action ACTION) PlayerActState {
+func ActionToActionState(action ACTION) (PlayerActState, error) {
 	var state PlayerActState
 	switch action {
 	case ACTION_BB:
@@ -25,7 +25,7 @@ func ActionToActionState(action ACTION) PlayerActState {
 	case ACTION_ALLIN:
 		state = PlayerActState_PLAYER_ACT_ALL_IN
 	default:
-		panic(fmt.Sprintf("Unknown action - %s", action))
+		return state, fmt.Errorf("Unknown action - %s", action)
 	}
-	return state
+	return state, nil
 }
