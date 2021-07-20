@@ -1051,43 +1051,58 @@ func (bp *BotPlayer) verifyResult() {
 	}
 
 	if scriptResult.RunItTwice != nil {
-		if actualResult.GetRunItTwice() != true {
-			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Run-it-twice in hand result is expected to to be true, but is false.", bp.logPrefix, bp.game.handNum)
+		resultShouldBeNull := scriptResult.RunItTwice.ShouldBeNull
+		expectedRunItTwice := !resultShouldBeNull
+
+		if actualResult.GetRunItTwice() != expectedRunItTwice {
+			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Run-it-twice in hand result is expected to to be %v, but is %v.", bp.logPrefix, bp.game.handNum, expectedRunItTwice, actualResult.GetRunItTwice())
 			passed = false
 		}
-		if actualResult.GetHandLog().GetRunItTwice() != true {
-			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Run-it-twice in result hand log is expected to be true, but is false.", bp.logPrefix, bp.game.handNum)
+		if actualResult.GetHandLog().GetRunItTwice() != expectedRunItTwice {
+			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Run-it-twice in result hand log is expected to be %v, but is %v.", bp.logPrefix, bp.game.handNum, expectedRunItTwice, actualResult.GetHandLog().GetRunItTwice())
 			passed = false
 		}
 		actualRunItTwiceResult := actualResult.GetHandLog().GetRunItTwiceResult()
-		if actualRunItTwiceResult.GetRunItTwiceStartedAt().String() != scriptResult.RunItTwice.StartedAt {
-			bp.logger.Error().Msgf("%s: Hand %d result verify failed. runItTwiceStartedAt: %s, expected: %s.", bp.logPrefix, bp.game.handNum, actualRunItTwiceResult.GetRunItTwiceStartedAt().String(), scriptResult.RunItTwice.StartedAt)
-			passed = false
-		}
+		if resultShouldBeNull {
+			if actualRunItTwiceResult != nil {
+				bp.logger.Error().Msgf("%s: Hand %d result verify failed. The result is not expected to containe run-it-twice result, but it contains not-null run-it-twice section.", bp.logPrefix, bp.game.handNum)
+				passed = false
+			}
+		} else {
+			if actualRunItTwiceResult == nil {
+				bp.logger.Error().Msgf("%s: Hand %d result verify failed. The result is expected to contain run-it-twice result, but it is null.", bp.logPrefix, bp.game.handNum)
+				passed = false
+			} else {
+				if actualRunItTwiceResult.GetRunItTwiceStartedAt().String() != scriptResult.RunItTwice.StartedAt {
+					bp.logger.Error().Msgf("%s: Hand %d result verify failed. runItTwiceStartedAt: %s, expected: %s.", bp.logPrefix, bp.game.handNum, actualRunItTwiceResult.GetRunItTwiceStartedAt().String(), scriptResult.RunItTwice.StartedAt)
+					passed = false
+				}
 
-		expectedBoard1Pots := scriptResult.RunItTwice.Board1Winners
-		actualBoard1Pots := actualRunItTwiceResult.GetBoard_1Winners()
-		for potNum, expectedPot := range expectedBoard1Pots {
-			actualPot := actualBoard1Pots[uint32(potNum)]
-			if actualPot.Amount != expectedPot.Amount {
-				bp.logger.Error().Msgf("%s: Hand %d result verify failed. RunItTwice board 1 pot %d amount: %f, expected: %f.", bp.logPrefix, bp.game.handNum, potNum, actualPot.Amount, expectedPot.Amount)
-				passed = false
-			}
-			if !bp.verifyPotWinners(actualPot, expectedPot, 1, potNum) {
-				passed = false
-			}
-		}
+				expectedBoard1Pots := scriptResult.RunItTwice.Board1Winners
+				actualBoard1Pots := actualRunItTwiceResult.GetBoard_1Winners()
+				for potNum, expectedPot := range expectedBoard1Pots {
+					actualPot := actualBoard1Pots[uint32(potNum)]
+					if actualPot.Amount != expectedPot.Amount {
+						bp.logger.Error().Msgf("%s: Hand %d result verify failed. RunItTwice board 1 pot %d amount: %f, expected: %f.", bp.logPrefix, bp.game.handNum, potNum, actualPot.Amount, expectedPot.Amount)
+						passed = false
+					}
+					if !bp.verifyPotWinners(actualPot, expectedPot, 1, potNum) {
+						passed = false
+					}
+				}
 
-		expectedBoard2Pots := scriptResult.RunItTwice.Board2Winners
-		actualBoard2Pots := actualRunItTwiceResult.GetBoard_2Winners()
-		for potNum, expectedPot := range expectedBoard2Pots {
-			actualPot := actualBoard2Pots[uint32(potNum)]
-			if actualPot.Amount != expectedPot.Amount {
-				bp.logger.Error().Msgf("%s: Hand %d result verify failed. RunItTwice board 2 pot %d amount: %f, expected: %f.", bp.logPrefix, bp.game.handNum, potNum, actualPot.Amount, expectedPot.Amount)
-				passed = false
-			}
-			if !bp.verifyPotWinners(actualPot, expectedPot, 2, potNum) {
-				passed = false
+				expectedBoard2Pots := scriptResult.RunItTwice.Board2Winners
+				actualBoard2Pots := actualRunItTwiceResult.GetBoard_2Winners()
+				for potNum, expectedPot := range expectedBoard2Pots {
+					actualPot := actualBoard2Pots[uint32(potNum)]
+					if actualPot.Amount != expectedPot.Amount {
+						bp.logger.Error().Msgf("%s: Hand %d result verify failed. RunItTwice board 2 pot %d amount: %f, expected: %f.", bp.logPrefix, bp.game.handNum, potNum, actualPot.Amount, expectedPot.Amount)
+						passed = false
+					}
+					if !bp.verifyPotWinners(actualPot, expectedPot, 2, potNum) {
+						passed = false
+					}
+				}
 			}
 		}
 	}
@@ -2031,8 +2046,10 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 		time.Sleep(bp.getActionTime())
 	}
 	var handAction game.HandAction
+	runItTwiceTimeout := false
 	if runItTwiceActionPrompt {
-		if bp.shouldConfirmRunItTwice() {
+		runItTwiceConf := bp.getRunItTwiceConfig()
+		if runItTwiceConf.Confirm {
 			handAction = game.HandAction{
 				SeatNo: bp.seatNo,
 				Action: game.ACTION_RUN_IT_TWICE_YES,
@@ -2042,6 +2059,9 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 				SeatNo: bp.seatNo,
 				Action: game.ACTION_RUN_IT_TWICE_NO,
 			}
+		}
+		if runItTwiceConf.Timeout {
+			runItTwiceTimeout = true
 		}
 	} else {
 		handAction = game.HandAction{
@@ -2072,9 +2092,13 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 	}
 
 	playerName := bp.getPlayerNameBySeatNo(bp.seatNo)
-	if timeout {
+	if timeout || runItTwiceTimeout {
 		go func() {
-			bp.logger.Info().Msgf("%s: Seat %d (%s) is going to time out. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, bp.game.handStatus)
+			if runItTwiceTimeout {
+				bp.logger.Info().Msgf("%s: Seat %d (%s) is going to time out the run-it-twice prompt. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, bp.game.handStatus)
+			} else {
+				bp.logger.Info().Msgf("%s: Seat %d (%s) is going to time out. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, bp.game.handStatus)
+			}
 			// sleep more than action time
 			time.Sleep(time.Duration(bp.config.Script.Game.ActionTime) * time.Second)
 			time.Sleep(2 * time.Second)

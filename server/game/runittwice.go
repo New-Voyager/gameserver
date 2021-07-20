@@ -51,39 +51,38 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 
 	h.RunItTwicePrompt = true
 
-	player1 := uint64(0)
+	player1ID := uint64(0)
 	player1Seat := uint32(0)
-	player2 := uint64(0)
+	player2ID := uint64(0)
 	player2Seat := uint32(0)
 
 	for seat, playerID := range h.ActiveSeats {
 		if playerID == 0 {
 			continue
 		}
-		if player1 == 0 {
-			player1 = playerID
+		if player1ID == 0 {
+			player1ID = playerID
 			player1Seat = uint32(seat)
 		} else {
-			player2 = playerID
+			player2ID = playerID
 			player2Seat = uint32(seat)
 			break
 		}
 	}
 
-	expiryTime := time.Now().Add(time.Second * time.Duration(g.config.ActionTime))
+	timeoutAt := time.Now().Add(time.Duration(g.config.ActionTime) * time.Second)
 
 	// create run it twice
 	h.RunItTwice = &RunItTwice{
 		Stage:      h.LastState,
 		Seat1:      player1Seat,
 		Seat2:      player2Seat,
-		ExpiryTime: uint64(expiryTime.Unix()),
+		ExpiryTime: uint64(timeoutAt.Unix()),
 	}
 
 	var msgItems []*HandMessageItem
 	// run a timer for the prompt
-	timeoutAt := time.Now().Add(time.Duration(g.config.ActionTime) * time.Second)
-	timeoutAtUnix := timeoutAt.UTC().Unix()
+	timeoutAtUnix := timeoutAt.Unix()
 
 	// prompt player 1
 	seatAction := &NextSeatAction{
@@ -110,13 +109,9 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 	msgItems = append(msgItems, player2MsgItem)
 
 	//h.NextSeatAction.ActionTimesoutAt = timeoutAt.Unix()
-	g.runItTwiceTimer(player1Seat, player1, player2Seat, player2, timeoutAt)
+	g.runItTwiceTimer(player1Seat, player1ID, player2Seat, player2ID, timeoutAt)
 
 	return msgItems, nil
-}
-
-func (g *Game) handleRunitTwiceTimeout(h *HandState) bool {
-	return true
 }
 
 // handle run-it-twice confirmation
@@ -159,6 +154,12 @@ func (g *Game) runItTwiceConfirmation(h *HandState, message *HandMessage) ([]*Ha
 		log.Actions = append(log.Actions, actionMsg.GetPlayerActed())
 
 		// we need to acknowledge message
+	}
+	if runItTwice.Seat1 == message.SeatNo {
+		g.pausePlayTimer(message.SeatNo)
+	}
+	if runItTwice.Seat2 == message.SeatNo {
+		g.pausePlayTimer2(message.SeatNo)
 	}
 	msgItems, err := g.handleRunItTwice(h)
 	if err != nil {

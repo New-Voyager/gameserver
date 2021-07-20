@@ -261,24 +261,24 @@ func (bp *BotPlayer) setupRunItTwice() error {
 	return nil
 }
 
-func (bp *BotPlayer) shouldConfirmRunItTwice() bool {
+func (bp *BotPlayer) getRunItTwiceConfig() *gamescript.RunItTwiceSetup {
 	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
-		return false
+		return nil
 	}
 
 	currentHand := bp.config.Script.GetHand(bp.game.handNum)
 	runItTwiceConfigs := currentHand.Setup.RunItTwice
 	if runItTwiceConfigs == nil {
-		return false
+		return nil
 	}
 
 	for _, playerRITSetup := range runItTwiceConfigs {
 		if playerRITSetup.Seat == bp.seatNo {
-			return playerRITSetup.Confirm
+			return &playerRITSetup
 		}
 	}
 
-	return false
+	return nil
 }
 
 func (bp *BotPlayer) pauseGameIfNeeded() error {

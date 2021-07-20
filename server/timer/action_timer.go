@@ -12,8 +12,6 @@ type TimerMsg struct {
 	CurrentActionNum uint32
 	CanCheck         bool
 	ExpireAt         time.Time
-	SeatNo2          uint32
-	PlayerID2        uint64
 	RunItTwice       bool
 }
 

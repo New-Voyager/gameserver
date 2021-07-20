@@ -168,6 +168,7 @@ type RunItTwiceSetup struct {
 	Seat        uint32 `yaml:"seat"`
 	AllowPrompt bool   `yaml:"allow-prompt"`
 	Confirm     bool   `yaml:"confirm"`
+	Timeout     bool   `yaml:"timeout"`
 }
 
 type LeaveGame struct {
@@ -352,6 +353,7 @@ type PlayerStats struct {
 }
 
 type RunItTwiceResult struct {
+	ShouldBeNull  bool        `yaml:"should-be-null"`
 	StartedAt     string      `yaml:"started-at"`
 	Board1Winners []WinnerPot `yaml:"board1-winners"`
 	Board2Winners []WinnerPot `yaml:"board2-winners"`

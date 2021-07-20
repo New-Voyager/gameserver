@@ -120,11 +120,13 @@ func TestReadGameScript(t *testing.T) {
 							Seat:        2,
 							AllowPrompt: true,
 							Confirm:     true,
+							Timeout:     false,
 						},
 						{
 							Seat:        3,
 							AllowPrompt: true,
 							Confirm:     true,
+							Timeout:     true,
 						},
 					},
 					LeaveGame: []LeaveGame{
@@ -392,7 +394,8 @@ func TestReadGameScript(t *testing.T) {
 						},
 					},
 					RunItTwice: &RunItTwiceResult{
-						StartedAt: "FLOP",
+						ShouldBeNull: true,
+						StartedAt:    "FLOP",
 						Board1Winners: []WinnerPot{
 							{
 								Amount: 126,

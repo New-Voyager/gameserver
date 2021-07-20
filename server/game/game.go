@@ -65,6 +65,7 @@ type Game struct {
 	playerConfig atomic.Value
 
 	actionTimer        *timer.ActionTimer
+	actionTimer2       *timer.ActionTimer
 	networkCheck       *NetworkCheck
 	crashdb            *sqlx.DB
 	userdb             *sqlx.DB
@@ -107,6 +108,7 @@ func NewPokerGame(
 	g.end = make(chan bool)
 	g.chPlayTimedOut = make(chan timer.TimerMsg)
 	g.actionTimer = timer.NewActionTimer(g.queueActionTimeoutMsg)
+	g.actionTimer2 = timer.NewActionTimer(g.queueActionTimeoutMsg)
 	g.networkCheck = NewNetworkCheck(g.config.GameId, g.config.GameCode, messageSender)
 
 	playerConfig := make(map[uint64]PlayerConfigUpdate)
@@ -1025,6 +1027,7 @@ func anyPendingUpdates(apiServerUrl string, gameID uint64, retryDelay uint32) (b
 func (g *Game) GameStarted() {
 	go g.runGame()
 	g.actionTimer.Run()
+	g.actionTimer2.Run()
 	g.networkCheck.Run()
 }
 
@@ -1032,6 +1035,7 @@ func (g *Game) GameEnded() error {
 	g.removeHandState()
 	g.end <- true
 	g.actionTimer.Destroy()
+	g.actionTimer2.Destroy()
 	g.networkCheck.Destroy()
 	return nil
 }

@@ -9,7 +9,6 @@ import (
 
 func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireAt time.Time) {
 	channelGameLogger.Info().Msgf("Resetting timer. Current timer seat: %d expires at %s (%f seconds from now)", seatNo, expireAt, expireAt.Sub(time.Now()).Seconds())
-	fmt.Printf("Resetting timer. Current timer seat: %d timer: %d\n", seatNo, g.config.ActionTime)
 	g.actionTimer.Reset(timer.TimerMsg{
 		SeatNo:   seatNo,
 		PlayerID: playerID,
@@ -19,14 +18,17 @@ func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireA
 }
 
 func (g *Game) runItTwiceTimer(seatNo uint32, playerID uint64, seatNo2 uint32, playerID2 uint64, expireAt time.Time) {
-	channelGameLogger.Info().Msgf("Resetting timer for run-it-twice prompt. SeatNo 1: %d SeatNo 2: %d expires at %s (%f seconds from now)", seatNo, seatNo2, expireAt, expireAt.Sub(time.Now()).Seconds())
-	fmt.Printf("Resetting timer. Current timer seat: %d timer: %d\n", seatNo, g.config.ActionTime)
+	channelGameLogger.Info().Msgf("Resetting timers for run-it-twice prompt. SeatNo 1: %d SeatNo 2: %d expires at %s (%f seconds from now)", seatNo, seatNo2, expireAt, expireAt.Sub(time.Now()).Seconds())
 	g.actionTimer.Reset(timer.TimerMsg{
 		SeatNo:     seatNo,
 		PlayerID:   playerID,
 		ExpireAt:   expireAt,
-		SeatNo2:    seatNo2,
-		PlayerID2:  playerID2,
+		RunItTwice: true,
+	})
+	g.actionTimer2.Reset(timer.TimerMsg{
+		SeatNo:     seatNo2,
+		PlayerID:   playerID2,
+		ExpireAt:   expireAt,
 		RunItTwice: true,
 	})
 }
@@ -36,6 +38,13 @@ func (g *Game) pausePlayTimer(seatNo uint32) {
 
 	fmt.Printf("Pausing timer. Seat responded seat: %d Responded in: %fs \n", seatNo, actionResponseTime.Seconds())
 	g.actionTimer.Pause()
+}
+
+func (g *Game) pausePlayTimer2(seatNo uint32) {
+	actionResponseTime := g.actionTimer2.GetElapsedTime()
+
+	fmt.Printf("Pausing timer 2. Seat responded seat: %d Responded in: %fs \n", seatNo, actionResponseTime.Seconds())
+	g.actionTimer2.Pause()
 }
 
 func (g *Game) queueActionTimeoutMsg(msg timer.TimerMsg) {
@@ -63,6 +72,7 @@ func (g *Game) handlePlayTimeout(timeoutMsg timer.TimerMsg) error {
 			HandNum:    handState.HandNum,
 			HandStatus: handState.CurrentState,
 			PlayerId:   timeoutMsg.PlayerID,
+			SeatNo:     timeoutMsg.SeatNo,
 			Messages: []*HandMessageItem{
 				{
 					MessageType: HandPlayerActed,
@@ -89,6 +99,7 @@ func (g *Game) handlePlayTimeout(timeoutMsg timer.TimerMsg) error {
 			HandNum:    handState.HandNum,
 			HandStatus: handState.CurrentState,
 			PlayerId:   timeoutMsg.PlayerID,
+			SeatNo:     timeoutMsg.SeatNo,
 			Messages: []*HandMessageItem{
 				{
 					MessageType: HandPlayerActed,

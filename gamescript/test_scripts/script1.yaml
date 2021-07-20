@@ -83,6 +83,7 @@ hands:
         - seat: 3
           allow-prompt: true
           confirm: true
+          timeout: true
       leave-game:
         - seat: 6
       wait-list:
@@ -203,6 +204,7 @@ hands:
           acted-at-least-once: false
 
       run-it-twice:
+        should-be-null: true
         started-at: FLOP
         board1-winners:
           - amount: 126

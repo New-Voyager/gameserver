@@ -4,7 +4,7 @@ club:
 
 game:
   create: true
-  title: "1 Human 2 Bots"
+  title: "Run It Twice Seat 1 Timeout"
   game-type: "HOLDEM"
   small-blind: 1.0
   big-blind: 2.0
@@ -55,6 +55,7 @@ hands:
         - seat: 2
           allow-prompt: true
           confirm: true
+          timeout: true
         - seat: 3
           allow-prompt: true
           confirm: true
@@ -79,19 +80,4 @@ hands:
 
     result:
       run-it-twice:
-        should-be-null: false
-        started-at: FLOP
-        board1-winners:
-          - amount: 101
-            winners:
-              - seat: 3
-                receive: 96
-                rank: Two Pair
-            lo-winners: []
-        board2-winners:
-          - amount: 101
-            winners:
-              - seat: 2
-                receive: 101
-                rank: Two Pair
-            lo-winners: []
+        should-be-null: true
