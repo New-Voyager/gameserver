@@ -33,6 +33,7 @@ message HandActionLog {
   float pot_start = 1;
   repeated float pots = 2;
   repeated HandAction actions = 3; 
+  repeated SeatsInPots seats_pots = 4;
 }
 
 message BetRaiseOption {
