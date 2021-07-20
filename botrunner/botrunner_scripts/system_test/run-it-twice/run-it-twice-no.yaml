@@ -4,7 +4,7 @@ club:
 
 game:
   create: true
-  title: "Run It Twice"
+  title: "Run It Twice No on Prompt"
   game-type: "HOLDEM"
   small-blind: 1.0
   big-blind: 2.0
@@ -57,7 +57,7 @@ hands:
           confirm: true
         - seat: 3
           allow-prompt: true
-          confirm: true
+          confirm: false
 
     # simulate pre-flop action
     preflop:
@@ -79,19 +79,4 @@ hands:
 
     result:
       run-it-twice:
-        should-be-null: false
-        started-at: FLOP
-        board1-winners:
-          - amount: 101
-            winners:
-              - seat: 3
-                receive: 96
-                rank: Two Pair
-            lo-winners: []
-        board2-winners:
-          - amount: 101
-            winners:
-              - seat: 2
-                receive: 101
-                rank: Two Pair
-            lo-winners: []
+        should-be-null: true
