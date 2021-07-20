@@ -342,6 +342,14 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 			g.sendActionAck(playerMsg, handState.CurrentActionNum)
 		}
 
+		playerID := handState.PlayersInSeats[seatNo]
+		if actionMsg.GetPlayerActed().GetTimedOut() {
+			handState.PlayerStats[playerID].ConsecutiveActionTimeouts++
+		} else {
+			handState.PlayerStats[playerID].ConsecutiveActionTimeouts = 0
+			handState.PlayerStats[playerID].ActedAtLeastOnce = true
+		}
+
 		msg := HandMessage{
 			ClubId:     g.config.ClubId,
 			GameId:     g.config.GameId,
