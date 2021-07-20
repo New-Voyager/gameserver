@@ -66,14 +66,12 @@ type Game struct {
 
 // StartingSeat contains an entry in the StartingSeats array in the game script.
 type StartingSeat struct {
-	Seat                     uint32  `yaml:"seat"`
-	Player                   string  `yaml:"player"`
-	BuyIn                    float32 `yaml:"buy-in"`
-	RunItTwice               bool    `yaml:"run-it-twice"`
-	RunItTwicePromptResponse bool    `yaml:"run-it-twice-prompt"`
-	MuckLosingHand           bool    `yaml:"muck-losing-hand"`
-	Reload                   *bool   `yaml:"reload"`
-	PostBlind                bool    `yaml:"post-blind"`
+	Seat           uint32  `yaml:"seat"`
+	Player         string  `yaml:"player"`
+	BuyIn          float32 `yaml:"buy-in"`
+	MuckLosingHand bool    `yaml:"muck-losing-hand"`
+	PostBlind      bool    `yaml:"post-blind"`
+	Reload         *bool   `yaml:"reload"`
 }
 
 // Observer contains entries of observers of game
@@ -95,16 +93,6 @@ type BotConfig struct {
 	MinActionPauseTime uint32 `yaml:"min-action-pause-time"`
 	MaxActionPauseTime uint32 `yaml:"max-action-pause-time"`
 }
-
-/*
-   - host-seat-change:
-       seat-change: true
-       changes:
-         - seat: 1
-           move: 3
-         - seat: 4
-           move: 5
-*/
 
 type SeatChange struct {
 	Seat1 uint32
@@ -145,7 +133,8 @@ type HandSetup struct {
 	SeatCards  []SeatCards          `yaml:"seat-cards"`
 	Verify     HandSetupVerfication `yaml:"verify"`
 	Auto       bool                 `yaml:"auto"`
-	SeatChange []SeatChangeConfirm  `yaml:"seat-change"` // players requesting seat-change
+	SeatChange []SeatChangeSetup    `yaml:"seat-change"` // players requesting seat-change
+	RunItTwice []RunItTwiceSetup    `yaml:"run-it-twice"`
 	LeaveGame  []LeaveGame          `yaml:"leave-game"`
 	WaitLists  []WaitList           `yaml:"wait-list"`
 	Pause      uint32               `yaml:"pause"` // bot runner pauses and waits before next hand
@@ -170,9 +159,16 @@ type HandSetupVerfication struct {
 	Seats         []VerifySeat `yaml:"seats"`
 }
 
-type SeatChangeConfirm struct {
+type SeatChangeSetup struct {
 	Seat    uint32 `yaml:"seat"`
 	Confirm bool   `yaml:"confirm"`
+}
+
+type RunItTwiceSetup struct {
+	Seat        uint32 `yaml:"seat"`
+	AllowPrompt bool   `yaml:"allow-prompt"`
+	Confirm     bool   `yaml:"confirm"`
+	Timeout     bool   `yaml:"timeout"`
 }
 
 type LeaveGame struct {
@@ -320,12 +316,13 @@ type Pot struct {
 }
 
 type HandResult struct {
-	Winners       []HandWinner   `yaml:"winners"`
-	LoWinners     []HandWinner   `yaml:"lo-winners"`
-	ActionEndedAt string         `yaml:"action-ended"`
-	HighHand      []HighHandSeat `yaml:"high-hand"`
-	Players       []ResultPlayer `yaml:"players"`
-	PlayerStats   []PlayerStats  `yaml:"player-stats"`
+	Winners       []HandWinner      `yaml:"winners"`
+	LoWinners     []HandWinner      `yaml:"lo-winners"`
+	ActionEndedAt string            `yaml:"action-ended"`
+	HighHand      []HighHandSeat    `yaml:"high-hand"`
+	Players       []ResultPlayer    `yaml:"players"`
+	PlayerStats   []PlayerStats     `yaml:"player-stats"`
+	RunItTwice    *RunItTwiceResult `yaml:"run-it-twice"`
 }
 
 type HandWinner struct {
@@ -353,6 +350,19 @@ type PlayerStats struct {
 	Seat                      uint32 `yaml:"seat"`
 	ConsecutiveActionTimeouts uint32 `yaml:"consecutive-action-timeouts"`
 	ActedAtLeastOnce          bool   `yaml:"acted-at-least-once"`
+}
+
+type RunItTwiceResult struct {
+	ShouldBeNull  bool        `yaml:"should-be-null"`
+	StartedAt     string      `yaml:"started-at"`
+	Board1Winners []WinnerPot `yaml:"board1-winners"`
+	Board2Winners []WinnerPot `yaml:"board2-winners"`
+}
+
+type WinnerPot struct {
+	Amount    float32      `yaml:"amount"`
+	Winners   []HandWinner `yaml:"winners"`
+	LoWinners []HandWinner `yaml:"lo-winners"`
 }
 
 // ReadGameScript reads game script yaml file.

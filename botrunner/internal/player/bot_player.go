@@ -72,7 +72,6 @@ type BotPlayer struct {
 	EncryptionKey   string
 	RewardsNameToID map[string]uint32
 	scriptedGame    bool
-	Reload          bool
 
 	// state of the bot
 	sm *fsm.FSM
@@ -118,7 +117,6 @@ type BotPlayer struct {
 	confirmWaitlist bool
 
 	// other config
-	runItTwice     bool
 	muckLosingHand bool
 
 	// Nats subjects
@@ -198,7 +196,6 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 		serverLastMsgIDs: util.NewQueue(10),
 		ackMaxWait:       300,
 		scriptedGame:     true,
-		Reload:           true,
 	}
 
 	bp.sm = fsm.NewFSM(
@@ -506,6 +503,9 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		// setup seat change requests
 		bp.setupSeatChange()
 
+		// setup run-it-twice prompt/response
+		bp.setupRunItTwice()
+
 		// setup waitlist requests
 		// bp.setupWaitList()
 
@@ -647,7 +647,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		result := bp.game.handResult
 		for seatNo, player := range result.Players {
 			if seatNo == bp.seatNo {
-				if player.Balance.After == 0.0 && bp.Reload {
+				if player.Balance.After == 0.0 {
 					// reload chips
 					bp.reload()
 				}
@@ -895,11 +895,17 @@ func (bp *BotPlayer) verifyResult() {
 
 	bp.logger.Info().Msgf("%s: Verifying result for hand %d", bp.logPrefix, bp.game.handNum)
 	scriptResult := bp.config.Script.GetHand(bp.game.handNum).Result
+
+	actualResult := bp.GetHandResult()
+	if actualResult == nil {
+		panic(fmt.Sprintf("%s: Hand %d result verify failed. Unable to get the result", bp.logPrefix, bp.game.handNum))
+	}
+
 	passed := true
 
 	if scriptResult.ActionEndedAt != "" {
 		expectedWonAt := scriptResult.ActionEndedAt
-		wonAt := bp.GetHandResult().GetHandLog().GetWonAt()
+		wonAt := actualResult.GetHandLog().GetWonAt()
 		if wonAt.String() != expectedWonAt {
 			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Won at: %s. Expected won at: %s.", bp.logPrefix, bp.game.handNum, wonAt, expectedWonAt)
 		}
@@ -921,7 +927,7 @@ func (bp *BotPlayer) verifyResult() {
 			}
 		}
 		actualWinnersBySeat := make(map[uint32]winner)
-		pots := bp.GetHandResult().GetHandLog().GetPotWinners()
+		pots := actualResult.GetHandLog().GetPotWinners()
 		for _, w := range pots[0].HiWinners {
 			actualWinnersBySeat[w.GetSeatNo()] = winner{
 				SeatNo:  w.GetSeatNo(),
@@ -945,7 +951,7 @@ func (bp *BotPlayer) verifyResult() {
 			}
 		}
 		actualLoWinnersBySeat := make(map[uint32]winner)
-		pots := bp.GetHandResult().GetHandLog().GetPotWinners()
+		pots := actualResult.GetHandLog().GetPotWinners()
 		for _, w := range pots[0].LowWinners {
 			actualLoWinnersBySeat[w.GetSeatNo()] = winner{
 				SeatNo:  w.GetSeatNo(),
@@ -961,7 +967,7 @@ func (bp *BotPlayer) verifyResult() {
 	}
 
 	if len(scriptResult.Players) > 0 {
-		resultPlayers := bp.GetHandResult().GetPlayers()
+		resultPlayers := actualResult.GetPlayers()
 		for _, scriptResultPlayer := range scriptResult.Players {
 			seatNo := scriptResultPlayer.Seat
 			if _, exists := resultPlayers[seatNo]; !exists {
@@ -998,7 +1004,7 @@ func (bp *BotPlayer) verifyResult() {
 	}
 
 	if len(scriptResult.PlayerStats) > 0 {
-		actualPlayerStats := bp.GetHandResult().GetPlayerStats()
+		actualPlayerStats := actualResult.GetPlayerStats()
 		for _, scriptStat := range scriptResult.PlayerStats {
 			seatNo := scriptStat.Seat
 			playerID := bp.getPlayerIDBySeatNo(seatNo)
@@ -1018,7 +1024,7 @@ func (bp *BotPlayer) verifyResult() {
 	}
 
 	if len(scriptResult.HighHand) > 0 {
-		actualHighHand := bp.GetHandResult().GetHighHand()
+		actualHighHand := actualResult.GetHighHand()
 		if actualHighHand == nil {
 			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Expected high-hand in result, but got null.")
 			passed = false
@@ -1044,9 +1050,122 @@ func (bp *BotPlayer) verifyResult() {
 		}
 	}
 
+	if scriptResult.RunItTwice != nil {
+		resultShouldBeNull := scriptResult.RunItTwice.ShouldBeNull
+		expectedRunItTwice := !resultShouldBeNull
+
+		if actualResult.GetRunItTwice() != expectedRunItTwice {
+			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Run-it-twice in hand result is expected to to be %v, but is %v.", bp.logPrefix, bp.game.handNum, expectedRunItTwice, actualResult.GetRunItTwice())
+			passed = false
+		}
+		if actualResult.GetHandLog().GetRunItTwice() != expectedRunItTwice {
+			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Run-it-twice in result hand log is expected to be %v, but is %v.", bp.logPrefix, bp.game.handNum, expectedRunItTwice, actualResult.GetHandLog().GetRunItTwice())
+			passed = false
+		}
+		actualRunItTwiceResult := actualResult.GetHandLog().GetRunItTwiceResult()
+		if resultShouldBeNull {
+			if actualRunItTwiceResult != nil {
+				bp.logger.Error().Msgf("%s: Hand %d result verify failed. The result is not expected to containe run-it-twice result, but it contains not-null run-it-twice section.", bp.logPrefix, bp.game.handNum)
+				passed = false
+			}
+		} else {
+			if actualRunItTwiceResult == nil {
+				bp.logger.Error().Msgf("%s: Hand %d result verify failed. The result is expected to contain run-it-twice result, but it is null.", bp.logPrefix, bp.game.handNum)
+				passed = false
+			} else {
+				if actualRunItTwiceResult.GetRunItTwiceStartedAt().String() != scriptResult.RunItTwice.StartedAt {
+					bp.logger.Error().Msgf("%s: Hand %d result verify failed. runItTwiceStartedAt: %s, expected: %s.", bp.logPrefix, bp.game.handNum, actualRunItTwiceResult.GetRunItTwiceStartedAt().String(), scriptResult.RunItTwice.StartedAt)
+					passed = false
+				}
+
+				expectedBoard1Pots := scriptResult.RunItTwice.Board1Winners
+				actualBoard1Pots := actualRunItTwiceResult.GetBoard_1Winners()
+				for potNum, expectedPot := range expectedBoard1Pots {
+					actualPot := actualBoard1Pots[uint32(potNum)]
+					if actualPot.Amount != expectedPot.Amount {
+						bp.logger.Error().Msgf("%s: Hand %d result verify failed. RunItTwice board 1 pot %d amount: %f, expected: %f.", bp.logPrefix, bp.game.handNum, potNum, actualPot.Amount, expectedPot.Amount)
+						passed = false
+					}
+					if !bp.verifyPotWinners(actualPot, expectedPot, 1, potNum) {
+						passed = false
+					}
+				}
+
+				expectedBoard2Pots := scriptResult.RunItTwice.Board2Winners
+				actualBoard2Pots := actualRunItTwiceResult.GetBoard_2Winners()
+				for potNum, expectedPot := range expectedBoard2Pots {
+					actualPot := actualBoard2Pots[uint32(potNum)]
+					if actualPot.Amount != expectedPot.Amount {
+						bp.logger.Error().Msgf("%s: Hand %d result verify failed. RunItTwice board 2 pot %d amount: %f, expected: %f.", bp.logPrefix, bp.game.handNum, potNum, actualPot.Amount, expectedPot.Amount)
+						passed = false
+					}
+					if !bp.verifyPotWinners(actualPot, expectedPot, 2, potNum) {
+						passed = false
+					}
+				}
+			}
+		}
+	}
+
 	if !passed {
 		panic(fmt.Sprintf("Hand %d result verify failed. Please check the logs.", bp.game.handNum))
 	}
+}
+
+func (bp *BotPlayer) verifyPotWinners(actualPot *game.PotWinners, expectedPot gamescript.WinnerPot, boardNum int, potNum int) bool {
+	if actualPot == nil {
+		return false
+	}
+	type winner struct {
+		SeatNo  uint32
+		Amount  float32
+		RankStr string
+	}
+	passed := true
+
+	expectedHiWinnersBySeat := make(map[uint32]winner)
+	for _, expectedWinner := range expectedPot.Winners {
+		expectedHiWinnersBySeat[expectedWinner.Seat] = winner{
+			SeatNo:  expectedWinner.Seat,
+			Amount:  expectedWinner.Receive,
+			RankStr: expectedWinner.RankStr,
+		}
+	}
+	actualHiWinnersBySeat := make(map[uint32]winner)
+	for _, w := range actualPot.HiWinners {
+		actualHiWinnersBySeat[w.GetSeatNo()] = winner{
+			SeatNo:  w.GetSeatNo(),
+			Amount:  w.GetAmount(),
+			RankStr: w.GetRankStr(),
+		}
+	}
+	if !cmp.Equal(expectedHiWinnersBySeat, actualHiWinnersBySeat) {
+		bp.logger.Error().Msgf("%s: Hand %d result verify failed. RunItTwice board %d pot %d HI Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, boardNum, potNum, actualHiWinnersBySeat, expectedHiWinnersBySeat)
+		passed = false
+	}
+
+	expectedLoWinnersBySeat := make(map[uint32]winner)
+	for _, expectedWinner := range expectedPot.LoWinners {
+		expectedLoWinnersBySeat[expectedWinner.Seat] = winner{
+			SeatNo:  expectedWinner.Seat,
+			Amount:  expectedWinner.Receive,
+			RankStr: expectedWinner.RankStr,
+		}
+	}
+	actualLoWinnersBySeat := make(map[uint32]winner)
+	for _, w := range actualPot.LowWinners {
+		actualLoWinnersBySeat[w.GetSeatNo()] = winner{
+			SeatNo:  w.GetSeatNo(),
+			Amount:  w.GetAmount(),
+			RankStr: w.GetRankStr(),
+		}
+	}
+	if !cmp.Equal(expectedLoWinnersBySeat, actualLoWinnersBySeat) {
+		bp.logger.Error().Msgf("%s: Hand %d result verify failed. RunItTwice board %d pot %d LO Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, boardNum, potNum, actualLoWinnersBySeat, expectedLoWinnersBySeat)
+		passed = false
+	}
+
+	return passed
 }
 
 func (bp *BotPlayer) SetClubCode(clubCode string) {
@@ -1416,7 +1535,7 @@ func (bp *BotPlayer) JoinGame(gameCode string) error {
 			// update player config
 			scriptSeatConfig := bp.config.Script.GetSeatConfigByPlayerName(bp.config.Name)
 			if scriptSeatConfig != nil {
-				bp.UpdateGameConfig(gameCode, scriptSeatConfig.RunItTwicePromptResponse, scriptSeatConfig.MuckLosingHand)
+				bp.UpdatePlayerGameConfig(gameCode, nil, &scriptSeatConfig.MuckLosingHand)
 			}
 		}
 		bp.buyInAmount = uint32(scriptBuyInAmount)
@@ -1502,7 +1621,7 @@ func (bp *BotPlayer) NewPlayer(gameCode string, startingSeat *gamescript.Startin
 			// update player config
 			scriptSeatConfig := bp.config.Script.GetSeatConfigByPlayerName(bp.config.Name)
 			if scriptSeatConfig != nil {
-				bp.UpdateGameConfig(gameCode, scriptSeatConfig.RunItTwicePromptResponse, scriptSeatConfig.MuckLosingHand)
+				bp.UpdatePlayerGameConfig(gameCode, nil, &scriptSeatConfig.MuckLosingHand)
 			}
 		}
 		bp.buyInAmount = uint32(scriptBuyInAmount)
@@ -1528,6 +1647,15 @@ func (bp *BotPlayer) NewPlayer(gameCode string, startingSeat *gamescript.Startin
 }
 
 func (bp *BotPlayer) reload() error {
+	seatConfig := bp.config.Script.GetSeatConfigByPlayerName(bp.config.Name)
+	if seatConfig == nil {
+		return nil
+	}
+	if seatConfig.Reload != nil && *seatConfig.Reload == false {
+		// This player is explicitly set to not reload.
+		return nil
+	}
+
 	err := bp.BuyIn(bp.gameCode, bp.gameInfo.BuyInMax)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to buy in", bp.logPrefix))
@@ -1568,7 +1696,8 @@ func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
 
 	// unscripted game, bots will run it twice
 	if bp.gameInfo.RunItTwiceAllowed {
-		bp.UpdateGameConfig(gameCode, true, true)
+		t := true
+		bp.UpdatePlayerGameConfig(gameCode, &t, &t)
 	}
 
 	bp.event(BotEvent__SUCCEED_BUYIN)
@@ -1729,16 +1858,17 @@ func (bp *BotPlayer) queryCurrentHandState() error {
 	return nil
 }
 
-// UpdateGameConfig updates game configuration for individual player
-func (bp *BotPlayer) UpdateGameConfig(gameCode string, runItTwiceAllowed bool, muckLosingHand bool) error {
+// UpdatePlayerGameConfig updates player's configuration for this game.
+func (bp *BotPlayer) UpdatePlayerGameConfig(gameCode string, runItTwiceAllowed *bool, muckLosingHand *bool) error {
 	bp.logger.Info().Msgf("%s: Updating player configuration [runItTwiceAllowed: %v, muckLosingHand: %v] game [%s].",
 		bp.logPrefix, runItTwiceAllowed, muckLosingHand, gameCode)
-	err := bp.gqlHelper.UpdateGameConfig(gameCode, runItTwiceAllowed, muckLosingHand)
+	err := bp.gqlHelper.UpdatePlayerGameConfig(gameCode, runItTwiceAllowed, muckLosingHand)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to update game config [%s]", bp.logPrefix, gameCode))
 	}
-	bp.runItTwice = runItTwiceAllowed
-	bp.muckLosingHand = muckLosingHand
+	if muckLosingHand != nil {
+		bp.muckLosingHand = *muckLosingHand
+	}
 	return nil
 }
 
@@ -1916,8 +2046,10 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 		time.Sleep(bp.getActionTime())
 	}
 	var handAction game.HandAction
+	runItTwiceTimeout := false
 	if runItTwiceActionPrompt {
-		if bp.runItTwice {
+		runItTwiceConf := bp.getRunItTwiceConfig()
+		if runItTwiceConf.Confirm {
 			handAction = game.HandAction{
 				SeatNo: bp.seatNo,
 				Action: game.ACTION_RUN_IT_TWICE_YES,
@@ -1927,6 +2059,9 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 				SeatNo: bp.seatNo,
 				Action: game.ACTION_RUN_IT_TWICE_NO,
 			}
+		}
+		if runItTwiceConf.Timeout {
+			runItTwiceTimeout = true
 		}
 	} else {
 		handAction = game.HandAction{
@@ -1957,9 +2092,13 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 	}
 
 	playerName := bp.getPlayerNameBySeatNo(bp.seatNo)
-	if timeout {
+	if timeout || runItTwiceTimeout {
 		go func() {
-			bp.logger.Info().Msgf("%s: Seat %d (%s) is going to time out. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, bp.game.handStatus)
+			if runItTwiceTimeout {
+				bp.logger.Info().Msgf("%s: Seat %d (%s) is going to time out the run-it-twice prompt. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, bp.game.handStatus)
+			} else {
+				bp.logger.Info().Msgf("%s: Seat %d (%s) is going to time out. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, bp.game.handStatus)
+			}
 			// sleep more than action time
 			time.Sleep(time.Duration(bp.config.Script.Game.ActionTime) * time.Second)
 			time.Sleep(2 * time.Second)

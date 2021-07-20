@@ -50,19 +50,28 @@ func TestReadGameScript(t *testing.T) {
 		},
 		StartingSeats: []StartingSeat{
 			{
-				Seat:   1,
-				Player: "yong",
-				BuyIn:  100,
+				Seat:           1,
+				Player:         "yong",
+				BuyIn:          100,
+				Reload:         getBoolPointer(true),
+				MuckLosingHand: true,
+				PostBlind:      true,
 			},
 			{
-				Seat:   5,
-				Player: "brian",
-				BuyIn:  100,
+				Seat:           5,
+				Player:         "brian",
+				BuyIn:          100,
+				Reload:         getBoolPointer(false),
+				MuckLosingHand: false,
+				PostBlind:      false,
 			},
 			{
-				Seat:   8,
-				Player: "tom",
-				BuyIn:  100,
+				Seat:           8,
+				Player:         "tom",
+				BuyIn:          100,
+				Reload:         nil,
+				MuckLosingHand: false,
+				PostBlind:      false,
 			},
 		},
 		Tester:   "tom",
@@ -100,10 +109,24 @@ func TestReadGameScript(t *testing.T) {
 						},
 					},
 					Auto: true,
-					SeatChange: []SeatChangeConfirm{
+					SeatChange: []SeatChangeSetup{
 						{
 							Seat:    2,
 							Confirm: true,
+						},
+					},
+					RunItTwice: []RunItTwiceSetup{
+						{
+							Seat:        2,
+							AllowPrompt: true,
+							Confirm:     true,
+							Timeout:     false,
+						},
+						{
+							Seat:        3,
+							AllowPrompt: true,
+							Confirm:     true,
+							Timeout:     true,
 						},
 					},
 					LeaveGame: []LeaveGame{
@@ -370,6 +393,46 @@ func TestReadGameScript(t *testing.T) {
 							ActedAtLeastOnce:          false,
 						},
 					},
+					RunItTwice: &RunItTwiceResult{
+						ShouldBeNull: true,
+						StartedAt:    "FLOP",
+						Board1Winners: []WinnerPot{
+							{
+								Amount: 126,
+								Winners: []HandWinner{
+									{
+										Seat:    3,
+										Receive: 96,
+										RankStr: "Two Pair",
+									},
+								},
+								LoWinners: []HandWinner{
+									{
+										Seat:    2,
+										Receive: 30,
+									},
+								},
+							},
+						},
+						Board2Winners: []WinnerPot{
+							{
+								Amount: 121,
+								Winners: []HandWinner{
+									{
+										Seat:    2,
+										Receive: 101,
+										RankStr: "Pair",
+									},
+								},
+								LoWinners: []HandWinner{
+									{
+										Seat:    3,
+										Receive: 20,
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -385,5 +448,9 @@ func getUint32Pointer(v uint32) *uint32 {
 }
 
 func getFloat32Pointer(v float32) *float32 {
+	return &v
+}
+
+func getBoolPointer(v bool) *bool {
 	return &v
 }

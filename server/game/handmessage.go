@@ -318,12 +318,37 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 	// is it run it twice prompt response?
 	if handState.RunItTwicePrompt {
+		actionMsg := g.getClientMsgItem(playerMsg)
+		action := actionMsg.GetPlayerActed().Action
+		if !(action == ACTION_RUN_IT_TWICE_YES || action == ACTION_RUN_IT_TWICE_NO) {
+			return fmt.Errorf("Unexpected action %v. Was expecting %v or %v", action, ACTION_RUN_IT_TWICE_YES, ACTION_RUN_IT_TWICE_NO)
+		}
+		seatNo := actionMsg.GetPlayerActed().GetSeatNo()
+		runItTwiceState := handState.GetRunItTwice()
+		if (seatNo == runItTwiceState.Seat1 && runItTwiceState.Seat1Responded) ||
+			(seatNo == runItTwiceState.Seat2 && runItTwiceState.Seat2Responded) {
+			channelGameLogger.Info().
+				Uint32("club", g.config.ClubId).
+				Str("game", g.config.GameCode).
+				Msgf("Received duplicate run-it-twice response for seat %d. This can happen if the player acted too late and the timeout was triggered at the same time.", seatNo)
+			return nil
+		}
 		msgItems, err := g.runItTwiceConfirmation(handState, playerMsg)
 		if err != nil {
 			return err
 		}
-		// acknowledge so that player does not resend the message
-		g.sendActionAck(playerMsg, handState.CurrentActionNum)
+		if !actionMsg.GetPlayerActed().GetTimedOut() {
+			// acknowledge so that player does not resend the message
+			g.sendActionAck(playerMsg, handState.CurrentActionNum)
+		}
+
+		playerID := handState.PlayersInSeats[seatNo]
+		if actionMsg.GetPlayerActed().GetTimedOut() {
+			handState.PlayerStats[playerID].ConsecutiveActionTimeouts++
+		} else {
+			handState.PlayerStats[playerID].ConsecutiveActionTimeouts = 0
+			handState.PlayerStats[playerID].ActedAtLeastOnce = true
+		}
 
 		msg := HandMessage{
 			ClubId:     g.config.ClubId,
@@ -334,8 +359,8 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 			Messages:   msgItems,
 		}
 
-		g.saveHandState(handState)
 		g.broadcastHandMessage(&msg)
+		g.saveHandState(handState)
 		g.handleHandEnded(msgItems)
 
 		return nil

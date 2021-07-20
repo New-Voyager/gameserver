@@ -696,11 +696,11 @@ func (g *GQLHelper) HostRequestSeatChangeSwap(gameCode string, seat1 uint32, sea
 	return resp.SeatChange, nil
 }
 
-func (g *GQLHelper) UpdateGameConfig(gameCode string, runItTwiceAllowed bool, muckLosingHand bool) error {
-	req := graphql.NewRequest(UpdateGameConfigGQL)
+func (g *GQLHelper) UpdatePlayerGameConfig(gameCode string, runItTwiceAllowed *bool, muckLosingHand *bool) error {
+	req := graphql.NewRequest(UpdatePlayerGameConfigGQL)
 	type GameConfigChangeInput struct {
-		RunItTwiceAllowed bool `json:"runItTwicePrompt"`
-		MuckLosingHand    bool `json:"muckLosingHand"`
+		RunItTwiceAllowed *bool `json:"runItTwicePrompt,omitempty"`
+		MuckLosingHand    *bool `json:"muckLosingHand,omitempty"`
 	}
 	config := GameConfigChangeInput{
 		RunItTwiceAllowed: runItTwiceAllowed,
@@ -1214,9 +1214,9 @@ const HostSeatChangeSwapGQL = `mutation seatChangeSwapSeats($gameCode: String!, 
 	)
 }`
 
-const UpdateGameConfigGQL = `
-	mutation muckLosingHand($gameCode:String! $config:GameConfigChangeInput!) {
-		ret: updateGameConfig(gameCode:$gameCode, config:$config)
+const UpdatePlayerGameConfigGQL = `
+	mutation update_player_game_config($gameCode:String! $config:GameConfigChangeInput!) {
+		ret: updatePlayerGameConfig(gameCode:$gameCode, config:$config)
   	}`
 
 const DealerChoiceGQL = `mutation dealerChoice($gameCode: String!, $gameType: GameType!) {

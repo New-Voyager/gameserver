@@ -1,0 +1,97 @@
+club:
+  name: Tester Club
+  description: Club used for testing with the bot runner
+
+game:
+  create: true
+  title: "1 Human 2 Bots"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 4
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 100
+  buy-in-max: 300
+  action-time: 10
+  run-it-twice-allowed: true
+  muck-losing-hand: true
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 100
+  - seat: 2
+    player: brian
+    buy-in: 100
+  - seat: 3
+    player: chris
+    buy-in: 100
+  - seat: 4
+    player: tom
+    buy-in: 100
+
+# deal the following hands in the table
+hands:
+  - setup:
+      button-pos: 1
+      board: ["Ac", "Ad", "2c", "Td", "4s"]
+      board2: ["6c", "7d", "4c", "8d", "8s"]
+      seat-cards:
+        - seat: 1
+          cards: ["Kh", "Qd"]
+        - seat: 2
+          cards: ["3s", "7s"]
+        - seat: 3
+          cards: ["9h", "2s"]
+        - seat: 4
+          cards: ["9c", "5s"]
+      run-it-twice:
+        - seat: 2
+          allow-prompt: true
+          confirm: true
+        - seat: 3
+          allow-prompt: true
+          confirm: true
+
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 4, CALL, 2
+        - action: 1, FOLD
+        - action: 2, CALL, 2
+        - action: 3, CHECK
+
+    flop:
+      verify:
+        board: ["Ac", "Ad", "2c"]
+      seat-actions:
+        - action: 2, CHECK
+        - action: 3, ALLIN
+        - action: 4, FOLD
+        - action: 2, ALLIN
+
+    result:
+      run-it-twice:
+        should-be-null: false
+        started-at: FLOP
+        board1-winners:
+          - amount: 101
+            winners:
+              - seat: 3
+                receive: 96
+                rank: Two Pair
+            lo-winners: []
+        board2-winners:
+          - amount: 101
+            winners:
+              - seat: 2
+                receive: 101
+                rank: Two Pair
+            lo-winners: []

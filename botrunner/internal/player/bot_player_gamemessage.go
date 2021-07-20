@@ -220,28 +220,69 @@ func (bp *BotPlayer) seatWaitList(tableUpdate *game.TableUpdate) {
 }
 
 func (bp *BotPlayer) setupSeatChange() error {
-	if int(bp.game.handNum) >= len(bp.config.Script.Hands) {
+	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
 		return nil
 	}
 
 	currentHand := bp.config.Script.GetHand(bp.game.handNum)
 	seatChanges := currentHand.Setup.SeatChange
-	if seatChanges != nil {
-		// using seat no, get the bot player and make seat change request
-		for _, seatChangeRequest := range seatChanges {
-			if seatChangeRequest.Seat == bp.seatNo {
-				bp.logger.Info().Msgf("%s: Player [%s] requesting seat change.", bp.logPrefix, bp.config.Name)
-				bp.gqlHelper.RequestSeatChange(bp.gameCode)
-				bp.requestedSeatChange = true
-				bp.confirmSeatChange = seatChangeRequest.Confirm
-			}
+	if seatChanges == nil {
+		return nil
+	}
+
+	// using seat no, get the bot player and make seat change request
+	for _, seatChangeRequest := range seatChanges {
+		if seatChangeRequest.Seat == bp.seatNo {
+			bp.logger.Info().Msgf("%s: Player [%s] requesting seat change.", bp.logPrefix, bp.config.Name)
+			bp.gqlHelper.RequestSeatChange(bp.gameCode)
+			bp.requestedSeatChange = true
+			bp.confirmSeatChange = seatChangeRequest.Confirm
 		}
 	}
 	return nil
 }
 
+func (bp *BotPlayer) setupRunItTwice() error {
+	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
+		return nil
+	}
+
+	currentHand := bp.config.Script.GetHand(bp.game.handNum)
+	runItTwiceConfigs := currentHand.Setup.RunItTwice
+	if runItTwiceConfigs == nil {
+		return nil
+	}
+
+	for _, playerRITSetup := range runItTwiceConfigs {
+		if playerRITSetup.Seat == bp.seatNo {
+			bp.UpdatePlayerGameConfig(bp.gameCode, &playerRITSetup.AllowPrompt, nil)
+		}
+	}
+	return nil
+}
+
+func (bp *BotPlayer) getRunItTwiceConfig() *gamescript.RunItTwiceSetup {
+	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
+		return nil
+	}
+
+	currentHand := bp.config.Script.GetHand(bp.game.handNum)
+	runItTwiceConfigs := currentHand.Setup.RunItTwice
+	if runItTwiceConfigs == nil {
+		return nil
+	}
+
+	for _, playerRITSetup := range runItTwiceConfigs {
+		if playerRITSetup.Seat == bp.seatNo {
+			return &playerRITSetup
+		}
+	}
+
+	return nil
+}
+
 func (bp *BotPlayer) pauseGameIfNeeded() error {
-	if int(bp.game.handNum) >= len(bp.config.Script.Hands) {
+	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
 		return nil
 	}
 
@@ -254,7 +295,7 @@ func (bp *BotPlayer) pauseGameIfNeeded() error {
 }
 
 func (bp *BotPlayer) processPostHandSteps() error {
-	if int(bp.game.handNum) >= len(bp.config.Script.Hands) {
+	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
 		return nil
 	}
 	bp.logger.Info().Msgf("%s: Running post hand steps.", bp.logPrefix)
@@ -338,7 +379,7 @@ func (bp *BotPlayer) hostSeatChange(hostSeatChange *gamescript.HostSeatChange) e
 }
 
 func (bp *BotPlayer) setupLeaveGame() error {
-	if int(bp.game.handNum) >= len(bp.config.Script.Hands) {
+	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
 		return nil
 	}
 
@@ -373,7 +414,7 @@ func (bp *BotPlayer) JoinWaitlist(observer *gamescript.Observer) error {
 }
 
 func (bp *BotPlayer) setupWaitList() error {
-	if int(bp.game.handNum) >= len(bp.config.Script.Hands) {
+	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
 		return nil
 	}
 
