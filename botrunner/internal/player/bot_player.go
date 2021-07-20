@@ -2165,10 +2165,12 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 func (bp *BotPlayer) rememberPlayerAction(seatNo uint32, action game.ACTION, amount float32, timedOut bool, handStatus game.HandStatus) {
 	bp.game.table.actionTracker.RecordAction(seatNo, action, amount, timedOut, handStatus)
 
-	state := game.ActionToActionState(action)
-	bp.game.table.playersActed[seatNo] = &game.PlayerActRound{
-		State:  state,
-		Amount: amount,
+	state, err := game.ActionToActionState(action)
+	if err != nil {
+		bp.game.table.playersActed[seatNo] = &game.PlayerActRound{
+			State:  state,
+			Amount: amount,
+		}
 	}
 }
 
