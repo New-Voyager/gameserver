@@ -253,6 +253,8 @@ func (h *HandState) setupRound(state HandStatus) {
 		log = h.TurnActions
 	case HandStatus_RIVER:
 		log = h.RiverActions
+	case HandStatus_PREFLOP:
+		log = h.PreflopActions
 	}
 
 	// track main pot value as starting value
@@ -262,6 +264,23 @@ func (h *HandState) setupRound(state HandStatus) {
 		for _, pot := range h.Pots {
 			if pot.Pot != 0.0 {
 				log.Pots = append(log.Pots, pot.Pot)
+			}
+		}
+
+		log.SeatsPots = make([]*SeatsInPots, 0)
+		if h.Pots != nil && len(h.Pots) > 0 {
+			for _, pot := range h.Pots {
+				if len(pot.Seats) > 0 {
+					seats := make([]uint32, len(pot.Seats))
+					for i, seat := range pot.Seats {
+						seats[i] = seat
+					}
+					seatPot := &SeatsInPots{
+						Seats: seats,
+						Pot:   pot.Pot,
+					}
+					log.SeatsPots = append(log.SeatsPots, seatPot)
+				}
 			}
 		}
 	}

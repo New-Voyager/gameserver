@@ -143,6 +143,7 @@ message HandLog {
   uint64 hand_ended_at = 11;
   bool run_it_twice = 12;            // run it twice
   RunItTwiceResult run_it_twice_result = 13;
+  repeated SeatsInPots seats_pots_showdown = 14; // pots and associated seats at showdown
 }
 
 

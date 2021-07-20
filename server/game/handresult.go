@@ -148,6 +148,26 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 	// get hand log
 	handResult.HandLog = hr.handState.getLog()
 
+	// record pots and seats associated with pots
+	seatsAndPots := make([]*SeatsInPots, 0)
+	h := hr.handState
+	if h.Pots != nil && len(h.Pots) > 0 {
+		for _, pot := range h.Pots {
+			if len(pot.Seats) > 0 {
+				seats := make([]uint32, len(pot.Seats))
+				for i, seat := range pot.Seats {
+					seats[i] = seat
+				}
+				seatPot := &SeatsInPots{
+					Seats: seats,
+					Pot:   pot.Pot,
+				}
+				seatsAndPots = append(seatsAndPots, seatPot)
+			}
+		}
+	}
+	handResult.HandLog.SeatsPotsShowdown = seatsAndPots
+
 	handResult.RewardTrackingIds = hr.rewardTrackingIds
 	hr.populateCommunityCards(handResult)
 
