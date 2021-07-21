@@ -54,7 +54,8 @@ message NextSeatAction {
   float allInAmount = 10;         // all in amount
   repeated BetRaiseOption betOptions = 11; // bet/raise options
   int64 actionTimesoutAt = 12;   // Unix time that the player's action times out
-  float seatInSoFar = 13;       // amount of chips this seat put in this round
+  uint32 secondsTillTimesout = 13;  // Seconds left until the player's action times out
+  float seatInSoFar = 14;       // amount of chips this seat put in this round
 }
 
 message PlayerInSeatState {
