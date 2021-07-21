@@ -70,7 +70,8 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 		}
 	}
 
-	timeoutAt := time.Now().Add(time.Duration(g.config.ActionTime) * time.Second)
+	// +1 second buffer to account for network delay to the client
+	timeoutAt := time.Now().Add(time.Duration(g.config.ActionTime+1) * time.Second)
 
 	// create run it twice
 	h.RunItTwice = &RunItTwice{
@@ -86,9 +87,10 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 
 	// prompt player 1
 	seatAction := &NextSeatAction{
-		AvailableActions: []ACTION{ACTION_RUN_IT_TWICE_PROMPT},
-		SeatNo:           player1Seat,
-		ActionTimesoutAt: timeoutAtUnix,
+		AvailableActions:    []ACTION{ACTION_RUN_IT_TWICE_PROMPT},
+		SeatNo:              player1Seat,
+		ActionTimesoutAt:    timeoutAtUnix,
+		SecondsTillTimesout: uint32(g.config.ActionTime),
 	}
 	player1MsgItem := &HandMessageItem{
 		MessageType: HandPlayerAction,
@@ -98,9 +100,10 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 
 	// prompt player 2
 	seatAction = &NextSeatAction{
-		AvailableActions: []ACTION{ACTION_RUN_IT_TWICE_PROMPT},
-		SeatNo:           player2Seat,
-		ActionTimesoutAt: timeoutAtUnix,
+		AvailableActions:    []ACTION{ACTION_RUN_IT_TWICE_PROMPT},
+		SeatNo:              player2Seat,
+		ActionTimesoutAt:    timeoutAtUnix,
+		SecondsTillTimesout: uint32(g.config.ActionTime),
 	}
 	player2MsgItem := &HandMessageItem{
 		MessageType: HandPlayerAction,
