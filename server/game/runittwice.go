@@ -10,6 +10,13 @@ import (
 
 func (g *Game) runItTwice(h *HandState, lastPlayerAction *PlayerActRound) bool {
 
+	if !(h.CurrentState == HandStatus_PREFLOP ||
+		h.CurrentState == HandStatus_FLOP ||
+		h.CurrentState == HandStatus_TURN ||
+		h.CurrentState == HandStatus_RIVER) {
+		return false
+	}
+
 	if !h.hasEveryOneActed() {
 		return false
 	}

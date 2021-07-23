@@ -4,7 +4,7 @@ club:
 
 game:
   create: true
-  title: "1 Human 3 Bots"
+  title: "Run It Twice River"
   game-type: "HOLDEM"
   small-blind: 1.0
   big-blind: 2.0
@@ -13,12 +13,12 @@ game:
   min-players: 2
   max-players: 4
   game-length: 60
-  buy-in-approval: false
+  buy-in-approval: true
   rake-percentage: 5.0
   rake-cap: 5.0
   buy-in-min: 100
   buy-in-max: 300
-  action-time: 60
+  action-time: 10
   run-it-twice-allowed: true
   muck-losing-hand: true
 
@@ -35,9 +35,6 @@ starting-seats:
   - seat: 4
     player: tom
     buy-in: 100
-
-# Human plays this user.
-tester: brian
 
 # deal the following hands in the table
 hands:
@@ -72,10 +69,22 @@ hands:
         - action: 3, CHECK
 
     flop:
-      verify:
-        board: ["Ac", "Ad", "2c"]
       seat-actions:
         - action: 2, CHECK
-        - action: 3, ALLIN
+        - action: 3, CHECK
         - action: 4, FOLD
+
+    turn:
+      seat-actions:
+        - action: 2, CHECK
+        - action: 3, CHECK
+
+    river:
+      seat-actions:
         - action: 2, ALLIN
+        - action: 3, ALLIN
+
+    result:
+      run-it-twice:
+        # ALLIN in river should not trigger run-it-twice.
+        should-be-null: true
