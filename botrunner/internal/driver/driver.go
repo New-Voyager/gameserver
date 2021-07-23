@@ -316,7 +316,7 @@ func (br *BotRunner) Run() error {
 				}
 			}
 			if !playersJoined {
-				time.Sleep(100 * time.Millisecond)
+				time.Sleep(500 * time.Millisecond)
 			}
 		}
 

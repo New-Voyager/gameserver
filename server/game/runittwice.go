@@ -10,6 +10,13 @@ import (
 
 func (g *Game) runItTwice(h *HandState, lastPlayerAction *PlayerActRound) bool {
 
+	if !(h.CurrentState == HandStatus_PREFLOP ||
+		h.CurrentState == HandStatus_FLOP ||
+		h.CurrentState == HandStatus_TURN ||
+		h.CurrentState == HandStatus_RIVER) {
+		return false
+	}
+
 	if !h.hasEveryOneActed() {
 		return false
 	}
@@ -168,7 +175,9 @@ func (g *Game) runItTwiceConfirmation(h *HandState, message *HandMessage) ([]*Ha
 	var allMsgItems []*HandMessageItem
 
 	// Broadcast this player's confirmation msg (or the default timeout msg) back to everyone.
-	allMsgItems = append(allMsgItems, actionMsg)
+	// Commenting this out because it is causing the board cards to show in the app UI without
+	// waiting for the other player's confirmation.
+	// allMsgItems = append(allMsgItems, actionMsg)
 
 	msgItems, err := g.handleRunItTwice(h)
 	if err != nil {
