@@ -168,7 +168,9 @@ func (g *Game) runItTwiceConfirmation(h *HandState, message *HandMessage) ([]*Ha
 	var allMsgItems []*HandMessageItem
 
 	// Broadcast this player's confirmation msg (or the default timeout msg) back to everyone.
-	allMsgItems = append(allMsgItems, actionMsg)
+	// Commenting this out because it is causing the board cards to show in the app UI without
+	// waiting for the other player's confirmation.
+	// allMsgItems = append(allMsgItems, actionMsg)
 
 	msgItems, err := g.handleRunItTwice(h)
 	if err != nil {
