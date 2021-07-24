@@ -11,10 +11,8 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/google/go-cmp/cmp"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/looplab/fsm"
@@ -1180,28 +1178,47 @@ func (bp *BotPlayer) SetBalance(balance float32) {
 	bp.balance = balance
 }
 
-// Register registers the bot to the Poker service as a user.
-func (bp *BotPlayer) Register() error {
-	bp.logger.Info().Msgf("%s: Registering as a user.", bp.logPrefix)
+func (bp *BotPlayer) SignUp() error {
+	bp.logger.Info().Msgf("%s: Signing up as a user.", bp.logPrefix)
 
-	playerUUID, err := bp.gqlHelper.CreatePlayer(bp.config.Name, bp.config.DeviceID, bp.config.Email, bp.config.Password, !bp.IsHuman())
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to create user", bp.logPrefix))
+	type reqData struct {
+		ScreenName  string `json:"screen-name"`
+		DeviceID    string `json:"device-id"`
+		Email       string `json:"email"`
+		DisplayName string `json:"display-name"`
+		Bot         bool   `json:"bot"`
 	}
-
-	userJwt, err := bp.GetJWT(playerUUID, bp.config.DeviceID)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get auth token", bp.logPrefix))
+	reqBody := reqData{
+		ScreenName:  bp.config.Name,
+		DeviceID:    bp.config.DeviceID,
+		Email:       bp.config.Email,
+		DisplayName: bp.config.Name,
+		Bot:         true,
 	}
-	bp.apiAuthToken = fmt.Sprintf("jwt %s", userJwt)
+	jsonValue, _ := json.Marshal(reqBody)
+	url := fmt.Sprintf("%s/auth/signup", bp.config.APIServerURL)
+	response, err := http.Post(url, "application/json", bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return errors.Wrap(err, "Login request failed")
+	}
+	defer response.Body.Close()
+	type respData struct {
+		DeviceSecret string `json:"device-secret"`
+		Jwt          string `json:"jwt"`
+		Name         string `json:"name"`
+		UUID         string `json:"uuid"`
+		ID           uint64 `json:"id"`
+	}
+	var respBody respData
+	data, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return errors.Wrap(err, "Unabgle to read signup response body")
+	}
+	json.Unmarshal(data, &respBody)
+	bp.PlayerID = respBody.ID
+	bp.PlayerUUID = respBody.UUID
+	bp.apiAuthToken = fmt.Sprintf("jwt %s", respBody.Jwt)
 	bp.gqlHelper.SetAuthToken(bp.apiAuthToken)
-
-	playerID, err := bp.getPlayerID()
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get the player ID", bp.logPrefix))
-	}
-
-	bp.PlayerID = playerID
 
 	encryptionKey, err := bp.getEncryptionKey()
 	if err != nil {
@@ -1209,7 +1226,51 @@ func (bp *BotPlayer) Register() error {
 	}
 
 	bp.EncryptionKey = encryptionKey
-	bp.logger.Info().Msgf("%s: Successfully registered as a user. Player UUID: [%s] Player ID: [%d].", bp.logPrefix, playerUUID, bp.PlayerID)
+	bp.logger.Info().Msgf("%s: Successfully signed up as a user. Player UUID: [%s] Player ID: [%d].", bp.logPrefix, bp.PlayerUUID, bp.PlayerID)
+	return nil
+}
+
+// Login authenticates the player and stores its jwt for future api calls.
+func (bp *BotPlayer) Login(playerUUID string, deviceID string) error {
+	type reqData struct {
+		DeviceID     string `json:"device-id"`
+		DeviceSecret string `json:"device-secret"`
+	}
+	reqBody := reqData{
+		DeviceID:     bp.config.DeviceID,
+		DeviceSecret: bp.config.DeviceID,
+	}
+	jsonValue, _ := json.Marshal(reqBody)
+	url := fmt.Sprintf("%s/auth/new-login", bp.config.APIServerURL)
+	response, err := http.Post(url, "application/json", bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return errors.Wrap(err, "Login request failed")
+	}
+	defer response.Body.Close()
+	type respData struct {
+		Jwt  string `json:"jwt"`
+		Name string `json:"name"`
+		UUID string `json:"uuid"`
+		ID   uint64 `json:"id"`
+	}
+	var respBody respData
+	data, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return errors.Wrap(err, "Unabgle to read login response body")
+	}
+	json.Unmarshal(data, &respBody)
+	bp.PlayerID = respBody.ID
+	bp.PlayerUUID = respBody.UUID
+	bp.apiAuthToken = fmt.Sprintf("jwt %s", respBody.Jwt)
+	bp.gqlHelper.SetAuthToken(bp.apiAuthToken)
+
+	encryptionKey, err := bp.getEncryptionKey()
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get the player encryption key", bp.logPrefix))
+	}
+
+	bp.EncryptionKey = encryptionKey
+	bp.logger.Info().Msgf("%s: Successfully logged in.", bp.logPrefix)
 	return nil
 }
 
@@ -2277,75 +2338,6 @@ func (bp *BotPlayer) PrintHandResult() {
 			bp.logger.Info().Msgf("%s: Pot %d Low-Winner %d: Seat %d (%s) Amount: %f%s", bp.logPrefix, potNum+1, i+1, seatNo, playerName, amount, winningCards)
 		}
 	}
-}
-
-// Login authenticates the player and stores its jwt for future api calls.
-func (bp *BotPlayer) Login(playerUUID string, deviceID string) error {
-	userJwt, err := bp.GetJWT(playerUUID, deviceID)
-	if err != nil {
-		return err
-	}
-	bp.apiAuthToken = fmt.Sprintf("jwt %s", userJwt)
-	bp.gqlHelper.SetAuthToken(bp.apiAuthToken)
-
-	encryptionKey, err := bp.getEncryptionKey()
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get the player encryption key", bp.logPrefix))
-	}
-
-	bp.EncryptionKey = encryptionKey
-	return nil
-}
-
-// GetJWT authenticates the player and returns the jwt.
-func (bp *BotPlayer) GetJWT(playerUUID string, deviceID string) (string, error) {
-
-	// after we created the player
-	// authenticate the player and get JWT
-	type login struct {
-		UUID     string `json:"uuid"`
-		DeviceID string `json:"device-id"`
-	}
-	loginData := login{
-		UUID:     playerUUID,
-		DeviceID: deviceID,
-	}
-
-	jsonValue, _ := json.Marshal(loginData)
-	loginURL := fmt.Sprintf("%s/auth/login", bp.config.APIServerURL)
-	response, err := http.Post(loginURL, "application/json", bytes.NewBuffer(jsonValue))
-	if err != nil {
-		return "", errors.Wrap(err, "Login request failed")
-	}
-	defer response.Body.Close()
-
-	type JwtResp struct {
-		Jwt string
-	}
-	var jwtData JwtResp
-
-	data, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return "", errors.Wrap(err, "Unabgle to read login response body")
-	}
-	body := string(data)
-	if strings.Contains(body, "errors") {
-		return "", fmt.Errorf("Login response for user %s contains error: %s", bp.config.Name, body)
-	}
-
-	json.Unmarshal(data, &jwtData)
-
-	token, _, err := new(jwt.Parser).ParseUnverified(jwtData.Jwt, jwt.MapClaims{})
-	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("Error while parsing jwt response. Response body: [%s]", body))
-	}
-
-	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		bp.PlayerID = uint64(claims["id"].(float64))
-	} else {
-		bp.logger.Error().Msgf("%s: Error while processing jwt: %s", bp.logPrefix, err)
-	}
-	return jwtData.Jwt, nil
 }
 
 func (bp *BotPlayer) setupServerCrash(crashPoint string, playerID uint64) error {
