@@ -1202,6 +1202,9 @@ func (bp *BotPlayer) SignUp() error {
 		return errors.Wrap(err, "Login request failed")
 	}
 	defer response.Body.Close()
+	if response.StatusCode != 200 {
+		return fmt.Errorf("Signup returned %d", response.StatusCode)
+	}
 	type respData struct {
 		DeviceSecret string `json:"device-secret"`
 		Jwt          string `json:"jwt"`
@@ -1231,7 +1234,7 @@ func (bp *BotPlayer) SignUp() error {
 }
 
 // Login authenticates the player and stores its jwt for future api calls.
-func (bp *BotPlayer) Login(playerUUID string, deviceID string) error {
+func (bp *BotPlayer) Login() error {
 	type reqData struct {
 		DeviceID     string `json:"device-id"`
 		DeviceSecret string `json:"device-secret"`
@@ -1247,6 +1250,9 @@ func (bp *BotPlayer) Login(playerUUID string, deviceID string) error {
 		return errors.Wrap(err, "Login request failed")
 	}
 	defer response.Body.Close()
+	if response.StatusCode != 200 {
+		return fmt.Errorf("Login returned %d", response.StatusCode)
+	}
 	type respData struct {
 		Jwt  string `json:"jwt"`
 		Name string `json:"name"`

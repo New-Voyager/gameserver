@@ -60,7 +60,7 @@ func (t *Tester) Run() error {
 	}
 	t.player = player
 
-	err = t.player.Login(playerConf.DeviceID, playerConf.DeviceID)
+	err = t.player.Login()
 	if err != nil {
 		return errors.Wrap(err, "Unable to login")
 	}
