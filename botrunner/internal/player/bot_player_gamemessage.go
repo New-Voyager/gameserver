@@ -168,53 +168,55 @@ func (bp *BotPlayer) onTableUpdate(message *game.GameMessage) {
 }
 
 func (bp *BotPlayer) seatWaitList(tableUpdate *game.TableUpdate) {
+	if !bp.inWaitList {
+		return
+	}
 	// waitlist seating
-	if bp.inWaitList {
-		if bp.PlayerID != tableUpdate.WaitlistPlayerId {
-			// not my turn
-			return
-		}
+	if bp.PlayerID != tableUpdate.WaitlistPlayerId {
+		// not my turn
+		return
+	}
 
-		if !bp.confirmWaitlist {
-			// decline wait list
-			bp.logger.Info().Msgf("%s: declined to take the open seat.", bp.logPrefix)
-			bp.gqlHelper.DeclineWaitListSeat(bp.gameCode)
-			return
+	if !bp.confirmWaitlist {
+		// decline wait list
+		bp.logger.Info().Msgf("%s: declining to take the open seat.", bp.logPrefix)
+		confirmed, err := bp.gqlHelper.DeclineWaitListSeat(bp.gameCode)
+		if err != nil {
+			panic(fmt.Sprintf("%s: Error while declining waitlist seat", bp.logPrefix))
 		}
+		if !confirmed {
+			panic(fmt.Sprintf("%s: Response from DeclineWaitListSeat has confirmed = false", bp.logPrefix))
+		}
+		return
+	}
 
-		bp.logger.Info().Msgf("%s: Confirm to take the open seat.", bp.logPrefix)
-		// get open seats
-		gi, err := bp.GetGameInfo(bp.gameCode)
-		if err != nil {
-			bp.logger.Error().Msgf("%s: Unable to get game info %s", bp.logPrefix, bp.gameCode)
-		}
-		openSeat := uint32(0)
-		for _, seatNo := range gi.SeatInfo.AvailableSeats {
-			openSeat = seatNo
-			break
-		}
-		if openSeat == 0 {
-			bp.logger.Error().Msgf("%s: No open seat available %s", bp.logPrefix, bp.gameCode)
-			return
-		}
-		bp.event(BotEvent__REQUEST_SIT)
-		// confirm join game
-		err = bp.SitIn(bp.gameCode, openSeat)
-		if err != nil {
-			bp.logger.Error().Msgf("%s: [%s] Player could not take seat: %d", bp.logPrefix, bp.gameCode, openSeat)
-		} else {
-			bp.observing = false
-			bp.logger.Info().Msgf("%s: [%s] Player took seat: %d", bp.logPrefix, bp.gameCode, openSeat)
-			bp.isSeated = true
-			bp.seatNo = openSeat
-			bp.updateLogPrefix()
-			// buyin
-			if bp.buyInAmount != 0 {
-				bp.BuyIn(bp.gameCode, float32(bp.buyInAmount))
-				bp.logger.Info().Msgf("%s: [%s] Player bought in for: %d. Current hand num: %d",
-					bp.logPrefix, bp.gameCode, bp.buyInAmount, bp.game.handNum)
-				bp.event(BotEvent__SUCCEED_BUYIN)
-			}
+	bp.logger.Info().Msgf("%s: Accepting to take the open seat.", bp.logPrefix)
+	// get open seats
+	gi, err := bp.GetGameInfo(bp.gameCode)
+	if err != nil {
+		bp.logger.Error().Msgf("%s: Unable to get game info %s", bp.logPrefix, bp.gameCode)
+	}
+	openSeat := uint32(0)
+	for _, seatNo := range gi.SeatInfo.AvailableSeats {
+		openSeat = seatNo
+		break
+	}
+	if openSeat == 0 {
+		bp.logger.Error().Msgf("%s: No open seat available %s", bp.logPrefix, bp.gameCode)
+		return
+	}
+	bp.event(BotEvent__REQUEST_SIT)
+	// confirm join game
+	err = bp.SitIn(bp.gameCode, openSeat)
+	if err != nil {
+		panic(fmt.Sprintf("%s: [%s] Player could not take seat %d: %s", bp.logPrefix, bp.gameCode, openSeat, err))
+	} else {
+		// buyin
+		if bp.buyInAmount != 0 {
+			bp.BuyIn(bp.gameCode, float32(bp.buyInAmount))
+			bp.logger.Info().Msgf("%s: [%s] Player bought in for: %d. Current hand num: %d",
+				bp.logPrefix, bp.gameCode, bp.buyInAmount, bp.game.handNum)
+			bp.event(BotEvent__SUCCEED_BUYIN)
 		}
 	}
 }
@@ -407,32 +409,9 @@ func (bp *BotPlayer) setupLeaveGame() error {
 func (bp *BotPlayer) JoinWaitlist(observer *gamescript.Observer) error {
 	_, err := bp.gqlHelper.JoinWaitList(bp.gameCode)
 	if err == nil {
+		bp.inWaitList = true
 		bp.confirmWaitlist = observer.Confirm
 		bp.buyInAmount = uint32(observer.BuyIn)
 	}
 	return err
-}
-
-func (bp *BotPlayer) setupWaitList() error {
-	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
-		return nil
-	}
-
-	currentHand := bp.config.Script.GetHand(bp.game.handNum)
-	waitLists := currentHand.Setup.WaitLists
-	if waitLists != nil {
-		for _, waitlistPlayer := range waitLists {
-			if waitlistPlayer.Player == bp.GetName() {
-				bp.logger.Info().Msgf("%s: Player [%s] requested to add to wait list.", bp.logPrefix, bp.config.Name)
-				bp.gqlHelper.JoinWaitList(bp.gameCode)
-				bp.inWaitList = true
-				bp.confirmWaitlist = false
-				bp.buyInAmount = uint32(waitlistPlayer.BuyIn)
-				if waitlistPlayer.Confirm {
-					bp.confirmWaitlist = true
-				}
-			}
-		}
-	}
-	return nil
 }

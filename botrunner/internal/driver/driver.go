@@ -404,13 +404,6 @@ func (br *BotRunner) Run() error {
 		}
 	}
 
-	// get the game info and determine bots
-	// gi, err := br.bots[0].GetGameInfo(br.gameCode)
-	// if err == nil {
-	// 	for _, bot := range br.bots {
-	// 		bot.DetermineBots(gi)
-	// 	}
-	// }
 	br.logger.Info().Msgf("Game started")
 
 	// Wait till the game is over.

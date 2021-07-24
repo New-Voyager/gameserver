@@ -78,55 +78,80 @@ hands:
         - seat: 5
 
   - setup:
-      pause: 10
+      pause: 3
       auto: true
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+          - seat: 2
+            player: brian
+          - seat: 3
+            player: tom
+          - seat: 4
+            player: jim
+          - seat: 5
+            player: david
+          - seat: 6
+            player: rich
+          - seat: 7
+            player: josh
+          - seat: 8
+            player: chris
+          - seat: 9
+            player: michael
       leave-game:
         - seat: 3
 
   - setup:
-      pause: 10
+      pause: 3
       auto: true
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+          - seat: 2
+            player: brian
+          - seat: 3
+            player: olivia
+          - seat: 4
+            player: jim
+          - seat: 5
+            player: david
+          - seat: 6
+            player: rich
+          - seat: 7
+            player: josh
+          - seat: 8
+            player: chris
+          - seat: 9
+            player: michael
       leave-game:
         - seat: 2
 
   - setup:
+      pause: 3
       auto: true
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+          - seat: 2
+            player: emma
+          - seat: 3
+            player: olivia
+          - seat: 4
+            player: jim
+          - seat: 5
+            player: david
+          - seat: 6
+            player: rich
+          - seat: 7
+            player: josh
+          - seat: 8
+            player: chris
+          - seat: 9
+            player: michael
 
   - setup:
       auto: true
-
-  # - num: 4
-  #   setup:
-  #     auto: true
-
-  # - num: 4
-  #   setup:
-  #     button-pos: 4
-  #     auto: true
-
-  # - num: 3
-  #   setup:
-  #     button-pos: 2
-  #     auto: true
-  #     leave-game:
-  #       - 3
-  #     verify:
-  #       table-pos:
-  #         - seat: 1
-  #           playerName: yong
-  #         - seat: 2
-  #           empty: true
-  #         - seat: 3
-  #           empty: tom
-  #         - seat: 4
-  #           playerName: jim
-  #         - seat: 5
-  #           playerName: rob
-  #         - seat: 6
-  #           playerName: rich
-  #         - seat: 7
-  #           playerName: josh
-  #         - seat: 8
-  #           playerName: chris
-  #         - seat: 9
-  #           playerName: michael

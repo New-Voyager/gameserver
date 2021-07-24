@@ -354,7 +354,6 @@ func (g *Game) dealNewHand() error {
 	var bbPos uint32
 	var newHandNum uint32
 	var newHandInfo *NewHandInfo
-	var pauseBeforeHand uint32
 	var err error
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_1, 0)
@@ -365,6 +364,18 @@ func (g *Game) dealNewHand() error {
 	v, err := g.handSetupPersist.Load(g.config.GameCode)
 	if err == nil {
 		testHandSetup = v
+	}
+
+	if testHandSetup != nil {
+		pauseBeforeHand := testHandSetup.Pause
+		if pauseBeforeHand != 0 {
+			channelGameLogger.Info().
+				Uint32("club", g.config.ClubId).
+				Str("game", g.config.GameCode).
+				Uint32("hand", newHandNum).
+				Msg(fmt.Sprintf("PAUSING the game %d seconds", pauseBeforeHand))
+			time.Sleep(time.Duration(pauseBeforeHand) * time.Second)
+		}
 	}
 
 	if !g.isScriptTest {
@@ -485,19 +496,9 @@ func (g *Game) dealNewHand() error {
 	}
 
 	if testHandSetup != nil {
-		pauseBeforeHand = testHandSetup.Pause
 		if testHandSetup.ButtonPos > 0 {
 			buttonPos = testHandSetup.ButtonPos
 		}
-	}
-
-	if pauseBeforeHand != 0 {
-		channelGameLogger.Info().
-			Uint32("club", g.config.ClubId).
-			Str("game", g.config.GameCode).
-			Uint32("hand", newHandNum).
-			Msg(fmt.Sprintf("PAUSING the game %d seconds", pauseBeforeHand))
-		time.Sleep(time.Duration(pauseBeforeHand) * time.Second)
 	}
 
 	handState = &HandState{
@@ -550,7 +551,6 @@ func (g *Game) dealNewHand() error {
 		BigBlind:       handState.BigBlind,
 		BringIn:        handState.BringIn,
 		Straddle:       handState.Straddle,
-		Pause:          pauseBeforeHand,
 		PlayersInSeats: playersInSeats,
 		PlayersActed:   playersActed,
 	}

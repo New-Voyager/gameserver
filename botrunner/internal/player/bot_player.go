@@ -504,9 +504,6 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		// setup run-it-twice prompt/response
 		bp.setupRunItTwice()
 
-		// setup waitlist requests
-		// bp.setupWaitList()
-
 		// process any leave game requests
 		// the player will after this hand
 		bp.setupLeaveGame()
@@ -666,6 +663,10 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 	case game.HandQueryCurrentHand:
 		currentState := msgItem.GetCurrentHandState()
 		bp.logger.Info().Msgf("%s: Received current hand state: %+v", bp.logPrefix, currentState)
+		if message.HandNum == 0 {
+			bp.logger.Info().Msgf("%s: Ignoring current hand state message (handNum = 0)", bp.logPrefix)
+			return
+		}
 		handStatus := currentState.GetCurrentRound()
 		playersActed := currentState.GetPlayersActed()
 		nextSeatAction := currentState.GetNextSeatAction()
@@ -1781,9 +1782,11 @@ func (bp *BotPlayer) SitIn(gameCode string, seatNo uint32) error {
 	}
 
 	bp.observing = false
-	bp.logger.Info().Msgf("%s: Successfully took a seat in game [%s]. Status: [%s]", bp.logPrefix, gameCode, status)
+	bp.inWaitList = false
 	bp.seatNo = seatNo
 	bp.isSeated = true
+	bp.updateLogPrefix()
+	bp.logger.Info().Msgf("%s: Successfully took a seat in game [%s]. Status: [%s]", bp.logPrefix, gameCode, status)
 	return nil
 }
 
