@@ -1213,6 +1213,75 @@ func (bp *BotPlayer) Register() error {
 	return nil
 }
 
+// Login authenticates the player and stores its jwt for future api calls.
+func (bp *BotPlayer) Login(playerUUID string, deviceID string) error {
+	userJwt, err := bp.GetJWT(playerUUID, deviceID)
+	if err != nil {
+		return err
+	}
+	bp.apiAuthToken = fmt.Sprintf("jwt %s", userJwt)
+	bp.gqlHelper.SetAuthToken(bp.apiAuthToken)
+
+	encryptionKey, err := bp.getEncryptionKey()
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get the player encryption key", bp.logPrefix))
+	}
+
+	bp.EncryptionKey = encryptionKey
+	return nil
+}
+
+// GetJWT authenticates the player and returns the jwt.
+func (bp *BotPlayer) GetJWT(playerUUID string, deviceID string) (string, error) {
+
+	// after we created the player
+	// authenticate the player and get JWT
+	type login struct {
+		UUID     string `json:"uuid"`
+		DeviceID string `json:"device-id"`
+	}
+	loginData := login{
+		UUID:     playerUUID,
+		DeviceID: deviceID,
+	}
+
+	jsonValue, _ := json.Marshal(loginData)
+	loginURL := fmt.Sprintf("%s/auth/login", bp.config.APIServerURL)
+	response, err := http.Post(loginURL, "application/json", bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return "", errors.Wrap(err, "Login request failed")
+	}
+	defer response.Body.Close()
+
+	type JwtResp struct {
+		Jwt string
+	}
+	var jwtData JwtResp
+
+	data, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return "", errors.Wrap(err, "Unabgle to read login response body")
+	}
+	body := string(data)
+	if strings.Contains(body, "errors") {
+		return "", fmt.Errorf("Login response for user %s contains error: %s", bp.config.Name, body)
+	}
+
+	json.Unmarshal(data, &jwtData)
+
+	token, _, err := new(jwt.Parser).ParseUnverified(jwtData.Jwt, jwt.MapClaims{})
+	if err != nil {
+		return "", errors.Wrap(err, fmt.Sprintf("Error while parsing jwt response. Response body: [%s]", body))
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		bp.PlayerID = uint64(claims["id"].(float64))
+	} else {
+		bp.logger.Error().Msgf("%s: Error while processing jwt: %s", bp.logPrefix, err)
+	}
+	return jwtData.Jwt, nil
+}
+
 // CreateClub creates a new club.
 func (bp *BotPlayer) CreateClub(name string, description string) (string, error) {
 	bp.logger.Info().Msgf("%s: Creating a new club [%s].", bp.logPrefix, name)
@@ -2277,75 +2346,6 @@ func (bp *BotPlayer) PrintHandResult() {
 			bp.logger.Info().Msgf("%s: Pot %d Low-Winner %d: Seat %d (%s) Amount: %f%s", bp.logPrefix, potNum+1, i+1, seatNo, playerName, amount, winningCards)
 		}
 	}
-}
-
-// Login authenticates the player and stores its jwt for future api calls.
-func (bp *BotPlayer) Login(playerUUID string, deviceID string) error {
-	userJwt, err := bp.GetJWT(playerUUID, deviceID)
-	if err != nil {
-		return err
-	}
-	bp.apiAuthToken = fmt.Sprintf("jwt %s", userJwt)
-	bp.gqlHelper.SetAuthToken(bp.apiAuthToken)
-
-	encryptionKey, err := bp.getEncryptionKey()
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get the player encryption key", bp.logPrefix))
-	}
-
-	bp.EncryptionKey = encryptionKey
-	return nil
-}
-
-// GetJWT authenticates the player and returns the jwt.
-func (bp *BotPlayer) GetJWT(playerUUID string, deviceID string) (string, error) {
-
-	// after we created the player
-	// authenticate the player and get JWT
-	type login struct {
-		UUID     string `json:"uuid"`
-		DeviceID string `json:"device-id"`
-	}
-	loginData := login{
-		UUID:     playerUUID,
-		DeviceID: deviceID,
-	}
-
-	jsonValue, _ := json.Marshal(loginData)
-	loginURL := fmt.Sprintf("%s/auth/login", bp.config.APIServerURL)
-	response, err := http.Post(loginURL, "application/json", bytes.NewBuffer(jsonValue))
-	if err != nil {
-		return "", errors.Wrap(err, "Login request failed")
-	}
-	defer response.Body.Close()
-
-	type JwtResp struct {
-		Jwt string
-	}
-	var jwtData JwtResp
-
-	data, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return "", errors.Wrap(err, "Unabgle to read login response body")
-	}
-	body := string(data)
-	if strings.Contains(body, "errors") {
-		return "", fmt.Errorf("Login response for user %s contains error: %s", bp.config.Name, body)
-	}
-
-	json.Unmarshal(data, &jwtData)
-
-	token, _, err := new(jwt.Parser).ParseUnverified(jwtData.Jwt, jwt.MapClaims{})
-	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("Error while parsing jwt response. Response body: [%s]", body))
-	}
-
-	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		bp.PlayerID = uint64(claims["id"].(float64))
-	} else {
-		bp.logger.Error().Msgf("%s: Error while processing jwt: %s", bp.logPrefix, err)
-	}
-	return jwtData.Jwt, nil
 }
 
 func (bp *BotPlayer) setupServerCrash(crashPoint string, playerID uint64) error {
