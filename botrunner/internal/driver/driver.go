@@ -136,9 +136,15 @@ func (br *BotRunner) Run() error {
 	br.logger.Info().Msgf("Bots joining the club")
 	// Register bots to the poker service.
 	for _, b := range append(br.bots, br.observerBot) {
-		err := b.SignUp()
+		// Try logging in first. The bot player might've already signed up from some other game.
+		err := b.Login()
+		if err == nil {
+			continue
+		}
+		// This bot has never signed up. Go ahead and sign up.
+		err = b.SignUp()
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "%s cannot sign up", b.GetName())
 		}
 	}
 
