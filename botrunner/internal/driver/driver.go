@@ -136,7 +136,7 @@ func (br *BotRunner) Run() error {
 	br.logger.Info().Msgf("Bots joining the club")
 	// Register bots to the poker service.
 	for _, b := range append(br.bots, br.observerBot) {
-		err := b.Register()
+		err := b.SignUp()
 		if err != nil {
 			return err
 		}

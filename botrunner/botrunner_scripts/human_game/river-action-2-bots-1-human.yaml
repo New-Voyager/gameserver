@@ -96,10 +96,10 @@ hands:
       players:
         - seat: 1
           balance:
-            after: 84
+            after: 128
         - seat: 5
           balance:
-            after: 120
+            after: 74
         - seat: 8
           balance:
             after: 96
