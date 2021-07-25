@@ -1,3 +1,5 @@
+# SYSTEM_TEST_TIMEOUT_SEC:120
+
 club:
   name: Waitlist Testing Club
   description: Club used for testing with the bot runner
