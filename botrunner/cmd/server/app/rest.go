@@ -229,6 +229,10 @@ func joinHumanGame(c *gin.Context) {
 	if gameCode == "" {
 		c.String(400, "Failed to read game-code param from join-hame endpoint.")
 	}
+	if clubCode == "null" {
+		clubCode = ""
+	}
+
 	players, err := gamescript.ReadPlayersConfig(playersConfig)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error while parsing players config file %s. Error: %s", playersConfig, err)
