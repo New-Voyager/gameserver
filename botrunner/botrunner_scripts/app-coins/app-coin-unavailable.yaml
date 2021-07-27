@@ -1,0 +1,63 @@
+server-settings:
+  game-block-time:  30
+  notify-host-time-window: 10
+  game-coins-per-block: 3
+  free-time: 30
+
+
+club:
+  name: Manchester Club
+  description: Club used for testing with the bot runner
+
+game:
+  create: true
+  title: "NLH Testing Game"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 4
+  game-length: 60
+  buy-in-approval: false
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 100
+  buy-in-max: 300
+  action-time: 100
+  appcoins-needed: true
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 100
+  - seat: 2
+    player: brian
+    buy-in: 100
+  - seat: 3
+    player: tom
+    buy-in: 100
+
+tester:
+auto-play: false
+
+bot-config:
+  min-action-pause-time: 0
+  max-action-pause-time: 0
+
+# deal the following hands in the table
+hands:
+  - setup:
+      auto: true
+  - setup:
+      pause: 20
+      auto: true
+  - setup:
+      pause: 10
+      auto: true
+  - setup:
+      auto: true
+  - setup:
+      # pause: 20
+      auto: true
