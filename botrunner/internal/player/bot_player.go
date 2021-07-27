@@ -504,6 +504,9 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		// setup run-it-twice prompt/response
 		bp.setupRunItTwice()
 
+		// setup take break request
+		bp.setupTakeBreak()
+
 		// process any leave game requests
 		// the player will after this hand
 		bp.setupLeaveGame()
@@ -523,6 +526,8 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		// Verify they match the script.
 		bp.verifyCardRank(msgItem.GetFlop().GetPlayerCardRanks())
 
+		bp.updateBalance(msgItem.GetFlop().GetPlayerBalance())
+
 		//time.Sleep(1 * time.Second)
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 
@@ -535,6 +540,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		}
 		bp.verifyBoard()
 		bp.verifyCardRank(msgItem.GetTurn().GetPlayerCardRanks())
+		bp.updateBalance(msgItem.GetTurn().GetPlayerBalance())
 		//time.Sleep(1 * time.Second)
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 
@@ -547,6 +553,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		}
 		bp.verifyBoard()
 		bp.verifyCardRank(msgItem.GetRiver().GetPlayerCardRanks())
+		bp.updateBalance(msgItem.GetRiver().GetPlayerBalance())
 		//time.Sleep(1 * time.Second)
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 
@@ -768,6 +775,13 @@ func (bp *BotPlayer) verifyBoard() {
 	}
 }
 
+func (bp *BotPlayer) updateBalance(playerBalances map[uint32]float32) {
+	balance, exists := playerBalances[bp.seatNo]
+	if exists {
+		bp.balance = balance
+	}
+}
+
 func (bp *BotPlayer) verifyCardRank(currentRanks map[uint32]string) {
 	// if the script is configured to auto play, return
 	if bp.config.Script.AutoPlay {
@@ -838,6 +852,11 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 			seatPlayer := newHand.PlayersInSeats[seat.Seat]
 			if seatPlayer.Name != seat.Player {
 				errMsg := fmt.Sprintf("Player [%s] should be in seat %d, but found another player: [%s]", seat.Player, seat.Seat, seatPlayer.Name)
+				bp.logger.Error().Msg(errMsg)
+				panic(errMsg)
+			}
+			if seat.Status != "" && seatPlayer.Status.String() != seat.Status {
+				errMsg := fmt.Sprintf("Player [%s] Status: %s. Expected Status: %s", seat.Player, seat.Status, seatPlayer.Status)
 				bp.logger.Error().Msg(errMsg)
 				panic(errMsg)
 			}
@@ -1942,6 +1961,23 @@ func (bp *BotPlayer) UpdatePlayerGameConfig(gameCode string, runItTwiceAllowed *
 	return nil
 }
 
+func (bp *BotPlayer) doesScriptActionExists(scriptHand gamescript.Hand, handStatus game.HandStatus) bool {
+	var scriptActions []gamescript.SeatAction
+	switch handStatus {
+	case game.HandStatus_PREFLOP:
+		scriptActions = scriptHand.Preflop.SeatActions
+	case game.HandStatus_FLOP:
+		scriptActions = scriptHand.Flop.SeatActions
+	case game.HandStatus_TURN:
+		scriptActions = scriptHand.Turn.SeatActions
+	case game.HandStatus_RIVER:
+		scriptActions = scriptHand.River.SeatActions
+	default:
+		panic(fmt.Sprintf("Invalid hand status [%s] in doesScriptActionExists", handStatus))
+	}
+	return scriptActions != nil && len(scriptActions) > 0
+}
+
 func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 	availableActions := seatAction.AvailableActions
 	nextAction := game.ACTION_CHECK
@@ -1952,7 +1988,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 		autoPlay = true
 	} else if len(bp.config.Script.Hands) >= int(bp.game.handNum) {
 		handScript := bp.config.Script.GetHand(bp.game.handNum)
-		if handScript.Setup.Auto {
+		if !bp.doesScriptActionExists(handScript, bp.game.handStatus) {
 			autoPlay = true
 		}
 	}

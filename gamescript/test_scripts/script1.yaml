@@ -84,6 +84,9 @@ hands:
           allow-prompt: true
           confirm: true
           timeout: true
+      take-break:
+        - seat: 5
+        - seat: 7
       leave-game:
         - seat: 6
       wait-list:
@@ -102,6 +105,7 @@ hands:
             player: tom
           - seat: 2
             player: brian
+            status: IN_BREAK
           - seat: 3
             player: yong
 

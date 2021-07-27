@@ -86,6 +86,7 @@ type Observer struct {
 type VerifySeat struct {
 	Seat   uint32 `yaml:"seat"`
 	Player string `yaml:"player"`
+	Status string `yaml:"status"`
 }
 
 // BotConfig contains botConfig content in the game script.
@@ -135,6 +136,7 @@ type HandSetup struct {
 	Auto       bool                 `yaml:"auto"`
 	SeatChange []SeatChangeSetup    `yaml:"seat-change"` // players requesting seat-change
 	RunItTwice []RunItTwiceSetup    `yaml:"run-it-twice"`
+	TakeBreak  []TakeBreakSetup     `yaml:"take-break"`
 	LeaveGame  []LeaveGame          `yaml:"leave-game"`
 	WaitLists  []WaitList           `yaml:"wait-list"`
 	Pause      uint32               `yaml:"pause"` // bot runner pauses and waits before next hand
@@ -169,6 +171,10 @@ type RunItTwiceSetup struct {
 	AllowPrompt bool   `yaml:"allow-prompt"`
 	Confirm     bool   `yaml:"confirm"`
 	Timeout     bool   `yaml:"timeout"`
+}
+
+type TakeBreakSetup struct {
+	Seat uint32 `yaml:"seat"`
 }
 
 type LeaveGame struct {

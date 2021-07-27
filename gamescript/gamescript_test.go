@@ -129,6 +129,14 @@ func TestReadGameScript(t *testing.T) {
 							Timeout:     true,
 						},
 					},
+					TakeBreak: []TakeBreakSetup{
+						{
+							Seat: 5,
+						},
+						{
+							Seat: 7,
+						},
+					},
 					LeaveGame: []LeaveGame{
 						{
 							Seat: 6,
@@ -156,6 +164,7 @@ func TestReadGameScript(t *testing.T) {
 							{
 								Seat:   2,
 								Player: "brian",
+								Status: "IN_BREAK",
 							},
 							{
 								Seat:   3,
