@@ -316,6 +316,19 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		return fmt.Errorf(errMsg)
 	}
 
+	if err := validatePlayerAction(actionMsg.GetPlayerActed(), handState); err != nil {
+		// Ignore the action message.
+		errMsg := fmt.Sprintf("Invalid player action: %s", err)
+		channelGameLogger.Error().
+			Uint32("club", g.config.ClubId).
+			Str("game", g.config.GameCode).
+			Uint32("player", messageSeatNo).
+			Str("messageType", actionMsg.MessageType).
+			Msg(errMsg)
+
+		return fmt.Errorf(errMsg)
+	}
+
 	// is it run it twice prompt response?
 	if handState.RunItTwicePrompt {
 		actionMsg := g.getClientMsgItem(playerMsg)
@@ -428,6 +441,16 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	err := g.prepareNextAction(handState, uint64(actedSeconds))
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func validatePlayerAction(actionMsg *HandAction, handState *HandState) error {
+	if actionMsg.Action == ACTION_CALL {
+		expectedCallAmount := handState.GetNextSeatAction().CallAmount
+		if actionMsg.Amount != expectedCallAmount {
+			return fmt.Errorf("Invalid call amount %f. Expected amount: %f", actionMsg.Amount, expectedCallAmount)
+		}
 	}
 	return nil
 }
@@ -753,12 +776,12 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 
 	handState.setupTurn()
 
-	cardsStr := poker.CardsToString(handState.BoardCards)
-
 	boardCards := make([]uint32, 4)
 	for i, card := range handState.BoardCards[:4] {
 		boardCards[i] = uint32(card)
 	}
+
+	cardsStr := poker.CardsToString(boardCards)
 
 	pots, seatsInPots := g.getPots(handState)
 
