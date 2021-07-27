@@ -1,9 +1,13 @@
 package rest
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	"voyager.com/gamescript"
 )
 
 type RestClient struct {
@@ -35,5 +39,32 @@ func (rc *RestClient) UpdateButtonPos(gameCode string, buttonPos uint32) error {
 	}
 
 	fmt.Printf("%s\n", string(body))
+	return nil
+}
+
+func (rc *RestClient) SetServerSettings(serverSettings *gamescript.ServerSettings) error {
+	var reqData []byte
+	var err error
+	reqData, err = json.Marshal(serverSettings)
+	if err != nil {
+		return err
+	}
+	url := fmt.Sprintf("%s/server-settings", rc.url)
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(reqData))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return nil
+}
+
+func (rc *RestClient) ResetServerSettings() error {
+	url := fmt.Sprintf("%s/reset-server-settings", rc.url)
+	resp, err := http.Post(url, "application/json", nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 	return nil
 }

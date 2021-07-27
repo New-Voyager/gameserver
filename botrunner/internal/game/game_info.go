@@ -86,4 +86,5 @@ type GameCreateOpt struct {
 	RoeGames           []string
 	DealerChoiceGames  []string
 	HighHandTracked    bool
+	AppCoinsNeeded     bool
 }

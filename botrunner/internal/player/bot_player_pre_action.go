@@ -46,3 +46,11 @@ func (bp *BotPlayer) setupButtonPos(buttonPos uint32) error {
 	// separate REST API to setup the button position
 	return bp.restHelper.UpdateButtonPos(bp.gameCode, buttonPos)
 }
+
+func (bp *BotPlayer) SetupServerSettings(serverSettings *gamescript.ServerSettings) error {
+	return bp.restHelper.SetServerSettings(serverSettings)
+}
+
+func (bp *BotPlayer) ResetServerSettings() error {
+	return bp.restHelper.ResetServerSettings()
+}

@@ -272,6 +272,7 @@ func (br *BotRunner) Run() error {
 			RoeGames:           br.script.Game.RoeGames,
 			DealerChoiceGames:  br.script.Game.DealerChoiceGames,
 			HighHandTracked:    br.script.Game.HighHandTracked,
+			AppCoinsNeeded:     br.script.Game.AppCoinsNeeded,
 		})
 		if err != nil {
 			return err
@@ -284,6 +285,10 @@ func (br *BotRunner) Run() error {
 	br.observerBot.ObserveGame(br.gameCode)
 	br.logger.Info().Msgf("Starting the game")
 	if br.botIsGameHost {
+		if br.script.ServerSettings != nil {
+			br.observerBot.SetupServerSettings(br.script.ServerSettings)
+		}
+
 		// This is a bot-created game. Use the config script to sit the bots.
 		for _, startingSeat := range br.script.StartingSeats {
 			playerName := startingSeat.Player
@@ -425,6 +430,10 @@ func (br *BotRunner) Run() error {
 			}
 		}
 		time.Sleep(200 * time.Millisecond)
+	}
+
+	if br.botIsGameHost {
+		br.observerBot.ResetServerSettings()
 	}
 
 	if br.anyBotError() {
