@@ -37,14 +37,18 @@ type BotRunner struct {
 	natsConn        *natsgo.Conn
 	shouldTerminate bool
 	resetDB         bool
+	playerGame      bool
 }
 
 // NewBotRunner creates new instance of BotRunner.
-func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, players *gamescript.Players, driverLogger *zerolog.Logger, playerLogger *zerolog.Logger, resetDB bool) (*BotRunner, error) {
+func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, players *gamescript.Players, driverLogger *zerolog.Logger, playerLogger *zerolog.Logger, resetDB bool, playerGame bool) (*BotRunner, error) {
 	natsURL := util.Env.GetNatsURL()
 	nc, err := natsgo.Connect(natsURL)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Driver unable to connect to NATS server [%s]", natsURL))
+	}
+	if clubCode == "null" {
+		clubCode = ""
 	}
 
 	d := BotRunner{
@@ -63,6 +67,7 @@ func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, p
 		natsConn:       nc,
 		currentHandNum: 0,
 		resetDB:        resetDB,
+		playerGame:     playerGame,
 	}
 	return &d, nil
 }
@@ -147,95 +152,97 @@ func (br *BotRunner) Run() error {
 			return errors.Wrapf(err, "%s cannot sign up", b.GetName())
 		}
 	}
+	rewardIds := make([]uint32, 0)
 
-	if br.clubCode != "" {
-		br.logger.Info().Msgf("Using an existing club [%s]", br.clubCode)
-	} else {
-		// if there is a club with the same name, just use the club-code
-		clubCode, err := br.bots[0].GetClubCode(br.script.Club.Name)
-		if clubCode == "" {
-			// First bot creates the club. First bot is always the club owner. It is also responsible for
-			// starting the game once all players are ready.
-			clubCode, err = br.bots[0].CreateClub(br.script.Club.Name, br.script.Club.Description)
-			if err != nil {
-				return err
+	if !br.playerGame {
+		if br.clubCode != "" {
+			br.logger.Info().Msgf("Using an existing club [%s]", br.clubCode)
+		} else {
+			// if there is a club with the same name, just use the club-code
+			clubCode, err := br.bots[0].GetClubCode(br.script.Club.Name)
+			if clubCode == "" {
+				// First bot creates the club. First bot is always the club owner. It is also responsible for
+				// starting the game once all players are ready.
+				clubCode, err = br.bots[0].CreateClub(br.script.Club.Name, br.script.Club.Description)
+				if err != nil {
+					return err
+				}
+			}
+			br.clubCode = clubCode
+			// create rewards for the club
+			if len(br.script.Club.Rewards) > 0 {
+				for _, reward := range br.script.Club.Rewards {
+					_, err = br.bots[0].CreateClubReward(clubCode, reward.Name, reward.Type, reward.Schedule, reward.Amount)
+				}
 			}
 		}
-		br.clubCode = clubCode
-		// create rewards for the club
-		if len(br.script.Club.Rewards) > 0 {
-			for _, reward := range br.script.Club.Rewards {
-				_, err = br.bots[0].CreateClubReward(clubCode, reward.Name, reward.Type, reward.Schedule, reward.Amount)
-			}
-		}
-	}
 
-	// The bots apply for the club membership.
-	botsToApplyClub := br.bots
-	if br.botIsClubOwner {
-		br.bots[0].SetClubCode(br.clubCode)
-		// The owner bot does not need to apply to its own club.
-		botsToApplyClub = br.bots[1:]
-	}
-	botsToApplyClub = append(botsToApplyClub, br.observerBot)
-	for _, b := range botsToApplyClub {
-		memberStatus, err := b.GetClubMemberStatus(br.clubCode)
-		memberStatusStr := game.ClubMemberStatus_name[int32(memberStatus)]
-		if memberStatusStr == "ACTIVE" {
-			// This bot is already a member of the club.
-			b.SetClubCode(br.clubCode)
-			continue
+		// The bots apply for the club membership.
+		botsToApplyClub := br.bots
+		if br.botIsClubOwner {
+			br.bots[0].SetClubCode(br.clubCode)
+			// The owner bot does not need to apply to its own club.
+			botsToApplyClub = br.bots[1:]
 		}
-		// Submit the join request.
-		err = b.JoinClub(br.clubCode)
-		if err != nil {
-			return err
-		}
-	}
-	br.logger.Info().Msgf("Bots joined the club")
-
-	if br.botIsClubOwner {
-		// The club owner bot approves the other bots to join the club.
-		err = br.bots[0].ApproveClubMembers()
-		if err != nil {
-			return err
-		}
-	}
-
-	// If the club's not owned by the bot, then we might need to wait for a human player to approve the bots.
-	// Check if all bots are approved to the club. Wait if necessary.
-	botsApprovedToClub := make([]*player.BotPlayer, 0)
-	for waitAttempts := 0; len(botsApprovedToClub) != len(botsToApplyClub); waitAttempts++ {
-		botsApprovedToClub = botsApprovedToClub[:0]
-		for _, bot := range botsToApplyClub {
-			memberStatus, err := bot.GetClubMemberStatus(br.clubCode)
-			if err != nil {
-				return err
-			}
+		botsToApplyClub = append(botsToApplyClub, br.observerBot)
+		for _, b := range botsToApplyClub {
+			memberStatus, err := b.GetClubMemberStatus(br.clubCode)
 			memberStatusStr := game.ClubMemberStatus_name[int32(memberStatus)]
 			if memberStatusStr == "ACTIVE" {
-				botsApprovedToClub = append(botsApprovedToClub, bot)
+				// This bot is already a member of the club.
+				b.SetClubCode(br.clubCode)
+				continue
+			}
+			// Submit the join request.
+			err = b.JoinClub(br.clubCode)
+			if err != nil {
+				return err
+			}
+		}
+		br.logger.Info().Msgf("Bots joined the club")
+
+		if br.botIsClubOwner {
+			// The club owner bot approves the other bots to join the club.
+			err = br.bots[0].ApproveClubMembers()
+			if err != nil {
+				return err
 			}
 		}
 
-		if len(botsApprovedToClub) != len(botsToApplyClub) {
-			if waitAttempts%3 == 0 {
-				botNamesNotApproved := br.getBotNamesDiff(botsToApplyClub, botsApprovedToClub)
-				br.logger.Info().Msgf("Waiting for bots %v to be approved to the club [%s]", botNamesNotApproved, br.clubCode)
+		// If the club's not owned by the bot, then we might need to wait for a human player to approve the bots.
+		// Check if all bots are approved to the club. Wait if necessary.
+		botsApprovedToClub := make([]*player.BotPlayer, 0)
+		for waitAttempts := 0; len(botsApprovedToClub) != len(botsToApplyClub); waitAttempts++ {
+			botsApprovedToClub = botsApprovedToClub[:0]
+			for _, bot := range botsToApplyClub {
+				memberStatus, err := bot.GetClubMemberStatus(br.clubCode)
+				if err != nil {
+					return err
+				}
+				memberStatusStr := game.ClubMemberStatus_name[int32(memberStatus)]
+				if memberStatusStr == "ACTIVE" {
+					botsApprovedToClub = append(botsApprovedToClub, bot)
+				}
 			}
-			time.Sleep(100 * time.Millisecond)
-		}
-	}
 
-	rewardIds := make([]uint32, 0)
-	if br.script.Game.Rewards != "" {
-		// rewards can be listed with comma delimited string
-		//rewardID := br.bots[0].RewardsNameToID[br.script.Game.Rewards]
-		rewardID, err := br.bots[0].GetRewardID(br.clubCode, br.script.Game.Rewards)
-		if err != nil {
-			br.logger.Error().Msgf("Could not get reward info for %s", br.script.Game.Rewards)
-		} else {
-			rewardIds = append(rewardIds, rewardID)
+			if len(botsApprovedToClub) != len(botsToApplyClub) {
+				if waitAttempts%3 == 0 {
+					botNamesNotApproved := br.getBotNamesDiff(botsToApplyClub, botsApprovedToClub)
+					br.logger.Info().Msgf("Waiting for bots %v to be approved to the club [%s]", botNamesNotApproved, br.clubCode)
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+
+		if br.script.Game.Rewards != "" {
+			// rewards can be listed with comma delimited string
+			//rewardID := br.bots[0].RewardsNameToID[br.script.Game.Rewards]
+			rewardID, err := br.bots[0].GetRewardID(br.clubCode, br.script.Game.Rewards)
+			if err != nil {
+				br.logger.Error().Msgf("Could not get reward info for %s", br.script.Game.Rewards)
+			} else {
+				rewardIds = append(rewardIds, rewardID)
+			}
 		}
 	}
 	br.logger.Info().Msgf("Bots joining the new game")
