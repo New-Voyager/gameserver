@@ -16,6 +16,12 @@ func TestReadGameScript(t *testing.T) {
 	}
 
 	expectedScript := Script{
+		ServerSettings: &ServerSettings{
+			GameBlockTime:        30,
+			NotifyHostTimeWindow: 10,
+			GameCoinsPerBlock:    3,
+			FreeTime:             30,
+		},
 		Club: Club{
 			Name:        "Bad Robots",
 			Description: "Club for testing",
@@ -79,6 +85,14 @@ func TestReadGameScript(t *testing.T) {
 		BotConfig: BotConfig{
 			MinActionPauseTime: 500,
 			MaxActionPauseTime: 1000,
+		},
+		AfterGame: AfterGame{
+			Verify: AfterGameVerification{
+				NumHandsPlayed: NumHandsPlayedVerification{
+					Gte: getUint32Pointer(2),
+					Lte: getUint32Pointer(3),
+				},
+			},
 		},
 		Hands: []Hand{
 			{

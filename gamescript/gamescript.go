@@ -23,6 +23,7 @@ type Script struct {
 	AutoPlay       bool            `yaml:"auto-play"`
 	Hands          []Hand          `yaml:"hands"`
 	Observers      []Observer      `yaml:"observers"`
+	AfterGame      AfterGame       `yaml:"after-game"`
 }
 
 type Club struct {
@@ -384,6 +385,19 @@ type WinnerPot struct {
 	Amount    float32      `yaml:"amount"`
 	Winners   []HandWinner `yaml:"winners"`
 	LoWinners []HandWinner `yaml:"lo-winners"`
+}
+
+type AfterGame struct {
+	Verify AfterGameVerification `yaml:"verify"`
+}
+
+type AfterGameVerification struct {
+	NumHandsPlayed NumHandsPlayedVerification `yaml:"num-hands-played"`
+}
+
+type NumHandsPlayedVerification struct {
+	Gte *uint32 `yaml:"gte"`
+	Lte *uint32 `yaml:"lte"`
 }
 
 // ReadGameScript reads game script yaml file.
