@@ -78,7 +78,7 @@ services:
       POSTGRES_USER: 'game'
       POSTGRES_PASSWORD: 'game'
       POSTGRES_DB: 'game'
-      DISABLE_DELAYS: 1
+      DISABLE_DELAYS: 0
       ENABLE_ENCRYPTION: 1
 
   timer:

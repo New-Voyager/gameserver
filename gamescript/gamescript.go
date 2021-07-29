@@ -13,15 +13,17 @@ import (
 
 // Script contains game script YAML content.
 type Script struct {
-	AppGame       string         `yaml:"app-game"`
-	Club          Club           `yaml:"club"`
-	Game          Game           `yaml:"game"`
-	StartingSeats []StartingSeat `yaml:"starting-seats"`
-	Tester        string         `yaml:"tester"`
-	BotConfig     BotConfig      `yaml:"bot-config"`
-	AutoPlay      bool           `yaml:"auto-play"`
-	Hands         []Hand         `yaml:"hands"`
-	Observers     []Observer     `yaml:"observers"`
+	ServerSettings *ServerSettings `yaml:"server-settings"`
+	AppGame        string          `yaml:"app-game"`
+	Club           Club            `yaml:"club"`
+	Game           Game            `yaml:"game"`
+	StartingSeats  []StartingSeat  `yaml:"starting-seats"`
+	Tester         string          `yaml:"tester"`
+	BotConfig      BotConfig       `yaml:"bot-config"`
+	AutoPlay       bool            `yaml:"auto-play"`
+	Hands          []Hand          `yaml:"hands"`
+	Observers      []Observer      `yaml:"observers"`
+	AfterGame      AfterGame       `yaml:"after-game"`
 }
 
 type Club struct {
@@ -35,6 +37,19 @@ type Reward struct {
 	Type     string
 	Amount   float32
 	Schedule string
+}
+
+/*
+  game-block-time:  30
+  notify-host-time-window: 10
+  game-coins-per-block: 3
+  free-time: 30
+*/
+type ServerSettings struct {
+	GameBlockTime        int `yaml:"game-block-time" json:"game-block-time"`
+	NotifyHostTimeWindow int `yaml:"notify-host-time-window" json:"notify-host-time-window"`
+	GameCoinsPerBlock    int `yaml:"game-coins-per-block" json:"game-coins-per-block"`
+	FreeTime             int `yaml:"free-time" json:"free-time"`
 }
 
 // Game contains game configuration in the game script.
@@ -62,6 +77,7 @@ type Game struct {
 	RoeGames           []string `yaml:"roe-games"`
 	DealerChoiceGames  []string `yaml:"dealer-choice-games"`
 	HighHandTracked    bool     `yaml:"highhand-tracked"`
+	AppCoinsNeeded     bool     `yaml:"appcoins-needed"`
 }
 
 // StartingSeat contains an entry in the StartingSeats array in the game script.
@@ -369,6 +385,19 @@ type WinnerPot struct {
 	Amount    float32      `yaml:"amount"`
 	Winners   []HandWinner `yaml:"winners"`
 	LoWinners []HandWinner `yaml:"lo-winners"`
+}
+
+type AfterGame struct {
+	Verify AfterGameVerification `yaml:"verify"`
+}
+
+type AfterGameVerification struct {
+	NumHandsPlayed NumHandsPlayedVerification `yaml:"num-hands-played"`
+}
+
+type NumHandsPlayedVerification struct {
+	Gte *uint32 `yaml:"gte"`
+	Lte *uint32 `yaml:"lte"`
 }
 
 // ReadGameScript reads game script yaml file.

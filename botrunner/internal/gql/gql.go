@@ -253,6 +253,7 @@ func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (string,
 	req.Var("roeGames", opt.RoeGames)
 	req.Var("dealerChoiceGames", opt.DealerChoiceGames)
 	req.Var("highHandTracked", opt.HighHandTracked)
+	req.Var("appCoinsNeeded", opt.AppCoinsNeeded)
 
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Authorization", g.authToken)
@@ -964,6 +965,7 @@ const ConfigureGameGQL = `mutation configure_game(
 	$roeGames: [GameType!]
 	$dealerChoiceGames: [GameType!]
 	$highHandTracked: Boolean
+	$appCoinsNeeded: Boolean
 ) {
 	configuredGame: configureGame(
 		clubCode: $clubCode
@@ -989,6 +991,7 @@ const ConfigureGameGQL = `mutation configure_game(
 			roeGames: $roeGames
 			dealerChoiceGames: $dealerChoiceGames
 			highHandTracked: $highHandTracked
+			appCoinsNeeded: $appCoinsNeeded
 		}
 	) {
 		gameCode

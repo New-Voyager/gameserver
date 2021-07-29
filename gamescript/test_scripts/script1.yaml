@@ -3,6 +3,12 @@
 # It does not make any sense in terms of the actual game play and the result.
 #
 
+server-settings:
+  game-block-time: 30
+  notify-host-time-window: 10
+  game-coins-per-block: 3
+  free-time: 30
+
 club:
   name: Bad Robots
   description: Club for testing
@@ -55,6 +61,12 @@ auto-play: true
 bot-config:
   min-action-pause-time: 500
   max-action-pause-time: 1000
+
+after-game:
+  verify:
+    num-hands-played:
+      gte: 2
+      lte: 3
 
 hands:
   - setup:

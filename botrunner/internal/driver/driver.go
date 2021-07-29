@@ -4,6 +4,7 @@ package driver
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -272,6 +273,7 @@ func (br *BotRunner) Run() error {
 			RoeGames:           br.script.Game.RoeGames,
 			DealerChoiceGames:  br.script.Game.DealerChoiceGames,
 			HighHandTracked:    br.script.Game.HighHandTracked,
+			AppCoinsNeeded:     br.script.Game.AppCoinsNeeded,
 		})
 		if err != nil {
 			return err
@@ -284,6 +286,10 @@ func (br *BotRunner) Run() error {
 	br.observerBot.ObserveGame(br.gameCode)
 	br.logger.Info().Msgf("Starting the game")
 	if br.botIsGameHost {
+		if br.script.ServerSettings != nil {
+			br.observerBot.SetupServerSettings(br.script.ServerSettings)
+		}
+
 		// This is a bot-created game. Use the config script to sit the bots.
 		for _, startingSeat := range br.script.StartingSeats {
 			playerName := startingSeat.Player
@@ -427,6 +433,16 @@ func (br *BotRunner) Run() error {
 		time.Sleep(200 * time.Millisecond)
 	}
 
+	if br.botIsGameHost {
+		br.observerBot.ResetServerSettings()
+	}
+
+	br.logger.Info().Msg("Processing after-game assertions")
+	err = br.processAfterGameAssertions()
+	if err != nil {
+		return errors.Wrap(err, "Error in after-game check")
+	}
+
 	if br.anyBotError() {
 		errMsg := br.logBotErrors()
 		if errMsg != "" {
@@ -440,6 +456,28 @@ func (br *BotRunner) Run() error {
 		return err
 	}
 
+	return nil
+}
+
+func (br *BotRunner) processAfterGameAssertions() error {
+	errMsgs := make([]string, 0)
+	minExpectedHands := br.script.AfterGame.Verify.NumHandsPlayed.Gte
+	maxExpectedHands := br.script.AfterGame.Verify.NumHandsPlayed.Lte
+	totalHandsPlayed := br.observerBot.GetHandResult().HandNum
+	if minExpectedHands != nil {
+		if totalHandsPlayed < *minExpectedHands {
+			errMsgs = append(errMsgs, fmt.Sprintf("Total hands played: %d, Expected AT LEAST %d hands to have been played", totalHandsPlayed, *minExpectedHands))
+		}
+	}
+	if maxExpectedHands != nil {
+		if totalHandsPlayed > *maxExpectedHands {
+			errMsgs = append(errMsgs, fmt.Sprintf("Total hands played: %d, Expected AT MOST %d hands to have been played", totalHandsPlayed, *maxExpectedHands))
+		}
+	}
+
+	if len(errMsgs) > 0 {
+		return fmt.Errorf(strings.Join(errMsgs, "\n"))
+	}
 	return nil
 }
 
