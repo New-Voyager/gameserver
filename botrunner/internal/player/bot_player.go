@@ -674,6 +674,10 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			bp.logger.Info().Msgf("%s: Ignoring current hand state message (handNum = 0)", bp.logPrefix)
 			return
 		}
+		if message.HandNum < bp.game.handNum {
+			bp.logger.Info().Msgf("%s: Ignoring current hand state message (message handNum = %d, hand in progress = %d)", bp.logPrefix, message.HandNum, bp.game.handNum)
+			return
+		}
 		handStatus := currentState.GetCurrentRound()
 		playersActed := currentState.GetPlayersActed()
 		nextSeatAction := currentState.GetNextSeatAction()
