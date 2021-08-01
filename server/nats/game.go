@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/golang/protobuf/proto"
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -255,9 +256,12 @@ func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Player->Hand: %s", string(msg.Data)))
 	var message game.HandMessage
-	e := protojson.Unmarshal(msg.Data, &message)
+	e := proto.Unmarshal(msg.Data, &message)
 	if e != nil {
-		return
+		e := protojson.Unmarshal(msg.Data, &message)
+		if e != nil {
+			return
+		}
 	}
 
 	messageHandled := false
@@ -292,7 +296,7 @@ func (n *NatsGame) player2Pong(msg *natsgo.Msg) {
 			Msg(fmt.Sprintf("Player->Pong: %s", string(msg.Data)))
 	}
 	var message game.PingPongMessage
-	e := protojson.Unmarshal(msg.Data, &message)
+	e := proto.Unmarshal(msg.Data, &message)
 	if e != nil {
 		return
 	}
@@ -333,11 +337,12 @@ func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Messages", fmt.Sprintf("%v", msgTypes)).
 		Str("subject", n.hand2AllPlayersSubject).
 		Msg(fmt.Sprintf("H->A: %s", string(data)))
-	n.natsConn.Publish(n.hand2AllPlayersSubject, data)
+	protoData, _ := proto.Marshal(message)
+	n.natsConn.Publish(n.hand2AllPlayersSubject, protoData)
 }
 
 func (n NatsGame) BroadcastPingMessage(message *game.PingPongMessage) {
-	data, _ := protojson.Marshal(message)
+	data, _ := proto.Marshal(message)
 	if util.Env.ShouldDebugConnectivityCheck() {
 		natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 			Str("subject", n.pingSubject).
@@ -349,25 +354,26 @@ func (n NatsGame) BroadcastPingMessage(message *game.PingPongMessage) {
 func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID uint64) {
 	hand2PlayerSubject := fmt.Sprintf("hand.%s.player.%d", n.gameCode, playerID)
 	message.PlayerId = playerID
-	data, _ := protojson.Marshal(message)
 	var msgTypes []string
 	for _, msgItem := range message.GetMessages() {
 		msgTypes = append(msgTypes, msgItem.MessageType)
 	}
+	data, _ := protojson.Marshal(message)
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", fmt.Sprintf("%v", msgTypes)).
 		Str("subject", hand2PlayerSubject).
 		Msg(fmt.Sprintf("H->P: %s", string(data)))
 
+	protoData, _ := proto.Marshal(message)
 	if util.Env.IsEncryptionEnabled() {
-		encryptedData, err := n.serverGame.EncryptForPlayer(data, playerID)
+		encryptedData, err := n.serverGame.EncryptForPlayer(protoData, playerID)
 		if err != nil {
 			natsLogger.Error().Msgf("Unable to encrypt message to player %d", playerID)
 			return
 		}
-		data = encryptedData
+		protoData = encryptedData
 	}
 
-	n.natsConn.Publish(hand2PlayerSubject, data)
+	n.natsConn.Publish(hand2PlayerSubject, protoData)
 }
 
 func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID uint64) {
