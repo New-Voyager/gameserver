@@ -5,19 +5,20 @@ import "game.proto";
 
 
 enum ACTION {
-  SB = 0;
-  BB = 1;
-  STRADDLE = 2;
-  CHECK = 3;
-  CALL = 4;
-  FOLD = 5;
-  BET = 6;
-  RAISE = 7;
-  ALLIN = 8;
-  RUN_IT_TWICE_YES = 9;
-  RUN_IT_TWICE_NO = 10;
-  RUN_IT_TWICE_PROMPT = 11;
-  POST_BLIND = 12;
+  ACTION_UNKNOWN = 0;
+  SB = 1;
+  BB = 2;
+  STRADDLE = 3;
+  CHECK = 4;
+  CALL = 5;
+  FOLD = 6;
+  BET = 7;
+  RAISE = 8;
+  ALLIN = 9;
+  RUN_IT_TWICE_YES = 10;
+  RUN_IT_TWICE_NO = 11;
+  RUN_IT_TWICE_PROMPT = 12;
+  POST_BLIND = 13;
 }
 
 message HandAction {
@@ -76,15 +77,16 @@ message PlayerBalance {
 }
 
 enum HandStatus {
-  DEAL = 0;
-  PREFLOP = 1;
-  FLOP = 2;
-  TURN = 3;
-  RIVER = 4;
-  SHOW_DOWN = 5;
-  EVALUATE_HAND = 6;
-  RESULT = 7;
-  HAND_CLOSED = 8;
+  HandStatus_UNKNOWN = 0;
+  DEAL = 1;
+  PREFLOP = 2;
+  FLOP = 3;
+  TURN = 4;
+  RIVER = 5;
+  SHOW_DOWN = 6;
+  EVALUATE_HAND = 7;
+  RESULT = 8;
+  HAND_CLOSED = 9;
 }
 
 // This enum is used to determine whether all the players in a round
@@ -93,9 +95,10 @@ enum HandStatus {
 // will have to act again.
 // All in will be treated as acted
 enum PlayerActState {
-  PLAYER_ACT_EMPTY_SEAT = 0;
-  PLAYER_ACT_NOT_ACTED = 1;
-  PLAYER_ACT_FOLDED = 2;
+  PLAYER_ACT_UNKNOWN = 0;
+  PLAYER_ACT_EMPTY_SEAT = 1;
+  PLAYER_ACT_NOT_ACTED = 2;
+  PLAYER_ACT_FOLDED = 3;
   PLAYER_ACT_ALL_IN = 4;     // all in
   PLAYER_ACT_BB = 5;
   PLAYER_ACT_STRADDLE = 6;
@@ -212,16 +215,17 @@ message PotWinners {
 }
 
 enum FlowState {
-	DEAL_HAND                   = 0;
-	WAIT_FOR_NEXT_ACTION        = 1;
-	PREPARE_NEXT_ACTION         = 2;
-	MOVE_TO_NEXT_ACTION         = 3;
-	MOVE_TO_NEXT_ROUND          = 4;
-	ALL_PLAYERS_ALL_IN          = 5;
-	ONE_PLAYER_REMAINING        = 6;
-	SHOWDOWN                    = 7;
-	HAND_ENDED                  = 8;
-  MOVE_TO_NEXT_HAND           = 9;
-	RUNITTWICE_UP_PROMPT        = 10;
-	RUNITTWICE_PROMPT_RESPONSE  = 11;
+  FlowState_UNKNOWN           = 0;
+	DEAL_HAND                   = 1;
+	WAIT_FOR_NEXT_ACTION        = 2;
+	PREPARE_NEXT_ACTION         = 3;
+	MOVE_TO_NEXT_ACTION         = 4;
+	MOVE_TO_NEXT_ROUND          = 5;
+	ALL_PLAYERS_ALL_IN          = 6;
+	ONE_PLAYER_REMAINING        = 7;
+	SHOWDOWN                    = 8;
+	HAND_ENDED                  = 9;
+  MOVE_TO_NEXT_HAND           = 10;
+	RUNITTWICE_UP_PROMPT        = 11;
+	RUNITTWICE_PROMPT_RESPONSE  = 12;
 }
