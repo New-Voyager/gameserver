@@ -18,6 +18,11 @@ pipeline {
                 sh 'make docker-build'
             }
         }
+        stage('Unit Test') {
+            steps {
+                sh 'make test'
+            }
+        }
     }
 }
 
