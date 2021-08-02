@@ -47,11 +47,17 @@ pipeline {
         always {
             script {
                 if (fileExists('jenkins_logs/docker_test.log')) {
-                    echo 'Printing last 200 lines of docker test log.'
+                    echo '''###################################################
+                            |Last 200 lines of docker test log
+                            |###################################################
+                         '''.stripMargin().stripIndent()
                     sh 'tail -n 200 jenkins_logs/docker_test.log'
                 }
                 if (fileExists('jenkins_logs/system_test.log')) {
-                    echo 'Printing last 200 lines of system test log.'
+                    echo '''###################################################
+                            |Last 200 lines of system test log
+                            |###################################################
+                         '''.stripMargin().stripIndent()
                     sh 'tail -n 200 jenkins_logs/system_test.log'
                 }
             }
