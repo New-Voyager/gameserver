@@ -13,6 +13,11 @@ pipeline {
                 sh 'ls -l'
             }
         }
+        stage('Build') {
+            steps {
+                sh 'make docker-build'
+            }
+        }
     }
 }
 
