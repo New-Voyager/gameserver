@@ -42,6 +42,16 @@ pipeline {
     }
     post {
         always {
+            script {
+                if (fileExists('jenkins_logs/docker_test.log')) {
+                    echo 'Printing last 200 lines of docker test log.'
+                    sh 'tail -n 200 jenkins_logs/docker_test.log'
+                }
+                if (fileExists('jenkins_logs/system_test.log')) {
+                    echo 'Printing last 200 lines of system test log.'
+                    sh 'tail -n 200 jenkins_logs/system_test.log'
+                }
+            }
             archiveArtifacts artifacts: 'jenkins_logs/*', allowEmptyArchive: true
         }
     }
