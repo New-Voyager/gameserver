@@ -347,27 +347,6 @@ func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 		Str("subject", n.hand2AllPlayersSubject).
 		Msg(fmt.Sprintf("H->A: %s", string(data)))
 	protoData, _ := proto.Marshal(message)
-	// n.natsConn.Publish(n.hand2AllPlayersSubject, protoData)
-
-	// base64Str := b64.StdEncoding.EncodeToString(protoData)
-	// if newHand {
-	// 	fmt.Printf("\n\nNew HAND \n\n")
-	// 	fmt.Printf("\n%s\n\n", string(data))
-	// 	dst := make([]byte, hex.EncodedLen(len(protoData)))
-	// 	hex.Encode(dst, protoData)
-	// 	fmt.Printf("%s\n", dst)
-	// 	protoData2, _ := b64.StdEncoding.DecodeString(base64Str)
-	// 	var message2 game.HandMessage
-	// 	err := proto.Unmarshal(protoData2, &message2)
-	// 	if err != nil {
-	// 		panic("could not unmarshal")
-	// 	}
-	// }
-	// fmt.Printf("\n*************%s\n%s\n*************\n", msgTypesStr, base64Str)
-	// if newHand {
-	// 	fmt.Printf("\n\nNew HAND \n\n")
-	// }
-	// base64data := []byte(base64Str)
 	n.natsConn.Publish(n.hand2AllPlayersSubject, protoData)
 }
 
@@ -378,10 +357,7 @@ func (n NatsGame) BroadcastPingMessage(message *game.PingPongMessage) {
 			Str("subject", n.pingSubject).
 			Msg(fmt.Sprintf("Ping->All: %s", string(data)))
 	}
-	// base64Str := b64.StdEncoding.EncodeToString(data)
-	// base64data := []byte(base64Str)
 	n.natsConn.Publish(n.pingSubject, data)
-	//n.natsConn.Publish(n.pingSubject, data)
 }
 
 func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID uint64) {
@@ -406,12 +382,7 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 		protoData = encryptedData
 	}
 
-	// base64Str := b64.StdEncoding.EncodeToString(protoData)
-	// fmt.Printf("%s\n", base64Str)
-	// base64data := []byte(base64Str)
 	n.natsConn.Publish(hand2PlayerSubject, protoData)
-
-	//	n.natsConn.Publish(hand2PlayerSubject, protoData)
 }
 
 func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID uint64) {
@@ -424,10 +395,6 @@ func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID ui
 	} else {
 		subject := fmt.Sprintf("game.%s.player.%d", n.gameCode, playerID)
 		data, _ := protojson.Marshal(message)
-
-		// protoData, _ := proto.Marshal(message)
-		// base64Str := b64.StdEncoding.EncodeToString(protoData)
-		// base64data := []byte(base64Str)
 		n.natsConn.Publish(subject, data)
 	}
 }
