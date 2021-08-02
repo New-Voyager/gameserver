@@ -1,8 +1,8 @@
 package nats
 
 import (
-	b64 "encoding/base64"
-	hex "encoding/hex"
+	//b64 "encoding/base64"
+
 	"encoding/json"
 	"fmt"
 
@@ -257,9 +257,10 @@ func (n *NatsGame) player2Game(msg *natsgo.Msg) {
 func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Player->Hand: %s", string(msg.Data)))
-	b64data, _ := b64.StdEncoding.DecodeString(string(msg.Data))
+	data := msg.Data
+	// b64data, _ := b64.StdEncoding.DecodeString(string(msg.Data))
 	var message game.HandMessage
-	e := proto.Unmarshal(b64data, &message)
+	e := proto.Unmarshal(data, &message)
 	if e != nil {
 		e := protojson.Unmarshal(msg.Data, &message)
 		if e != nil {
@@ -298,7 +299,8 @@ func (n *NatsGame) player2Pong(msg *natsgo.Msg) {
 		natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 			Msg(fmt.Sprintf("Player->Pong: %s", string(msg.Data)))
 	}
-	data, _ := b64.StdEncoding.DecodeString(string(msg.Data))
+	data := msg.Data
+	//data, _ := b64.StdEncoding.DecodeString(string(msg.Data))
 
 	var message game.PingPongMessage
 	e := proto.Unmarshal(data, &message)
@@ -336,12 +338,10 @@ func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 	}
 	data, _ := marshaller.Marshal(message)
 	var msgTypes []string
-	newHand := false
+	// var msgTypesStr string = ""
+	// newHand := false
 	for _, msgItem := range message.GetMessages() {
 		msgTypes = append(msgTypes, msgItem.MessageType)
-		if msgItem.MessageType == game.HandNewHand {
-			newHand = true
-		}
 	}
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Messages", fmt.Sprintf("%v", msgTypes)).
 		Str("subject", n.hand2AllPlayersSubject).
@@ -349,26 +349,26 @@ func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 	protoData, _ := proto.Marshal(message)
 	// n.natsConn.Publish(n.hand2AllPlayersSubject, protoData)
 
-	base64Str := b64.StdEncoding.EncodeToString(protoData)
-	if newHand {
-		fmt.Printf("\n\nNew HAND \n\n")
-		fmt.Printf("\n%s\n\n", string(data))
-		dst := make([]byte, hex.EncodedLen(len(protoData)))
-		hex.Encode(dst, protoData)
-		fmt.Printf("%s\n", dst)
-		protoData2, _ := b64.StdEncoding.DecodeString(base64Str)
-		var message2 game.HandMessage
-		err := proto.Unmarshal(protoData2, &message2)
-		if err != nil {
-			panic("could not unmarshal")
-		}
-	}
-	fmt.Printf("%s\n", base64Str)
-	if newHand {
-		fmt.Printf("\n\nNew HAND \n\n")
-	}
-	base64data := []byte(base64Str)
-	n.natsConn.Publish(n.hand2AllPlayersSubject, base64data)
+	// base64Str := b64.StdEncoding.EncodeToString(protoData)
+	// if newHand {
+	// 	fmt.Printf("\n\nNew HAND \n\n")
+	// 	fmt.Printf("\n%s\n\n", string(data))
+	// 	dst := make([]byte, hex.EncodedLen(len(protoData)))
+	// 	hex.Encode(dst, protoData)
+	// 	fmt.Printf("%s\n", dst)
+	// 	protoData2, _ := b64.StdEncoding.DecodeString(base64Str)
+	// 	var message2 game.HandMessage
+	// 	err := proto.Unmarshal(protoData2, &message2)
+	// 	if err != nil {
+	// 		panic("could not unmarshal")
+	// 	}
+	// }
+	// fmt.Printf("\n*************%s\n%s\n*************\n", msgTypesStr, base64Str)
+	// if newHand {
+	// 	fmt.Printf("\n\nNew HAND \n\n")
+	// }
+	// base64data := []byte(base64Str)
+	n.natsConn.Publish(n.hand2AllPlayersSubject, protoData)
 }
 
 func (n NatsGame) BroadcastPingMessage(message *game.PingPongMessage) {
@@ -378,9 +378,9 @@ func (n NatsGame) BroadcastPingMessage(message *game.PingPongMessage) {
 			Str("subject", n.pingSubject).
 			Msg(fmt.Sprintf("Ping->All: %s", string(data)))
 	}
-	base64Str := b64.StdEncoding.EncodeToString(data)
-	base64data := []byte(base64Str)
-	n.natsConn.Publish(n.pingSubject, base64data)
+	// base64Str := b64.StdEncoding.EncodeToString(data)
+	// base64data := []byte(base64Str)
+	n.natsConn.Publish(n.pingSubject, data)
 	//n.natsConn.Publish(n.pingSubject, data)
 }
 
@@ -406,10 +406,10 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 		protoData = encryptedData
 	}
 
-	base64Str := b64.StdEncoding.EncodeToString(protoData)
-	fmt.Printf("%s\n", base64Str)
-	base64data := []byte(base64Str)
-	n.natsConn.Publish(hand2PlayerSubject, base64data)
+	// base64Str := b64.StdEncoding.EncodeToString(protoData)
+	// fmt.Printf("%s\n", base64Str)
+	// base64data := []byte(base64Str)
+	n.natsConn.Publish(hand2PlayerSubject, protoData)
 
 	//	n.natsConn.Publish(hand2PlayerSubject, protoData)
 }

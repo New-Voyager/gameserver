@@ -199,7 +199,6 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 	}
 
 	serverMsg := &HandMessage{
-		ClubId:     g.config.ClubId,
 		GameId:     g.config.GameId,
 		PlayerId:   playerMsg.GetPlayerId(),
 		HandNum:    handState.HandNum,
@@ -364,7 +363,6 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		}
 
 		msg := HandMessage{
-			ClubId:     g.config.ClubId,
 			GameId:     g.config.GameId,
 			HandNum:    handState.HandNum,
 			HandStatus: handState.CurrentState,
@@ -541,7 +539,6 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 
 	// Create hand message with all of the message items.
 	serverMsg := HandMessage{
-		ClubId:     g.config.ClubId,
 		GameId:     g.config.GameId,
 		HandNum:    handState.HandNum,
 		HandStatus: handState.CurrentState,
@@ -636,7 +633,6 @@ func (g *Game) sendActionAck(playerMsg *HandMessage, currentActionNum uint32) {
 	}
 
 	serverMsg := &HandMessage{
-		ClubId:     playerMsg.GetClubId(),
 		GameId:     playerMsg.GetGameId(),
 		PlayerId:   playerMsg.GetPlayerId(),
 		HandNum:    playerMsg.GetHandNum(),

@@ -420,7 +420,6 @@ func (g *Game) dealNewHand() error {
 			// // announce new game type
 			handMessage := HandMessage{
 				GameId:     g.config.GameId,
-				ClubId:     g.config.ClubId,
 				HandNum:    newHandInfo.HandNum,
 				HandStatus: HandStatus_DEAL,
 				MessageId:  g.generateMsgID("ANNOUNCEMENT", newHandInfo.HandNum, HandStatus_DEAL, 0, "", 0),
@@ -557,7 +556,6 @@ func (g *Game) dealNewHand() error {
 
 	handMessage := HandMessage{
 		GameId:     g.config.GameId,
-		ClubId:     g.config.ClubId,
 		HandNum:    handState.HandNum,
 		HandStatus: handState.CurrentState,
 		MessageId:  g.generateMsgID("NEW_HAND", handState.HandNum, handState.CurrentState, 0, "", handState.CurrentActionNum),
@@ -579,7 +577,6 @@ func (g *Game) dealNewHand() error {
 	// indicate the clients card distribution began
 	handMessage = HandMessage{
 		GameId:     g.config.GameId,
-		ClubId:     g.config.ClubId,
 		GameCode:   g.config.GameCode,
 		HandNum:    handState.HandNum,
 		HandStatus: handState.CurrentState,
@@ -622,7 +619,6 @@ func (g *Game) dealNewHand() error {
 		//messageData, _ := proto.Marshal(&message)
 		handMessage := HandMessage{
 			GameId:    g.config.GameId,
-			ClubId:    g.config.ClubId,
 			PlayerId:  player.PlayerID,
 			MessageId: g.generateMsgID("CARDS", handState.HandNum, handState.CurrentState, player.PlayerID, "", handState.CurrentActionNum),
 			Messages: []*HandMessageItem{
@@ -654,7 +650,6 @@ func (g *Game) dealNewHand() error {
 		return err
 	}
 	handMsg := HandMessage{
-		ClubId:     g.config.ClubId,
 		GameId:     g.config.GameId,
 		HandNum:    handState.HandNum,
 		HandStatus: handState.CurrentState,
