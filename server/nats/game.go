@@ -1,6 +1,7 @@
 package nats
 
 import (
+	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
 
@@ -255,8 +256,9 @@ func (n *NatsGame) player2Game(msg *natsgo.Msg) {
 func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Player->Hand: %s", string(msg.Data)))
+	b64data, _ := b64.StdEncoding.DecodeString(string(msg.Data))
 	var message game.HandMessage
-	e := proto.Unmarshal(msg.Data, &message)
+	e := proto.Unmarshal(b64data, &message)
 	if e != nil {
 		e := protojson.Unmarshal(msg.Data, &message)
 		if e != nil {
@@ -295,8 +297,10 @@ func (n *NatsGame) player2Pong(msg *natsgo.Msg) {
 		natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 			Msg(fmt.Sprintf("Player->Pong: %s", string(msg.Data)))
 	}
+	data, _ := b64.StdEncoding.DecodeString(string(msg.Data))
+
 	var message game.PingPongMessage
-	e := proto.Unmarshal(msg.Data, &message)
+	e := proto.Unmarshal(data, &message)
 	if e != nil {
 		return
 	}
@@ -338,7 +342,11 @@ func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 		Str("subject", n.hand2AllPlayersSubject).
 		Msg(fmt.Sprintf("H->A: %s", string(data)))
 	protoData, _ := proto.Marshal(message)
-	n.natsConn.Publish(n.hand2AllPlayersSubject, protoData)
+	// n.natsConn.Publish(n.hand2AllPlayersSubject, protoData)
+
+	base64Str := b64.StdEncoding.EncodeToString(protoData)
+	base64data := []byte(base64Str)
+	n.natsConn.Publish(n.hand2AllPlayersSubject, base64data)
 }
 
 func (n NatsGame) BroadcastPingMessage(message *game.PingPongMessage) {
@@ -348,7 +356,10 @@ func (n NatsGame) BroadcastPingMessage(message *game.PingPongMessage) {
 			Str("subject", n.pingSubject).
 			Msg(fmt.Sprintf("Ping->All: %s", string(data)))
 	}
-	n.natsConn.Publish(n.pingSubject, data)
+	base64Str := b64.StdEncoding.EncodeToString(data)
+	base64data := []byte(base64Str)
+	n.natsConn.Publish(n.pingSubject, base64data)
+	//n.natsConn.Publish(n.pingSubject, data)
 }
 
 func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID uint64) {
@@ -373,7 +384,11 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 		protoData = encryptedData
 	}
 
-	n.natsConn.Publish(hand2PlayerSubject, protoData)
+	base64Str := b64.StdEncoding.EncodeToString(protoData)
+	base64data := []byte(base64Str)
+	n.natsConn.Publish(hand2PlayerSubject, base64data)
+
+	//	n.natsConn.Publish(hand2PlayerSubject, protoData)
 }
 
 func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID uint64) {
@@ -386,6 +401,10 @@ func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID ui
 	} else {
 		subject := fmt.Sprintf("game.%s.player.%d", n.gameCode, playerID)
 		data, _ := protojson.Marshal(message)
+
+		// protoData, _ := proto.Marshal(message)
+		// base64Str := b64.StdEncoding.EncodeToString(protoData)
+		// base64data := []byte(base64Str)
 		n.natsConn.Publish(subject, data)
 	}
 }

@@ -3,6 +3,7 @@ package player
 import (
 	"bufio"
 	"bytes"
+	b64 "encoding/base64"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -304,13 +305,16 @@ func (bp *BotPlayer) handleGameMsg(msg *natsgo.Msg) {
 }
 
 func (bp *BotPlayer) handleHandMsg(msg *natsgo.Msg) {
-	bp.unmarshalAndQueueHandMsg(msg.Data)
+	b64data, _ := b64.StdEncoding.DecodeString(string(msg.Data))
+	bp.unmarshalAndQueueHandMsg(b64data)
 }
 
 func (bp *BotPlayer) handlePrivateHandMsg(msg *natsgo.Msg) {
 	data := msg.Data
 	if util.Env.IsEncryptionEnabled() {
-		decryptedMsg, err := encryption.DecryptWithUUIDStrKey(msg.Data, bp.EncryptionKey)
+		b64data, _ := b64.StdEncoding.DecodeString(string(data))
+
+		decryptedMsg, err := encryption.DecryptWithUUIDStrKey(b64data, bp.EncryptionKey)
 		if err != nil {
 			bp.logger.Error().Msgf("%s: Error [%s] while decrypting private hand message", bp.logPrefix, err)
 			return
@@ -338,7 +342,8 @@ func (bp *BotPlayer) unmarshalAndQueueHandMsg(data []byte) {
 
 func (bp *BotPlayer) handlePingMsg(msg *natsgo.Msg) {
 	var message game.PingPongMessage
-	err := proto.Unmarshal(msg.Data, &message)
+	b64data, _ := b64.StdEncoding.DecodeString(string(msg.Data))
+	err := proto.Unmarshal(b64data, &message)
 	if err != nil {
 		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf ping message [%s]", bp.logPrefix, err, string(msg.Data))
 		return
@@ -714,9 +719,11 @@ func (bp *BotPlayer) respondToPing(pingMsg *game.PingPongMessage) error {
 	if err != nil {
 		return errors.Wrap(err, "Could not proto-marshal pong message.")
 	}
+	base64Str := b64.StdEncoding.EncodeToString(protoData)
+
 	// bp.logger.Debug().Msgf("%s: Sending PONG. Msg: %s", bp.logPrefix, string(protoData))
 	// Send to hand subject.
-	err = bp.natsConn.Publish(bp.pongSubjectName, protoData)
+	err = bp.natsConn.Publish(bp.pongSubjectName, []byte(base64Str))
 	if err != nil {
 		return errors.Wrapf(err, "Unable to publish pong message to nats channel %s", bp.pongSubjectName)
 	}
@@ -1944,8 +1951,10 @@ func (bp *BotPlayer) queryCurrentHandState() error {
 		return errors.Wrap(err, fmt.Sprintf("%s: Could not create query hand message.", bp.logPrefix))
 	}
 	bp.logger.Info().Msgf("%s: Querying current hand. Msg: %s", bp.logPrefix, string(protoData))
+	base64Str := b64.StdEncoding.EncodeToString(protoData)
+
 	// Send to hand subject.
-	err = bp.natsConn.Publish(bp.meToHand, protoData)
+	err = bp.natsConn.Publish(bp.meToHand, []byte(base64Str))
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to publish to nats", bp.logPrefix))
 	}
@@ -2234,6 +2243,8 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 		bp.sm.SetState(BotState__ERROR)
 		return
 	}
+	base64Str := b64.StdEncoding.EncodeToString(protoData)
+
 	published := false
 	ackReceived := false
 	for attempts := 1; !ackReceived; attempts++ {
@@ -2252,7 +2263,7 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 		if attempts > 1 {
 			bp.logger.Info().Msgf("%s: Attempt (%d) to publish message type: %s, message ID: %s", bp.logPrefix, attempts, game.HandPlayerActed, msg.GetMessageId())
 		}
-		if err := bp.natsConn.Publish(bp.meToHand, protoData); err != nil {
+		if err := bp.natsConn.Publish(bp.meToHand, []byte(base64Str)); err != nil {
 			bp.logger.Error().Msgf("%s: Error [%s] while publishing message %+v", bp.logPrefix, err, msg)
 			time.Sleep(2 * time.Second)
 			continue
