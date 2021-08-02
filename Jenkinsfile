@@ -23,6 +23,16 @@ pipeline {
                 sh 'make test'
             }
         }
+        stage('Docker Test') {
+            steps {
+                sh 'make docker-test'
+            }
+        }
+        stage('System Test') {
+            steps {
+                sh 'make system-test'
+            }
+        }
     }
 }
 
