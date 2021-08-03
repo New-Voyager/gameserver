@@ -1,7 +1,7 @@
 syntax = "proto3";
 package game;
 option go_package = "./game";
-import "game.proto";
+import "enums.proto";
 import "hand.proto";
 
 message PlayerStats {
@@ -200,16 +200,14 @@ message Announcement {
 
 message HandMessage {
   string version = 1;
-  uint32 club_id = 2;
-  uint64 game_id = 3;
-  string game_code = 4;
-  uint32 hand_num = 5;
-  uint32 seat_no = 6;       // if this message is targeted to a specific player
-  uint64 player_id = 8;
-  string message_id = 9;
-  string game_token = 10;    // game token assigned to a player for this game
-  HandStatus hand_status = 11;
-  repeated HandMessageItem messages = 12;
+  string game_code = 2;
+  uint32 hand_num = 3;
+  uint32 seat_no = 4;       // if this message is targeted to a specific player
+  uint64 player_id = 5;
+  string message_id = 6;
+  string game_token = 7;    // game token assigned to a player for this game
+  HandStatus hand_status = 8;
+  repeated HandMessageItem messages = 9;
 }
 
 message DealerChoice {

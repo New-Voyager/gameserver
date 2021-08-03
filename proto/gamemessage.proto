@@ -1,6 +1,7 @@
 syntax = "proto3";
 package game;
 option go_package = "./game";
+import "enums.proto";
 import "game.proto";
 import "hand.proto";
 

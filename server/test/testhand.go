@@ -189,8 +189,6 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.Betting
 			actionType := game.ACTION(game.ACTION_value[action.Action])
 			handAction := game.HandAction{SeatNo: action.SeatNo, Action: actionType, Amount: action.Amount}
 			message := game.HandMessage{
-				ClubId:  h.gameScript.testGame.clubID,
-				GameId:  h.gameScript.testGame.gameID,
 				HandNum: h.hand.Num,
 				SeatNo:  action.SeatNo,
 				Messages: []*game.HandMessageItem{
@@ -248,8 +246,6 @@ func (h *TestHand) waitForRunItTwicePrompt() {
 
 				handAction := game.HandAction{SeatNo: seatAction.SeatNo, Action: actionType}
 				message := game.HandMessage{
-					ClubId:  h.gameScript.testGame.clubID,
-					GameId:  h.gameScript.testGame.gameID,
 					HandNum: h.hand.Num,
 					SeatNo:  seatAction.SeatNo,
 					Messages: []*game.HandMessageItem{

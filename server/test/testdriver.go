@@ -135,7 +135,8 @@ func RunGameScriptTests(fileOrDir string, testName string) {
 	}
 
 	passed := testDriver.ReportResult()
-	fmt.Printf("Data json: %d base64: %d", game.TotalJsonBytesReceived, game.TotalBase64BytesReceived)
+	fmt.Printf("Data json: %d base64: %d binary: %d\n",
+		game.TotalJsonBytesReceived, game.TotalBase64BytesReceived, game.TotalBinaryDataReceived)
 	if passed {
 		fmt.Printf("All scripts passed\n")
 		os.Exit(0)
