@@ -161,7 +161,7 @@ TIMER_IMAGE=$(shell $(BUILD_HELPER)/get_local_image_name.sh timer $(DOCKER_IMAGE
 TEST_DOCKER_NET := $(shell $(BUILD_HELPER)/get_local_docker_net.sh system_test)
 COMPOSE_PROJECT_NAME := $(shell $(BUILD_HELPER)/get_compose_project_name.sh system_test)
 COMPOSE_SYSTEM_TEST := docker-compose -p $(COMPOSE_PROJECT_NAME) -f docker-compose-systest.yaml
-ifndef JENKINS_VERSION
+ifndef CI
 COMPOSE_SYSTEM_TEST := $(COMPOSE_SYSTEM_TEST) -f docker-compose-systest-local.yaml
 endif
 
