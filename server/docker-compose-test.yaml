@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  redis:
+    image: ${REDIS_IMAGE}
+
+networks:
+  default:
+    external:
+      name: ${TEST_DOCKER_NET}

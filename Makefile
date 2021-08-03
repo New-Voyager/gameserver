@@ -19,6 +19,12 @@ docker-build:
 	$(MAKE) -C $(BOTRUNNER_DIR) docker-build
 	$(MAKE) -C $(TIMER_DIR) docker-build
 
+.PHONY: clean-ci
+clean-ci:
+	$(MAKE) -C $(SERVER_DIR) clean-ci
+	$(MAKE) -C $(BOTRUNNER_DIR) clean-ci
+	$(MAKE) -C $(TIMER_DIR) clean-ci
+
 .PHONY: publish
 publish:
 	$(MAKE) -C $(SERVER_DIR) publish

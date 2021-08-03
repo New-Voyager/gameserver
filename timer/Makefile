@@ -1,3 +1,7 @@
+PROJECT_ROOT := ..
+BUILD_HELPER := $(PROJECT_ROOT)/build_helper
+include $(PROJECT_ROOT)/common.mk
+
 BUILD_NO := $(shell cat build_number.txt)
 GCP_PROJECT_ID := voyager-01-285603
 DO_REGISTRY := registry.digitalocean.com/voyager
@@ -7,12 +11,11 @@ REGISTRY := $(DO_REGISTRY)
 DEV_API_SERVER_URL ?= http://localhost:9501
 
 DOCKER_BUILDKIT ?= 1
-
-PROJECT_ROOT := ..
+LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh timer $(DOCKER_IMAGE_TAG))
 
 .PHONY: docker-build
 docker-build:
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t timer
+	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(LOCAL_IMAGE_NAME)
 
 .PHONY: build
 build:
@@ -25,6 +28,9 @@ run:
 .PHONY: publish
 publish: do-publish
 
+.PHONY: clean-ci
+clean-ci:
+
 .PHONY: do-publish
 do-publish: export REGISTRY=$(DO_REGISTRY)
 do-publish: do-login publish-timer
@@ -35,8 +41,8 @@ gcp-publish: publish-timer
 
 .PHONY: publish-timer
 publish-timer:
-	docker tag timer $(REGISTRY)/timer:$(BUILD_NO)
-	docker tag timer $(REGISTRY)/timer:latest
+	docker tag $(LOCAL_IMAGE_NAME) $(REGISTRY)/timer:$(BUILD_NO)
+	docker tag $(LOCAL_IMAGE_NAME) $(REGISTRY)/timer:latest
 	docker push $(REGISTRY)/timer:$(BUILD_NO)
 	docker push $(REGISTRY)/timer:latest
 
