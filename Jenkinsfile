@@ -11,6 +11,11 @@ pipeline {
                 sh 'ls -l'
             }
         }
+        stage('Clean Up Containers') {
+            steps {
+                cleanUpContainers()
+            }
+        }
         stage('Build') {
             steps {
                 sh 'make docker-build'
@@ -62,6 +67,7 @@ pipeline {
                 }
             }
             archiveArtifacts artifacts: 'jenkins_logs/*', allowEmptyArchive: true
+            cleanUpContainers()
         }
         success {
             setBuildStatus("Build succeeded", "SUCCESS");
@@ -86,4 +92,8 @@ def setBuildStatus(String message, String state) {
 def getRepoURL() {
   sh "git config --get remote.origin.url > .git/remote-url"
   return readFile(".git/remote-url").trim()
+}
+
+def cleanUpContainers() {
+    sh 'docker rm -f $(docker ps | grep -v "jenkins" | awk \'{print $1}\' | tail -n +2) || true'
 }
