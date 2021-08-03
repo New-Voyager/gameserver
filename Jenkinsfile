@@ -7,6 +7,9 @@ pipeline {
         timeout(time: 30, unit: 'MINUTES')
     }
     stages {
+        stage('Notify GitHub') {
+            setBuildStatus("Pending", "PENDING");
+        }
         stage('Print Env') {
             steps {
                 sh 'printenv | sort'
