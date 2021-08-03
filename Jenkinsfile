@@ -30,13 +30,13 @@ pipeline {
                 sh 'make test'
             }
         }
-        // stage('Docker Test') {
-        //     steps {
-        //         sh 'mkdir -p jenkins_logs'
-        //         echo "Running Docker Test. Last ${num_log_lines} lines of the log will be printed at the end and the full log will be saved as an artifact (docker_test.log)."
-        //         sh 'make docker-test > jenkins_logs/docker_test.log 2>&1'
-        //     }
-        // }
+        stage('Docker Test') {
+            steps {
+                sh 'mkdir -p jenkins_logs'
+                echo "Running Docker Test. Last ${num_log_lines} lines of the log will be printed at the end and the full log will be saved as an artifact (docker_test.log)."
+                sh 'make docker-test > jenkins_logs/docker_test.log 2>&1'
+            }
+        }
         // stage('System Test') {
         //     steps {
         //         echo "Running System Test. Last ${num_log_lines} lines of the log will be printed at the end and the full log will be saved as an artifact (system_test.log)."
