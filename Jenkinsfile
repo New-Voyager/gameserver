@@ -15,11 +15,6 @@ pipeline {
                 sh 'ls -l'
             }
         }
-        stage('Clean Up Old Containers') {
-            steps {
-                cleanUpContainers()
-            }
-        }
         stage('Build') {
             steps {
                 sh 'make docker-build'
@@ -54,15 +49,19 @@ pipeline {
     }
     post {
         always {
+            archiveArtifacts artifacts: 'jenkins_logs/*', allowEmptyArchive: true
+            cleanUpDockerResources()
+            cleanUpBuild()
             script {
                 printLastNLines('jenkins_logs/docker_test.log', num_log_lines)
                 printLastNLines('jenkins_logs/system_test.log', num_log_lines)
             }
-            archiveArtifacts artifacts: 'jenkins_logs/*', allowEmptyArchive: true
-            cleanUpContainers()
         }
         success {
             setBuildStatus("Build succeeded", "SUCCESS");
+        }
+        aborted {
+            setBuildStatus("Build aborted", "FAILURE");
         }
         failure {
             setBuildStatus("Build failed", "FAILURE");
@@ -84,12 +83,24 @@ def setBuildStatus(String message, String state) {
     ]);
 }
 
+def cleanUpBuild() {
+    sh 'make clean-ci'
+}
+
 /*
-Clean up running containers.
-Be careful not to remove the jenkins container, etc.
+Clean up docker images and other docker resources.
 */
-def cleanUpContainers() {
-    sh 'docker rm -f $(docker ps | grep -v "jenkins" | awk \'{print $1}\' | tail -n +2) || true'
+def cleanUpDockerResources() {
+    // Remove old stopped containers.
+    sh 'docker container prune --force --filter until=12h'
+    // Remove dangling images.
+    sh 'docker image prune --force || true'
+    // Remove old unused images.
+    sh 'docker image prune -a --force --filter until=72h || true'
+    // Remove old unused networks.
+    sh 'docker network prune --force --filter until=72h || true'
+    // Remove unused volumes.
+    sh 'docker volume prune --force || true'
 }
 
 /*

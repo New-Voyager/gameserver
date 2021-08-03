@@ -14,3 +14,6 @@ __debug_bin
 
 # Temporary build files
 build/
+
+# Compose environment file.
+.env
