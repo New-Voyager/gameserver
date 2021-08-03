@@ -441,6 +441,11 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 }
 
 func validatePlayerAction(actionMsg *HandAction, handState *HandState) error {
+
+	if handState.GetNextSeatAction() == nil {
+		return fmt.Errorf("Invalid next seat action")
+	}
+
 	if actionMsg.Action == ACTION_CALL {
 		expectedCallAmount := handState.GetNextSeatAction().CallAmount
 		if actionMsg.Amount != expectedCallAmount {
