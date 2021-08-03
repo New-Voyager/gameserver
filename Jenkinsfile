@@ -74,19 +74,13 @@ Notify GitHub the build result.
 https://plugins.jenkins.io/github/
 */
 def setBuildStatus(String message, String state) {
-    repoUrl = getRepoURL()
     step([
         $class: "GitHubCommitStatusSetter",
-        reposSource: [$class: "ManuallyEnteredRepositorySource", url: repoUrl],
+        reposSource: [$class: "ManuallyEnteredRepositorySource", url: env.GIT_URL],
         contextSource: [$class: "ManuallyEnteredCommitContextSource", context: "ci/jenkins"],
         errorHandlers: [[$class: "ChangingBuildStatusErrorHandler", result: "UNSTABLE"]],
         statusResultSource: [ $class: "ConditionalStatusResultSource", results: [[$class: "AnyBuildResult", message: message, state: state]] ]
     ]);
-}
-
-def getRepoURL() {
-  sh "git config --get remote.origin.url > .git/remote-url"
-  return readFile(".git/remote-url").trim()
 }
 
 /*
