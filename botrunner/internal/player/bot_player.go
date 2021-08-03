@@ -21,6 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"voyager.com/botrunner/internal/game"
 	"voyager.com/botrunner/internal/gql"
 	"voyager.com/botrunner/internal/poker"
@@ -321,12 +322,8 @@ func (bp *BotPlayer) handlePrivateHandMsg(msg *natsgo.Msg) {
 }
 
 func (bp *BotPlayer) unmarshalAndQueueHandMsg(data []byte) {
-	fmt.Printf("\n")
-	fmt.Printf(string(data))
-	fmt.Printf("\n")
-
 	var message game.HandMessage
-	err := protojson.Unmarshal(data, &message)
+	err := proto.Unmarshal(data, &message)
 	if err != nil {
 		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf hand message [%s]", bp.logPrefix, err, string(data))
 		return
@@ -337,7 +334,7 @@ func (bp *BotPlayer) unmarshalAndQueueHandMsg(data []byte) {
 
 func (bp *BotPlayer) handlePingMsg(msg *natsgo.Msg) {
 	var message game.PingPongMessage
-	err := protojson.Unmarshal(msg.Data, &message)
+	err := proto.Unmarshal(msg.Data, &message)
 	if err != nil {
 		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf ping message [%s]", bp.logPrefix, err, string(msg.Data))
 		return
@@ -463,11 +460,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.hasNextHandBeenSetup = false // Not this hand, but the next one.
 
 		if bp.IsHost() {
-			data, _ := protojson.Marshal(message)
-			fmt.Printf("==========================\n")
-			fmt.Printf("%s\n", string(data))
-			fmt.Printf("==========================\n")
-
+			data, _ := proto.Marshal(message)
 			bp.logger.Info().Msgf("A new hand is started. Hand Num: %d, message: %s", message.HandNum, string(data))
 			if !bp.config.Script.AutoPlay {
 				if int(message.HandNum) == len(bp.config.Script.Hands) {
@@ -709,7 +702,7 @@ func (bp *BotPlayer) respondToPing(pingMsg *game.PingPongMessage) error {
 		Seq:      pingMsg.GetSeq(),
 	}
 
-	protoData, err := protojson.Marshal(&msg)
+	protoData, err := proto.Marshal(&msg)
 	if err != nil {
 		return errors.Wrap(err, "Could not proto-marshal pong message.")
 	}
@@ -1929,7 +1922,7 @@ func (bp *BotPlayer) RequestEndGame(gameCode string) error {
 func (bp *BotPlayer) queryCurrentHandState() error {
 	// query current hand state
 	msg := game.HandMessage{
-		GameId:   bp.gameID,
+		GameCode: bp.gameCode,
 		PlayerId: bp.PlayerID,
 		//GameToken: 	 bp.GameToken,
 		Messages: []*game.HandMessageItem{
@@ -1938,7 +1931,7 @@ func (bp *BotPlayer) queryCurrentHandState() error {
 			},
 		},
 	}
-	protoData, err := protojson.Marshal(&msg)
+	protoData, err := proto.Marshal(&msg)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Could not create query hand message.", bp.logPrefix))
 	}
@@ -2225,7 +2218,7 @@ func (bp *BotPlayer) getActionTime() time.Duration {
 }
 
 func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
-	protoData, err := protojson.Marshal(msg)
+	protoData, err := proto.Marshal(msg)
 	if err != nil {
 		errMsg := fmt.Sprintf("%s: Could not serialize hand message [%+v]. Error: %v", bp.logPrefix, msg, err)
 		bp.logger.Error().Msg(errMsg)

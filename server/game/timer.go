@@ -67,8 +67,6 @@ func (g *Game) handlePlayTimeout(timeoutMsg timer.TimerMsg) error {
 		}
 
 		handMessage := HandMessage{
-			GameId:     g.config.GameId,
-			ClubId:     g.config.ClubId,
 			HandNum:    handState.HandNum,
 			HandStatus: handState.CurrentState,
 			PlayerId:   timeoutMsg.PlayerID,
@@ -94,8 +92,6 @@ func (g *Game) handlePlayTimeout(timeoutMsg timer.TimerMsg) error {
 		}
 
 		handMessage := HandMessage{
-			GameId:     g.config.GameId,
-			ClubId:     g.config.ClubId,
 			HandNum:    handState.HandNum,
 			HandStatus: handState.CurrentState,
 			PlayerId:   timeoutMsg.PlayerID,

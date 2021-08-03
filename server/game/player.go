@@ -176,7 +176,7 @@ func (p *Player) onPlayerAction(messageBytes []byte, message *HandMessage, msgIt
 		if seatAction.AvailableActions != nil && len(seatAction.AvailableActions) >= 1 {
 			if seatAction.AvailableActions[0] == ACTION_RUN_IT_TWICE_PROMPT {
 				playerLogger.Info().
-					Uint64("game", message.GameId).
+					Str("game", message.GameCode).
 					Msg(fmt.Sprintf("Run it twice prompt. Seat No: %d", seatAction.SeatNo))
 			}
 		}

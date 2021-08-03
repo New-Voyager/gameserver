@@ -1,0 +1,68 @@
+syntax = "proto3";
+package game;
+option go_package = "./game";
+
+enum PlayerStatus {
+    PLAYER_UNKNOWN_STATUS = 0;
+    NOT_PLAYING = 1;
+    PLAYING = 2;
+    IN_QUEUE = 3;
+    IN_BREAK = 4;
+    STANDING_UP = 5;
+    LEFT = 6;
+    KICKED_OUT = 7;
+    BLOCKED = 8;
+    LOST_CONNECTION = 9;
+    WAIT_FOR_BUYIN = 10;
+    LEAVING_GAME = 11;
+    TAKING_BREAK = 12;
+    JOINING = 13;
+    WAITLIST_SEATING = 14;
+    PENDING_UPDATES = 15;
+    WAIT_FOR_BUYIN_APPROVAL = 16;
+    NEED_TO_POST_BLIND = 17;
+  }
+
+enum GameType {
+    UNKNOWN = 0;
+    HOLDEM = 1;
+    PLO = 2;
+    PLO_HILO = 3;
+    FIVE_CARD_PLO = 4;
+    FIVE_CARD_PLO_HILO = 5;
+  }
+  
+  // GameStatus is controlled by the Host of the game
+  enum GameStatus {
+    GAME_STATUS_UNKNOWN = 0;
+    CONFIGURED = 1;
+    ACTIVE = 2;
+    PAUSED = 3;
+    ENDED = 4;
+  }
+  
+  // TableStatus is determined by the Game server
+  enum TableStatus {
+    TABLE_STATUS_UNKNOWN = 0;
+    WAITING_TO_BE_STARTED = 1;
+    NOT_ENOUGH_PLAYERS = 2;
+    GAME_RUNNING = 3;
+  }
+  
+  // Player update since the last hand
+  enum NewUpdate {
+    UNKNOWN_PLAYER_UPDATE = 0;
+    NEW_PLAYER = 1;
+    RELOAD_CHIPS = 2;
+    SWITCH_SEAT = 3;
+    TAKE_BREAK = 4;
+    SIT_BACK = 5;
+    LEFT_THE_GAME = 6;
+    EMPTY_STACK = 7;
+    NEW_BUYIN = 8;
+    BUYIN_TIMEDOUT = 9;
+    NEWUPDATE_WAIT_FOR_BUYIN_APPROVAL = 10;
+    BUYIN_DENIED = 11;
+    NEWUPDATE_NOT_PLAYING = 12;
+  }
+  

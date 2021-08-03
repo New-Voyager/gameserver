@@ -47,9 +47,9 @@ pull:
 compile-proto: install-protoc
 	go get -u github.com/golang/protobuf/protoc-gen-go
 	rm -f game/*.pb.go
+	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/enums.proto
 	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/game.proto
 	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/hand.proto
-	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/gamestate.proto
 	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/handstate.proto
 	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/gamemessage.proto
 	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/handmessage.proto
