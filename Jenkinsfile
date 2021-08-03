@@ -7,17 +7,15 @@ pipeline {
         timeout(time: 30, unit: 'MINUTES')
     }
     stages {
-        stage('Notify GitHub') {
-            setBuildStatus("Pending", "PENDING");
-        }
-        stage('Print Env') {
+        stage('Setup') {
             steps {
+                setBuildStatus("Pending", "PENDING");
                 sh 'printenv | sort'
                 sh 'pwd'
                 sh 'ls -l'
             }
         }
-        stage('Clean Up Containers') {
+        stage('Clean Up Old Containers') {
             steps {
                 cleanUpContainers()
             }
