@@ -60,6 +60,7 @@ pipeline {
             }
             archiveArtifacts artifacts: 'jenkins_logs/*', allowEmptyArchive: true
             cleanUpContainers()
+            cleanUpDockerResources()
         }
         success {
             setBuildStatus("Build succeeded", "SUCCESS");
@@ -85,11 +86,25 @@ def setBuildStatus(String message, String state) {
 }
 
 /*
-Clean up running containers.
+Clean up containers.
 Be careful not to remove the jenkins container, etc.
 */
 def cleanUpContainers() {
-    sh 'docker rm -f $(docker ps | grep -v "jenkins" | awk \'{print $1}\' | tail -n +2) || true'
+    sh 'docker rm -f $(docker ps -a | grep -v "jenkins" | awk \'{print $1}\' | tail -n +2) || true'
+}
+
+/*
+Clean up docker images and other docker resources.
+*/
+def cleanUpDockerResources() {
+    // Remove dangling images.
+    sh 'docker image prune --force || true'
+    // Remove old unused images.
+    sh 'docker image prune -a --force --filter until=72h || true'
+    // Remove old unused networks.
+    sh 'docker network prune --force --filter until=72h || true'
+    // Remove unused volumes.
+    sh 'docker volume prune --force || true'
 }
 
 /*
