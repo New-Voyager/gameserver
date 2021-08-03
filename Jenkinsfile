@@ -6,7 +6,7 @@ pipeline {
         disableConcurrentBuilds()
     }
     stages {
-        stage('env') {
+        stage('Print Env') {
             steps {
                 sh 'printenv | sort'
                 sh 'pwd'
