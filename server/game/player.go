@@ -17,6 +17,7 @@ NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 var playerLogger = log.With().Str("logger_name", "game::player").Logger()
 var TotalJsonBytesReceived = 0
 var TotalBase64BytesReceived = 0
+var TotalBinaryDataReceived = 0
 
 //
 // Player object is a virtual player who is in a table whether the player
@@ -85,6 +86,7 @@ func (p *Player) handleHandMessage(messageBytes []byte, message *HandMessage) {
 
 	TotalBase64BytesReceived += len(base64)
 	TotalJsonBytesReceived += len(jsonb)
+	TotalBinaryDataReceived += len(messageBytes)
 
 	// playerLogger.Warn().Str("dir", "GH->P").Msg(string(jsonb))
 
