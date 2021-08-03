@@ -50,7 +50,7 @@ compile-proto:
 .PHONY: docker-build
 docker-build: compile-proto
 	mkdir -p build
-	if ! [ -z "${JENKINS_VERSION}" ]; then \
+	if ! command -v rsync; then \
 		[ -d build/gamescript ] || cp -r $(PROJECT_ROOT)/gamescript build/gamescript; \
 		[ -d build/encryption ] || cp -r $(PROJECT_ROOT)/encryption build/encryption; \
 	else \

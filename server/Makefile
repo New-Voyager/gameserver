@@ -91,7 +91,7 @@ script-test: run-redis
 .PHONY: docker-build
 docker-build: compile-proto
 	mkdir -p build
-	if ! [ -z "${JENKINS_VERSION}" ]; then \
+	if ! command -v rsync; then \
 		[ -d build/encryption ] || cp -r $(PROJECT_ROOT)/encryption build/encryption; \
 	else \
 		rsync -avu --delete $(PROJECT_ROOT)/encryption/ build/encryption; \
