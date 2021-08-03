@@ -51,20 +51,8 @@ pipeline {
     post {
         always {
             script {
-                if (fileExists('jenkins_logs/docker_test.log')) {
-                    echo '''###################################################
-                            |Last 200 lines of docker test log
-                            |###################################################
-                         '''.stripMargin().stripIndent()
-                    sh 'tail -n 200 jenkins_logs/docker_test.log'
-                }
-                if (fileExists('jenkins_logs/system_test.log')) {
-                    echo '''###################################################
-                            |Last 200 lines of system test log
-                            |###################################################
-                         '''.stripMargin().stripIndent()
-                    sh 'tail -n 200 jenkins_logs/system_test.log'
-                }
+                printLastNLines('jenkins_logs/docker_test.log', 200)
+                printLastNLines('jenkins_logs/system_test.log', 200)
             }
             archiveArtifacts artifacts: 'jenkins_logs/*', allowEmptyArchive: true
             cleanUpContainers()
@@ -78,6 +66,10 @@ pipeline {
     }
 }
 
+/*
+Notify GitHub the build result.
+https://plugins.jenkins.io/github/
+*/
 def setBuildStatus(String message, String state) {
     repoUrl = getRepoURL()
     step([
@@ -94,6 +86,27 @@ def getRepoURL() {
   return readFile(".git/remote-url").trim()
 }
 
+/*
+Clean up running containers.
+Be careful not to remove the jenkins container, etc.
+*/
 def cleanUpContainers() {
     sh 'docker rm -f $(docker ps | grep -v "jenkins" | awk \'{print $1}\' | tail -n +2) || true'
+}
+
+/*
+Print last n lines of a text file. Call this inside a script block.
+
+script {
+    printLastNLines('jenkins_logs/docker_test.log', 200)
+}
+*/
+def printLastNLines(String file, int numLines) {
+    if (fileExists(file)) {
+        echo """###################################################
+                |Last ${numLines} lines of ${file}
+                |###################################################
+                """.stripMargin().stripIndent()
+        sh "tail -n ${numLines} ${file}"
+    }
 }
