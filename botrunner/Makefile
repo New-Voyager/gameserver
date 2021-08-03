@@ -50,7 +50,7 @@ compile-proto:
 .PHONY: docker-build
 docker-build: compile-proto
 	mkdir -p build
-	if [ "${CIRCLECI}" = "true" ]; then \
+	if ! [ -z "${JENKINS_VERSION}" ]; then \
 		[ -d build/gamescript ] || cp -r $(PROJECT_ROOT)/gamescript build/gamescript; \
 		[ -d build/encryption ] || cp -r $(PROJECT_ROOT)/encryption build/encryption; \
 	else \
@@ -154,7 +154,7 @@ BOTRUNNER_IMAGE=botrunner:latest
 TIMER_IMAGE=timer:latest
 
 COMPOSE_SYSTEM_TEST := docker-compose -p system_test -f docker-compose-systest.yaml
-ifndef CIRCLECI
+ifndef JENKINS_VERSION
     COMPOSE_SYSTEM_TEST := $(COMPOSE_SYSTEM_TEST) -f docker-compose-systest-local.yaml
 endif
 
