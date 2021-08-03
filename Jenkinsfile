@@ -15,11 +15,11 @@ pipeline {
                 sh 'ls -l'
             }
         }
-        stage('Clean Up Old Containers') {
-            steps {
-                cleanUpContainers()
-            }
-        }
+        // stage('Clean Up Old Containers') {
+        //     steps {
+        //         cleanUpContainers()
+        //     }
+        // }
         stage('Build') {
             steps {
                 sh 'make docker-build'
@@ -54,13 +54,13 @@ pipeline {
     }
     post {
         always {
+            archiveArtifacts artifacts: 'jenkins_logs/*', allowEmptyArchive: true
+            cleanUpContainers()
+            cleanUpDockerResources()
             script {
                 printLastNLines('jenkins_logs/docker_test.log', num_log_lines)
                 printLastNLines('jenkins_logs/system_test.log', num_log_lines)
             }
-            archiveArtifacts artifacts: 'jenkins_logs/*', allowEmptyArchive: true
-            cleanUpContainers()
-            cleanUpDockerResources()
         }
         success {
             setBuildStatus("Build succeeded", "SUCCESS");
