@@ -1,3 +1,7 @@
+PROJECT_ROOT := ..
+BUILD_HELPER := $(PROJECT_ROOT)/build_helper
+include $(PROJECT_ROOT)/common.mk
+
 BUILD_NO := $(shell cat build_number.txt)
 GCP_PROJECT_ID := voyager-01-285603
 DO_REGISTRY := registry.digitalocean.com/voyager
@@ -24,8 +28,8 @@ BOTRUNNER_SCRIPT ?= botrunner_scripts/river-action-3-bots.yaml
 # BOTRUNNER_SCRIPT ?= botrunner_scripts/human_game/river-action-2-bots-1-human.yaml
 
 DOCKER_BUILDKIT ?= 1
+LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh botrunner $(DOCKER_IMAGE_TAG))
 
-PROJECT_ROOT := ..
 PROTO_DIR := $(PROJECT_ROOT)/proto
 PLAYERS_YAML := $(PWD)/botrunner_scripts/players/default.yaml
 
@@ -57,7 +61,7 @@ docker-build: compile-proto
 		rsync -avu --delete $(PROJECT_ROOT)/gamescript/ build/gamescript; \
 		rsync -avu --delete $(PROJECT_ROOT)/encryption/ build/encryption; \
 	fi
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t botrunner
+	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(LOCAL_IMAGE_NAME)
 	rm -rf build/
 
 .PHONY: build
@@ -114,6 +118,9 @@ botrunner-server:
 .PHONY: publish
 publish: do-publish
 
+.PHONY: clean-ci
+clean-ci: system-test-down
+
 .PHONY: do-publish
 do-publish: export REGISTRY=$(DO_REGISTRY)
 do-publish: do-login publish-botrunner
@@ -124,8 +131,8 @@ gcp-publish: publish-botrunner
 
 .PHONY: publish-botrunner
 publish-botrunner:
-	docker tag botrunner $(REGISTRY)/botrunner:$(BUILD_NO)
-	docker tag botrunner $(REGISTRY)/botrunner:latest
+	docker tag $(LOCAL_IMAGE_NAME) $(REGISTRY)/botrunner:$(BUILD_NO)
+	docker tag $(LOCAL_IMAGE_NAME) $(REGISTRY)/botrunner:latest
 	docker push $(REGISTRY)/botrunner:$(BUILD_NO)
 	docker push $(REGISTRY)/botrunner:latest
 
@@ -140,8 +147,6 @@ do-login:
 ## System Test ##
 #################
 
-TEST_DOCKER_NET := poker_test
-
 # These images are downloaded.
 API_SERVER_IMAGE := $(REGISTRY)/api-server:0.5.26
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
@@ -149,18 +154,20 @@ REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
 POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5
 
 # These images are built from local code.
-GAME_SERVER_IMAGE=game-server:latest
-BOTRUNNER_IMAGE=botrunner:latest
-TIMER_IMAGE=timer:latest
+BOTRUNNER_IMAGE=$(LOCAL_IMAGE_NAME)
+GAME_SERVER_IMAGE=$(shell $(BUILD_HELPER)/get_local_image_name.sh game-server $(DOCKER_IMAGE_TAG))
+TIMER_IMAGE=$(shell $(BUILD_HELPER)/get_local_image_name.sh timer $(DOCKER_IMAGE_TAG))
 
-COMPOSE_SYSTEM_TEST := docker-compose -p system_test -f docker-compose-systest.yaml
+TEST_DOCKER_NET := $(shell $(BUILD_HELPER)/get_local_docker_net.sh system_test)
+COMPOSE_PROJECT_NAME := $(shell $(BUILD_HELPER)/get_compose_project_name.sh system_test)
+COMPOSE_SYSTEM_TEST := docker-compose -p $(COMPOSE_PROJECT_NAME) -f docker-compose-systest.yaml
 ifndef JENKINS_VERSION
-    COMPOSE_SYSTEM_TEST := $(COMPOSE_SYSTEM_TEST) -f docker-compose-systest-local.yaml
+COMPOSE_SYSTEM_TEST := $(COMPOSE_SYSTEM_TEST) -f docker-compose-systest-local.yaml
 endif
 
 .PHONY: system-test
 system-test: system-test-down system-test-up
-	docker exec -t system_test_botrunner_1 bash -c "ABORT_ON_FAIL=$(ABORT_ON_FAIL) ./system_test.sh"
+	$(COMPOSE_SYSTEM_TEST) exec -T botrunner bash -c "ABORT_ON_FAIL=$(ABORT_ON_FAIL) ./system_test.sh"
 
 .PHONY: system-test-build
 system-test-build:
@@ -170,7 +177,7 @@ system-test-build:
 
 .PHONY: system-test-down
 system-test-down: system-test-generate-env
-	$(COMPOSE_SYSTEM_TEST) down
+	timeout 15 $(COMPOSE_SYSTEM_TEST) down --timeout 10
 
 .PHONY: system-test-up
 system-test-up: system-test-create-network do-login system-test-generate-env

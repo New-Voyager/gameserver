@@ -15,11 +15,6 @@ pipeline {
                 sh 'ls -l'
             }
         }
-        // stage('Clean Up Old Containers') {
-        //     steps {
-        //         cleanUpContainers()
-        //     }
-        // }
         stage('Build') {
             steps {
                 sh 'make docker-build'
@@ -55,7 +50,7 @@ pipeline {
     post {
         always {
             archiveArtifacts artifacts: 'jenkins_logs/*', allowEmptyArchive: true
-            cleanUpContainers()
+            cleanUpBuild()
             cleanUpDockerResources()
             script {
                 printLastNLines('jenkins_logs/docker_test.log', num_log_lines)
@@ -85,18 +80,16 @@ def setBuildStatus(String message, String state) {
     ]);
 }
 
-/*
-Clean up containers.
-Be careful not to remove the jenkins container, etc.
-*/
-def cleanUpContainers() {
-    sh 'docker rm -f $(docker ps -a | grep -v "jenkins" | awk \'{print $1}\' | tail -n +2) || true'
+def cleanUpBuild() {
+    sh 'make clean-ci'
 }
 
 /*
 Clean up docker images and other docker resources.
 */
 def cleanUpDockerResources() {
+    // Remove old stopped containers.
+    sh 'docker container prune --force --filter until=12h'
     // Remove dangling images.
     sh 'docker image prune --force || true'
     // Remove old unused images.

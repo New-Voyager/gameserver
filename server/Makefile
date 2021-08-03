@@ -1,7 +1,10 @@
+PROJECT_ROOT := ..
+BUILD_HELPER := $(PROJECT_ROOT)/build_helper
+include $(PROJECT_ROOT)/common.mk
+
 PROTOC_ZIP := protoc-3.7.1-linux-x86_64.zip
 GCP_PROJECT_ID := voyager-01-285603
 BUILD_NO := $(shell cat build_number.txt)
-DEFAULT_DOCKER_NET := game
 DO_REGISTRY := registry.digitalocean.com/voyager
 GCP_REGISTRY := gcr.io/$(GCP_PROJECT_ID)
 
@@ -22,9 +25,12 @@ NATS_VERSION := 2.1.7-alpine3.11
 REDIS_VERSION := 6.0.9
 
 DOCKER_BUILDKIT ?= 1
-
-PROJECT_ROOT := ..
+LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh game-server $(DOCKER_IMAGE_TAG))
 PROTO_DIR := $(PROJECT_ROOT)/proto
+
+TEST_DOCKER_NET := $(shell $(BUILD_HELPER)/get_local_docker_net.sh game_server_docker_test)
+COMPOSE_PROJECT_NAME := $(shell $(BUILD_HELPER)/get_compose_project_name.sh game_server_docker_test)
+COMPOSE_DOCKER_TEST := docker-compose -p $(COMPOSE_PROJECT_NAME) -f docker-compose-test.yaml
 
 # NATS Logging Options:
 # -l, --log <file>                 File to redirect log output
@@ -96,22 +102,22 @@ docker-build: compile-proto
 	else \
 		rsync -avu --delete $(PROJECT_ROOT)/encryption/ build/encryption; \
 	fi
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t game-server
+	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(LOCAL_IMAGE_NAME)
 	rm -rf build/
 
 .PHONY: create-network
 create-network:
-	@docker network create $(DEFAULT_DOCKER_NET) 2>/dev/null || true
+	@docker network create $(TEST_DOCKER_NET) 2>/dev/null || true
 
 .PHONY: run-nats
 run-nats: create-network
 	docker rm -f nats || true
-	docker run -d --name nats --network $(DEFAULT_DOCKER_NET) -p 4222:4222 -p 9222:9222 -p 8222:8222 nats:$(NATS_VERSION) --config /etc/nats/nats-server.conf $(NATS_OPTS)
+	docker run -d --name nats --network $(TEST_DOCKER_NET) -p 4222:4222 -p 9222:9222 -p 8222:8222 nats:$(NATS_VERSION) --config /etc/nats/nats-server.conf $(NATS_OPTS)
 
 .PHONY: run-redis
 run-redis: create-network
 	docker rm -f redis || true
-	docker run -d --name redis --network $(DEFAULT_DOCKER_NET) -p 6379:6379 redis:$(REDIS_VERSION)
+	docker run -d --name redis --network $(TEST_DOCKER_NET) -p 6379:6379 redis:$(REDIS_VERSION)
 
 .PHONY: run-server
 run-server: export PERSIST_METHOD=redis
@@ -129,24 +135,38 @@ run-server: export DISABLE_DELAYS=$(DEV_DISABLE_DELAYS)
 run-server:
 	go run ./main.go --server
 
+.PHONY: docker-test-up
+docker-test-up: create-network docker-test-generate-env
+	$(COMPOSE_DOCKER_TEST) up -d
+
+.PHONY: docker-test-down
+docker-test-down: docker-test-generate-env
+	timeout 15 $(COMPOSE_DOCKER_TEST) down --timeout 10
+
+.PHONY: docker-test-generate-env
+docker-test-generate-env:
+	> .env && \
+		echo "REDIS_IMAGE=redis:$(REDIS_VERSION)" >> .env && \
+		echo "TEST_DOCKER_NET=$(TEST_DOCKER_NET)" >> .env
+
 .PHONY: docker-test
-docker-test: create-network run-redis
+docker-test: docker-test-up
 	docker run -t --rm \
-		--name gameserver \
-		--network $(DEFAULT_DOCKER_NET) \
+		--name $(shell $(BUILD_HELPER)/get_local_container_name.sh gameserver) \
+		--network $(TEST_DOCKER_NET) \
 		-e PERSIST_METHOD=redis \
 		-e REDIS_HOST=redis \
 		-e REDIS_PORT=6379 \
 		-e REDIS_DB=0 \
 		-e DISABLE_DELAYS=1 \
-		game-server sh -c "/app/game-server --script-tests"
+		$(LOCAL_IMAGE_NAME) sh -c "/app/game-server --script-tests"
 
 .PHONY: stop
 stop:
 	docker rm -f nats || true
 	docker rm -f redis || true
 	docker rm -f game-server || true
-	docker network rm $(DEFAULT_DOCKER_NET) || true
+	docker network rm $(TEST_DOCKER_NET) || true
 
 .PHONY: fmt
 fmt:
@@ -157,6 +177,9 @@ fmt:
 
 .PHONY: publish
 publish: do-publish
+
+.PHONY: clean-ci
+clean-ci: docker-test-down
 
 .PHONY: do-login
 do-login:
@@ -183,8 +206,8 @@ publish-all: publish-gameserver publish-3rdparty
 
 .PHONY: publish-gameserver
 publish-gameserver:
-	docker tag game-server $(REGISTRY)/game-server:$(BUILD_NO)
-	docker tag game-server $(REGISTRY)/game-server:latest
+	docker tag $(LOCAL_IMAGE_NAME) $(REGISTRY)/game-server:$(BUILD_NO)
+	docker tag $(LOCAL_IMAGE_NAME) $(REGISTRY)/game-server:latest
 	docker push $(REGISTRY)/game-server:$(BUILD_NO)
 	docker push $(REGISTRY)/game-server:latest
 
