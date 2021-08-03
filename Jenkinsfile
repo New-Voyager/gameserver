@@ -60,10 +60,10 @@ pipeline {
             cleanUpContainers()
         }
         success {
-            setBuildStatus("Build succeeded", "SUCCESS");
+            setBuildStatus("Build succeeded", "Success");
         }
         failure {
-            setBuildStatus("Build failed", "FAILURE");
+            setBuildStatus("Build failed", "Failure");
         }
     }
 }
@@ -77,8 +77,8 @@ def setBuildStatus(String message, String state) {
     step([
         $class: "GitHubCommitStatusSetter",
         reposSource: [$class: "ManuallyEnteredRepositorySource", url: repoUrl],
-        contextSource: [$class: "ManuallyEnteredCommitContextSource", context: "ci/jenkins/build-status"],
-        errorHandlers: [[$class: "ChangingBuildStatusErrorHandler", result: "UNSTABLE"]],
+        contextSource: [$class: "ManuallyEnteredCommitContextSource", context: "ci/jenkins"],
+        errorHandlers: [[$class: "ChangingBuildStatusErrorHandler", result: "Unstable"]],
         statusResultSource: [ $class: "ConditionalStatusResultSource", results: [[$class: "AnyBuildResult", message: message, state: state]] ]
     ]);
 }
