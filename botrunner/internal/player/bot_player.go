@@ -2180,6 +2180,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 	}
 	msgID := strconv.Itoa(lastMsgIDInt + 1)
 	actionMsg := game.HandMessage{
+		GameCode:  bp.gameCode,
 		HandNum:   bp.game.handNum,
 		PlayerId:  bp.PlayerID,
 		SeatNo:    bp.seatNo,
