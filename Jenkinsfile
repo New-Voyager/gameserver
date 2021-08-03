@@ -1,3 +1,5 @@
+final num_log_lines = 200
+
 pipeline {
     agent any
     options {
@@ -29,13 +31,13 @@ pipeline {
         stage('Docker Test') {
             steps {
                 sh 'mkdir -p jenkins_logs'
-                echo 'Running Docker Test. Will save the log as artifact (docker_test.log).'
+                echo "Running Docker Test. Last ${num_log_lines} lines of the log will be printed at the end and the full log will be saved as an artifact (docker_test.log)."
                 sh 'make docker-test > jenkins_logs/docker_test.log 2>&1'
             }
         }
         stage('System Test') {
             steps {
-                echo 'Running System Test. Will save the log as artifact (system_test.log).'
+                echo "Running System Test. Last ${num_log_lines} lines of the log will be printed at the end and the full log will be saved as an artifact (system_test.log)."
                 sh 'make system-test > jenkins_logs/system_test.log 2>&1'
             }
         }
@@ -51,8 +53,8 @@ pipeline {
     post {
         always {
             script {
-                printLastNLines('jenkins_logs/docker_test.log', 200)
-                printLastNLines('jenkins_logs/system_test.log', 200)
+                printLastNLines('jenkins_logs/docker_test.log', num_log_lines)
+                printLastNLines('jenkins_logs/system_test.log', num_log_lines)
             }
             archiveArtifacts artifacts: 'jenkins_logs/*', allowEmptyArchive: true
             cleanUpContainers()
