@@ -50,8 +50,8 @@ pipeline {
     post {
         always {
             archiveArtifacts artifacts: 'jenkins_logs/*', allowEmptyArchive: true
-            cleanUpBuild()
             cleanUpDockerResources()
+            cleanUpBuild()
             script {
                 printLastNLines('jenkins_logs/docker_test.log', num_log_lines)
                 printLastNLines('jenkins_logs/system_test.log', num_log_lines)
