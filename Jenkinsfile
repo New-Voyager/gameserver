@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Setup') {
             steps {
-                setBuildStatus("Pending", "PENDING");
+                setBuildStatus("Build is in progress", "PENDING");
                 sh 'printenv | sort'
                 sh 'pwd'
                 sh 'ls -l'
