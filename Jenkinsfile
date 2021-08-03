@@ -60,6 +60,9 @@ pipeline {
         success {
             setBuildStatus("Build succeeded", "SUCCESS");
         }
+        aborted {
+            setBuildStatus("Build aborted", "FAILURE");
+        }
         failure {
             setBuildStatus("Build failed", "FAILURE");
         }
