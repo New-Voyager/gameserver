@@ -3,7 +3,7 @@ final num_log_lines = 200
 pipeline {
     agent any
     options {
-        disableConcurrentBuilds()
+        // disableConcurrentBuilds()
         timeout(time: 30, unit: 'MINUTES')
     }
     stages {
