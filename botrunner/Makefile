@@ -188,7 +188,7 @@ system-test-logs:
 
 .PHONY: system-test-create-network
 system-test-create-network:
-	@docker network create $(TEST_DOCKER_NET) 2>/dev/null || true
+	docker network create $(TEST_DOCKER_NET) 2>/dev/null || true
 
 .PHONY: system-test-generate-env
 system-test-generate-env:

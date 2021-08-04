@@ -106,7 +106,7 @@ docker-build: compile-proto
 
 .PHONY: create-network
 create-network:
-	@docker network create $(TEST_DOCKER_NET) 2>/dev/null || true
+	docker network create $(TEST_DOCKER_NET) 2>/dev/null || true
 
 .PHONY: run-nats
 run-nats: create-network
@@ -139,7 +139,7 @@ docker-test-up: create-network docker-test-generate-env
 	$(COMPOSE_DOCKER_TEST) up -d
 
 .PHONY: docker-test-down
-docker-test-down: docker-test-generate-env
+docker-test-down: create-network docker-test-generate-env
 	timeout 15 $(COMPOSE_DOCKER_TEST) down --timeout 10
 
 .PHONY: docker-test-generate-env
