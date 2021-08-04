@@ -179,6 +179,7 @@ publish: do-publish
 
 .PHONY: clean-ci
 clean-ci: docker-test-down
+	docker image rm $(LOCAL_IMAGE_NAME) || true
 	if docker network ls | grep $(TEST_DOCKER_NET); then docker network rm $(TEST_DOCKER_NET); fi
 
 .PHONY: do-login
