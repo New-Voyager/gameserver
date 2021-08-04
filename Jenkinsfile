@@ -3,12 +3,19 @@ final num_log_lines = 200
 pipeline {
     agent any
     options {
-        disableConcurrentBuilds()
-        timeout(time: 30, unit: 'MINUTES')
+        // disableConcurrentBuilds()
+        // The build time currently includes the time waiting for an available executor,
+        // so we need to give it some extra time here.
+        timeout(time: 120, unit: 'MINUTES')
+    }
+    environment {
+        DOCKER_TEST_LOG = "docker_test_${BUILD_ID}.log"
+        SYSTEM_TEST_LOG = "system_test_${BUILD_ID}.log"
     }
     stages {
         stage('Setup') {
             steps {
+                cleanUpDockerResources()
                 setBuildStatus("Build is in progress", "PENDING");
                 sh 'printenv | sort'
                 sh 'pwd'
@@ -28,14 +35,14 @@ pipeline {
         stage('Docker Test') {
             steps {
                 sh 'mkdir -p jenkins_logs'
-                echo "Running Docker Test. Last ${num_log_lines} lines of the log will be printed at the end and the full log will be saved as an artifact (docker_test.log)."
-                sh 'make docker-test > jenkins_logs/docker_test.log 2>&1'
+                echo "Running Docker Test. Last ${num_log_lines} lines of the log will be printed at the end and the full log will be saved as a build artifact (${DOCKER_TEST_LOG})."
+                sh "make docker-test > jenkins_logs/${DOCKER_TEST_LOG} 2>&1"
             }
         }
         stage('System Test') {
             steps {
-                echo "Running System Test. Last ${num_log_lines} lines of the log will be printed at the end and the full log will be saved as an artifact (system_test.log)."
-                sh 'make system-test > jenkins_logs/system_test.log 2>&1'
+                echo "Running System Test. Last ${num_log_lines} lines of the log will be printed at the end and the full log will be saved as a build artifact (${SYSTEM_TEST_LOG})."
+                sh "make system-test > jenkins_logs/${SYSTEM_TEST_LOG} 2>&1"
             }
         }
         stage('Publish') {
@@ -53,8 +60,8 @@ pipeline {
             cleanUpDockerResources()
             cleanUpBuild()
             script {
-                printLastNLines('jenkins_logs/docker_test.log', num_log_lines)
-                printLastNLines('jenkins_logs/system_test.log', num_log_lines)
+                printLastNLines("jenkins_logs/${DOCKER_TEST_LOG}", num_log_lines)
+                printLastNLines("jenkins_logs/${SYSTEM_TEST_LOG}", num_log_lines)
             }
         }
         success {
@@ -97,8 +104,8 @@ def cleanUpDockerResources() {
     sh 'docker image prune --force || true'
     // Remove old unused images.
     sh 'docker image prune -a --force --filter until=72h || true'
-    // Remove old unused networks.
-    sh 'docker network prune --force --filter until=72h || true'
+    // Remove old unused networks. Being a little aggressive here due to limited IP address pool.
+    sh 'docker network prune --force --filter until=120m || true'
     // Remove unused volumes.
     sh 'docker volume prune --force || true'
 }

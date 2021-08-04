@@ -1,4 +1,4 @@
-# SYSTEM_TEST_TIMEOUT_SEC:60
+# SYSTEM_TEST_TIMEOUT_SEC:90
 
 server-settings:
   game-block-time: 30

@@ -1,7 +1,8 @@
 set -e
 
-if ! [ -z ${BUILD_ID} ]; then
-    echo $1__${BUILD_ID}
+if ! [ -z ${CI} ]; then
+    branch_suffix=$(echo ${GIT_BRANCH} | sed 's/\//_/g' | sed 's/-/_/g')
+    echo $1__${branch_suffix}__${BUILD_ID}
 else
     echo $1
 fi
