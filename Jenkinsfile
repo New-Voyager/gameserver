@@ -15,7 +15,6 @@ pipeline {
     stages {
         stage('Setup') {
             steps {
-                cleanUpDockerResources()
                 setBuildStatus("Build is in progress", "PENDING");
                 sh 'printenv | sort'
                 sh 'pwd'
