@@ -29,6 +29,7 @@ publish: do-publish
 
 .PHONY: clean-ci
 clean-ci:
+	docker image rm $(LOCAL_IMAGE_NAME) || true
 
 .PHONY: do-publish
 do-publish: export REGISTRY=$(DO_REGISTRY)
