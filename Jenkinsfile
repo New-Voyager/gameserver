@@ -36,13 +36,25 @@ pipeline {
             steps {
                 sh 'mkdir -p jenkins_logs'
                 echo "Running Docker Test. Last ${num_log_lines} lines of the log will be printed at the end and the full log will be saved as a build artifact (${DOCKER_TEST_LOG})."
-                sh "make docker-test > jenkins_logs/${DOCKER_TEST_LOG} 2>&1"
+                script {
+                    try {
+                        sh "make docker-test > jenkins_logs/${DOCKER_TEST_LOG} 2>&1"
+                    } finally {
+                        printLastNLines("jenkins_logs/${DOCKER_TEST_LOG}", num_log_lines)
+                    }
+                }
             }
         }
         stage('System Test') {
             steps {
                 echo "Running System Test. Last ${num_log_lines} lines of the log will be printed at the end and the full log will be saved as a build artifact (${SYSTEM_TEST_LOG})."
-                sh "make system-test > jenkins_logs/${SYSTEM_TEST_LOG} 2>&1"
+                script {
+                    try {
+                        sh "make system-test > jenkins_logs/${SYSTEM_TEST_LOG} 2>&1"
+                    } finally {
+                        printLastNLines("jenkins_logs/${SYSTEM_TEST_LOG}", num_log_lines)
+                    }
+                }
             }
         }
         stage('Publish') {
@@ -59,10 +71,6 @@ pipeline {
             archiveArtifacts artifacts: 'jenkins_logs/*', allowEmptyArchive: true
             cleanUpDockerResources()
             cleanUpBuild()
-            script {
-                printLastNLines("jenkins_logs/${DOCKER_TEST_LOG}", num_log_lines)
-                printLastNLines("jenkins_logs/${SYSTEM_TEST_LOG}", num_log_lines)
-            }
         }
         success {
             setBuildStatus("Build succeeded", "SUCCESS");
