@@ -175,7 +175,7 @@ system-test-build:
 	$(MAKE) -C $(PROJECT_ROOT)/timer docker-build
 
 .PHONY: system-test-down
-system-test-down: system-test-generate-env
+system-test-down: system-test-create-network system-test-generate-env
 	timeout 15 $(COMPOSE_SYSTEM_TEST) down --timeout 10
 
 .PHONY: system-test-up
