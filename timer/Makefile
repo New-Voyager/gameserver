@@ -1,6 +1,5 @@
 PROJECT_ROOT := ..
 BUILD_HELPER := $(PROJECT_ROOT)/build_helper
-include $(PROJECT_ROOT)/common.mk
 
 BUILD_NO := $(shell cat build_number.txt)
 GCP_PROJECT_ID := voyager-01-285603
@@ -11,7 +10,7 @@ REGISTRY := $(DO_REGISTRY)
 DEV_API_SERVER_URL ?= http://localhost:9501
 
 DOCKER_BUILDKIT ?= 1
-LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh timer $(DOCKER_IMAGE_TAG))
+LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh timer)
 
 .PHONY: docker-build
 docker-build:

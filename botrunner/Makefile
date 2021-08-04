@@ -1,6 +1,5 @@
 PROJECT_ROOT := ..
 BUILD_HELPER := $(PROJECT_ROOT)/build_helper
-include $(PROJECT_ROOT)/common.mk
 
 BUILD_NO := $(shell cat build_number.txt)
 GCP_PROJECT_ID := voyager-01-285603
@@ -28,7 +27,7 @@ BOTRUNNER_SCRIPT ?= botrunner_scripts/river-action-3-bots.yaml
 # BOTRUNNER_SCRIPT ?= botrunner_scripts/human_game/river-action-2-bots-1-human.yaml
 
 DOCKER_BUILDKIT ?= 1
-LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh botrunner $(DOCKER_IMAGE_TAG))
+LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh botrunner)
 
 PROTO_DIR := $(PROJECT_ROOT)/proto
 PLAYERS_YAML := $(PWD)/botrunner_scripts/players/default.yaml
@@ -155,8 +154,8 @@ POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5
 
 # These images are built from local code.
 BOTRUNNER_IMAGE=$(LOCAL_IMAGE_NAME)
-GAME_SERVER_IMAGE=$(shell $(BUILD_HELPER)/get_local_image_name.sh game-server $(DOCKER_IMAGE_TAG))
-TIMER_IMAGE=$(shell $(BUILD_HELPER)/get_local_image_name.sh timer $(DOCKER_IMAGE_TAG))
+GAME_SERVER_IMAGE=$(shell $(BUILD_HELPER)/get_local_image_name.sh game-server)
+TIMER_IMAGE=$(shell $(BUILD_HELPER)/get_local_image_name.sh timer)
 
 TEST_DOCKER_NET := $(shell $(BUILD_HELPER)/get_local_docker_net.sh system_test)
 COMPOSE_PROJECT_NAME := $(shell $(BUILD_HELPER)/get_compose_project_name.sh system_test)
