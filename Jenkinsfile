@@ -13,6 +13,7 @@ pipeline {
     stages {
         stage('Setup') {
             steps {
+                cleanUpDockerResources()
                 setBuildStatus("Build is in progress", "PENDING");
                 sh 'printenv | sort'
                 sh 'pwd'
@@ -101,8 +102,8 @@ def cleanUpDockerResources() {
     sh 'docker image prune --force || true'
     // Remove old unused images.
     sh 'docker image prune -a --force --filter until=72h || true'
-    // Remove old unused networks.
-    sh 'docker network prune --force --filter until=72h || true'
+    // Remove old unused networks. Being a little aggressive here due to limited IP address pool.
+    sh 'docker network prune --force --filter until=30m || true'
     // Remove unused volumes.
     sh 'docker volume prune --force || true'
 }

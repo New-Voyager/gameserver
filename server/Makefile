@@ -106,7 +106,7 @@ docker-build: compile-proto
 
 .PHONY: create-network
 create-network:
-	docker network create $(TEST_DOCKER_NET) 2>/dev/null || true
+	@docker network create $(TEST_DOCKER_NET) 2>/dev/null || true
 
 .PHONY: run-nats
 run-nats: create-network
