@@ -119,6 +119,7 @@ publish: do-publish
 
 .PHONY: clean-ci
 clean-ci: system-test-down
+	if docker network ls | grep $(TEST_DOCKER_NET); then docker network rm $(TEST_DOCKER_NET); fi
 
 .PHONY: do-publish
 do-publish: export REGISTRY=$(DO_REGISTRY)
