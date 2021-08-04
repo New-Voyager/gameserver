@@ -105,7 +105,7 @@ def cleanUpDockerResources() {
     // Remove old unused images.
     sh 'docker image prune -a --force --filter until=72h || true'
     // Remove old unused networks. Being a little aggressive here due to limited IP address pool.
-    sh 'docker network prune --force --filter until=30m || true'
+    sh 'docker network prune --force --filter until=120m || true'
     // Remove unused volumes.
     sh 'docker volume prune --force || true'
 }
