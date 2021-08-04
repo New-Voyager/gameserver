@@ -4,7 +4,9 @@ pipeline {
     agent any
     options {
         // disableConcurrentBuilds()
-        timeout(time: 30, unit: 'MINUTES')
+        // The build time currently includes the time waiting for an available executor,
+        // so we need to give it some extra time here.
+        timeout(time: 120, unit: 'MINUTES')
     }
     environment {
         DOCKER_TEST_LOG = "docker_test_${BUILD_ID}.log"
