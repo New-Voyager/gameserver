@@ -3,14 +3,15 @@ final num_log_lines = 200
 pipeline {
     agent any
     options {
-        // disableConcurrentBuilds()
+        // No concurrent builds within branch.
+        disableConcurrentBuilds()
         // The build time currently includes the time waiting for an available executor,
         // so we need to give it some extra time here.
         timeout(time: 120, unit: 'MINUTES')
     }
     environment {
-        DOCKER_TEST_LOG = "docker_test_${BUILD_ID}.log"
-        SYSTEM_TEST_LOG = "system_test_${BUILD_ID}.log"
+        DOCKER_TEST_LOG = "docker_test.log"
+        SYSTEM_TEST_LOG = "system_test.log"
     }
     stages {
         stage('Setup') {
