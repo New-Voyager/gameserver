@@ -138,6 +138,12 @@ func (br *BotRunner) Run() error {
 			panic("Resetting database failed")
 		}
 	}
+	// we need to set the server settings before the player is created
+	if br.botIsGameHost {
+		if br.script.ServerSettings != nil {
+			br.observerBot.SetupServerSettings(br.script.ServerSettings)
+		}
+	}
 
 	br.logger.Info().Msgf("Bots joining the club")
 	// Register bots to the poker service.
@@ -472,6 +478,28 @@ func (br *BotRunner) processAfterGameAssertions() error {
 	if maxExpectedHands != nil {
 		if totalHandsPlayed > *maxExpectedHands {
 			errMsgs = append(errMsgs, fmt.Sprintf("Total hands played: %d, Expected AT MOST %d hands to have been played", totalHandsPlayed, *maxExpectedHands))
+		}
+	}
+
+	for _, verifyPrivateMessage := range br.script.AfterGame.Verify.PrivateMessages {
+		playerName := verifyPrivateMessage.Player
+		if bot, found := br.botsByName[playerName]; found {
+			for _, verifyMessage := range verifyPrivateMessage.Messages {
+				// verify message exists
+				found := false
+				for _, message := range bot.PrivateMessages {
+					messageType := fmt.Sprintf("%v", message["type"])
+					if messageType == verifyMessage.Type {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					// message is not found
+					errMsgs = append(errMsgs, fmt.Sprintf("%s Message type: %s is not found in the private messages", playerName, verifyMessage.Type))
+				}
+			}
 		}
 	}
 

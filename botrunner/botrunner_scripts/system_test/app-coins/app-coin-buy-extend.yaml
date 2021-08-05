@@ -50,8 +50,7 @@ bot-config:
 after-game:
   verify:
     num-hands-played:
-      lte: 4
-      gte: 4
+      lte: 5
 
     # verify host received APPCOIN_NEEDED message
     private-messages:
@@ -82,7 +81,6 @@ hands:
         - action: 2, CHECK
         - action: 3, CHECK
         - action: 1, CHECK
-
   - setup:
       auto: true
     preflop:
@@ -108,6 +106,7 @@ hands:
 
   - setup:
       auto: true
+    pause-game: true
     preflop:
       seat-actions:
         - action: 3, CALL, 2
@@ -128,6 +127,9 @@ hands:
         - action: 1, CHECK
         - action: 2, CHECK
         - action: 3, CHECK
+    post-hand:
+      - buy-coins: 10
+      - resume-game: true
 
   - setup:
       auto: true

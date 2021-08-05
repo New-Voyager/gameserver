@@ -68,3 +68,28 @@ func (rc *RestClient) ResetServerSettings() error {
 	defer resp.Body.Close()
 	return nil
 }
+
+func (rc *RestClient) BuyAppCoins(playerUuid string, amount int) error {
+	type BuyAppCoinStruct struct {
+		PlayerUuid string `json:"player-uuid"`
+		Amount     int    `json:"coins"`
+	}
+	payload := BuyAppCoinStruct{
+		PlayerUuid: playerUuid,
+		Amount:     int(amount),
+	}
+	var reqData []byte
+	var err error
+	reqData, err = json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	url := fmt.Sprintf("%s/buy-bot-coins", rc.url)
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(reqData))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return nil
+}
