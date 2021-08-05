@@ -1,6 +1,5 @@
 PROJECT_ROOT := ..
 BUILD_HELPER := $(PROJECT_ROOT)/build_helper
-include $(PROJECT_ROOT)/common.mk
 
 PROTOC_ZIP := protoc-3.7.1-linux-x86_64.zip
 GCP_PROJECT_ID := voyager-01-285603
@@ -25,7 +24,7 @@ NATS_VERSION := 2.1.7-alpine3.11
 REDIS_VERSION := 6.0.9
 
 DOCKER_BUILDKIT ?= 1
-LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh game-server $(DOCKER_IMAGE_TAG))
+LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh game-server)
 PROTO_DIR := $(PROJECT_ROOT)/proto
 
 TEST_DOCKER_NET := $(shell $(BUILD_HELPER)/get_local_docker_net.sh game_server_docker_test)
@@ -140,7 +139,7 @@ docker-test-up: create-network docker-test-generate-env
 	$(COMPOSE_DOCKER_TEST) up -d
 
 .PHONY: docker-test-down
-docker-test-down: docker-test-generate-env
+docker-test-down: create-network docker-test-generate-env
 	timeout 15 $(COMPOSE_DOCKER_TEST) down --timeout 10
 
 .PHONY: docker-test-generate-env
@@ -180,6 +179,8 @@ publish: do-publish
 
 .PHONY: clean-ci
 clean-ci: docker-test-down
+	docker image rm $(LOCAL_IMAGE_NAME) || true
+	if docker network ls | grep $(TEST_DOCKER_NET); then docker network rm $(TEST_DOCKER_NET); fi
 
 .PHONY: do-login
 do-login:

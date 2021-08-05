@@ -10,7 +10,7 @@ ABORT_ON_FAIL=${ABORT_ON_FAIL:-0}
 #
 # # SYSTEM_TEST_TIMEOUT_SEC:180
 #
-DEFAULT_TIMEOUT_SEC=${DEFAULT_TIMEOUT_SEC:-30}
+DEFAULT_TIMEOUT_SEC=${DEFAULT_TIMEOUT_SEC:-60}
 
 tested_scripts=(
     $(find . -path './botrunner_scripts/system_test/*.yaml')
