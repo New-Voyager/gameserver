@@ -331,6 +331,28 @@ func (g *GQLHelper) LeaveGame(gameCode string) (bool, error) {
 	return respData.Status, nil
 }
 
+// LeaveGame leaves the game.
+func (g *GQLHelper) SwitchSeat(gameCode string, toSeat int) (string, error) {
+	req := graphql.NewRequest(SwitchSeatGQL)
+
+	req.Var("gameCode", gameCode)
+	req.Var("seatNo", toSeat)
+
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", g.authToken)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+
+	var respData SwitchSeatResp
+	err := g.client.Run(ctx, req, &respData)
+	if err != nil {
+		return "", err
+	}
+
+	return respData.Status, nil
+}
+
 // StartGame starts the game.
 func (g *GQLHelper) StartGame(gameCode string) (string, error) {
 	req := graphql.NewRequest(StartGameGQL)
@@ -1078,6 +1100,17 @@ const LeaveGameGQL = `mutation leave_game($gameCode: String!) {
 
 type LeaveGameResp struct {
 	Status bool
+}
+
+const SwitchSeatGQL = `mutation switch_seat($gameCode: String!, $seatNo: Int!) {
+	status: switchSeat(
+		gameCode: $gameCode
+		seatNo: $seatNo
+	)
+}`
+
+type SwitchSeatResp struct {
+	Status string
 }
 
 const StartGameGQL = `mutation start_game($gameCode: String!) {

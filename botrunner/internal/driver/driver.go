@@ -503,6 +503,23 @@ func (br *BotRunner) processAfterGameAssertions() error {
 		}
 	}
 
+	for _, verifyGameMessage := range br.script.AfterGame.Verify.GameMessages {
+		// verify message exists
+		found := false
+		for _, gameMessage := range br.observerBot.GameMessages {
+			if verifyGameMessage.Type == gameMessage.Type &&
+				verifyGameMessage.SubType == gameMessage.SubType {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			// message is not found
+			errMsgs = append(errMsgs, fmt.Sprintf("Message type: %s subType: %s is not found in the private messages",
+				verifyGameMessage.Type, verifyGameMessage.SubType))
+		}
+	}
 	if len(errMsgs) > 0 {
 		return fmt.Errorf(strings.Join(errMsgs, "\n"))
 	}
