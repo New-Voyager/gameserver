@@ -96,8 +96,9 @@ func (bp *BotPlayer) processGameMessage(message *game.GameMessage) {
 	}
 }
 
-func (bp *BotPlayer) processNonProtoGameMessage(message *NonProtoMessage) {
+func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMessage) {
 	fmt.Printf("[%s] HANDLING NON-PROTO GAME MESSAGE: %+v\n", bp.logPrefix, message)
+	bp.GameMessages = append(bp.GameMessages, message)
 	switch message.Type {
 	case "PLAYER_SEAT_CHANGE_PROMPT":
 		if message.PlayerID != bp.PlayerID {
@@ -428,6 +429,30 @@ func (bp *BotPlayer) setupLeaveGame() error {
 						return errors.Wrap(err, "Error while making a GQL request to leave game")
 					}
 					bp.hasSentLeaveGameRequest = true
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (bp *BotPlayer) setupSwitchSeats() error {
+	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
+		return nil
+	}
+	currentHand := bp.config.Script.GetHand(bp.game.handNum)
+	switchSeats := currentHand.Setup.SwitchSeats
+	if switchSeats != nil {
+		// using seat no, get the bot player and make seat change request
+		for _, request := range switchSeats {
+			if request.FromSeat == bp.seatNo {
+				// will leave in next hand
+				if bp.isSeated {
+					var err error
+					_, err = bp.gqlHelper.SwitchSeat(bp.gameCode, int(request.ToSeat))
+					if err != nil {
+						return errors.Wrap(err, "Error while making a GQL request to leave game")
+					}
 				}
 			}
 		}

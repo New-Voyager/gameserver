@@ -51,7 +51,7 @@ type Config struct {
 
 type GameMessageChannelItem struct {
 	ProtoGameMsg    *game.GameMessage
-	NonProtoGameMsg *NonProtoMessage
+	NonProtoGameMsg *gamescript.NonProtoMessage
 }
 
 // BotPlayer represents a bot user.
@@ -158,6 +158,7 @@ type BotPlayer struct {
 
 	// messages received in the player/private channel
 	PrivateMessages []map[string]interface{}
+	GameMessages    []*gamescript.NonProtoMessage
 }
 
 // NewBotPlayer creates an instance of BotPlayer.
@@ -200,6 +201,7 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 		ackMaxWait:       300,
 		scriptedGame:     true,
 		PrivateMessages:  make([]map[string]interface{}, 0),
+		GameMessages:     make([]*gamescript.NonProtoMessage, 0),
 	}
 
 	bp.sm = fsm.NewFSM(
@@ -287,7 +289,7 @@ func (bp *BotPlayer) handleGameMsg(msg *natsgo.Msg) {
 	}
 
 	var message game.GameMessage
-	var nonProtoMsg NonProtoMessage
+	var nonProtoMsg gamescript.NonProtoMessage
 	err := protojson.Unmarshal(msg.Data, &message)
 	if err != nil {
 		// bp.logger.Debug().Msgf("%s: Error [%s] while unmarshalling protobuf game message [%s]. Assuming non-protobuf message", bp.logPrefix, err, string(msg.Data))
@@ -516,6 +518,9 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		// process any leave game requests
 		// the player will after this hand
 		bp.setupLeaveGame()
+
+		// setup switch seats
+		bp.setupSwitchSeats()
 
 	case game.HandFlop:
 		/* MessageType: FLOP */

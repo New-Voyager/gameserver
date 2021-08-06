@@ -91,6 +91,12 @@ type StartingSeat struct {
 	Reload         *bool   `yaml:"reload"`
 }
 
+// SwitchSeat contains an entry in the SwitchSeats array in the game script.
+type SwitchSeat struct {
+	FromSeat uint32 `yaml:"from-seat"`
+	ToSeat   uint32 `yaml:"to-seat"`
+}
+
 // Observer contains entries of observers of game
 type Observer struct {
 	Player   string  `yaml:"player"`
@@ -142,23 +148,24 @@ type Hand struct {
 
 // HandSetup contains the setup content in the hand config.
 type HandSetup struct {
-	PreDeal    []PreDealSetup       `yaml:"pre-deal"`
-	ButtonPos  uint32               `yaml:"button-pos"`
-	Board      []string             `yaml:"board"`
-	Board2     []string             `yaml:"board2"`
-	Flop       []string             `yaml:"flop"`
-	Turn       string               `yaml:"turn"`
-	River      string               `yaml:"river"`
-	SeatCards  []SeatCards          `yaml:"seat-cards"`
-	Verify     HandSetupVerfication `yaml:"verify"`
-	Auto       bool                 `yaml:"auto"`
-	SeatChange []SeatChangeSetup    `yaml:"seat-change"` // players requesting seat-change
-	RunItTwice []RunItTwiceSetup    `yaml:"run-it-twice"`
-	TakeBreak  []TakeBreakSetup     `yaml:"take-break"`
-	LeaveGame  []LeaveGame          `yaml:"leave-game"`
-	WaitLists  []WaitList           `yaml:"wait-list"`
-	Pause      uint32               `yaml:"pause"` // bot runner pauses and waits before next hand
-	NewPlayers []StartingSeat       `yaml:"new-players"`
+	PreDeal     []PreDealSetup       `yaml:"pre-deal"`
+	ButtonPos   uint32               `yaml:"button-pos"`
+	Board       []string             `yaml:"board"`
+	Board2      []string             `yaml:"board2"`
+	Flop        []string             `yaml:"flop"`
+	Turn        string               `yaml:"turn"`
+	River       string               `yaml:"river"`
+	SeatCards   []SeatCards          `yaml:"seat-cards"`
+	Verify      HandSetupVerfication `yaml:"verify"`
+	Auto        bool                 `yaml:"auto"`
+	SeatChange  []SeatChangeSetup    `yaml:"seat-change"` // players requesting seat-change
+	RunItTwice  []RunItTwiceSetup    `yaml:"run-it-twice"`
+	TakeBreak   []TakeBreakSetup     `yaml:"take-break"`
+	LeaveGame   []LeaveGame          `yaml:"leave-game"`
+	WaitLists   []WaitList           `yaml:"wait-list"`
+	Pause       uint32               `yaml:"pause"` // bot runner pauses and waits before next hand
+	NewPlayers  []StartingSeat       `yaml:"new-players"`
+	SwitchSeats []SwitchSeat         `yaml:"switch-seats"`
 }
 
 type PreDealSetup struct {
@@ -400,9 +407,25 @@ type VerifyPrivateMessages struct {
 	} `yaml:"messages"`
 }
 
+type NonProtoMessage struct {
+	Type       string `yaml:"type" json:"type"`
+	SubType    string `yaml:"subType" json:"subType"`
+	GameCode   string `yaml:"gameCode" json:"gameCode"`
+	OpenedSeat uint32 `yaml:"openedSeat" json:"openedSeat"`
+	PlayerName string `yaml:"playerName" json:"playerName"`
+	PlayerID   uint64 `yaml:"playerId" json:"playerId"`
+	PlayerUUID string `yaml:"playerUuid" json:"playerUuid"`
+	ExpTime    string `yaml:"expTime" json:"expTime"`
+	PromptSecs int    `yaml:"promptSecs" json:"promptSecs"`
+	OldSeatNo  int    `yaml:"oldSeatNo" json:"oldSeatNo"`
+	NewSeatNo  int    `yaml:"newSeatNo" json:"newSeatNo"`
+	RequestID  string `yaml:"requestId" json:"requestId"`
+}
+
 type AfterGameVerification struct {
 	NumHandsPlayed  NumHandsPlayedVerification `yaml:"num-hands-played"`
 	PrivateMessages []VerifyPrivateMessages    `yaml:"private-messages"`
+	GameMessages    []NonProtoMessage          `yaml:"game-messages"`
 }
 
 type NumHandsPlayedVerification struct {
