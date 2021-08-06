@@ -4,7 +4,7 @@ server-settings:
   game-block-time: 30
   notify-host-time-window: 10
   game-coins-per-block: 3
-  free-time: 60
+  free-time: 35
   new-user-free-coins: 0
 
 club:
@@ -50,8 +50,8 @@ bot-config:
 after-game:
   verify:
     num-hands-played:
+      gte: 3
       lte: 4
-      gte: 4
 
     # verify host received APPCOIN_NEEDED message
     private-messages:
