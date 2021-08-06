@@ -50,6 +50,7 @@ type ServerSettings struct {
 	NotifyHostTimeWindow int `yaml:"notify-host-time-window" json:"notify-host-time-window"`
 	GameCoinsPerBlock    int `yaml:"game-coins-per-block" json:"game-coins-per-block"`
 	FreeTime             int `yaml:"free-time" json:"free-time"`
+	NewUserFreeCoins     int `yaml:"new-user-free-coins" json:"new-user-free-coins"`
 }
 
 // Game contains game configuration in the game script.
@@ -123,6 +124,7 @@ type PostHandStep struct {
 	HostSeatChange HostSeatChange `yaml:"host-seat-change"`
 	ResumeGame     bool           `yaml:"resume-game"`
 	Sleep          uint32         `yaml:"sleep"`
+	BuyCoins       int            `yaml:"buy-coins"`
 }
 
 // Hand contains an entry in the hands array in the game script.
@@ -391,8 +393,16 @@ type AfterGame struct {
 	Verify AfterGameVerification `yaml:"verify"`
 }
 
+type VerifyPrivateMessages struct {
+	Player   string `yaml:"player"`
+	Messages []struct {
+		Type string `yaml:"type"`
+	} `yaml:"messages"`
+}
+
 type AfterGameVerification struct {
-	NumHandsPlayed NumHandsPlayedVerification `yaml:"num-hands-played"`
+	NumHandsPlayed  NumHandsPlayedVerification `yaml:"num-hands-played"`
+	PrivateMessages []VerifyPrivateMessages    `yaml:"private-messages"`
 }
 
 type NumHandsPlayedVerification struct {

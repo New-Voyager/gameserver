@@ -54,3 +54,7 @@ func (bp *BotPlayer) SetupServerSettings(serverSettings *gamescript.ServerSettin
 func (bp *BotPlayer) ResetServerSettings() error {
 	return bp.restHelper.ResetServerSettings()
 }
+
+func (bp *BotPlayer) BuyAppCoins(amount int) error {
+	return bp.restHelper.BuyAppCoins(bp.PlayerUUID, amount)
+}

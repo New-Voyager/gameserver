@@ -368,6 +368,14 @@ func (bp *BotPlayer) processPostHandSteps() error {
 			bp.hostSeatChange(&step.HostSeatChange)
 			continue
 		}
+
+		if step.BuyCoins > 0 {
+			err := bp.restHelper.BuyAppCoins(bp.PlayerUUID, step.BuyCoins)
+			if err != nil {
+				bp.logger.Error().Msgf("%s: Error when buying app coins %s: %s", bp.logPrefix, bp.gameCode, err)
+			}
+			continue
+		}
 	}
 	bp.logger.Info().Msgf("%s: Running post hand steps done", bp.logPrefix)
 	return nil
