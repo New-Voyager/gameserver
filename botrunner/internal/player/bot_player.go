@@ -522,6 +522,9 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		// setup switch seats
 		bp.setupSwitchSeats()
 
+		// setup reload chips
+		bp.setupReloadChips()
+
 	case game.HandFlop:
 		/* MessageType: FLOP */
 		bp.game.handStatus = message.GetHandStatus()
