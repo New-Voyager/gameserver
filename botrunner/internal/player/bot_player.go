@@ -1922,7 +1922,12 @@ func (bp *BotPlayer) StartGame(gameCode string) error {
 
 	// setup first deck if not auto play
 	if bp.IsHost() && !bp.config.Script.AutoPlay {
-		bp.setupNextHand()
+		err := bp.setupNextHand()
+		if err != nil {
+			return errors.Wrapf(err, "%s: Unable to setup next hand", bp.logPrefix)
+		}
+		// Wait for the first hand to be setup before starting the game.
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	status, err := bp.gqlHelper.StartGame(gameCode)
