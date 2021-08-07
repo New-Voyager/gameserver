@@ -460,6 +460,28 @@ func (bp *BotPlayer) setupSwitchSeats() error {
 	return nil
 }
 
+func (bp *BotPlayer) setupReloadChips() error {
+	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
+		return nil
+	}
+	currentHand := bp.config.Script.GetHand(bp.game.handNum)
+	reloadChips := currentHand.Setup.ReloadChips
+	if reloadChips != nil {
+		// using seat no, get the bot player and make seat change request
+		for _, request := range reloadChips {
+			if request.SeatNo == bp.seatNo {
+				// will leave in next hand
+				var err error
+				_, err = bp.gqlHelper.ReloadChips(bp.gameCode, request.Amount)
+				if err != nil {
+					return errors.Wrap(err, "Error while making a GQL request to leave game")
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func (bp *BotPlayer) JoinWaitlist(observer *gamescript.Observer) error {
 	_, err := bp.gqlHelper.JoinWaitList(bp.gameCode)
 	if err == nil {

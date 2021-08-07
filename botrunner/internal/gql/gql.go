@@ -331,7 +331,7 @@ func (g *GQLHelper) LeaveGame(gameCode string) (bool, error) {
 	return respData.Status, nil
 }
 
-// LeaveGame leaves the game.
+// SwitchSeat switches a different seat
 func (g *GQLHelper) SwitchSeat(gameCode string, toSeat int) (string, error) {
 	req := graphql.NewRequest(SwitchSeatGQL)
 
@@ -351,6 +351,28 @@ func (g *GQLHelper) SwitchSeat(gameCode string, toSeat int) (string, error) {
 	}
 
 	return respData.Status, nil
+}
+
+// ReloadChips reloads chips
+func (g *GQLHelper) ReloadChips(gameCode string, amount float32) (bool, error) {
+	req := graphql.NewRequest(ReloadChipsGQL)
+
+	req.Var("gameCode", gameCode)
+	req.Var("amount", amount)
+
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", g.authToken)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+
+	var respData ReloadChipsResp
+	err := g.client.Run(ctx, req, &respData)
+	if err != nil {
+		return false, err
+	}
+
+	return respData.Approved, nil
 }
 
 // StartGame starts the game.
@@ -1107,6 +1129,19 @@ const SwitchSeatGQL = `mutation switch_seat($gameCode: String!, $seatNo: Int!) {
 		gameCode: $gameCode
 		seatNo: $seatNo
 	)
+}`
+
+type ReloadChipsResp struct {
+	Approved bool
+}
+
+const ReloadChipsGQL = `mutation reloadChips($gameCode: String!, $amount: Float!) {
+	status: reload(
+		gameCode: $gameCode
+		amount: $amount
+	) {
+		approved
+	}
 }`
 
 type SwitchSeatResp struct {

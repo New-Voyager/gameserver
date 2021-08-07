@@ -97,6 +97,12 @@ type SwitchSeat struct {
 	ToSeat   uint32 `yaml:"to-seat"`
 }
 
+// ReloadChips contains an entry in the ReloadChips array in the game script.
+type ReloadChips struct {
+	SeatNo uint32  `yaml:"seat"`
+	Amount float32 `yaml:"amount"`
+}
+
 // Observer contains entries of observers of game
 type Observer struct {
 	Player   string  `yaml:"player"`
@@ -166,6 +172,7 @@ type HandSetup struct {
 	Pause       uint32               `yaml:"pause"` // bot runner pauses and waits before next hand
 	NewPlayers  []StartingSeat       `yaml:"new-players"`
 	SwitchSeats []SwitchSeat         `yaml:"switch-seats"`
+	ReloadChips []ReloadChips        `yaml:"reload-chips"`
 }
 
 type PreDealSetup struct {
