@@ -216,3 +216,36 @@ func (h *HoldemWinnerEvaluate) GetBestPlayerCards() map[uint32]*EvaluatedCards {
 func (h *HoldemWinnerEvaluate) GetHighHandCards() map[uint32]*EvaluatedCards {
 	return h.highHandCombo
 }
+
+func (h *HoldemWinnerEvaluate) Evaluate2(seatCards []byte, board []byte) EvaluatedCards {
+	allCards := make([]byte, len(board))
+	copy(allCards, board)
+	allCards = append(allCards, seatCards...)
+	cards := poker.FromByteCards(allCards)
+	rank, playerBestCards := poker.Evaluate(cards)
+
+	// determine what player cards and board cards used to determine best cards
+	seatCardsInCard := poker.FromByteCards(seatCards)
+	playerCards := make([]poker.Card, 0)
+	boardCards := make([]poker.Card, 0)
+	for _, card := range playerBestCards {
+		isPlayerCard := false
+		for _, playerCard := range seatCardsInCard {
+			if playerCard == card {
+				isPlayerCard = true
+				break
+			}
+		}
+		if isPlayerCard {
+			playerCards = append(playerCards, card)
+		} else {
+			boardCards = append(boardCards, card)
+		}
+	}
+	return EvaluatedCards{
+		cards:       poker.CardsToByteCards(playerBestCards), // best combo
+		playerCards: poker.CardsToByteCards(playerCards),     // players cards used to make the combo
+		boardCards:  poker.CardsToByteCards(boardCards),      // board cards used to make the combo
+		rank:        rank,
+	}
+}

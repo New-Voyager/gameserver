@@ -219,7 +219,15 @@ func (h *HandState) initialize(gameConfig *GameConfig, testHandSetup *TestHandSe
 	h.RakePaid = make(map[uint64]float32, 0)
 
 	// board cards
-	h.BoardCards = h.board(deck)
+	cards := h.board(deck)
+	h.BoardCards = cards
+	h.NoOfBoards = 1
+	h.Boards = make([]*Board, 0)
+	board1 := &Board{
+		BoardNo: 1,
+		Cards:   poker.ByteCardsToUint32Cards(cards),
+	}
+	h.Boards = append(h.Boards, board1)
 	fmt.Printf("Board1: %s", poker.CardsToString(h.BoardCards))
 
 	// setup data structure to handle betting rounds

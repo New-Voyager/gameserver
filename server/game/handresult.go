@@ -1,25 +1,36 @@
 package game
 
+import (
+	"fmt"
+
+	"google.golang.org/protobuf/encoding/protojson"
+	"voyager.com/server/poker"
+)
+
 type HandResultProcessor struct {
 	handState         *HandState
 	rewardTrackingIds []uint32
 	evaluator         HandEvaluator
+	hiLoGame          bool
 }
 
 func NewHandResultProcessor(handState *HandState, maxSeats uint32, rewardTrackingIds []uint32) *HandResultProcessor {
 	var evaluator HandEvaluator
 	includeHighHand := rewardTrackingIds != nil
+	hiLoGame := false
 	if handState.GameType == GameType_HOLDEM {
 		evaluator = NewHoldemWinnerEvaluate(handState, includeHighHand, maxSeats)
 	} else if handState.GameType == GameType_PLO || handState.GameType == GameType_FIVE_CARD_PLO {
 		evaluator = NewPloWinnerEvaluate(handState, includeHighHand, false, maxSeats)
 	} else if handState.GameType == GameType_PLO_HILO || handState.GameType == GameType_FIVE_CARD_PLO_HILO {
 		evaluator = NewPloWinnerEvaluate(handState, includeHighHand, true, maxSeats)
+		hiLoGame = true
 	}
 	return &HandResultProcessor{
 		handState:         handState,
 		rewardTrackingIds: rewardTrackingIds,
 		evaluator:         evaluator,
+		hiLoGame:          hiLoGame,
 	}
 }
 
@@ -252,4 +263,176 @@ func (hr *HandResultProcessor) getResult(db bool) *HandResult {
 	}
 
 	return handResult
+}
+
+func (hr *HandResultProcessor) evaluateRank() {
+	hs := hr.handState
+
+	// for each board, calculate rank for active players
+	for _, board := range hs.Boards {
+		board.PlayerRank = make(map[uint32]*BoardCardRank)
+		// first calculate rank for each active seats
+		for seatNoIdx, playerId := range hr.handState.ActiveSeats {
+			if playerId == 0 {
+				continue
+			}
+			seatNo := uint32(seatNoIdx)
+			playersCards := hs.PlayersCards[seatNo]
+			boardCards := poker.FromUint32ByteCards(board.Cards)
+			eval := hr.evaluator.Evaluate2(playersCards, boardCards)
+			lowFound := len(eval.locards) > 0
+			hiCards := poker.ByteCardsToUint32Cards(eval.cards)
+			board.PlayerRank[seatNo] = &BoardCardRank{
+				BoardNo:  board.BoardNo,
+				SeatNo:   seatNo,
+				HiRank:   uint32(eval.rank),
+				HiCards:  hiCards,
+				LowFound: lowFound,
+				LoRank:   uint32(eval.loRank),
+				LoCards:  poker.ByteCardsToUint32Cards(eval.locards),
+			}
+		}
+	}
+}
+
+func (hr *HandResultProcessor) determineHiLoRank(boardIndex int, seats []uint32) (int32, int32) {
+	hs := hr.handState
+
+	hiRank := int32(0x7FFFFFFF)
+	loRank := int32(0x7FFFFFFF)
+	first := true
+	board := hs.Boards[boardIndex]
+	// go through each board and determine winners for each board
+	for _, seatNo := range seats {
+		if first {
+			hiRank = int32(board.PlayerRank[seatNo].HiRank)
+		}
+		if hr.hiLoGame && first {
+			loRank = int32(board.PlayerRank[seatNo].LoRank)
+		}
+		if first {
+			first = false
+			continue
+		}
+
+		if int32(board.PlayerRank[seatNo].HiRank) < hiRank {
+			hiRank = int32(board.PlayerRank[seatNo].HiRank)
+		}
+
+		if hr.hiLoGame && int32(board.PlayerRank[seatNo].LoRank) < loRank {
+			loRank = int32(board.PlayerRank[seatNo].LoRank)
+		}
+	}
+
+	return hiRank, loRank
+}
+
+func (hr *HandResultProcessor) determineWinners() *HandResult {
+	hs := hr.handState
+
+	// evaluate rank for all active players
+	hr.evaluateRank()
+
+	potWinners := make([]*PotWinnersV2, 0)
+	// iterate through each pot
+	for potNo, pot := range hs.Pots {
+		potWinner := PotWinnersV2{
+			PotNo:        uint32(potNo),
+			Amount:       pot.Pot,
+			BoardWinners: make([]*BoardWinner, 0),
+		}
+
+		// split the pot for each board
+		potAmountForBoard := int(pot.Pot / float32(hs.NoOfBoards))
+		remaining := pot.Pot - float32(potAmountForBoard*int(hs.NoOfBoards))
+		boardPotAmounts := make([]float32, hs.NoOfBoards)
+		for i := 0; i < int(hs.NoOfBoards); i++ {
+			boardPotAmounts[i] = float32(potAmountForBoard)
+			if remaining > 0 {
+				boardPotAmounts[i]++
+				remaining--
+			}
+		}
+
+		// we calculate how much chips go to each board from this pot
+		for i := 0; i < int(hs.NoOfBoards); i++ {
+			boardPot := boardPotAmounts[i]
+			board := hs.Boards[i]
+			boardWinner := BoardWinner{
+				BoardNo: uint32(i),
+				Amount:  boardPot,
+			}
+			// determined winning ranks in this board
+			hiRank, loRank := hr.determineHiLoRank(i, pot.Seats)
+			boardWinner.HiRankText = poker.RankString(hiRank)
+
+			hiWinners := make([]uint32, 0)
+			loWinners := make([]uint32, 0)
+			// determine winners
+			for _, seatNo := range pot.Seats {
+				if board.PlayerRank[seatNo].HiRank == uint32(hiRank) {
+					hiWinners = append(hiWinners, seatNo)
+				}
+				if hr.hiLoGame && loRank != 0x7FFFFFFF {
+					if board.PlayerRank[seatNo].LoRank == uint32(loRank) {
+						loWinners = append(loWinners, seatNo)
+					}
+				}
+			}
+			boardWinner.HiWinners = hiWinners
+			boardWinner.LowWinners = loWinners
+
+			hiWinnerPotAmount := boardPot
+			loWinnerPotAmount := float32(0.0)
+			if len(loWinners) > 0 {
+				hiWinnerPotAmount = float32(int(boardPot / 2))
+				if int(boardPot)%2 > 0 {
+					hiWinnerPotAmount++
+				}
+				loWinnerPotAmount = boardPot - float32(hiWinnerPotAmount)
+			}
+
+			hiWinnerSplitPot := int(float32(hiWinnerPotAmount / float32(len(hiWinners))))
+			remaining := hiWinnerPotAmount - float32(hiWinnerSplitPot*len(hiWinners))
+			hiWinnersWinAmount := make(map[uint32]float32)
+			for _, hiWinner := range hiWinners {
+				hiWinnersWinAmount[hiWinner] = float32(hiWinnerSplitPot)
+				if remaining > 0 {
+					hiWinnersWinAmount[hiWinner]++
+					remaining--
+				}
+			}
+			boardWinner.HiWinnersWinAmount = hiWinnersWinAmount
+
+			if len(loWinners) > 0 {
+				loWinnerSplitPot := int(float32(loWinnerPotAmount / float32(len(loWinners))))
+				remaining := loWinnerPotAmount - float32(loWinnerSplitPot*len(loWinners))
+				loWinnersWinAmount := make(map[uint32]float32)
+				for _, loWinner := range loWinners {
+					loWinnersWinAmount[loWinner] = float32(loWinnerSplitPot)
+					if remaining > 0 {
+						loWinnersWinAmount[loWinner]++
+						remaining--
+					}
+				}
+				boardWinner.LowWinnersWinAmount = loWinnersWinAmount
+			}
+
+			// add to board winners
+			potWinner.BoardWinners = append(potWinner.BoardWinners, &boardWinner)
+		}
+		potWinners = append(potWinners, &potWinner)
+	}
+	marshaller := protojson.MarshalOptions{
+		EmitUnpopulated: true,
+	}
+	result := &HandResultV2{
+		Boards:     hs.Boards,
+		PotWinners: potWinners,
+	}
+	jsonb, _ := marshaller.Marshal(result)
+	fmt.Printf("\n\n\n")
+	fmt.Printf(string(jsonb))
+	fmt.Printf("\n\n\n")
+	return nil
 }

@@ -1258,6 +1258,8 @@ func (g *Game) onePlayerRemaining(handState *HandState) ([]*HandMessageItem, err
 func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, error) {
 	handResultProcessor := NewHandResultProcessor(handState, uint32(g.config.MaxPlayers), g.config.RewardTrackingIds)
 
+	handResultProcessor.determineWinners()
+
 	// send the hand to the database to store first
 	handResult := handResultProcessor.getResult(true /*db*/)
 	handResult.NoCards = g.NumCards(handState.GameType)

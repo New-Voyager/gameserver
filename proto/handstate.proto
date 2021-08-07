@@ -115,4 +115,7 @@ message HandState {
   RunItTwice run_it_twice = 59;
   bool run_it_twice_confirmed = 60;
   map <uint32, PotWinners> board2_winners = 62; // second board winnners
+
+  uint32 no_of_boards = 63; 
+  repeated Board boards = 64;
 }

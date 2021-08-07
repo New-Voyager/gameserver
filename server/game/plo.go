@@ -392,3 +392,66 @@ func (h *PloWinnerEvaluate) GetBestPlayerCards() map[uint32]*EvaluatedCards {
 func (h *PloWinnerEvaluate) GetHighHandCards() map[uint32]*EvaluatedCards {
 	return h.highHandCombo
 }
+
+func (h *PloWinnerEvaluate) Evaluate2(seatCards []byte, board []byte) EvaluatedCards {
+	playerCardsEval := poker.FromByteCards(seatCards)
+	boardCardsEval := poker.FromByteCards(board)
+	result := poker.EvaluateOmaha(playerCardsEval, boardCardsEval)
+
+	// determine what player cards and board cards used to determine best cards
+	seatCardsInCard := poker.FromByteCards(seatCards)
+	hiPlayerCards := make([]poker.Card, 0)
+	hiBoardCards := make([]poker.Card, 0)
+	for _, card := range result.HiCards {
+		isPlayerCard := false
+		for _, playerCard := range seatCardsInCard {
+			if playerCard == card {
+				isPlayerCard = true
+				break
+			}
+		}
+		if isPlayerCard {
+			hiPlayerCards = append(hiPlayerCards, card)
+		} else {
+			hiBoardCards = append(hiBoardCards, card)
+		}
+	}
+	loPlayerCards := make([]poker.Card, 0)
+	loBoardCards := make([]poker.Card, 0)
+
+	if result.LowFound {
+		// fmt.Printf("seat: %d lo rank: %d cards: %s player cards: %s board cards: %s\n",
+		// 	seatNo, result.LowRank, poker.CardsToString(result.LowCards),
+		// 	poker.CardsToString(h.handState.PlayersCards[uint32(seatNo)]),
+		// 	poker.CardsToString(boardCards))
+
+		for _, card := range result.LowCards {
+			isPlayerCard := false
+			for _, playerCard := range seatCardsInCard {
+				if playerCard == card {
+					isPlayerCard = true
+					break
+				}
+			}
+			if isPlayerCard {
+				loPlayerCards = append(loPlayerCards, card)
+			} else {
+				loBoardCards = append(loBoardCards, card)
+			}
+		}
+	}
+	eval := EvaluatedCards{
+		rank:        result.HiRank,
+		cards:       poker.CardsToByteCards(result.HiCards),
+		playerCards: poker.CardsToByteCards(hiPlayerCards),
+		boardCards:  poker.CardsToByteCards(hiBoardCards),
+		loFound:     result.LowFound,
+	}
+	eval.loRank = int32(0x7fffffff)
+	if result.LowFound {
+		eval.loRank = result.LowRank
+		eval.loPlayerCards = poker.CardsToByteCards(loPlayerCards)
+		eval.loBoardCards = poker.CardsToByteCards(loBoardCards)
+	}
+	return eval
+}
