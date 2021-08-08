@@ -143,13 +143,8 @@ message HandLog {
   bool run_it_twice = 12;            // run it twice
   RunItTwiceResult run_it_twice_result = 13;
   repeated SeatsInPots seats_pots_showdown = 14; // pots and associated seats at showdown
-  map <uint32, PotWinnersV2> pot_winners_2 = 15; // pot winners for each board
-}
-
-
-message HandPlayerBalance {
-  float before = 1;
-  float after = 2;
+  repeated Board boards = 15;
+  map <uint32, PotWinnersV2> pot_winners_2 = 16; // pot winners for each board
 }
 
 message PlayerInfo {
@@ -187,6 +182,16 @@ message HandResult  {
   float big_blind = 19;
   float ante = 20;
   uint32 max_players = 21;
+}
+
+message HandResultClient {
+  repeated uint32 active_seats = 1;
+  HandStatus won_at = 2;
+  repeated Board boards = 3;
+  repeated PotWinnersV2 pot_winners = 4; // pot winners for each board
+  uint32 pause_time_secs = 5; // pauses for each pot winner animation
+  map <uint32, PlayerHandInfo> player_info = 6;
+  bool scoop = 7; // indicates whether the player scooped all the pots
 }
 
 message MsgAcknowledgement {
@@ -245,44 +250,6 @@ message HandMessageItem {
     RunItTwiceBoards run_it_twice = 26;   // to display run it twice cards
     Announcement announcement = 27;
     DealerChoice dealer_choice = 28;
+    HandResultClient hand_result_client = 29;
   }
-}
-
-message BoardCardRank {
-  uint32 board_no = 1;
-  uint32 seat_no = 2;
-  uint32 hi_rank = 3;
-  repeated uint32 hi_cards = 4;
-  bool low_found = 5;
-  uint32 lo_rank = 6;
-  repeated uint32 lo_cards = 7;   // best_cards
-  uint32 best_rank = 8;   // for high hand
-  repeated uint32 best_cards = 9;   // best_cards
-}
-
-message Board {
-  uint32 board_no = 1;
-  repeated uint32 cards = 2;        // cards
-  map <uint32, BoardCardRank> player_rank = 3;
-}
-
-message BoardWinner {
-  uint32 board_no = 2;
-  float amount = 3;                  // pot amount for this board
-  repeated uint32 hi_winners = 4;    // hi winners of the board (seat number)
-  repeated uint32 low_winners = 5;   // low winners of the board (seat number)
-  map <uint32, float> hi_winners_win_amount = 6;    // seatno, amount
-  map <uint32, float> low_winners_win_amount = 7;
-  string hi_rank_text = 8; 
-}
-
-message PotWinnersV2 {
-  uint32 pot_no = 1;
-  float amount = 2;
-  repeated BoardWinner board_winners = 3;
-}
-
-message HandResultV2 {
-  repeated Board boards = 1;
-  repeated PotWinnersV2 pot_winners = 2;
 }

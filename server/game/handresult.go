@@ -303,7 +303,11 @@ func (hr *HandResultProcessor) determineHiLoRank(boardIndex int, seats []uint32)
 	first := true
 	board := hs.Boards[boardIndex]
 	// go through each board and determine winners for each board
-	for _, seatNo := range seats {
+	for seatNoIdx, playerId := range hs.ActiveSeats {
+		if playerId == 0 {
+			continue
+		}
+		seatNo := uint32(seatNoIdx)
 		if first {
 			hiRank = int32(board.PlayerRank[seatNo].HiRank)
 		}
@@ -327,12 +331,13 @@ func (hr *HandResultProcessor) determineHiLoRank(boardIndex int, seats []uint32)
 	return hiRank, loRank
 }
 
-func (hr *HandResultProcessor) determineWinners() *HandResult {
+func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 	hs := hr.handState
 
 	// evaluate rank for all active players
 	hr.evaluateRank()
-
+	lowWinnerFound := false
+	winningPlayers := make(map[uint32]bool)
 	potWinners := make([]*PotWinnersV2, 0)
 	// iterate through each pot
 	for potNo, pot := range hs.Pots {
@@ -366,16 +371,33 @@ func (hr *HandResultProcessor) determineWinners() *HandResult {
 			hiRank, loRank := hr.determineHiLoRank(i, pot.Seats)
 			boardWinner.HiRankText = poker.RankString(hiRank)
 
-			hiWinners := make([]uint32, 0)
-			loWinners := make([]uint32, 0)
+			hiWinners := make(map[uint32]*Winner)
+			loWinners := make(map[uint32]*Winner)
 			// determine winners
 			for _, seatNo := range pot.Seats {
+
+				// if this player is not active, ignore the player
+				if hs.ActiveSeats[seatNo] == 0 {
+					continue
+				}
+
 				if board.PlayerRank[seatNo].HiRank == uint32(hiRank) {
-					hiWinners = append(hiWinners, seatNo)
+					winningPlayers[seatNo] = true
+					hiWinners[seatNo] = &Winner{
+						SeatNo:   seatNo,
+						Amount:   0,
+						RakePaid: 0,
+					}
 				}
 				if hr.hiLoGame && loRank != 0x7FFFFFFF {
 					if board.PlayerRank[seatNo].LoRank == uint32(loRank) {
-						loWinners = append(loWinners, seatNo)
+						lowWinnerFound = true
+						winningPlayers[seatNo] = true
+						loWinners[seatNo] = &Winner{
+							SeatNo:   seatNo,
+							Amount:   0,
+							RakePaid: 0,
+						}
 					}
 				}
 			}
@@ -394,28 +416,24 @@ func (hr *HandResultProcessor) determineWinners() *HandResult {
 
 			hiWinnerSplitPot := int(float32(hiWinnerPotAmount / float32(len(hiWinners))))
 			remaining := hiWinnerPotAmount - float32(hiWinnerSplitPot*len(hiWinners))
-			hiWinnersWinAmount := make(map[uint32]float32)
 			for _, hiWinner := range hiWinners {
-				hiWinnersWinAmount[hiWinner] = float32(hiWinnerSplitPot)
+				hiWinner.Amount = float32(hiWinnerSplitPot)
 				if remaining > 0 {
-					hiWinnersWinAmount[hiWinner]++
+					hiWinner.Amount++
 					remaining--
 				}
 			}
-			boardWinner.HiWinnersWinAmount = hiWinnersWinAmount
 
 			if len(loWinners) > 0 {
 				loWinnerSplitPot := int(float32(loWinnerPotAmount / float32(len(loWinners))))
 				remaining := loWinnerPotAmount - float32(loWinnerSplitPot*len(loWinners))
-				loWinnersWinAmount := make(map[uint32]float32)
 				for _, loWinner := range loWinners {
-					loWinnersWinAmount[loWinner] = float32(loWinnerSplitPot)
+					loWinner.Amount = float32(loWinnerSplitPot)
 					if remaining > 0 {
-						loWinnersWinAmount[loWinner]++
+						loWinner.Amount++
 						remaining--
 					}
 				}
-				boardWinner.LowWinnersWinAmount = loWinnersWinAmount
 			}
 
 			// add to board winners
@@ -426,13 +444,190 @@ func (hr *HandResultProcessor) determineWinners() *HandResult {
 	marshaller := protojson.MarshalOptions{
 		EmitUnpopulated: true,
 	}
-	result := &HandResultV2{
-		Boards:     hs.Boards,
-		PotWinners: potWinners,
+
+	seats := make([]uint32, 0)
+	for seatNo, playerID := range hs.ActiveSeats {
+		if playerID == 0 {
+			continue
+		}
+		seats = append(seats, uint32(seatNo))
+	}
+
+	// calculate rake and player balance
+	playerInfo := hr.calcRakeAndBalance(hs, potWinners)
+
+	scoop := false
+	// if one players win multiple boards or both hi/lo cards, it is scoop
+	if hs.NoOfBoards >= 2 {
+		if len(winningPlayers) == 1 {
+			scoop = true
+		}
+	} else {
+		if lowWinnerFound {
+			if len(winningPlayers) == 1 {
+				scoop = true
+			}
+		}
+	}
+
+	result := &HandResultClient{
+		ActiveSeats:   seats,
+		WonAt:         hs.getLog().GetWonAt(),
+		PotWinners:    potWinners,
+		Boards:        hs.Boards,
+		PauseTimeSecs: 5000,
+		PlayerInfo:    playerInfo,
+		Scoop:         scoop,
 	}
 	jsonb, _ := marshaller.Marshal(result)
 	fmt.Printf("\n\n\n")
 	fmt.Printf(string(jsonb))
 	fmt.Printf("\n\n\n")
-	return nil
+	return result
+}
+
+func (hr *HandResultProcessor) calcRakeAndBalance(hs *HandState, potWinners []*PotWinnersV2) map[uint32]*PlayerHandInfo {
+	rakePaid := make(map[uint64]float32, 0)
+	if hs.RakePercentage > 0 {
+		// calculate rake from the total pot
+		mainPot := potWinners[0]
+		rake := float32(mainPot.Amount * (hs.RakePercentage / 100))
+		if hs.RakeCap != 0 {
+			if rake > hs.RakeCap {
+				rake = hs.RakeCap
+			}
+		}
+		rakeFromPlayer := float32(0.0)
+		if int(rake) > 0 {
+			// take rake from main pot winners evenly
+			winnersCount := len(mainPot.BoardWinners[0].HiWinners)
+			if mainPot.BoardWinners[0].LowWinners != nil {
+				winnersCount = winnersCount + len(mainPot.BoardWinners[0].LowWinners)
+			}
+
+			rakeFromPlayer = float32(int(rake / float32(winnersCount)))
+			if rakeFromPlayer == 0.0 {
+				rakeFromPlayer = 1.0
+			}
+		}
+
+		if rakeFromPlayer > 0 {
+			totalRakeCollected := float32(0)
+			for _, handWinner := range mainPot.BoardWinners[0].HiWinners {
+				if totalRakeCollected == rake {
+					break
+				}
+				seatNo := handWinner.SeatNo
+				playerID := hs.PlayersInSeats[seatNo]
+				if _, ok := rakePaid[playerID]; !ok {
+					rakePaid[playerID] = float32(rakeFromPlayer)
+				} else {
+					rakePaid[playerID] += float32(rakeFromPlayer)
+				}
+				totalRakeCollected += rakeFromPlayer
+				handWinner.Amount -= rakeFromPlayer
+				handWinner.RakePaid += rakeFromPlayer
+			}
+			for _, handWinner := range mainPot.BoardWinners[0].LowWinners {
+				if totalRakeCollected == rake {
+					break
+				}
+				seatNo := handWinner.SeatNo
+				playerID := hs.PlayersInSeats[seatNo]
+				if _, ok := rakePaid[playerID]; !ok {
+					rakePaid[playerID] = float32(rakeFromPlayer)
+				} else {
+					rakePaid[playerID] += float32(rakeFromPlayer)
+				}
+				totalRakeCollected += rakeFromPlayer
+				handWinner.Amount -= rakeFromPlayer
+				handWinner.RakePaid += rakeFromPlayer
+			}
+			hs.RakePaid = rakePaid
+			hs.RakeCollected = totalRakeCollected
+		}
+	}
+
+	// update player balance
+	for _, pot := range potWinners {
+		for _, board := range pot.BoardWinners {
+			for _, handWinner := range board.HiWinners {
+				seatNo := handWinner.SeatNo
+				playerID := hs.PlayersInSeats[seatNo]
+				hs.PlayersState[playerID].Stack += handWinner.Amount
+				hs.PlayersState[playerID].PlayerReceived += handWinner.Amount
+			}
+
+			for _, handWinner := range board.LowWinners {
+				seatNo := handWinner.SeatNo
+				playerID := hs.PlayersInSeats[seatNo]
+				hs.PlayersState[playerID].Stack += handWinner.Amount
+				hs.PlayersState[playerID].PlayerReceived += handWinner.Amount
+			}
+		}
+	}
+
+	hs.BalanceAfterHand = make([]*PlayerBalance, 0)
+
+	/*
+		message PlayerHandInfo {
+		uint64 id = 1;                    // player id
+		repeated uint32 cards = 2;        // cards
+		HandStatus played_until = 5;      // played until what stage
+		HandPlayerBalance balance = 6;
+		repeated uint32 hh_cards = 7;     // high hand cards
+		uint32 hh_rank = 8;      // high hand rank
+		float received = 9;     // received from the hand
+		float rake_paid = 10;   // rake paid by this player
+		}
+	*/
+	players := make(map[uint32]*PlayerHandInfo)
+	for seatNoIdx, playerID := range hs.PlayersInSeats {
+		if playerID == 0 {
+			continue
+		}
+		seatNo := uint32(seatNoIdx)
+		playerState := hs.PlayersState[playerID]
+		players[seatNo] = &PlayerHandInfo{
+			Id:          playerID,
+			PlayedUntil: playerState.Round,
+			Cards:       poker.ByteCardsToUint32Cards(hs.PlayersCards[seatNo]),
+		}
+	}
+
+	// also populate current balance of the players in the table
+	for seatNo, player := range hs.PlayersInSeats {
+		if player == 0 {
+			continue
+		}
+		state := hs.PlayersState[player]
+		balance := &PlayerBalance{SeatNo: uint32(seatNo), PlayerId: player, Balance: state.Stack}
+		hs.BalanceAfterHand = append(hs.BalanceAfterHand, balance)
+
+		before := float32(0.0)
+		for _, playerBalance := range hs.BalanceBeforeHand {
+			if playerBalance.SeatNo == uint32(seatNo) {
+				before = playerBalance.Balance
+				break
+			}
+		}
+		playerBalance := &HandPlayerBalance{
+			Before: before,
+			After:  state.Stack,
+		}
+		rakePaidAmount := float32(0.0)
+		if rake, ok := rakePaid[player]; ok {
+			rakePaidAmount = rake
+		}
+
+		players[uint32(seatNo)] = &PlayerHandInfo{
+			Id:          player,
+			PlayedUntil: state.Round,
+			Cards:       poker.ByteCardsToUint32Cards(hs.PlayersCards[uint32(seatNo)]),
+			Balance:     playerBalance,
+			Received:    playerBalance.After - playerBalance.Before,
+			RakePaid:    rakePaidAmount,
+		}
+	}
+	return players
 }

@@ -149,6 +149,14 @@ func (h *HandState) initialize(gameConfig *GameConfig, testHandSetup *TestHandSe
 	h.BurnCards = false
 	h.CurrentActionNum = 0
 
+	if testHandSetup != nil {
+		h.DoubleBoard = testHandSetup.DoubleBoard
+		h.BombPot = testHandSetup.BombPot
+		if h.BombPot {
+			h.BombPotBet = testHandSetup.BombPotBet
+		}
+	}
+
 	// if the players don't have money less than the blinds
 	// don't let them play
 	h.ActiveSeats = h.GetPlayersInSeats()
@@ -229,6 +237,17 @@ func (h *HandState) initialize(gameConfig *GameConfig, testHandSetup *TestHandSe
 	}
 	h.Boards = append(h.Boards, board1)
 	fmt.Printf("Board1: %s", poker.CardsToString(h.BoardCards))
+
+	if h.DoubleBoard {
+		h.NoOfBoards = 2
+		cards := h.board(deck)
+		board2 := &Board{
+			BoardNo: 2,
+			Cards:   poker.ByteCardsToUint32Cards(cards),
+		}
+		h.Boards = append(h.Boards, board2)
+		fmt.Printf("Board2: %s", poker.CardsToString(cards))
+	}
 
 	// setup data structure to handle betting rounds
 	h.initializeBettingRound()

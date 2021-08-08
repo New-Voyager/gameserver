@@ -279,8 +279,13 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 				board2 = append(board2, card.GetByte())
 			}
 		}
-
+		h.NoOfBoards++
+		h.Boards = append(h.Boards, &Board{
+			BoardNo: h.NoOfBoards,
+			Cards:   poker.ByteCardsToUint32Cards(board2),
+		})
 		h.BoardCards_2 = board2
+		fmt.Printf("Board2: %s\n", poker.CardsToString(board2))
 
 		boardCards2 := make([]uint32, 5)
 		for i, card := range h.BoardCards_2 {

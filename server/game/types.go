@@ -142,16 +142,19 @@ type TestSeatCards struct {
 }
 
 type HandSetup struct {
-	ButtonPos  uint32               `yaml:"button-pos"`
-	AutoDeal   bool                 `yaml:"auto-deal"`
-	Flop       []string             `yaml:"flop"`
-	Turn       string               `yaml:"turn"`
-	River      string               `yaml:"river"`
-	Board      []string             `yaml:"board"`
-	Board2     []string             `yaml:"board2"`
-	SeatCards  []TestSeatCards      `yaml:"seat-cards"`
-	NewPlayers []PlayerSeat         `yaml:"new-players"`
-	Verify     HandSetupVerfication `yaml:"verify"`
+	ButtonPos   uint32               `yaml:"button-pos"`
+	AutoDeal    bool                 `yaml:"auto-deal"`
+	Flop        []string             `yaml:"flop"`
+	Turn        string               `yaml:"turn"`
+	River       string               `yaml:"river"`
+	Board       []string             `yaml:"board"`
+	Board2      []string             `yaml:"board2"`
+	SeatCards   []TestSeatCards      `yaml:"seat-cards"`
+	NewPlayers  []PlayerSeat         `yaml:"new-players"`
+	Verify      HandSetupVerfication `yaml:"verify"`
+	BombPot     bool                 `yaml:"bomb-pot"`
+	BombPotBet  uint32               `yaml:"bomb-pot-bet"`
+	DoubleBoard bool                 `yaml:"double-board"`
 }
 
 /*
@@ -214,6 +217,7 @@ type TestHandWinner struct {
 	Seat    uint32  `yaml:"seat"`
 	Receive float32 `yaml:"receive"`
 	RankStr string  `yaml:"rank"`
+	Rake    float32 `yaml:"rake"`
 }
 
 type PlayerStack struct {
@@ -221,13 +225,17 @@ type PlayerStack struct {
 	Stack float32 `yaml:"stack"`
 }
 
-type TestHandResult struct {
+type TestHandResultVerify struct {
 	Winners       []TestHandWinner `yaml:"winners"`
 	LoWinners     []TestHandWinner `yaml:"lo-winners"`
 	ActionEndedAt string           `yaml:"action-ended"`
 	Stacks        []PlayerStack    `yaml:"stacks"`
 }
 
+type TestHandResult struct {
+	TestHandResultVerify
+	Boards []TestHandResultVerify `yaml:"boards"`
+}
 type Hand struct {
 	Num           uint32         `yaml:"num"`
 	Setup         HandSetup      `yaml:"setup"`

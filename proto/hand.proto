@@ -191,6 +191,9 @@ message CurrentHandState {
   repeated float pots = 23; // pots in the center
   float pot_updates = 24;   // pot updated based on the bets
   uint32 no_cards = 25;     // number of cards dealt to players
+  bool bomb_pot = 36;
+  bool double_board = 37;
+  float bomb_pot_bet = 38;
 }
 
 message HandWinner {
@@ -226,4 +229,64 @@ enum FlowState {
   MOVE_TO_NEXT_HAND           = 9;
 	RUNITTWICE_UP_PROMPT        = 10;
 	RUNITTWICE_PROMPT_RESPONSE  = 11;
+}
+
+
+message BoardCardRank {
+  uint32 board_no = 1;
+  uint32 seat_no = 2;
+  uint32 hi_rank = 3;
+  repeated uint32 hi_cards = 4;
+  bool low_found = 5;
+  uint32 lo_rank = 6;
+  repeated uint32 lo_cards = 7;   // best_cards
+  uint32 best_rank = 8;   // for high hand
+  repeated uint32 best_cards = 9;   // best_cards
+}
+
+message Board {
+  uint32 board_no = 1;
+  repeated uint32 cards = 2;        // cards
+  map <uint32, BoardCardRank> player_rank = 3;
+}
+
+message Winner {
+  uint32 seat_no = 1;
+  float amount = 2;
+  float rakePaid = 3; 
+}
+
+message BoardWinner {
+  uint32 board_no = 2;
+  float amount = 3;                  // pot amount for this board
+  map <uint32, Winner> hi_winners = 4;    // hi winners of the board (seat number)
+  map <uint32, Winner> low_winners = 5;   // low winners of the board (seat number)
+  string hi_rank_text = 6; 
+}
+
+message PotWinnersV2 {
+  uint32 pot_no = 1;
+  float amount = 2;
+  repeated BoardWinner board_winners = 3;
+}
+
+message HandResultV2 {
+  repeated Board boards = 1;
+  repeated PotWinnersV2 pot_winners = 2;
+}
+
+message HandPlayerBalance {
+  float before = 1;
+  float after = 2;
+}
+
+message PlayerHandInfo {
+  uint64 id = 1;                    // player id
+  repeated uint32 cards = 2;        // cards
+  HandStatus played_until = 5;      // played until what stage
+  HandPlayerBalance balance = 6;
+  repeated uint32 hh_cards = 7;     // high hand cards
+  uint32 hh_rank = 8;      // high hand rank
+  float received = 9;     // received from the hand
+  float rake_paid = 10;   // rake paid by this player
 }

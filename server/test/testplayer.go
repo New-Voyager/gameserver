@@ -37,10 +37,11 @@ type TestPlayer struct {
 	cards []uint32
 
 	// preserve different stages of the messages
-	flop     *game.Flop
-	turn     *game.Turn
-	river    *game.River
-	showdown *game.Showdown
+	flop       *game.Flop
+	turn       *game.Turn
+	river      *game.River
+	showdown   *game.Showdown
+	handResult *game.HandResultClient
 
 	observer *TestPlayer
 	// preserve last received table state
@@ -121,6 +122,11 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 		t.river = msgItem.GetRiver()
 	}
 	t.lastHandMessage = handMessage
+	fmt.Printf("%s\n", msgItem.MessageType)
+	if msgItem.MessageType == game.HandResultMessage2 {
+		newResult := msgItem.GetHandResultClient()
+		t.handResult = newResult
+	}
 	t.lastHandMessageItem = msgItem
 
 	logged := false
@@ -132,7 +138,7 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 		if msgItem.MessageType == game.HandPlayerAction ||
 			// handMessage.MessageType == game.HandNextAction ||
 			msgItem.MessageType == game.HandNewHand ||
-			msgItem.MessageType == game.HandResultMessage ||
+			msgItem.MessageType == game.HandResultMessage2 ||
 			msgItem.MessageType == game.HandFlop ||
 			msgItem.MessageType == game.HandTurn ||
 			msgItem.MessageType == game.HandRiver ||
@@ -149,6 +155,15 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 					Msg(fmt.Sprintf("%s", string(jsonb)))
 			}
 			if msgItem.MessageType == game.HandResultMessage {
+				testPlayerLogger.Info().
+					Uint32("club", t.player.ClubID).
+					Uint64("game", t.player.GameID).
+					Uint64("playerid", t.player.PlayerID).
+					Uint32("seatNo", t.player.SeatNo).
+					Str("player", t.player.PlayerName).
+					Msg(fmt.Sprintf("%s", string(jsonb)))
+			}
+			if msgItem.MessageType == game.HandResultMessage2 {
 				testPlayerLogger.Info().
 					Uint32("club", t.player.ClubID).
 					Uint64("game", t.player.GameID).

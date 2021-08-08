@@ -43,7 +43,7 @@ func (h *TestHand) run(t *TestDriver) error {
 	}
 	lastMsgItem := h.gameScript.observer.lastHandMessageItem
 	result := false
-	if lastMsgItem.MessageType == "RESULT" {
+	if lastMsgItem.MessageType == "RESULT2" {
 		result = true
 	}
 
@@ -55,7 +55,7 @@ func (h *TestHand) run(t *TestDriver) error {
 		}
 		lastMsgItem := h.gameScript.observer.lastHandMessageItem
 		result = false
-		if lastMsgItem.MessageType == "RESULT" {
+		if lastMsgItem.MessageType == "RESULT2" {
 			result = true
 		}
 	}
@@ -68,7 +68,7 @@ func (h *TestHand) run(t *TestDriver) error {
 		}
 		lastMsgItem := h.gameScript.observer.lastHandMessageItem
 		result = false
-		if lastMsgItem.MessageType == "RESULT" {
+		if lastMsgItem.MessageType == "RESULT2" {
 			result = true
 		}
 	}
@@ -81,7 +81,7 @@ func (h *TestHand) run(t *TestDriver) error {
 		}
 		lastMsgItem := h.gameScript.observer.lastHandMessageItem
 		result = false
-		if lastMsgItem.MessageType == "RESULT" {
+		if lastMsgItem.MessageType == "RESULT2" {
 			result = true
 		} else {
 			// we didn't get any results after the river
@@ -94,13 +94,18 @@ func (h *TestHand) run(t *TestDriver) error {
 	// verify results
 	if result {
 		lastMsgItem := h.gameScript.observer.lastHandMessageItem
-		handResult := lastMsgItem.GetHandResult()
+		handResult := lastMsgItem.GetHandResultClient()
 		_ = handResult
 
-		err = h.verifyHandResult(t, handResult)
+		err = h.verifyHandResult2(t, handResult)
 		if err != nil {
 			return err
 		}
+
+		// err = h.verifyHandResult(t, handResult)
+		// if err != nil {
+		// 	return err
+		// }
 	}
 
 	return nil
@@ -217,7 +222,7 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.Betting
 		fmt.Printf("Run it twice")
 		// wait for the result
 		h.gameScript.waitForObserver()
-	} else if lastHandMsgItem.MessageType != game.HandResultMessage {
+	} else if lastHandMsgItem.MessageType != game.HandResultMessage2 {
 		// wait for betting round message (flop, turn, river, showdown)
 		h.gameScript.waitForObserver()
 	}
@@ -479,6 +484,96 @@ func (h *TestHand) verifyHandResult(t *TestDriver, handResult *game.HandResult) 
 			}
 		}
 	}
+
+	if !passed {
+		return fmt.Errorf("Failed when verifying the hand result")
+	}
+	return nil
+}
+
+func (h *TestHand) verifyWinners(actualWinners map[uint32]*game.Winner, expectedWinners []game.TestHandWinner) bool {
+	passed := true
+	if len(actualWinners) != len(expectedWinners) {
+		passed = false
+	}
+	if passed {
+		for _, expectedWinner := range expectedWinners {
+			if handWinner, ok := actualWinners[expectedWinner.Seat]; ok {
+				winAmount := handWinner.Amount
+				if winAmount != expectedWinner.Receive {
+					h.addError(fmt.Errorf("Winner winning didn't match. Expected %f, actual: %f",
+						expectedWinner.Receive, winAmount))
+					passed = false
+				}
+
+				if expectedWinner.Rake > 0 {
+					if expectedWinner.Rake != handWinner.RakePaid {
+						h.addError(fmt.Errorf("Winner rake amount didn't match. Expected %f, actual: %f",
+							expectedWinner.Rake, handWinner.RakePaid))
+						passed = false
+
+					}
+				}
+			} else {
+				h.addError(fmt.Errorf("Winner seat %d is not found in the result. Expected %d",
+					expectedWinner.Seat, handWinner.SeatNo))
+				passed = false
+				continue
+			}
+		}
+	}
+	return passed
+}
+
+func (h *TestHand) verifyHandResult2(t *TestDriver, handResult *game.HandResultClient) error {
+	passed := true
+
+	if h.hand.Result.Boards != nil {
+		pot := 0
+		potWinner := handResult.PotWinners[pot]
+		for idx, board := range h.hand.Result.Boards {
+			hiWinners := potWinner.BoardWinners[idx].HiWinners
+			passed = h.verifyWinners(hiWinners, board.Winners)
+		}
+	}
+
+	if h.hand.Result.Winners != nil {
+		pot := 0
+		potWinner := handResult.PotWinners[pot]
+		hiWinners := potWinner.BoardWinners[0].HiWinners
+		passed = h.verifyWinners(hiWinners, h.hand.Result.Winners)
+	}
+
+	if h.hand.Result.LoWinners != nil {
+		pot := 0
+		potWinner := handResult.PotWinners[pot]
+		loWinners := potWinner.BoardWinners[0].LowWinners
+		passed = h.verifyWinners(loWinners, h.hand.Result.LoWinners)
+	}
+
+	if h.hand.Result.ActionEndedAt != "" {
+		actualActionEndedAt := game.HandStatus_name[int32(handResult.WonAt)]
+		if h.hand.Result.ActionEndedAt != actualActionEndedAt {
+			h.addError(fmt.Errorf("Action won at is not matching. Expected %s, actual: %s",
+				h.hand.Result.ActionEndedAt, actualActionEndedAt))
+			passed = false
+		}
+	}
+
+	// // now verify players stack
+	// expectedStacks := h.hand.Result.Stacks
+	// for _, expectedStack := range expectedStacks {
+	// 	for seatNo, player := range handResult.Players {
+
+	// 		if seatNo == expectedStack.Seat {
+	// 			if player.Balance.After != expectedStack.Stack {
+	// 				h.addError(fmt.Errorf("Player %d seatNo: %d is not matching. Expected %f, actual: %f", player.Balance.After, seatNo,
+	// 					expectedStack.Stack, player.Balance.After))
+	// 				passed = false
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	if !passed {
 		return fmt.Errorf("Failed when verifying the hand result")

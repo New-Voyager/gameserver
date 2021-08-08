@@ -919,7 +919,7 @@ func (g *Game) handEnded(handState *HandState) ([]*HandMessageItem, error) {
 	return []*HandMessageItem{handEnded}, nil
 }
 
-func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, handResult *HandResult) ([]*HandMessageItem, error) {
+func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, handResult *HandResult, handResultClient *HandResultClient) ([]*HandMessageItem, error) {
 	if saveResult != nil {
 		if saveResult.HighHand != nil {
 			// a player in this game hit a high hand
@@ -985,7 +985,61 @@ func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, hand
 		Content:     &HandMessageItem_HandResult{HandResult: handResult},
 	}
 
-	return []*HandMessageItem{msgItem}, nil
+	msgItem2 := &HandMessageItem{
+		MessageType: HandResultMessage2,
+		Content:     &HandMessageItem_HandResultClient{HandResultClient: handResultClient},
+	}
+	msgItems := make([]*HandMessageItem, 0)
+	msgItems = append(msgItems, msgItem)
+	msgItems = append(msgItems, msgItem2)
+	return msgItems, nil
+}
+
+func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([]*HandMessageItem, error) {
+	handResultClient.PlayerInfo = make(map[uint32]*PlayerHandInfo)
+	hs.CurrentState = HandStatus_RESULT
+
+	for seatNo, player := range hs.PlayersInSeats {
+		if player == 0 {
+			continue
+		}
+		playerState := hs.PlayersState[player]
+
+		before := float32(0.0)
+		after := float32(0.0)
+		for _, playerBalance := range hs.BalanceBeforeHand {
+			if playerBalance.SeatNo == uint32(seatNo) {
+				before = playerBalance.Balance
+				break
+			}
+		}
+		for _, playerBalance := range hs.BalanceAfterHand {
+			if playerBalance.SeatNo == uint32(seatNo) {
+				after = playerBalance.Balance
+				break
+			}
+		}
+		rakePaid := float32(0.0)
+		if playerRake, ok := hs.RakePaid[player]; ok {
+			rakePaid = playerRake
+		}
+		handResultClient.PlayerInfo[uint32(seatNo)] = &PlayerHandInfo{
+			Id: playerState.PlayerId,
+			Balance: &HandPlayerBalance{
+				Before: before,
+				After:  after,
+			},
+			Received: playerState.PlayerReceived,
+			RakePaid: rakePaid,
+		}
+	}
+	msgItem2 := &HandMessageItem{
+		MessageType: HandResultMessage2,
+		Content:     &HandMessageItem_HandResultClient{HandResultClient: handResultClient},
+	}
+	msgItems := make([]*HandMessageItem, 0)
+	msgItems = append(msgItems, msgItem2)
+	return msgItems, nil
 }
 
 func (g *Game) announceHighHand(saveResult *SaveHandResult, highHand *HighHand) {
@@ -1258,30 +1312,30 @@ func (g *Game) onePlayerRemaining(handState *HandState) ([]*HandMessageItem, err
 func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, error) {
 	handResultProcessor := NewHandResultProcessor(handState, uint32(g.config.MaxPlayers), g.config.RewardTrackingIds)
 
-	handResultProcessor.determineWinners()
+	handResult2Client := handResultProcessor.determineWinners()
 
-	// send the hand to the database to store first
-	handResult := handResultProcessor.getResult(true /*db*/)
-	handResult.NoCards = g.NumCards(handState.GameType)
-	handResult.SmallBlind = handState.SmallBlind
-	handResult.BigBlind = handState.BigBlind
-	handResult.MaxPlayers = handState.MaxSeats
+	// // // send the hand to the database to store first
+	// // handResult := handResultProcessor.getResult(true /*db*/)
+	// // handResult.NoCards = g.NumCards(handState.GameType)
+	// // handResult.SmallBlind = handState.SmallBlind
+	// // handResult.BigBlind = handState.BigBlind
+	// // handResult.MaxPlayers = handState.MaxSeats
 
-	saveResult, _ := g.saveHandResultToAPIServer(handResult)
+	// // saveResult, _ := g.saveHandResultToAPIServer(handResult)
 
-	// send to all the players
-	handResult = handResultProcessor.getResult(false /*db*/)
-	handResult.NoCards = g.NumCards(handState.GameType)
-	handResult.SmallBlind = handState.SmallBlind
-	handResult.BigBlind = handState.BigBlind
-	handResult.MaxPlayers = handState.MaxSeats
+	// // // send to all the players
+	// // handResult = handResultProcessor.getResult(false /*db*/)
+	// // handResult.NoCards = g.NumCards(handState.GameType)
+	// // handResult.SmallBlind = handState.SmallBlind
+	// // handResult.BigBlind = handState.BigBlind
+	// // handResult.MaxPlayers = handState.MaxSeats
 
-	// update the player balance
-	for seatNo, player := range handResult.Players {
-		g.PlayersInSeats[seatNo].Stack = player.Balance.After
-	}
+	// // update the player balance
+	// for seatNo, player := range handResult.Players {
+	// 	g.PlayersInSeats[seatNo].Stack = player.Balance.After
+	// }
 
-	msgItems, err := g.sendResult(handState, saveResult, handResult)
+	msgItems, err := g.sendResult2(handState, handResult2Client)
 	if err != nil {
 		return nil, err
 	}

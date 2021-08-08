@@ -21,6 +21,9 @@ type SetupDeck struct {
 	PlayerCards []PlayerCard `json:"player-cards"`
 	Auto        bool         `json:"auto"`
 	Pause       uint32       `json:"pause"`
+	BombPot     bool         `json:"bomb-pot"`
+	BombPotBet  uint32       `json:"bomb-pot-bet"`
+	DoubleBoard bool         `json:"double-board"`
 }
 
 type PlayerCard struct {

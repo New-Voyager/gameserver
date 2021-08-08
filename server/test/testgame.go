@@ -74,12 +74,12 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 
 	for _, playerInfo := range players {
 		testPlayer := NewTestPlayer(playerInfo, observer)
-		player := game.NewPlayer(clubID, gameID, playerInfo.Name, playerInfo.ID, testPlayer)
+		player := game.NewPlayer(clubID, gameID, playerInfo.Name, playerInfo.ID, playerInfo.RunItTwice, testPlayer)
 		testPlayer.setPlayer(player)
 		gamePlayers[playerInfo.ID] = testPlayer
 	}
 
-	player := game.NewPlayer(clubID, gameID, gameScriptPlayer.Name, gameScriptPlayer.ID, observer)
+	player := game.NewPlayer(clubID, gameID, gameScriptPlayer.Name, gameScriptPlayer.ID, false, observer)
 	observer.setPlayer(player)
 	gamePlayers[gameScriptPlayer.ID] = observer
 

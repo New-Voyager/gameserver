@@ -61,12 +61,13 @@ type PlayerMessageDelegate interface {
 	GameMessageFromGame(gameMessageBytes []byte, gameMessage *GameMessage, json []byte)
 }
 
-func NewPlayer(clubID uint32, gameID uint64, name string, playerID uint64, delegate PlayerMessageDelegate) *Player {
+func NewPlayer(clubID uint32, gameID uint64, name string, playerID uint64, runItTwice bool, delegate PlayerMessageDelegate) *Player {
 	channelPlayer := Player{
 		ClubID:        clubID,
 		GameID:        gameID,
 		PlayerID:      playerID,
 		PlayerName:    name,
+		RunItTwice:    runItTwice,
 		delegate:      delegate,
 		chGame:        make(chan []byte),
 		chHand:        make(chan []byte),
@@ -102,6 +103,8 @@ func (p *Player) handleHandMessage(messageBytes []byte, message *HandMessage) {
 			p.onPlayerNewHand(messageBytes, message, msgItem)
 		} else if msgItem.MessageType == HandResultMessage {
 			p.onHandResult(messageBytes, message, msgItem)
+		} else if msgItem.MessageType == HandResultMessage2 {
+			p.onHandResult2(messageBytes, message, msgItem)
 		} else if msgItem.MessageType == HandNoMoreActions {
 			p.onHandNoMoreActions(messageBytes, message, msgItem)
 		} else if msgItem.MessageType == HandFlop {
@@ -189,6 +192,19 @@ func (p *Player) onPlayerAction(messageBytes []byte, message *HandMessage, msgIt
 }
 
 func (p *Player) onHandResult(messageBytes []byte, message *HandMessage, msgItem *HandMessageItem) error {
+	// this player is next to act
+	jsonb, err := protojson.Marshal(message)
+	if err != nil {
+		return err
+	}
+
+	if p.delegate != nil {
+		p.delegate.HandMessageFromGame(messageBytes, message, msgItem, jsonb)
+	}
+	return nil
+}
+
+func (p *Player) onHandResult2(messageBytes []byte, message *HandMessage, msgItem *HandMessageItem) error {
 	// this player is next to act
 	jsonb, err := protojson.Marshal(message)
 	if err != nil {
@@ -412,6 +428,12 @@ func (p *Player) SetupNextHand(num uint32, handSetup HandSetup) error {
 		PlayerCards:       playerCards,
 		PlayerCardsBySeat: playerCardsBySeat,
 		Pause:             0,
+	}
+
+	if handSetup.BombPot {
+		nextHand.BombPot = true
+		nextHand.BombPotBet = float32(handSetup.BombPotBet)
+		nextHand.DoubleBoard = handSetup.DoubleBoard
 	}
 
 	message.ClubId = p.ClubID
