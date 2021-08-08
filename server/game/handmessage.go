@@ -747,9 +747,22 @@ func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 		}
 	}
 
+	boards := make([]*Board, 0)
+	for _, board := range handState.Boards {
+		flopCards := make([]uint32, 3)
+		for i, card := range board.Cards[:3] {
+			flopCards[i] = uint32(card)
+		}
+		board1 := &Board{
+			BoardNo: board.BoardNo,
+			Cards:   flopCards,
+		}
+		boards = append(boards, board1)
+	}
 	cardsStr := poker.CardsToString(flopCards)
 	flop := &Flop{
 		Board:           flopCards,
+		Boards:          boards,
 		CardsStr:        cardsStr,
 		Pots:            pots,
 		SeatsPots:       seatsInPots,
@@ -808,8 +821,21 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 		}
 	}
 
+	boards := make([]*Board, 0)
+	for _, board := range handState.Boards {
+		turnCards := make([]uint32, 4)
+		for i, card := range board.Cards[:4] {
+			turnCards[i] = uint32(card)
+		}
+		board1 := &Board{
+			BoardNo: board.BoardNo,
+			Cards:   turnCards,
+		}
+		boards = append(boards, board1)
+	}
 	turn := &Turn{
 		Board:           boardCards,
+		Boards:          boards,
 		TurnCard:        boardCards[3],
 		CardsStr:        cardsStr,
 		Pots:            pots,
@@ -867,9 +893,22 @@ func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
 			return nil, err
 		}
 	}
+	boards := make([]*Board, 0)
+	for _, board := range handState.Boards {
+		riverCards := make([]uint32, 4)
+		for i, card := range board.Cards[:4] {
+			riverCards[i] = uint32(card)
+		}
+		board1 := &Board{
+			BoardNo: board.BoardNo,
+			Cards:   riverCards,
+		}
+		boards = append(boards, board1)
+	}
 
 	river := &River{
 		Board:           boardCards,
+		Boards:          boards,
 		RiverCard:       uint32(handState.BoardCards[4]),
 		CardsStr:        cardsStr,
 		Pots:            pots,
@@ -1247,6 +1286,17 @@ func (g *Game) showdown(handState *HandState) ([]*HandMessageItem, error) {
 	handState.HandCompletedAt = HandStatus_SHOW_DOWN
 	handState.FlowState = FlowState_HAND_ENDED
 
+	// track whether the player is active in this round or not
+	for _, playerID := range handState.ActiveSeats {
+		if playerID == 0 {
+			continue
+		}
+		playerState, found := handState.PlayersState[playerID]
+		if found {
+			playerState.Round = HandStatus_SHOW_DOWN
+		}
+	}
+
 	var allMsgItems []*HandMessageItem
 	var msgItems []*HandMessageItem
 	var err error
@@ -1349,11 +1399,14 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	*/
 
 	hs := handState
-	if !g.isScriptTest {
+	sendResultToApi := g.isScriptTest
+	sendResultToApi = true
+	if sendResultToApi {
 		handResultServer := &HandResultServer{
 			GameId:      hs.GameId,
 			HandNum:     hs.HandNum,
 			GameType:    hs.GameType,
+			ButtonPos:   hs.ButtonPos,
 			NoCards:     g.NumCards(handState.GameType),
 			HandLog:     hs.getLog(),
 			HandStats:   hs.GetHandStats(),

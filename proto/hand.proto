@@ -18,6 +18,7 @@ enum ACTION {
   RUN_IT_TWICE_NO = 11;
   RUN_IT_TWICE_PROMPT = 12;
   POST_BLIND = 13;
+  BOMB_POT_BET = 14;
 }
 
 message HandAction {

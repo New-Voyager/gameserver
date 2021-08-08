@@ -658,16 +658,29 @@ func (g *Game) dealNewHand() error {
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, g.PlayersInSeats)))
 
+	allMsgItems := make([]*HandMessageItem, 0)
+	if handState.BombPot {
+		messages, err := g.gotoFlop(handState)
+		if err == nil {
+			for _, msgItem := range messages {
+				allMsgItems = append(allMsgItems, msgItem)
+			}
+		}
+	}
+
 	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 	msgItems, err := g.moveToNextAction(handState)
 	if err != nil {
 		return err
 	}
+	for _, msgItem := range msgItems {
+		allMsgItems = append(allMsgItems, msgItem)
+	}
 	handMsg := HandMessage{
 		HandNum:    handState.HandNum,
 		HandStatus: handState.CurrentState,
 		MessageId:  g.generateMsgID("INITIAL_ACTION", handState.HandNum, handState.CurrentState, 0, "", handState.CurrentActionNum),
-		Messages:   msgItems,
+		Messages:   allMsgItems,
 	}
 	g.broadcastHandMessage(&handMsg)
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_5, 0)

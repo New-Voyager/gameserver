@@ -95,16 +95,6 @@ hands:
             seat-no: 1
             cards: ["9h", "2s"]
    
-    # simulate pre-flop action
-    preflop-action:
-      seat-actions:
-        - 1, CALL, 2
-        - 5, CALL, 2
-        - 8, CHECK
-      verify:
-        state: FLOP
-        board: ["Ac", "Ad", "2c"]
-
     flop-action:
       seat-actions:
         - 5, CHECK

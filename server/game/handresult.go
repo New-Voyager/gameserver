@@ -470,6 +470,20 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 		}
 	}
 
+	// updates stats (player won chips at showdown)
+	if hs.CurrentState == HandStatus_SHOW_DOWN {
+		for seatNo, playerID := range hs.ActiveSeats {
+			if playerID == 0 {
+				continue
+			}
+			if winningPlayer, ok := winningPlayers[uint32(seatNo)]; ok {
+				if winningPlayer {
+					hs.PlayerStats[playerID].WonChipsAtShowdown = true
+				}
+			}
+		}
+	}
+
 	result := &HandResultClient{
 		ActiveSeats:   seats,
 		WonAt:         hs.getLog().GetWonAt(),

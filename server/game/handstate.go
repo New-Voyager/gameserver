@@ -348,24 +348,39 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 	h.PreflopActions.PotStart = 0
 	h.setupRound(HandStatus_PREFLOP)
 
-	for _, seatNo := range postedBlinds {
+	if h.BombPot {
+		for seatNoIdx, playerID := range h.ActiveSeats {
+			if playerID == 0 {
+				continue
+			}
+			seatNo := uint32(seatNoIdx)
+			h.actionReceived(&HandAction{
+				SeatNo: seatNo,
+				Action: ACTION_BOMB_POT_BET,
+				Amount: h.BombPotBet,
+			}, 0)
+		}
+
+	} else {
+		for _, seatNo := range postedBlinds {
+			h.actionReceived(&HandAction{
+				SeatNo: seatNo,
+				Action: ACTION_POST_BLIND,
+				Amount: h.BigBlind,
+			}, 0)
+		}
+
 		h.actionReceived(&HandAction{
-			SeatNo: seatNo,
-			Action: ACTION_POST_BLIND,
+			SeatNo: h.SmallBlindPos,
+			Action: ACTION_SB,
+			Amount: h.SmallBlind,
+		}, 0)
+		h.actionReceived(&HandAction{
+			SeatNo: h.BigBlindPos,
+			Action: ACTION_BB,
 			Amount: h.BigBlind,
 		}, 0)
 	}
-
-	h.actionReceived(&HandAction{
-		SeatNo: h.SmallBlindPos,
-		Action: ACTION_SB,
-		Amount: h.SmallBlind,
-	}, 0)
-	h.actionReceived(&HandAction{
-		SeatNo: h.BigBlindPos,
-		Action: ACTION_BB,
-		Amount: h.BigBlind,
-	}, 0)
 
 	h.ActionCompleteAtSeat = h.BigBlindPos
 

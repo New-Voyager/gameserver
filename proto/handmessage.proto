@@ -76,6 +76,7 @@ message Flop {
   repeated SeatsInPots seats_pots = 4; // seats that participate in the pots
   map <uint32, float> player_balance = 5; // player balance at the flop
   map <uint32, string> player_card_ranks = 6; // player card ranking
+  repeated Board boards = 7;
 }
 
 message Turn {
@@ -86,6 +87,7 @@ message Turn {
   repeated SeatsInPots seats_pots = 5; // seats that participate in the pots
   map <uint32, float> player_balance = 6; // player balance at the turn
   map <uint32, string> player_card_ranks = 7; // player card ranking
+  repeated Board boards = 8;
 }
 
 message River {
@@ -96,6 +98,7 @@ message River {
   repeated SeatsInPots seats_pots = 5; // seats that participate in the pots
   map <uint32, float> player_balance = 6; // player balance at the river
   map <uint32, string> player_card_ranks = 7; // player card ranking
+  repeated Board boards = 9;
 }
 
 message SeatCards {
@@ -185,13 +188,31 @@ message HandResult  {
 }
 
 message HandResultClient {
-  repeated uint32 active_seats = 1;
-  HandStatus won_at = 2;
-  repeated Board boards = 3;
-  repeated PotWinnersV2 pot_winners = 4; // pot winners for each board
-  uint32 pause_time_secs = 5; // pauses for each pot winner animation
-  map <uint32, PlayerHandInfo> player_info = 6;
-  bool scoop = 7; // indicates whether the player scooped all the pots
+  bool run_it_twice = 1;                 // indicates the players ran it twice
+  repeated uint32 active_seats = 2;
+  HandStatus won_at = 3;
+  repeated Board boards = 4;
+  repeated PotWinnersV2 pot_winners = 5; // pot winners for each board
+  uint32 pause_time_secs = 6; // pauses for each pot winner animation
+  map <uint32, PlayerHandInfo> player_info = 7;
+  bool scoop = 8; // indicates whether the player scooped all the pots
+}
+
+message HandResultServer {
+  uint64 game_id = 1;
+  uint32 hand_num = 2;
+  GameType game_type = 3;
+  uint32 no_cards = 4;          // number of player cards
+  HandLog hand_log = 5;
+  HandStats hand_stats = 6;
+  map<uint64, PlayerStats> player_stats = 7;
+  bool run_it_twice = 8;                 // indicates the players ran it twice
+  uint32 button_pos = 9;
+  float small_blind = 10;
+  float big_blind = 11;
+  float ante = 12;
+  uint32 max_players = 13;
+  HandResultClient  result = 14;
 }
 
 message MsgAcknowledgement {
