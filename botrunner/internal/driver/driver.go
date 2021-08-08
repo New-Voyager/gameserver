@@ -444,10 +444,10 @@ func (br *BotRunner) Run() error {
 	}
 
 	br.logger.Info().Msg("Processing after-game assertions")
-	err = br.processAfterGameAssertions()
-	if err != nil {
-		return errors.Wrap(err, "Error in after-game check")
-	}
+	// err = br.processAfterGameAssertions()
+	// if err != nil {
+	// 	return errors.Wrap(err, "Error in after-game check")
+	// }
 
 	if br.anyBotError() {
 		errMsg := br.logBotErrors()

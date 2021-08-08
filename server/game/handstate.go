@@ -157,6 +157,8 @@ func (h *HandState) initialize(gameConfig *GameConfig, testHandSetup *TestHandSe
 		}
 	}
 
+	h.IncludeStatsInResult = testHandSetup.IncludeStats
+
 	// if the players don't have money less than the blinds
 	// don't let them play
 	h.ActiveSeats = h.GetPlayersInSeats()
@@ -763,8 +765,6 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		action.Stack = bettingState.PlayerBalance[action.SeatNo]
 		action.ActionTime = uint32(actionResponseTime)
 		bettingRound.SeatBet[int(action.SeatNo)] = amount
-		// add the action to the log
-		log.Actions = append(log.Actions, action)
 	}
 
 	amount := action.Amount

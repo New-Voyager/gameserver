@@ -958,7 +958,7 @@ func (g *Game) handEnded(handState *HandState) ([]*HandMessageItem, error) {
 	return []*HandMessageItem{handEnded}, nil
 }
 
-func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, handResult *HandResult, handResultClient *HandResultClient) ([]*HandMessageItem, error) {
+func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, handResult *HandResult) ([]*HandMessageItem, error) {
 	if saveResult != nil {
 		if saveResult.HighHand != nil {
 			// a player in this game hit a high hand
@@ -1024,13 +1024,8 @@ func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, hand
 		Content:     &HandMessageItem_HandResult{HandResult: handResult},
 	}
 
-	msgItem2 := &HandMessageItem{
-		MessageType: HandResultMessage2,
-		Content:     &HandMessageItem_HandResultClient{HandResultClient: handResultClient},
-	}
 	msgItems := make([]*HandMessageItem, 0)
 	msgItems = append(msgItems, msgItem)
-	msgItems = append(msgItems, msgItem2)
 	return msgItems, nil
 }
 
@@ -1363,27 +1358,33 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	handResultProcessor := NewHandResultProcessor(handState, uint32(g.config.MaxPlayers), g.config.RewardTrackingIds)
 
 	handResult2Client := handResultProcessor.determineWinners()
+	allMsgItems := make([]*HandMessageItem, 0)
+	if handState.IncludeStatsInResult {
+		handResult2Client.PlayerStats = handState.GetPlayerStats()
+	}
 
-	// // // send the hand to the database to store first
-	// // handResult := handResultProcessor.getResult(true /*db*/)
-	// // handResult.NoCards = g.NumCards(handState.GameType)
-	// // handResult.SmallBlind = handState.SmallBlind
-	// // handResult.BigBlind = handState.BigBlind
-	// // handResult.MaxPlayers = handState.MaxSeats
+	// send the hand to the database to store first
+	// handResult := handResultProcessor.getResult(true /*db*/)
+	// handResult.NoCards = g.NumCards(handState.GameType)
+	// handResult.SmallBlind = handState.SmallBlind
+	// handResult.BigBlind = handState.BigBlind
+	// handResult.MaxPlayers = handState.MaxSeats
 
-	// // saveResult, _ := g.saveHandResultToAPIServer(handResult)
+	// saveResult, _ := g.saveHandResultToAPIServer(handResult)
 
-	// // // send to all the players
-	// // handResult = handResultProcessor.getResult(false /*db*/)
-	// // handResult.NoCards = g.NumCards(handState.GameType)
-	// // handResult.SmallBlind = handState.SmallBlind
-	// // handResult.BigBlind = handState.BigBlind
-	// // handResult.MaxPlayers = handState.MaxSeats
+	// // send to all the players
+	// handResult = handResultProcessor.getResult(false /*db*/)
+	// handResult.NoCards = g.NumCards(handState.GameType)
+	// handResult.SmallBlind = handState.SmallBlind
+	// handResult.BigBlind = handState.BigBlind
+	// handResult.MaxPlayers = handState.MaxSeats
 
 	// // update the player balance
 	// for seatNo, player := range handResult.Players {
 	// 	g.PlayersInSeats[seatNo].Stack = player.Balance.After
 	// }
+	// resultItems, err := g.sendResult(handState, saveResult, handResult)
+	// allMsgItems = append(allMsgItems, resultItems...)
 
 	/* uint64 game_id = 1;
 	uint32 hand_num = 2;
@@ -1403,19 +1404,18 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	sendResultToApi = true
 	if sendResultToApi {
 		handResultServer := &HandResultServer{
-			GameId:      hs.GameId,
-			HandNum:     hs.HandNum,
-			GameType:    hs.GameType,
-			ButtonPos:   hs.ButtonPos,
-			NoCards:     g.NumCards(handState.GameType),
-			HandLog:     hs.getLog(),
-			HandStats:   hs.GetHandStats(),
-			PlayerStats: hs.GetPlayerStats(),
-			RunItTwice:  hs.RunItTwiceConfirmed,
-			SmallBlind:  hs.SmallBlind,
-			BigBlind:    hs.BigBlind,
-			MaxPlayers:  hs.MaxSeats,
-			Result:      handResult2Client,
+			GameId:     hs.GameId,
+			HandNum:    hs.HandNum,
+			GameType:   hs.GameType,
+			ButtonPos:  hs.ButtonPos,
+			NoCards:    g.NumCards(handState.GameType),
+			HandLog:    hs.getLog(),
+			HandStats:  hs.GetHandStats(),
+			RunItTwice: hs.RunItTwiceConfirmed,
+			SmallBlind: hs.SmallBlind,
+			BigBlind:   hs.BigBlind,
+			MaxPlayers: hs.MaxSeats,
+			Result:     handResult2Client,
 		}
 		saveResult, _ := g.saveHandResult2ToAPIServer(handResultServer)
 		if saveResult != nil {
@@ -1426,6 +1426,7 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	if err != nil {
 		return nil, err
 	}
+	allMsgItems = append(allMsgItems, msgItems...)
 
-	return msgItems, nil
+	return allMsgItems, nil
 }

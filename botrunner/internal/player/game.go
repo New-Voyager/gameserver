@@ -12,6 +12,7 @@ type gameView struct {
 	handNum     uint32
 	handStatus  game.HandStatus
 	handResult  *game.HandResult
+	handResult2 *game.HandResultClient
 }
 
 // The state of the game table from the player's point of view.

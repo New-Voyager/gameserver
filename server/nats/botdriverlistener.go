@@ -27,18 +27,22 @@ type PlayerCard struct {
 }
 
 type HandSetup struct {
-	Num         uint32       `json:"num"`
-	MessageType string       `json:"message-type"`
-	GameCode    string       `json:"game-code"`
-	GameId      uint64       `json:"game-id"`
-	ButtonPos   uint32       `json:"button-pos"`
-	Board       []string     `json:"board"`
-	Board2      []string     `json:"board2"`
-	Flop        []string     `json:"flop"`
-	Turn        string       `json:"turn"`
-	River       string       `json:"river"`
-	PlayerCards []PlayerCard `json:"player-cards"`
-	Pause       uint32       `json:"pause"` // pauses before dealing next hand
+	Num                  uint32       `json:"num"`
+	MessageType          string       `json:"message-type"`
+	GameCode             string       `json:"game-code"`
+	GameId               uint64       `json:"game-id"`
+	ButtonPos            uint32       `json:"button-pos"`
+	Board                []string     `json:"board"`
+	Board2               []string     `json:"board2"`
+	Flop                 []string     `json:"flop"`
+	Turn                 string       `json:"turn"`
+	River                string       `json:"river"`
+	PlayerCards          []PlayerCard `json:"player-cards"`
+	Pause                uint32       `json:"pause"` // pauses before dealing next hand
+	BombPot              bool         `json:"bomb-pot"`
+	BombPotBet           float32      `json:"bomb-pot-bet"`
+	DoubleBoard          bool         `json:"double-board"`
+	IncludeStatsInResult bool         `json:"include-stats"`
 }
 
 // The NATS test driver adapter functionality is to listen for new game

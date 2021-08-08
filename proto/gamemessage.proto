@@ -69,6 +69,7 @@ message TestHandSetup {
   bool bomb_pot = 12;
   float bomb_pot_bet = 13;
   bool double_board = 14;
+  bool include_stats = 15;
 }
 
 message GameStartMessage {

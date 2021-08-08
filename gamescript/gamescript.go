@@ -173,6 +173,9 @@ type HandSetup struct {
 	NewPlayers  []StartingSeat       `yaml:"new-players"`
 	SwitchSeats []SwitchSeat         `yaml:"switch-seats"`
 	ReloadChips []ReloadChips        `yaml:"reload-chips"`
+	BombPot     bool                 `yaml:"bomb-pot"`
+	BombPotBet  float32              `yaml:"bomb-pot-bet"`
+	DoubleBoard bool                 `yaml:"double-board"`
 }
 
 type PreDealSetup struct {
