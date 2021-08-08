@@ -197,6 +197,7 @@ message HandResultClient {
   map <uint32, PlayerHandInfo> player_info = 7;
   bool scoop = 8; // indicates whether the player scooped all the pots
   map<uint64, PlayerStats> player_stats = 9;
+  uint32 hand_num = 10;
 }
 
 message HandResultServer {

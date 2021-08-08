@@ -444,10 +444,10 @@ func (br *BotRunner) Run() error {
 	}
 
 	br.logger.Info().Msg("Processing after-game assertions")
-	// err = br.processAfterGameAssertions()
-	// if err != nil {
-	// 	return errors.Wrap(err, "Error in after-game check")
-	// }
+	err = br.processAfterGameAssertions()
+	if err != nil {
+		return errors.Wrap(err, "Error in after-game check")
+	}
 
 	if br.anyBotError() {
 		errMsg := br.logBotErrors()
@@ -469,7 +469,7 @@ func (br *BotRunner) processAfterGameAssertions() error {
 	errMsgs := make([]string, 0)
 	minExpectedHands := br.script.AfterGame.Verify.NumHandsPlayed.Gte
 	maxExpectedHands := br.script.AfterGame.Verify.NumHandsPlayed.Lte
-	totalHandsPlayed := br.observerBot.GetHandResult().HandNum
+	totalHandsPlayed := br.observerBot.GetHandResult2().HandNum
 	if minExpectedHands != nil {
 		if totalHandsPlayed < *minExpectedHands {
 			errMsgs = append(errMsgs, fmt.Sprintf("Total hands played: %d, Expected AT LEAST %d hands to have been played", totalHandsPlayed, *minExpectedHands))

@@ -1067,6 +1067,7 @@ func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([
 			RakePaid: rakePaid,
 		}
 	}
+	handResultClient.HandNum = hs.HandNum
 	msgItem2 := &HandMessageItem{
 		MessageType: HandResultMessage2,
 		Content:     &HandMessageItem_HandResultClient{HandResultClient: handResultClient},
