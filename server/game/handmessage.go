@@ -1335,6 +1335,40 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	// 	g.PlayersInSeats[seatNo].Stack = player.Balance.After
 	// }
 
+	/* uint64 game_id = 1;
+	uint32 hand_num = 2;
+	GameType game_type = 3;
+	uint32 no_cards = 4;          // number of player cards
+	HandLog hand_log = 5;
+	HandStats hand_stats = 6;
+	bool run_it_twice = 7;                 // indicates the players ran it twice
+	float small_blind = 8;
+	float big_blind = 9;
+	float ante = 10;
+	uint32 max_players = 11;
+	*/
+
+	hs := handState
+	if !g.isScriptTest {
+		handResultServer := &HandResultServer{
+			GameId:      hs.GameId,
+			HandNum:     hs.HandNum,
+			GameType:    hs.GameType,
+			NoCards:     g.NumCards(handState.GameType),
+			HandLog:     hs.getLog(),
+			HandStats:   hs.GetHandStats(),
+			PlayerStats: hs.GetPlayerStats(),
+			RunItTwice:  hs.RunItTwiceConfirmed,
+			SmallBlind:  hs.SmallBlind,
+			BigBlind:    hs.BigBlind,
+			MaxPlayers:  hs.MaxSeats,
+			Result:      handResult2Client,
+		}
+		saveResult, _ := g.saveHandResult2ToAPIServer(handResultServer)
+		if saveResult != nil {
+			// retry here
+		}
+	}
 	msgItems, err := g.sendResult2(handState, handResult2Client)
 	if err != nil {
 		return nil, err

@@ -122,7 +122,7 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 		t.river = msgItem.GetRiver()
 	}
 	t.lastHandMessage = handMessage
-	fmt.Printf("%s\n", msgItem.MessageType)
+	//fmt.Printf("%s\n", msgItem.MessageType)
 	if msgItem.MessageType == game.HandResultMessage2 {
 		newResult := msgItem.GetHandResultClient()
 		t.handResult = newResult

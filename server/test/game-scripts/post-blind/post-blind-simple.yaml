@@ -285,9 +285,9 @@ hands:
           verify-action:
             actions: ["CALL", "FOLD", "ALLIN", "BET", "STRADDLE"]
             call-amount: 2
-            all-in-amount: 98
+            all-in-amount: 100
             min-raise-amount: 4
-            max-raise-amount: 98
+            max-raise-amount: 100
         - 
           seat: 5
           action: CHECK

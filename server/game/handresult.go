@@ -364,7 +364,7 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 			boardPot := boardPotAmounts[i]
 			board := hs.Boards[i]
 			boardWinner := BoardWinner{
-				BoardNo: uint32(i),
+				BoardNo: board.BoardNo,
 				Amount:  boardPot,
 			}
 			// determined winning ranks in this board
