@@ -2523,11 +2523,11 @@ func (bp *BotPlayer) setupNextHand() error {
 			PlayerCards: bp.getPlayerCardsFromConfig(nextHand.Setup.SeatCards),
 		}
 
-		if nextHand.Setup.BombPot {
-			setupDeckMsg.BombPot = true
-			setupDeckMsg.BombPotBet = nextHand.Setup.BombPot
-			setupDeckMsg.DoubleBoard = nextHand.Setup.DoubleBoard
-		}
+		// if nextHand.Setup.BombPot {
+		// 	setupDeckMsg.BombPot = true
+		// 	setupDeckMsg.BombPotBet = nextHand.Setup.BombPot
+		// 	setupDeckMsg.DoubleBoard = nextHand.Setup.DoubleBoard
+		// }
 	}
 	msgBytes, err := jsoniter.Marshal(setupDeckMsg)
 	if err != nil {
