@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"voyager.com/server/crashtest"
 	"voyager.com/server/util"
 )
 
@@ -43,11 +44,16 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 	}
 }
 
-func processPendingUpdates(apiServerURL string, gameID uint64) {
+func processPendingUpdates(apiServerURL string, gameID uint64, gameCode string) {
 	// call api server processPendingUpdates
 	channelGameLogger.Info().Msgf("Processing pending updates for the game %d", gameID)
 	url := fmt.Sprintf("%s/internal/process-pending-updates/gameId/%d", apiServerURL, gameID)
 	resp, _ := http.Post(url, "application/json", nil)
+
+	// Server crashes right after pending updates were processed.
+	// At this point pending updates were done and the server has
+	// received the done message, but has not processed it.
+	crashtest.Hit(gameCode, crashtest.CrashPoint_PENDING_UPDATES_1, 0)
 
 	// if the api server returns nil, do nothing
 	if resp == nil {
@@ -87,31 +93,17 @@ func (g *Game) onGetHandLog(message *GameMessage) error {
 
 func (g *Game) onPendingUpdatesDone(message *GameMessage) error {
 	g.inProcessPendingUpdates = false
-	// move to next hand
-	if g.Status == GameStatus_ACTIVE && g.TableStatus == TableStatus_GAME_RUNNING {
-		// deal next hand
-		handState, err := g.loadHandState()
-		if err != nil {
-			return err
-		}
-
-		err = g.moveAPIServerToNextHand(handState.HandNum)
-		for err != nil {
-			channelGameLogger.Error().Msg(err.Error())
-			time.Sleep(5 * time.Second)
-			err = g.moveAPIServerToNextHand(handState.HandNum)
-		}
-
-		handState.FlowState = FlowState_DEAL_HAND
-		g.saveHandState(handState)
-
-		gameMessage := &GameMessage{
-			GameId:      g.config.GameId,
-			MessageType: GameDealHand,
-		}
-		go g.QueueGameMessage(gameMessage)
+	if g.Status != GameStatus_ACTIVE || g.TableStatus != TableStatus_GAME_RUNNING {
+		return nil
 	}
-	return nil
+
+	// deal next hand
+	handState, err := g.loadHandState()
+	if err != nil {
+		return err
+	}
+
+	return g.moveAPIServerToNextHandAndScheduleDealHand(handState)
 }
 
 func (g *Game) onMoveToNextHand(message *GameMessage) error {
@@ -138,7 +130,6 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 	}
 
 	if g.inProcessPendingUpdates {
-		channelGameLogger.Info().Msgf("******* Processing pending updates. How did we get here?")
 		return nil
 	}
 
@@ -149,25 +140,33 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 	pendingUpdates, _ := anyPendingUpdates(g.apiServerURL, g.config.GameId, g.delays.PendingUpdatesRetry)
 	if pendingUpdates {
 		g.inProcessPendingUpdates = true
-		go processPendingUpdates(g.apiServerURL, g.config.GameId)
+		go processPendingUpdates(g.apiServerURL, g.config.GameId, g.config.GameCode)
 	} else {
-		err := g.moveAPIServerToNextHand(handState.HandNum)
-		for err != nil {
-			channelGameLogger.Error().Msg(err.Error())
-			time.Sleep(5 * time.Second)
-			err = g.moveAPIServerToNextHand(handState.HandNum)
+		err := g.moveAPIServerToNextHandAndScheduleDealHand(handState)
+		if err != nil {
+			return err
 		}
-
-		handState.FlowState = FlowState_DEAL_HAND
-		g.saveHandState(handState)
-
-		gameMessage := &GameMessage{
-			GameId:      g.config.GameId,
-			MessageType: GameDealHand,
-		}
-		go g.QueueGameMessage(gameMessage)
 	}
 
+	return nil
+}
+
+func (g *Game) moveAPIServerToNextHandAndScheduleDealHand(handState *HandState) error {
+	err := g.moveAPIServerToNextHand(handState.HandNum)
+	for err != nil {
+		channelGameLogger.Error().Msg(err.Error())
+		time.Sleep(5 * time.Second)
+		err = g.moveAPIServerToNextHand(handState.HandNum)
+	}
+
+	handState.FlowState = FlowState_DEAL_HAND
+	g.saveHandState(handState)
+
+	gameMessage := &GameMessage{
+		GameId:      g.config.GameId,
+		MessageType: GameDealHand,
+	}
+	g.QueueGameMessage(gameMessage)
 	return nil
 }
 
