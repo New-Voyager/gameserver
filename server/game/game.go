@@ -103,8 +103,8 @@ func NewPokerGame(
 		encryptionKeyCache: cache,
 	}
 	g.scriptTestPlayers = make(map[uint64]*Player)
-	g.chGame = make(chan []byte)
-	g.chHand = make(chan []byte, 1)
+	g.chGame = make(chan []byte, 10)
+	g.chHand = make(chan []byte, 10)
 	g.end = make(chan bool)
 	g.chPlayTimedOut = make(chan timer.TimerMsg)
 	g.actionTimer = timer.NewActionTimer(g.queueActionTimeoutMsg)

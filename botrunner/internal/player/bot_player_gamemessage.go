@@ -357,9 +357,13 @@ func (bp *BotPlayer) processPostHandSteps() error {
 		if step.ResumeGame {
 			bp.logger.Info().Msgf("%s: Post hand step: Resume game %s", bp.logPrefix, bp.gameCode)
 			// resume game
+			attempts := 1
 			err := bp.gqlHelper.ResumeGame(bp.gameCode)
-			if err != nil {
-				bp.logger.Error().Msgf("%s: Error while resuming game %s: %s", bp.logPrefix, bp.gameCode, err)
+			for err != nil && attempts < bp.maxRetry {
+				attempts++
+				bp.logger.Error().Msgf("%s: Error while resuming game %s: %s. Retrying... (%d)", bp.logPrefix, bp.gameCode, err, attempts)
+				time.Sleep(2 * time.Second)
+				err = bp.gqlHelper.ResumeGame(bp.gameCode)
 			}
 			continue
 		}
