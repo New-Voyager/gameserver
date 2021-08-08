@@ -107,6 +107,7 @@ enum PlayerActState {
   PLAYER_ACT_RAISE = 9;
   PLAYER_ACT_CHECK = 10;
   PLAYER_ACT_POST_BLIND = 11;
+  PLAYER_ACT_BOMB_POT = 12;
 }
 
 message HighHandWinner {

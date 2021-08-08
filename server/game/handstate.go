@@ -360,7 +360,9 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 				Amount: h.BombPotBet,
 			}, 0)
 		}
-
+		// move to flop round
+		h.settleRound()
+		h.setupRound(HandStatus_FLOP)
 	} else {
 		for _, seatNo := range postedBlinds {
 			h.actionReceived(&HandAction{
@@ -435,7 +437,8 @@ func (h *HandState) acted(seatChangedAction uint32, state PlayerActState, amount
 			if state == PlayerActState_PLAYER_ACT_CALL ||
 				state == PlayerActState_PLAYER_ACT_BET ||
 				state == PlayerActState_PLAYER_ACT_RAISE ||
-				state == PlayerActState_PLAYER_ACT_STRADDLE {
+				state == PlayerActState_PLAYER_ACT_STRADDLE ||
+				state == PlayerActState_PLAYER_ACT_BOMB_POT {
 				h.PlayerStats[playerID].Vpip = true
 			}
 
@@ -749,6 +752,21 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		return nil
 	}
 
+	if action.Action == ACTION_BOMB_POT_BET {
+		// handle posting blind as special
+		amount := action.Amount
+		if amount > playerBalance {
+			amount = playerBalance
+		}
+		bettingState.PlayerBalance[action.SeatNo] = bettingState.PlayerBalance[action.SeatNo] - amount
+		h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_POST_BLIND, amount)
+		action.Stack = bettingState.PlayerBalance[action.SeatNo]
+		action.ActionTime = uint32(actionResponseTime)
+		bettingRound.SeatBet[int(action.SeatNo)] = amount
+		// add the action to the log
+		log.Actions = append(log.Actions, action)
+	}
+
 	amount := action.Amount
 	if action.Action == ACTION_ALLIN {
 		amount = bettingState.PlayerBalance[action.SeatNo] + playerBetSoFar
@@ -858,18 +876,20 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		diff = action.Amount
 	}
 
-	if action.Amount > h.CurrentRaise {
-		h.BetBeforeRaise = h.CurrentRaise
-		h.CurrentRaiseDiff = action.Amount - h.CurrentRaise
-		if h.CurrentState == HandStatus_PREFLOP && h.CurrentRaiseDiff < h.BigBlind {
-			h.CurrentRaiseDiff = h.BigBlind
-			h.BetBeforeRaise = 0
+	if action.Action != ACTION_BOMB_POT_BET {
+		if action.Amount > h.CurrentRaise {
+			h.BetBeforeRaise = h.CurrentRaise
+			h.CurrentRaiseDiff = action.Amount - h.CurrentRaise
+			if h.CurrentState == HandStatus_PREFLOP && h.CurrentRaiseDiff < h.BigBlind {
+				h.CurrentRaiseDiff = h.BigBlind
+				h.BetBeforeRaise = 0
+			}
+			h.CurrentRaise = action.Amount
+			h.ActionCompleteAtSeat = action.SeatNo
 		}
-		h.CurrentRaise = action.Amount
-		h.ActionCompleteAtSeat = action.SeatNo
-	}
 
-	bettingState.PlayerBalance[action.SeatNo] = bettingState.PlayerBalance[action.SeatNo] - diff
+		bettingState.PlayerBalance[action.SeatNo] = bettingState.PlayerBalance[action.SeatNo] - diff
+	}
 	action.Stack = bettingState.PlayerBalance[action.SeatNo]
 	action.ActionTime = uint32(actionResponseTime)
 	// add the action to the log
