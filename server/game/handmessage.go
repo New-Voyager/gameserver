@@ -1365,13 +1365,14 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	}
 
 	// send the hand to the database to store first
-	// handResult := handResultProcessor.getResult(true /*db*/)
-	// handResult.NoCards = g.NumCards(handState.GameType)
-	// handResult.SmallBlind = handState.SmallBlind
-	// handResult.BigBlind = handState.BigBlind
-	// handResult.MaxPlayers = handState.MaxSeats
+	handResult := handResultProcessor.getResult(true /*db*/)
+	handResult.NoCards = g.NumCards(handState.GameType)
+	handResult.SmallBlind = handState.SmallBlind
+	handResult.BigBlind = handState.BigBlind
+	handResult.MaxPlayers = handState.MaxSeats
 
-	// saveResult, _ := g.saveHandResultToAPIServer(handResult)
+	saveResult, _ := g.saveHandResultToAPIServer(handResult)
+	_ = saveResult
 
 	// // send to all the players
 	// handResult = handResultProcessor.getResult(false /*db*/)
