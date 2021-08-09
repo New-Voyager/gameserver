@@ -378,6 +378,7 @@ func (g *Game) dealNewHand() error {
 		}
 	}
 
+	resultPauseTime := 0
 	if !g.isScriptTest {
 		// we are not running tests
 		// get new hand information from the API server
@@ -390,7 +391,7 @@ func (g *Game) dealNewHand() error {
 		if newHandInfo.TableStatus != TableStatus_GAME_RUNNING {
 			return nil
 		}
-
+		resultPauseTime = int(newHandInfo.ResultPauseTime)
 		buttonPos = newHandInfo.ButtonPos
 		sbPos = newHandInfo.SbPos
 		bbPos = newHandInfo.BbPos
@@ -527,6 +528,15 @@ func (g *Game) dealNewHand() error {
 	}
 
 	handState.initialize(g.config, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
+	if testHandSetup != nil {
+		resultPauseTime = int(testHandSetup.ResultPauseTime)
+	}
+	if resultPauseTime == 0 {
+		// 5 seconds to show each result
+		resultPauseTime = 5000
+	}
+
+	handState.ResultPauseTime = uint32(resultPauseTime)
 
 	if !g.isScriptTest {
 		var playerIDs []uint64

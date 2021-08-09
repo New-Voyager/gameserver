@@ -70,6 +70,7 @@ message TestHandSetup {
   float bomb_pot_bet = 13;
   bool double_board = 14;
   bool include_stats = 15;
+  uint32 result_pause_time = 16;
 }
 
 message GameStartMessage {

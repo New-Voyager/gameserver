@@ -369,7 +369,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 		g.broadcastHandMessage(&msg)
 		g.saveHandState(handState)
-		g.handleHandEnded(msgItems)
+		g.handleHandEnded(handState.TotalResultPauseTime, msgItems)
 
 		return nil
 	}
@@ -555,59 +555,25 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	g.saveHandState(handState)
 
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3, playerMsg.PlayerId)
-	g.handleHandEnded(allMsgItems)
+	g.handleHandEnded(handState.TotalResultPauseTime, allMsgItems)
 	return nil
 }
 
-func (g *Game) handleHandEnded(allMsgItems []*HandMessageItem) {
+func (g *Game) handleHandEnded(totalPauseTime uint32, allMsgItems []*HandMessageItem) {
 	// if the last message is hand ended (pause for the result animation)
 	handEnded := false
-	var handResult *HandResult
 	for _, message := range allMsgItems {
 		if message.MessageType == HandEnded {
 			handEnded = true
 		}
 	}
 
-	// wait 5 seconds to show the result
-	// send a message to game to start new hand
-	if handEnded { //&& !util.GameServerEnvironment.ShouldDisableDelays() {
-		for _, message := range allMsgItems {
-			if message.MessageType == HandResultMessage {
-				handResult = message.GetHandResult()
-			}
-		}
-		totalPauseTime := 0
-		if handResult == nil {
-			totalPauseTime = int(pauseTime)
-		} else {
-			if handResult.RunItTwice {
-				if handResult.HandLog.RunItTwiceResult.Board_1Winners != nil {
-					for _, potWinner := range handResult.HandLog.RunItTwiceResult.Board_1Winners {
-						totalPauseTime = totalPauseTime + int(potWinner.PauseTime)
-					}
-				}
-				if handResult.HandLog.RunItTwiceResult.Board_2Winners != nil {
-					for _, potWinner := range handResult.HandLog.RunItTwiceResult.Board_2Winners {
-						totalPauseTime = totalPauseTime + int(potWinner.PauseTime)
-					}
-				}
-			} else {
-				for _, potWinner := range handResult.HandLog.PotWinners {
-					totalPauseTime = totalPauseTime + int(potWinner.PauseTime)
-				}
-			}
-		}
-		now := time.Now()
-
-		fmt.Printf("\n\n===============================\n[%s] Hand ended. Pausing the game. Pause: %d\n",
-			now.String(), totalPauseTime)
-		if !util.Env.ShouldDisableDelays() {
+	if handEnded {
+		if totalPauseTime > 0 {
+			fmt.Printf("Waiting for result animation\n")
 			time.Sleep(time.Duration(totalPauseTime) * time.Millisecond)
+			fmt.Printf("Waiting for result animation done\n")
 		}
-		//time.Sleep(5000 * time.Millisecond)
-		fmt.Printf("[%s] Resuming the game\n===============================\n\n", time.Now().String())
-
 		gameMessage := &GameMessage{
 			GameId:      g.config.GameId,
 			MessageType: GameMoveToNextHand,
@@ -1384,8 +1350,17 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	if err != nil {
 		return nil, err
 	}
-	allMsgItems = append(allMsgItems, msgItems...)
 
+	// determine total pause time
+	totalPauseTime := uint32(0)
+	for _, pot := range handResult2Client.PotWinners {
+		for _, board := range pot.BoardWinners {
+			totalPauseTime = totalPauseTime + uint32(len(board.HiWinners))*hs.ResultPauseTime
+			totalPauseTime = totalPauseTime + uint32(len(board.LowWinners))*hs.ResultPauseTime
+		}
+	}
+	hs.TotalResultPauseTime = totalPauseTime
+	allMsgItems = append(allMsgItems, msgItems...)
 	// send the hand to the database to store first
 	handResult := handResultProcessor.getResult(true /*db*/)
 	handResult.NoCards = g.NumCards(handState.GameType)

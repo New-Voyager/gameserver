@@ -122,4 +122,6 @@ message HandState {
   bool double_board = 66;
   float bomb_pot_bet = 67;
   bool include_stats_in_result = 68;
+  uint32 result_pause_time = 69;
+  uint32 total_result_pause_time = 70;
 }

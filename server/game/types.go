@@ -344,4 +344,5 @@ type NewHandInfo struct {
 	TableStatus      TableStatus
 	SbPos            uint32
 	BbPos            uint32
+	ResultPauseTime  uint32
 }
