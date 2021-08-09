@@ -357,13 +357,14 @@ type Pot struct {
 }
 
 type HandResult struct {
-	Winners       []HandWinner      `yaml:"winners"`
-	LoWinners     []HandWinner      `yaml:"lo-winners"`
-	ActionEndedAt string            `yaml:"action-ended"`
-	HighHand      []HighHandSeat    `yaml:"high-hand"`
-	Players       []ResultPlayer    `yaml:"players"`
-	PlayerStats   []PlayerStats     `yaml:"player-stats"`
-	RunItTwice    *RunItTwiceResult `yaml:"run-it-twice"`
+	Winners       []HandWinner   `yaml:"winners"`
+	LoWinners     []HandWinner   `yaml:"lo-winners"`
+	ActionEndedAt string         `yaml:"action-ended"`
+	HighHand      []HighHandSeat `yaml:"high-hand"`
+	Players       []ResultPlayer `yaml:"players"`
+	PlayerStats   []PlayerStats  `yaml:"player-stats"`
+	RunItTwice    *bool          `yaml:"run-it-twice"`
+	Boards        []BoardWinner  `yaml:"boards"`
 }
 
 type HandWinner struct {
@@ -400,6 +401,10 @@ type RunItTwiceResult struct {
 	Board2Winners []WinnerPot `yaml:"board2-winners"`
 }
 
+type BoardWinner struct {
+	BoardNo      uint32    `yaml:"board-no"`
+	BoardWinners WinnerPot `yaml:"winners"`
+}
 type WinnerPot struct {
 	Amount    float32      `yaml:"amount"`
 	Winners   []HandWinner `yaml:"winners"`

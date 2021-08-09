@@ -939,6 +939,7 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 	}
 }
 
+/*
 func (bp *BotPlayer) verifyResult() {
 	// don't verify result for auto play
 	if bp.config.Script.AutoPlay {
@@ -1167,6 +1168,61 @@ func (bp *BotPlayer) verifyResult() {
 		panic(fmt.Sprintf("Hand %d result verify failed. Please check the logs.", bp.game.handNum))
 	}
 }
+*/
+
+func (bp *BotPlayer) verifyBoardWinners(scriptBoard *gamescript.BoardWinner, actualResult *game.BoardWinner) bool {
+	type winner struct {
+		SeatNo  uint32
+		Amount  float32
+		RankStr string
+	}
+	passed := true
+	if len(scriptBoard.BoardWinners.Winners) > 0 {
+		expectedWinnersBySeat := make(map[uint32]winner)
+		for _, expectedWinner := range scriptBoard.BoardWinners.Winners {
+			expectedWinnersBySeat[expectedWinner.Seat] = winner{
+				SeatNo:  expectedWinner.Seat,
+				Amount:  expectedWinner.Receive,
+				RankStr: expectedWinner.RankStr,
+			}
+		}
+		actualWinnersBySeat := make(map[uint32]winner)
+		for _, w := range actualResult.HiWinners {
+			actualWinnersBySeat[w.GetSeatNo()] = winner{
+				SeatNo:  w.GetSeatNo(),
+				Amount:  w.GetAmount(),
+				RankStr: actualResult.HiRankText,
+			}
+		}
+		if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
+			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
+			passed = false
+		}
+	}
+	if len(scriptBoard.BoardWinners.LoWinners) > 0 {
+		expectedWinnersBySeat := make(map[uint32]winner)
+		for _, expectedWinner := range scriptBoard.BoardWinners.LoWinners {
+			expectedWinnersBySeat[expectedWinner.Seat] = winner{
+				SeatNo:  expectedWinner.Seat,
+				Amount:  expectedWinner.Receive,
+				RankStr: "",
+			}
+		}
+		actualWinnersBySeat := make(map[uint32]winner)
+		for _, w := range actualResult.LowWinners {
+			actualWinnersBySeat[w.GetSeatNo()] = winner{
+				SeatNo:  w.GetSeatNo(),
+				Amount:  w.GetAmount(),
+				RankStr: "",
+			}
+		}
+		if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
+			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Low Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
+			passed = false
+		}
+	}
+	return passed
+}
 
 func (bp *BotPlayer) verifyResult2() {
 	// don't verify result for auto play
@@ -1196,61 +1252,71 @@ func (bp *BotPlayer) verifyResult2() {
 		}
 	}
 
-	type winner struct {
-		SeatNo  uint32
-		Amount  float32
-		RankStr string
+	if scriptResult.Boards != nil {
+		// verify board winners
+		// we support only main pot
+		for i, testBoardResult := range scriptResult.Boards {
+			actualBoard := actualResult.PotWinners[0].BoardWinners[i]
+			passed = bp.verifyBoardWinners(&testBoardResult, actualBoard)
+		}
+	} else {
+		type winner struct {
+			SeatNo  uint32
+			Amount  float32
+			RankStr string
+		}
+		if len(scriptResult.Winners) > 0 {
+			expectedWinnersBySeat := make(map[uint32]winner)
+			for _, expectedWinner := range scriptResult.Winners {
+				expectedWinnersBySeat[expectedWinner.Seat] = winner{
+					SeatNo:  expectedWinner.Seat,
+					Amount:  expectedWinner.Receive,
+					RankStr: expectedWinner.RankStr,
+				}
+			}
+			actualWinnersBySeat := make(map[uint32]winner)
+			pots := actualResult.PotWinners
+			pot := pots[0]
+			board1 := pot.BoardWinners[0]
+			for _, w := range board1.HiWinners {
+				actualWinnersBySeat[w.GetSeatNo()] = winner{
+					SeatNo:  w.GetSeatNo(),
+					Amount:  w.GetAmount(),
+					RankStr: board1.HiRankText,
+				}
+			}
+			if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
+				bp.logger.Error().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
+				passed = false
+			}
+		}
+		if len(scriptResult.LoWinners) > 0 {
+			expectedWinnersBySeat := make(map[uint32]winner)
+			for _, expectedWinner := range scriptResult.LoWinners {
+				expectedWinnersBySeat[expectedWinner.Seat] = winner{
+					SeatNo:  expectedWinner.Seat,
+					Amount:  expectedWinner.Receive,
+					RankStr: expectedWinner.RankStr,
+				}
+			}
+			actualWinnersBySeat := make(map[uint32]winner)
+			pots := actualResult.PotWinners
+			pot := pots[0]
+			board1 := pot.BoardWinners[0]
+			for _, w := range board1.LowWinners {
+				actualWinnersBySeat[w.GetSeatNo()] = winner{
+					SeatNo:  w.GetSeatNo(),
+					Amount:  w.GetAmount(),
+					RankStr: "",
+				}
+			}
+			if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
+				bp.logger.Error().Msgf("%s: Hand %d result verify failed. Low Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
+				passed = false
+			}
+		}
 	}
-	if len(scriptResult.Winners) > 0 {
-		expectedWinnersBySeat := make(map[uint32]winner)
-		for _, expectedWinner := range scriptResult.Winners {
-			expectedWinnersBySeat[expectedWinner.Seat] = winner{
-				SeatNo:  expectedWinner.Seat,
-				Amount:  expectedWinner.Receive,
-				RankStr: expectedWinner.RankStr,
-			}
-		}
-		actualWinnersBySeat := make(map[uint32]winner)
-		pots := actualResult.PotWinners
-		pot := pots[0]
-		board1 := pot.BoardWinners[0]
-		for _, w := range board1.HiWinners {
-			actualWinnersBySeat[w.GetSeatNo()] = winner{
-				SeatNo:  w.GetSeatNo(),
-				Amount:  w.GetAmount(),
-				RankStr: board1.HiRankText,
-			}
-		}
-		if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
-			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
-			passed = false
-		}
-	}
-	if len(scriptResult.LoWinners) > 0 {
-		expectedWinnersBySeat := make(map[uint32]winner)
-		for _, expectedWinner := range scriptResult.LoWinners {
-			expectedWinnersBySeat[expectedWinner.Seat] = winner{
-				SeatNo:  expectedWinner.Seat,
-				Amount:  expectedWinner.Receive,
-				RankStr: expectedWinner.RankStr,
-			}
-		}
-		actualWinnersBySeat := make(map[uint32]winner)
-		pots := actualResult.PotWinners
-		pot := pots[0]
-		board1 := pot.BoardWinners[0]
-		for _, w := range board1.LowWinners {
-			actualWinnersBySeat[w.GetSeatNo()] = winner{
-				SeatNo:  w.GetSeatNo(),
-				Amount:  w.GetAmount(),
-				RankStr: "",
-			}
-		}
-		if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
-			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Low Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
-			passed = false
-		}
-	}
+
 	if len(scriptResult.Players) > 0 {
 		resultPlayers := actualResult.GetPlayerInfo()
 		for _, scriptResultPlayer := range scriptResult.Players {
@@ -1279,9 +1345,10 @@ func (bp *BotPlayer) verifyResult2() {
 			}
 			expectedHhRank := scriptResultPlayer.HhRank
 			if expectedHhRank != nil {
-				actualHhRank := resultPlayers[seatNo].GetHhRank()
-				if actualHhRank != *expectedHhRank {
-					bp.logger.Error().Msgf("%s: Hand %d result verify failed. HhRank for seat# %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, actualHhRank, *expectedHhRank)
+				actualRank := actualResult.Boards[0].PlayerRank[seatNo].HiRank
+				//actualHhRank := resultPlayers[seatNo].GetHhRank()
+				if actualRank != *expectedHhRank {
+					bp.logger.Error().Msgf("%s: Hand %d result verify failed. HhRank for seat# %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, actualRank, *expectedHhRank)
 					passed = false
 				}
 			}

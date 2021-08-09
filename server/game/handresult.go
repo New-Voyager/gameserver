@@ -492,6 +492,7 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 		PauseTimeSecs: 5000,
 		PlayerInfo:    playerInfo,
 		Scoop:         scoop,
+		HandNum:       hs.HandNum,
 	}
 	jsonb, _ := marshaller.Marshal(result)
 	fmt.Printf("\n\n\n")
