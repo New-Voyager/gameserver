@@ -1355,6 +1355,23 @@ func (g *Game) onePlayerRemaining(handState *HandState) ([]*HandMessageItem, err
 }
 
 func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, error) {
+	hs := handState
+	for i := len(hs.Pots) - 1; i >= 0; i-- {
+		currentPot := hs.Pots[len(hs.Pots)-1]
+		if currentPot.Pot == 0 {
+			hs.Pots = hs.Pots[:len(hs.Pots)-1]
+			continue
+		}
+		// if current pot has only one player, return the money to the player
+		if len(currentPot.Seats) == 1 {
+			activePlayer := currentPot.Seats[0]
+			playerID := hs.ActiveSeats[activePlayer]
+			hs.PlayersState[playerID].Stack += currentPot.Pot
+			// remove the pot
+			hs.Pots = hs.Pots[:len(hs.Pots)-1]
+		}
+	}
+
 	handResultProcessor := NewHandResultProcessor(handState, uint32(g.config.MaxPlayers), g.config.RewardTrackingIds)
 
 	handResult2Client := handResultProcessor.determineWinners()
@@ -1406,7 +1423,6 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	uint32 max_players = 11;
 	*/
 
-	hs := handState
 	sendResultToApi := g.isScriptTest
 	sendResultToApi = true
 	if sendResultToApi {

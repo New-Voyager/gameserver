@@ -93,8 +93,8 @@ hands:
       winners:
         - seat: 1
           receive: 302
-          rank: Two Pair
           rake-paid: 5.0
+          rank: Two Pair
       action-ended: SHOW_DOWN
       player-stats:
         - seat: 1
