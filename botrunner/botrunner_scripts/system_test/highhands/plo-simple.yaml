@@ -76,8 +76,9 @@ hands:
     result:
       winners:
         - seat: 3
-          receive: 43.0
+          receive: 45.0
           rank: Full House
+          rake-paid: 2.0
       action-ended: SHOW_DOWN
 
       players:
