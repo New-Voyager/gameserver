@@ -84,8 +84,9 @@ hands:
     result:
       winners:
         - seat: 1
-          receive: 54.0
+          receive: 56.0
           rank: Two Pair
+          rake-paid: 2.0
       action-ended: SHOW_DOWN
 
       players:

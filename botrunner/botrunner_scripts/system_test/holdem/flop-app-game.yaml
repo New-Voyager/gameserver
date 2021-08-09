@@ -70,7 +70,10 @@ hands:
     result:
       winners:
         - seat: 2
-          receive: 19
+          receive: 20
+          rank: Pair
+          rake-paid: 1
+
       action-ended: FLOP
 
       players:

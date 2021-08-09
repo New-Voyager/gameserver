@@ -98,7 +98,7 @@ hands:
     result:
       winners:
         - seat: 4
-          receive: 395
+          receive: 400
           rank: Two Pair
       action-ended: SHOW_DOWN
       players:

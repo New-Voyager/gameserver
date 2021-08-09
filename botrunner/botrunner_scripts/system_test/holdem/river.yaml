@@ -83,7 +83,10 @@ hands:
     result:
       winners:
         - seat: 2
-          receive: 56
+          receive: 58
+          rank: Pair
+          rake-paid: 2.0
+
       action-ended: RIVER
 
       players:

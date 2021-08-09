@@ -71,7 +71,8 @@ hands:
     result:
       winners:
         - seat: 2
-          receive: 19
+          receive: 20
+          rank: Pair
       action-ended: FLOP
 
       players:
@@ -85,90 +86,90 @@ hands:
           balance:
             after: 96
 
-  # Hand 2 - HOLDEM
-  - setup:
-      auto: true
-      verify:
-        game-type: HOLDEM
+  # # Hand 2 - HOLDEM
+  # - setup:
+  #     auto: true
+  #     verify:
+  #       game-type: HOLDEM
 
-  # Hand 3 - HOLDEM
-  - setup:
-      auto: true
-      verify:
-        game-type: HOLDEM
+  # # Hand 3 - HOLDEM
+  # - setup:
+  #     auto: true
+  #     verify:
+  #       game-type: HOLDEM
 
-  # Hand 4 - PLO
-  - setup:
-      board: ["Ac", "Ad", "2c", "Td", "4s"]
-      seat-cards:
-        - seat: 1
-          cards: ["9h", "3c", "Ts", "Js"]
-        - seat: 2
-          cards: ["Kh", "Qd", "3h", "5s"]
-        - seat: 3
-          cards: ["3s", "7s", "9d", "8h"]
-      verify:
-        game-type: PLO
-        button-pos: 1
-        sb-pos: 2
-        bb-pos: 3
-        next-action-pos: 1
+  # # Hand 4 - PLO
+  # - setup:
+  #     board: ["Ac", "Ad", "2c", "Td", "4s"]
+  #     seat-cards:
+  #       - seat: 1
+  #         cards: ["9h", "3c", "Ts", "Js"]
+  #       - seat: 2
+  #         cards: ["Kh", "Qd", "3h", "5s"]
+  #       - seat: 3
+  #         cards: ["3s", "7s", "9d", "8h"]
+  #     verify:
+  #       game-type: PLO
+  #       button-pos: 1
+  #       sb-pos: 2
+  #       bb-pos: 3
+  #       next-action-pos: 1
 
-    # simulate pre-flop action
-    preflop:
-      seat-actions:
-        # seat number/action/amount
-        - action: 1, CALL, 2
-        - action: 2, CALL, 2
-        - action: 3, CHECK
+  #   # simulate pre-flop action
+  #   preflop:
+  #     seat-actions:
+  #       # seat number/action/amount
+  #       - action: 1, CALL, 2
+  #       - action: 2, CALL, 2
+  #       - action: 3, CHECK
 
-    flop:
-      verify:
-        board: ["Ac", "Ad", "2c"]
-      seat-actions:
-        - action: 2, CHECK
-        - action: 3, BET, 2
-        - action: 1, CALL, 2
-        - action: 2, RAISE, 4
-        - action: 3, FOLD
-        - action: 1, CALL, 4
+  #   flop:
+  #     verify:
+  #       board: ["Ac", "Ad", "2c"]
+  #     seat-actions:
+  #       - action: 2, CHECK
+  #       - action: 3, BET, 2
+  #       - action: 1, CALL, 2
+  #       - action: 2, RAISE, 4
+  #       - action: 3, FOLD
+  #       - action: 1, CALL, 4
 
-    turn:
-      verify:
-        board: ["Ac", "Ad", "2c", "Td"]
-      seat-actions:
-        - action: 2, CHECK
-        - action: 1, BET, 10
-        - action: 2, CALL, 10
+  #   turn:
+  #     verify:
+  #       board: ["Ac", "Ad", "2c", "Td"]
+  #     seat-actions:
+  #       - action: 2, CHECK
+  #       - action: 1, BET, 10
+  #       - action: 2, CALL, 10
 
-    river:
-      verify:
-        board: ["Ac", "Ad", "2c", "Td", "4s"]
-      seat-actions:
-        - action: 2, BET, 10
-        - action: 1, CALL, 10
+  #   river:
+  #     verify:
+  #       board: ["Ac", "Ad", "2c", "Td", "4s"]
+  #     seat-actions:
+  #       - action: 2, BET, 10
+  #       - action: 1, CALL, 10
 
-    result:
-      winners:
-        - seat: 2
-          receive: 54.0
-          rank: Straight
-      action-ended: SHOW_DOWN
+  #   result:
+  #     winners:
+  #       - seat: 2
+  #         receive: 56.0
+  #         rank: Straight
+  #     action-ended: SHOW_DOWN
 
-  # Hand 5 - PLO
-  - setup:
-      auto: true
-      verify:
-        game-type: PLO
+  # # Hand 5 - PLO
+  # - setup:
+  #     auto: true
+  #     verify:
+  #       game-type: PLO
 
-  # Hand 6 - PLO
-  - setup:
-      auto: true
-      verify:
-        game-type: PLO
+  # # Hand 6 - PLO
+  # - setup:
+  #     auto: true
+  #     verify:
+  #       game-type: PLO
 
-  # Hand 7 - HOLDEM
-  - setup:
-      auto: true
-      verify:
-        game-type: HOLDEM
+  # # Hand 7 - HOLDEM
+  # - setup:
+  #     auto: true
+  #     verify:
+  #       game-type: HOLDEM

@@ -1308,9 +1308,12 @@ func (bp *BotPlayer) verifyResult2() {
 					}
 				}
 			}
-			if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
-				bp.logger.Error().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
-				passed = false
+			for seatNo, expectedWinnerBySeat := range expectedWinnersBySeat {
+				actualWinnerBySeat := actualWinnersBySeat[seatNo]
+				if !cmp.Equal(expectedWinnerBySeat, actualWinnerBySeat) {
+					bp.logger.Error().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnerBySeat, expectedWinnerBySeat)
+					passed = false
+				}
 			}
 		}
 		if len(scriptResult.LoWinners) > 0 {

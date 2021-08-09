@@ -89,7 +89,7 @@ hands:
     result:
       winners:
         - seat: 1
-          receive: 54.0
+          receive: 56.0
           rank: Pair
       action-ended: SHOW_DOWN
       players:
@@ -130,7 +130,7 @@ hands:
     result:
       winners:
         - seat: 1
-          receive: 187
+          receive: 192
           rank: Pair
       action-ended: SHOW_DOWN
       players:

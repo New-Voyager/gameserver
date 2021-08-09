@@ -61,6 +61,8 @@ hands:
       winners:
         - seat: 2
           receive: 16.0
+          rank: Pair
+
       action-ended: PREFLOP
 
       players:

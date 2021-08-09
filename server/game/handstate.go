@@ -1436,7 +1436,7 @@ func (h *HandState) everyOneFoldedWinners() {
 		handWinners = append(handWinners, handWinner)
 		potWinners[uint32(i)] = &PotWinners{HiWinners: handWinners}
 	}
-	h.setWinners(potWinners, false)
+	//h.setWinners(potWinners, false)
 }
 
 func (h *HandState) setWinners(potWinners map[uint32]*PotWinners, board2 bool) {
