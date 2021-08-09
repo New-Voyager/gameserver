@@ -83,7 +83,7 @@ hands:
         sb: 5
         bb: 8
         next-action-pos: 1
-        state: PREFLOP
+        state: FLOP
         dealt-cards:
           -
             seat-no: 5
