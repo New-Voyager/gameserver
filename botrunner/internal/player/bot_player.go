@@ -1242,6 +1242,8 @@ func (bp *BotPlayer) verifyResult2() {
 		panic(fmt.Sprintf("%s: Hand %d result verify failed. Unable to get the result", bp.logPrefix, bp.game.handNum))
 	}
 
+	playerInfo := actualResult.PlayerInfo
+
 	passed := true
 
 	if scriptResult.ActionEndedAt != "" {
@@ -1261,17 +1263,29 @@ func (bp *BotPlayer) verifyResult2() {
 		}
 	} else {
 		type winner struct {
-			SeatNo  uint32
-			Amount  float32
-			RankStr string
+			SeatNo   uint32
+			Amount   float32
+			RankStr  string
+			RakePaid float32
 		}
 		if len(scriptResult.Winners) > 0 {
 			expectedWinnersBySeat := make(map[uint32]winner)
+			includeRakePaid := false
 			for _, expectedWinner := range scriptResult.Winners {
 				expectedWinnersBySeat[expectedWinner.Seat] = winner{
-					SeatNo:  expectedWinner.Seat,
-					Amount:  expectedWinner.Receive,
-					RankStr: expectedWinner.RankStr,
+					SeatNo:   expectedWinner.Seat,
+					Amount:   expectedWinner.Receive,
+					RankStr:  expectedWinner.RankStr,
+					RakePaid: 0,
+				}
+				if expectedWinner.RakePaid != nil {
+					includeRakePaid = true
+					expectedWinnersBySeat[expectedWinner.Seat] = winner{
+						SeatNo:   expectedWinner.Seat,
+						Amount:   expectedWinner.Receive,
+						RankStr:  expectedWinner.RankStr,
+						RakePaid: *expectedWinner.RakePaid,
+					}
 				}
 			}
 			actualWinnersBySeat := make(map[uint32]winner)
@@ -1279,10 +1293,19 @@ func (bp *BotPlayer) verifyResult2() {
 			pot := pots[0]
 			board1 := pot.BoardWinners[0]
 			for _, w := range board1.HiWinners {
+				player := playerInfo[w.SeatNo]
 				actualWinnersBySeat[w.GetSeatNo()] = winner{
 					SeatNo:  w.GetSeatNo(),
 					Amount:  w.GetAmount(),
 					RankStr: board1.HiRankText,
+				}
+				if includeRakePaid {
+					actualWinnersBySeat[w.GetSeatNo()] = winner{
+						SeatNo:   w.GetSeatNo(),
+						Amount:   w.GetAmount(),
+						RankStr:  board1.HiRankText,
+						RakePaid: player.RakePaid,
+					}
 				}
 			}
 			if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
@@ -1292,11 +1315,21 @@ func (bp *BotPlayer) verifyResult2() {
 		}
 		if len(scriptResult.LoWinners) > 0 {
 			expectedWinnersBySeat := make(map[uint32]winner)
+			includeRakePaid := false
 			for _, expectedWinner := range scriptResult.LoWinners {
 				expectedWinnersBySeat[expectedWinner.Seat] = winner{
 					SeatNo:  expectedWinner.Seat,
 					Amount:  expectedWinner.Receive,
 					RankStr: expectedWinner.RankStr,
+				}
+				if expectedWinner.RakePaid != nil {
+					includeRakePaid = true
+					expectedWinnersBySeat[expectedWinner.Seat] = winner{
+						SeatNo:   expectedWinner.Seat,
+						Amount:   expectedWinner.Receive,
+						RankStr:  expectedWinner.RankStr,
+						RakePaid: *expectedWinner.RakePaid,
+					}
 				}
 			}
 			actualWinnersBySeat := make(map[uint32]winner)
@@ -1304,10 +1337,19 @@ func (bp *BotPlayer) verifyResult2() {
 			pot := pots[0]
 			board1 := pot.BoardWinners[0]
 			for _, w := range board1.LowWinners {
+				player := playerInfo[w.SeatNo]
 				actualWinnersBySeat[w.GetSeatNo()] = winner{
 					SeatNo:  w.GetSeatNo(),
 					Amount:  w.GetAmount(),
 					RankStr: "",
+				}
+				if includeRakePaid {
+					actualWinnersBySeat[w.GetSeatNo()] = winner{
+						SeatNo:   w.GetSeatNo(),
+						Amount:   w.GetAmount(),
+						RankStr:  "",
+						RakePaid: player.RakePaid,
+					}
 				}
 			}
 			if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {

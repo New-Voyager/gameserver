@@ -1030,7 +1030,7 @@ func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, hand
 }
 
 func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([]*HandMessageItem, error) {
-	handResultClient.PlayerInfo = make(map[uint32]*PlayerHandInfo)
+	//handResultClient.PlayerInfo = make(map[uint32]*PlayerHandInfo)
 	hs.CurrentState = HandStatus_RESULT
 
 	for seatNo, player := range hs.PlayersInSeats {
@@ -1047,11 +1047,10 @@ func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([
 				break
 			}
 		}
-		for _, playerBalance := range hs.BalanceAfterHand {
-			if playerBalance.SeatNo == uint32(seatNo) {
-				after = playerBalance.Balance
-				break
-			}
+		if balance, ok := handResultClient.PlayerInfo[uint32(seatNo)]; ok {
+			after = balance.Balance.After
+		} else {
+			after = hs.PlayersState[player].Stack
 		}
 		rakePaid := float32(0.0)
 		if playerRake, ok := hs.RakePaid[player]; ok {

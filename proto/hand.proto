@@ -255,7 +255,6 @@ message Board {
 message Winner {
   uint32 seat_no = 1;
   float amount = 2;
-  float rakePaid = 3; 
 }
 
 message BoardWinner {

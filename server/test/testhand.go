@@ -491,7 +491,7 @@ func (h *TestHand) verifyHandResult(t *TestDriver, handResult *game.HandResult) 
 	return nil
 }
 
-func (h *TestHand) verifyWinners(actualWinners map[uint32]*game.Winner, expectedWinners []game.TestHandWinner) bool {
+func (h *TestHand) verifyWinners(playerInfo map[uint32]*game.PlayerHandInfo, actualWinners map[uint32]*game.Winner, expectedWinners []game.TestHandWinner) bool {
 	passed := true
 	if len(actualWinners) != len(expectedWinners) {
 		passed = false
@@ -507,9 +507,10 @@ func (h *TestHand) verifyWinners(actualWinners map[uint32]*game.Winner, expected
 				}
 
 				if expectedWinner.Rake > 0 {
-					if expectedWinner.Rake != handWinner.RakePaid {
+					player := playerInfo[handWinner.SeatNo]
+					if expectedWinner.Rake != player.RakePaid {
 						h.addError(fmt.Errorf("Winner rake amount didn't match. Expected %f, actual: %f",
-							expectedWinner.Rake, handWinner.RakePaid))
+							expectedWinner.Rake, player.RakePaid))
 						passed = false
 
 					}
@@ -533,7 +534,7 @@ func (h *TestHand) verifyHandResult2(t *TestDriver, handResult *game.HandResultC
 		potWinner := handResult.PotWinners[pot]
 		for idx, board := range h.hand.Result.Boards {
 			hiWinners := potWinner.BoardWinners[idx].HiWinners
-			passed = h.verifyWinners(hiWinners, board.Winners)
+			passed = h.verifyWinners(handResult.PlayerInfo, hiWinners, board.Winners)
 		}
 	}
 
@@ -541,14 +542,14 @@ func (h *TestHand) verifyHandResult2(t *TestDriver, handResult *game.HandResultC
 		pot := 0
 		potWinner := handResult.PotWinners[pot]
 		hiWinners := potWinner.BoardWinners[0].HiWinners
-		passed = h.verifyWinners(hiWinners, h.hand.Result.Winners)
+		passed = h.verifyWinners(handResult.PlayerInfo, hiWinners, h.hand.Result.Winners)
 	}
 
 	if h.hand.Result.LoWinners != nil {
 		pot := 0
 		potWinner := handResult.PotWinners[pot]
 		loWinners := potWinner.BoardWinners[0].LowWinners
-		passed = h.verifyWinners(loWinners, h.hand.Result.LoWinners)
+		passed = h.verifyWinners(handResult.PlayerInfo, loWinners, h.hand.Result.LoWinners)
 	}
 
 	if h.hand.Result.ActionEndedAt != "" {

@@ -32,7 +32,7 @@ func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	runServer = flag.Bool("server", true, "runs game server")
 	runGameScriptTests = flag.Bool("script-tests", false, "runs script tests")
-	gameScriptsFileOrDir = flag.String("game-script", "test/game-scripts/bomb-pot", "runs tests with game script files")
+	gameScriptsFileOrDir = flag.String("game-script", "test/game-scripts", "runs tests with game script files")
 	delayConfigFile = flag.String("delays", "delays.yaml", "YAML file containing pause times")
 	testName = flag.String("testname", "", "runs a specific test")
 

@@ -368,9 +368,10 @@ type HandResult struct {
 }
 
 type HandWinner struct {
-	Seat    uint32  `yaml:"seat"`
-	Receive float32 `yaml:"receive"`
-	RankStr string  `yaml:"rank"`
+	Seat     uint32   `yaml:"seat"`
+	Receive  float32  `yaml:"receive"`
+	RankStr  string   `yaml:"rank"`
+	RakePaid *float32 `yaml:"rake-paid"`
 }
 
 type ResultPlayer struct {
