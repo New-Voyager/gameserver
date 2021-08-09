@@ -1364,6 +1364,12 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 		handResult2Client.PlayerStats = handState.GetPlayerStats()
 	}
 
+	msgItems, err := g.sendResult2(handState, handResult2Client)
+	if err != nil {
+		return nil, err
+	}
+	allMsgItems = append(allMsgItems, msgItems...)
+
 	// send the hand to the database to store first
 	handResult := handResultProcessor.getResult(true /*db*/)
 	handResult.NoCards = g.NumCards(handState.GameType)
@@ -1424,11 +1430,6 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 			// retry here
 		}
 	}
-	msgItems, err := g.sendResult2(handState, handResult2Client)
-	if err != nil {
-		return nil, err
-	}
-	allMsgItems = append(allMsgItems, msgItems...)
 
 	return allMsgItems, nil
 }
