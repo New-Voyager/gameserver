@@ -157,7 +157,9 @@ func (h *HandState) initialize(gameConfig *GameConfig, testHandSetup *TestHandSe
 		}
 	}
 
-	h.IncludeStatsInResult = testHandSetup.IncludeStats
+	if testHandSetup != nil {
+		h.IncludeStatsInResult = testHandSetup.IncludeStats
+	}
 
 	// if the players don't have money less than the blinds
 	// don't let them play
