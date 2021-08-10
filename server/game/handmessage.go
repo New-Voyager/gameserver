@@ -578,7 +578,7 @@ func (g *Game) handleHandEnded(totalPauseTime uint32, allMsgItems []*HandMessage
 			GameId:      g.config.GameId,
 			MessageType: GameMoveToNextHand,
 		}
-		go g.QueueGameMessage(gameMessage)
+		g.QueueGameMessage(gameMessage)
 	}
 }
 

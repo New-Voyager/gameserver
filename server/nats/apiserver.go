@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"voyager.com/server/game"
 )
@@ -191,32 +192,30 @@ func registerGameServer() error {
 
 func requestRestartGames(apiServerURL string) error {
 	var reqData []byte
-	var err error
 
 	hostname, err := getFqdn()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Unable to get game server fqdn")
 	}
 	url := fmt.Sprintf("http://%s:8080", hostname)
 	payload := map[string]interface{}{"url": url}
 	reqData, err = json.Marshal(payload)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Unable to create payload")
 	}
 
 	restartURL := fmt.Sprintf("%s/internal/restart-games", apiServerURL)
 	resp, err := http.Post(restartURL, "application/json", bytes.NewBuffer(reqData))
 	if err != nil {
-		logger.Fatal().Msg(fmt.Sprintf("Failed to restart games. Error: %s", err.Error()))
-		panic("Failed when restarting games")
+		return errors.Wrap(err, "Error while sending post request")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		logger.Fatal().Msg(fmt.Sprintf("Failed to restart games. Error: %d", resp.StatusCode))
-		panic("Failed when restarting games")
+		return fmt.Errorf("Received HTTP %d", resp.StatusCode)
 	}
-	return err
+
+	return nil
 }
 
 func getFqdn() (string, error) {
@@ -225,7 +224,7 @@ func getFqdn() (string, error) {
 	cmd.Stdout = &out
 	err := cmd.Run()
 	if err != nil {
-		return "", fmt.Errorf("Error when getting hostname: %v", err)
+		return "", errors.Wrap(err, "Error while getting hostname")
 	}
 	fqdn := out.String()
 	fqdn = fqdn[:len(fqdn)-1] // removing EOL

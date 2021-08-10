@@ -2,8 +2,8 @@ PROJECT_ROOT := ..
 BUILD_HELPER := $(PROJECT_ROOT)/build_helper
 
 BUILD_NO := $(shell cat build_number.txt)
-GCP_PROJECT_ID := voyager-01-285603
 DO_REGISTRY := registry.digitalocean.com/voyager
+GCP_PROJECT_ID := voyager-01-285603
 GCP_REGISTRY := gcr.io/$(GCP_PROJECT_ID)
 REGISTRY := $(DO_REGISTRY)
 PROTO_VER := v3.7.1
@@ -115,7 +115,7 @@ botrunner-server:
 	go run ./cmd/server/main.go
 
 .PHONY: publish
-publish: do-publish
+publish: gcp-publish do-publish
 
 .PHONY: clean-ci
 clean-ci: system-test-down
@@ -128,7 +128,7 @@ do-publish: do-login publish-botrunner
 
 .PHONY: gcp-publish
 gcp-publish: export REGISTRY=$(GCP_REGISTRY)
-gcp-publish: publish-botrunner
+gcp-publish: gcp-login publish-botrunner
 
 .PHONY: publish-botrunner
 publish-botrunner:
@@ -141,6 +141,10 @@ publish-botrunner:
 do-login:
 	@docker login -u 69bf6de23225d8abd358d7c5c2dac07d64a7f6c0bd97d5a5a974847269f99455 -p 69bf6de23225d8abd358d7c5c2dac07d64a7f6c0bd97d5a5a974847269f99455 registry.digitalocean.com
 
+.PHONY: gcp-login
+gcp-login:
+	@cat $(PROJECT_ROOT)/gcp_dev_image_push.json | docker login -u _json_key --password-stdin https://gcr.io
+
 
 
 
@@ -149,7 +153,7 @@ do-login:
 #################
 
 # These images are downloaded.
-API_SERVER_IMAGE := $(REGISTRY)/api-server:0.5.32
+API_SERVER_IMAGE := $(REGISTRY)/api-server:0.5.33
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
 REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
 POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5

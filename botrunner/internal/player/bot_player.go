@@ -84,7 +84,7 @@ type BotPlayer struct {
 	// For message acknowledgement
 	clientLastMsgID   string
 	clientLastMsgType string
-	ackMaxWait        int
+	maxRetry          int
 
 	// bots in game
 	bots []*BotPlayer
@@ -198,7 +198,7 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 		RewardsNameToID:  make(map[string]uint32),
 		clientLastMsgID:  "0",
 		serverLastMsgIDs: util.NewQueue(10),
-		ackMaxWait:       300,
+		maxRetry:         300,
 		scriptedGame:     true,
 		PrivateMessages:  make([]map[string]interface{}, 0),
 		GameMessages:     make([]*gamescript.NonProtoMessage, 0),
@@ -2284,7 +2284,12 @@ func (bp *BotPlayer) StartGame(gameCode string) error {
 
 	// setup first deck if not auto play
 	if bp.IsHost() && !bp.config.Script.AutoPlay {
-		bp.setupNextHand()
+		err := bp.setupNextHand()
+		if err != nil {
+			return errors.Wrapf(err, "%s: Unable to setup next hand", bp.logPrefix)
+		}
+		// Wait for the first hand to be setup before starting the game.
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	status, err := bp.gqlHelper.StartGame(gameCode)
@@ -2621,12 +2626,12 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 	published := false
 	ackReceived := false
 	for attempts := 1; !ackReceived; attempts++ {
-		if attempts > bp.ackMaxWait {
+		if attempts > bp.maxRetry {
 			var errMsg string
 			if !published {
-				errMsg = fmt.Sprintf("%s: Retry (%d) exhausted while publishing message type: %s, message ID: %s", bp.logPrefix, bp.ackMaxWait, game.HandPlayerActed, msg.GetMessageId())
+				errMsg = fmt.Sprintf("%s: Retry (%d) exhausted while publishing message type: %s, message ID: %s", bp.logPrefix, bp.maxRetry, game.HandPlayerActed, msg.GetMessageId())
 			} else {
-				errMsg = fmt.Sprintf("%s: Retry (%d) exhausted while waiting for game server acknowledgement for message type: %s, message ID: %s", bp.logPrefix, bp.ackMaxWait, game.HandPlayerActed, msg.GetMessageId())
+				errMsg = fmt.Sprintf("%s: Retry (%d) exhausted while waiting for game server acknowledgement for message type: %s, message ID: %s", bp.logPrefix, bp.maxRetry, game.HandPlayerActed, msg.GetMessageId())
 			}
 			bp.logger.Error().Msg(errMsg)
 			bp.errorStateMsg = errMsg

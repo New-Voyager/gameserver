@@ -172,21 +172,22 @@ func (n *NatsGame) playerUpdate(gameID uint64, update *PlayerUpdate) {
 func (n *NatsGame) pendingUpdatesDone(gameStatus game.GameStatus, tableStatus game.TableStatus) {
 	natsLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("APIServer->Game: Pending updates done. GameID: %d GameStatus: %d Table Status: %d", n.gameID, gameStatus, tableStatus))
-	go func() {
-		var message game.GameMessage
-		message.GameId = n.gameID
-		message.GameCode = n.gameCode
-		message.GameId = n.gameID
-		message.GameCode = n.gameCode
-		message.MessageType = game.GameCurrentStatus
 
-		status := &game.GameStatusMessage{Status: gameStatus, TableStatus: tableStatus}
-		message.GameMessage = &game.GameMessage_Status{Status: status}
-		n.serverGame.QueueGameMessage(&message)
-		message.MessageType = game.GamePendingUpdatesDone
-		message.GameMessage = nil
-		n.serverGame.QueueGameMessage(&message)
-	}()
+	status := &game.GameStatusMessage{Status: gameStatus, TableStatus: tableStatus}
+	message := game.GameMessage{
+		GameId:      n.gameID,
+		GameCode:    n.gameCode,
+		MessageType: game.GameCurrentStatus,
+		GameMessage: &game.GameMessage_Status{Status: status},
+	}
+	n.serverGame.QueueGameMessage(&message)
+
+	message2 := game.GameMessage{
+		GameId:      n.gameID,
+		GameCode:    n.gameCode,
+		MessageType: game.GamePendingUpdatesDone,
+	}
+	n.serverGame.QueueGameMessage(&message2)
 }
 
 // message sent from bot to game
