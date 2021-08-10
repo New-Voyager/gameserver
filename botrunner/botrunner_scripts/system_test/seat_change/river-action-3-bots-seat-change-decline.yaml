@@ -89,8 +89,9 @@ hands:
     result:
       winners:
         - seat: 1
-          receive: 56.0
+          receive: 54.0
           rank: Pair
+          rake-paid: 2.0
       action-ended: SHOW_DOWN
 
       players:
@@ -122,8 +123,9 @@ hands:
     result:
       winners:
         - seat: 8
-          receive: 192
+          receive: 187
           rank: Pair
+          rake-paid: 5
       action-ended: SHOW_DOWN
       players:
         - seat: 1

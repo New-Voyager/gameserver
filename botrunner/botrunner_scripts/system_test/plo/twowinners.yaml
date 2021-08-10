@@ -84,10 +84,10 @@ hands:
     result:
       winners:
         - seat: 2
-          receive: 28.0
+          receive: 27.0
           rank: Straight
         - seat: 1
-          receive: 28.0
+          receive: 27.0
           rank: Straight
       action-ended: SHOW_DOWN
 

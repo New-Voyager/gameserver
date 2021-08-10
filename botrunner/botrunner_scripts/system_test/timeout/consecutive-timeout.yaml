@@ -92,7 +92,7 @@ hands:
     result:
       winners:
         - seat: 1
-          receive: 302
+          receive: 297
           rake-paid: 5.0
           rank: Two Pair
       action-ended: SHOW_DOWN
@@ -174,8 +174,9 @@ hands:
     result:
       winners:
         - seat: 1
-          receive: 7
+          receive: 6
           rank: Two Pair
+          rake-paid: 1
       action-ended: SHOW_DOWN
       player-stats:
         - seat: 1
@@ -193,7 +194,7 @@ hands:
       players:
         - seat: 1
           balance:
-            after: 302
+            after: 301
         - seat: 2
           balance:
             after: 98
@@ -253,8 +254,9 @@ hands:
     result:
       winners:
         - seat: 4
-          receive: 6
+          receive: 5
           rank: Straight
+          rake-paid: 1
       action-ended: SHOW_DOWN
       player-stats:
         - seat: 1
@@ -281,7 +283,7 @@ hands:
             after: 297
         - seat: 4
           balance:
-            after: 302
+            after: 301
 
   # Seat 3 got put in break after the previous hand due to 5 consecutive timeouts.
   # This hand should start with only seats 1, 2, and 4.
@@ -330,7 +332,7 @@ hands:
     result:
       winners:
         - seat: 4
-          receive: 6
+          receive: 5
           rank: Pair
       action-ended: SHOW_DOWN
       player-stats:
@@ -352,4 +354,4 @@ hands:
             after: 94
         - seat: 4
           balance:
-            after: 306
+            after: 305

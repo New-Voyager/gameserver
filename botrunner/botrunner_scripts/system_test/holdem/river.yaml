@@ -83,7 +83,7 @@ hands:
     result:
       winners:
         - seat: 2
-          receive: 58
+          receive: 56
           rank: Pair
           rake-paid: 2.0
 

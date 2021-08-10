@@ -85,14 +85,16 @@ hands:
             amount: 101
             winners:
               - seat: 3
-                receive: 96
+                receive: 99
                 rank: Two Pair
+                rake-paid: 3
             lo-winners: []
         - board-no: 2
           winners:
             amount: 101
             winners:
               - seat: 2
-                receive: 101
+                receive: 99
                 rank: Two Pair
+                rake-paid: 2
             lo-winners: []

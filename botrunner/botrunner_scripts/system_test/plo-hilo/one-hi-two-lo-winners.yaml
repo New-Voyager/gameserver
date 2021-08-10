@@ -84,12 +84,13 @@ hands:
     result:
       winners:
         - seat: 1
-          receive: 28.0
+          receive: 27.0
           rank: Full House
           rake-paid: 2.0
       lo-winners:
         - seat: 1
-          receive: 14.0
+          receive: 13.0
+          rake-paid: 2.0
         - seat: 2
           receive: 14.0
 
