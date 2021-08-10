@@ -309,6 +309,20 @@ func (hr *HandResultProcessor) determineHiLoRank(boardIndex int, seats []uint32)
 			continue
 		}
 		seatNo := uint32(seatNoIdx)
+
+		// if the seat is not in the pot, move to the next
+		found := false
+		for _, potSeat := range seats {
+			if potSeat == seatNo {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			continue
+		}
+
 		if first {
 			hiRank = int32(board.PlayerRank[seatNo].HiRank)
 		}
