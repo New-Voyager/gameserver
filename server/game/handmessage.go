@@ -1022,14 +1022,16 @@ func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([
 		if playerRake, ok := hs.RakePaid[player]; ok {
 			rakePaid = playerRake
 		}
-		handResultClient.PlayerInfo[uint32(seatNo)] = &PlayerHandInfo{
-			Id: playerState.PlayerId,
-			Balance: &HandPlayerBalance{
-				Before: before,
-				After:  after,
-			},
-			Received: playerState.PlayerReceived,
-			RakePaid: rakePaid,
+		if _, ok := handResultClient.PlayerInfo[uint32(seatNo)]; !ok {
+			handResultClient.PlayerInfo[uint32(seatNo)] = &PlayerHandInfo{
+				Id: playerState.PlayerId,
+				Balance: &HandPlayerBalance{
+					Before: before,
+					After:  after,
+				},
+				Received: playerState.PlayerReceived,
+				RakePaid: rakePaid,
+			}
 		}
 	}
 	handResultClient.HandNum = hs.HandNum
