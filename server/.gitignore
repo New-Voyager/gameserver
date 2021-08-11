@@ -17,3 +17,7 @@ build/
 
 # Compose environment file.
 .env
+
+# Generated code coverage file
+coverage.out
+coverage.html
