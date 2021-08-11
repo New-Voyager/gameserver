@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"os"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -28,7 +29,7 @@ var delayConfigFile *string
 var testName *string
 var mainLogger = log.With().Str("logger_name", "nats::main").Logger()
 
-func main() {
+func run() error {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	runServer = flag.Bool("server", true, "runs game server")
 	runGameScriptTests = flag.Bool("script-tests", false, "runs script tests")
@@ -52,11 +53,18 @@ func main() {
 	game.CreateGameManager(*runGameScriptTests, delays)
 
 	if *runGameScriptTests {
-		testScripts()
-		return
+		return testScripts()
 	}
 
 	runWithNats()
+	return nil
+}
+
+func main() {
+	err := run()
+	if err != nil {
+		os.Exit(1)
+	}
 }
 
 func waitForAPIServer(apiServerURL string) {
@@ -117,10 +125,14 @@ func runWithNats() {
 	select {}
 }
 
-func testScripts() {
+func testScripts() error {
 	if *gameScriptsFileOrDir != "" {
-		test.RunGameScriptTests(*gameScriptsFileOrDir, *testName)
+		err := test.RunGameScriptTests(*gameScriptsFileOrDir, *testName)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func testStuff() {
