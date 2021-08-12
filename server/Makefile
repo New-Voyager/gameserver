@@ -24,6 +24,7 @@ NATS_VERSION := 2.1.7-alpine3.11
 REDIS_VERSION := 6.0.9
 
 DOCKER_BUILDKIT ?= 1
+BUILD_MODE ?= prod
 LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh game-server)
 PROTO_DIR := $(PROJECT_ROOT)/proto
 
@@ -111,8 +112,14 @@ docker-build: compile-proto
 	else \
 		rsync -avu --delete $(PROJECT_ROOT)/encryption/ build/encryption; \
 	fi
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(LOCAL_IMAGE_NAME)
+	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . \
+		-t $(LOCAL_IMAGE_NAME) \
+		--build-arg BUILD_MODE=$(BUILD_MODE)
 	rm -rf build/
+
+.PHONY: docker-build-test
+docker-build-test: export BUILD_MODE=test
+docker-build-test: docker-build
 
 .PHONY: create-network
 create-network:
