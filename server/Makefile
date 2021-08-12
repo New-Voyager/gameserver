@@ -26,6 +26,7 @@ REDIS_VERSION := 6.0.9
 DOCKER_BUILDKIT ?= 1
 BUILD_MODE ?= prod
 LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh game-server)
+GAME_SERVER_IMAGE ?= $(LOCAL_IMAGE_NAME)
 PROTO_DIR := $(PROJECT_ROOT)/proto
 
 TEST_DOCKER_NET := $(shell $(BUILD_HELPER)/get_local_docker_net.sh game_server_docker_test)
@@ -113,7 +114,7 @@ docker-build: compile-proto
 		rsync -avu --delete $(PROJECT_ROOT)/encryption/ build/encryption; \
 	fi
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . \
-		-t $(LOCAL_IMAGE_NAME) \
+		-t $(GAME_SERVER_IMAGE) \
 		--build-arg BUILD_MODE=$(BUILD_MODE)
 	rm -rf build/
 
@@ -175,7 +176,7 @@ docker-test: docker-test-up
 		-e REDIS_PORT=6379 \
 		-e REDIS_DB=0 \
 		-e DISABLE_DELAYS=1 \
-		$(LOCAL_IMAGE_NAME) sh -c "/app/game-server --script-tests"
+		$(GAME_SERVER_IMAGE) sh -c "/app/game-server --script-tests"
 
 .PHONY: stop
 stop:
@@ -196,7 +197,7 @@ publish: gcp-publish do-publish
 
 .PHONY: clean-ci
 clean-ci: docker-test-down
-	docker image rm $(LOCAL_IMAGE_NAME) || true
+	docker image rm $(GAME_SERVER_IMAGE) || true
 	if docker network ls | grep $(TEST_DOCKER_NET); then docker network rm $(TEST_DOCKER_NET); fi
 
 .PHONY: do-login
@@ -228,8 +229,8 @@ publish-all: publish-gameserver publish-3rdparty
 
 .PHONY: publish-gameserver
 publish-gameserver:
-	docker tag $(LOCAL_IMAGE_NAME) $(REGISTRY)/game-server:$(BUILD_NO)
-	docker tag $(LOCAL_IMAGE_NAME) $(REGISTRY)/game-server:latest
+	docker tag $(GAME_SERVER_IMAGE) $(REGISTRY)/game-server:$(BUILD_NO)
+	docker tag $(GAME_SERVER_IMAGE) $(REGISTRY)/game-server:latest
 	docker push $(REGISTRY)/game-server:$(BUILD_NO)
 	docker push $(REGISTRY)/game-server:latest
 
