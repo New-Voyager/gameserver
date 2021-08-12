@@ -84,14 +84,19 @@ test: build
 	go test voyager.com/server/poker
 	go test voyager.com/server/game
 
+.PHONY: test-build
+test-build:
+	@# This generates a binary 'game-server.test' that runs the tests when executed.
+	go test -coverpkg=./... -c -o game-server.test
+
 .PHONY: script-test
 script-test: export PERSIST_METHOD=redis
 script-test: export REDIS_HOST=$(DEV_REDIS_HOST)
 script-test: export REDIS_PORT=$(DEV_REDIS_PORT)
 script-test: export REDIS_DB=$(DEV_REDIS_DB)
 script-test: export DISABLE_DELAYS=1
-script-test: run-redis
-	go test -v -coverpkg=./... -coverprofile=coverage.out voyager.com/server -run TestScripts
+script-test: test-build run-redis
+	./game-server.test --script-tests -test.coverprofile=coverage.out -test.run TestRunMain voyager.com/server
 ifdef CI
 	go tool cover -html=coverage.out
 else

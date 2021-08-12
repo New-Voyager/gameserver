@@ -29,16 +29,17 @@ var delayConfigFile *string
 var testName *string
 var mainLogger = log.With().Str("logger_name", "nats::main").Logger()
 
-func run() error {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+func init() {
 	runServer = flag.Bool("server", true, "runs game server")
 	runGameScriptTests = flag.Bool("script-tests", false, "runs script tests")
 	gameScriptsFileOrDir = flag.String("game-script", "test/game-scripts", "runs tests with game script files")
 	delayConfigFile = flag.String("delays", "delays.yaml", "YAML file containing pause times")
 	testName = flag.String("testname", "", "runs a specific test")
+}
 
+func run() error {
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	flag.Parse()
-
 	delays, err := game.ParseDelayConfig(*delayConfigFile)
 	if err != nil {
 		mainLogger.Panic().Msg(err.Error())

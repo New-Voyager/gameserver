@@ -10,6 +10,8 @@ protoc-3.7.1-linux-x86_64.zip
 .VSCodeCounter/results.txt
 game-server
 nats-server
+server.test
+game-server.test
 __debug_bin
 
 # Temporary build files
