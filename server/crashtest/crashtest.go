@@ -66,12 +66,15 @@ func Set(gameCode string, cp CrashPoint, playerID uint64) error {
 	if !cp.IsValid() {
 		return fmt.Errorf("Invalid crash point enum: [%s]", cp)
 	}
+
+	if cp == CrashPoint_NOW {
+		fmt.Printf("CRASHTEST Set called with NOW. Exiting immediately.")
+		os.Exit(ExitCode)
+	}
+
 	crashGameCode = gameCode
 	crashPoint = cp
 	crashPlayerID = playerID
-	if cp == CrashPoint_NOW {
-		Hit(gameCode, cp, playerID)
-	}
 	return nil
 }
 
