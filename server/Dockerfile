@@ -37,6 +37,8 @@ COPY --from=builder-final /usr/local/bin/entr /usr/local/bin/entr
 COPY --from=builder-final /build/server/game-server* /app/
 COPY --from=builder-final /build/server/test/game-scripts /app/test/game-scripts
 COPY ./delays.yaml /app/delays.yaml
+COPY ./system_test_entrypoint.sh /app/system_test_entrypoint.sh
+RUN mkdir /app/code_coverage
 
 WORKDIR /app
 CMD ["/app/game-server", "--server"]
