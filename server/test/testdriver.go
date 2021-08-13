@@ -101,11 +101,10 @@ func (t *TestDriver) ReportResult() bool {
 	return passed
 }
 
-func RunGameScriptTests(fileOrDir string, testName string) {
+func RunGameScriptTests(fileOrDir string, testName string) error {
 	info, err := os.Stat(fileOrDir)
 	if os.IsNotExist(err) {
-		fmt.Printf("%s does not exist\n", fileOrDir)
-		os.Exit(1)
+		return fmt.Errorf("%s does not exist", fileOrDir)
 	}
 	pattern := fileOrDir
 	if info.IsDir() {
@@ -137,13 +136,9 @@ func RunGameScriptTests(fileOrDir string, testName string) {
 	passed := testDriver.ReportResult()
 	fmt.Printf("Data json: %d base64: %d binary: %d\n",
 		game.TotalJsonBytesReceived, game.TotalBase64BytesReceived, game.TotalBinaryDataReceived)
-	if passed {
-		fmt.Printf("All scripts passed\n")
-		os.Exit(0)
-	} else {
-		fmt.Printf("One or more scripts failed\n")
+	if !passed {
+		return fmt.Errorf("One or more scripts failed")
 	}
-
-	// if one or more tests failed, the process will exit with an error code
-	os.Exit(1)
+	fmt.Printf("All scripts passed\n")
+	return nil
 }

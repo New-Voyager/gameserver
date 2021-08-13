@@ -91,7 +91,12 @@ script-test: export REDIS_PORT=$(DEV_REDIS_PORT)
 script-test: export REDIS_DB=$(DEV_REDIS_DB)
 script-test: export DISABLE_DELAYS=1
 script-test: run-redis
-	go run main.go --script-tests
+	go test -v -coverpkg=./... -coverprofile=coverage.out voyager.com/server -run TestScripts
+ifdef CI
+	go tool cover -html=coverage.out
+else
+	go tool cover -html=coverage.out -o coverage.html
+endif
 
 .PHONY: docker-build
 docker-build: compile-proto
