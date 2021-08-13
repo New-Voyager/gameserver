@@ -1370,38 +1370,7 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	handResult.BigBlind = handState.BigBlind
 	handResult.MaxPlayers = handState.MaxSeats
 
-	saveResult, _ := g.saveHandResultToAPIServer(handResult)
-	_ = saveResult
-
-	// // send to all the players
-	// handResult = handResultProcessor.getResult(false /*db*/)
-	// handResult.NoCards = g.NumCards(handState.GameType)
-	// handResult.SmallBlind = handState.SmallBlind
-	// handResult.BigBlind = handState.BigBlind
-	// handResult.MaxPlayers = handState.MaxSeats
-
-	// // update the player balance
-	// for seatNo, player := range handResult.Players {
-	// 	g.PlayersInSeats[seatNo].Stack = player.Balance.After
-	// }
-	// resultItems, err := g.sendResult(handState, saveResult, handResult)
-	// allMsgItems = append(allMsgItems, resultItems...)
-
-	/* uint64 game_id = 1;
-	uint32 hand_num = 2;
-	GameType game_type = 3;
-	uint32 no_cards = 4;          // number of player cards
-	HandLog hand_log = 5;
-	HandStats hand_stats = 6;
-	bool run_it_twice = 7;                 // indicates the players ran it twice
-	float small_blind = 8;
-	float big_blind = 9;
-	float ante = 10;
-	uint32 max_players = 11;
-	*/
-
-	sendResultToApi := g.isScriptTest
-	sendResultToApi = true
+	sendResultToApi := !g.isScriptTest
 	if sendResultToApi {
 		handResultServer := &HandResultServer{
 			GameId:     hs.GameId,
