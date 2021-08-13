@@ -506,7 +506,16 @@ func (br *BotRunner) processAfterGameAssertions() error {
 	for _, verifyGameMessage := range br.script.AfterGame.Verify.GameMessages {
 		// verify message exists
 		found := false
+
 		for _, gameMessage := range br.observerBot.GameMessages {
+			if verifyGameMessage.Type == "NEW_HIGHHAND_WINNER" {
+				// compare the winners
+				if cmp.Equal(verifyGameMessage.Winners, gameMessage.Winners) {
+					found = true
+					break
+				}
+				continue
+			}
 			if verifyGameMessage.Type == gameMessage.Type &&
 				verifyGameMessage.SubType == gameMessage.SubType {
 				found = true

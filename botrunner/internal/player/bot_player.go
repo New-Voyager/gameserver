@@ -290,6 +290,7 @@ func (bp *BotPlayer) handleGameMsg(msg *natsgo.Msg) {
 
 	var message game.GameMessage
 	var nonProtoMsg gamescript.NonProtoMessage
+	fmt.Printf("%s\n", string(msg.Data))
 	err := protojson.Unmarshal(msg.Data, &message)
 	if err != nil {
 		// bp.logger.Debug().Msgf("%s: Error [%s] while unmarshalling protobuf game message [%s]. Assuming non-protobuf message", bp.logPrefix, err, string(msg.Data))

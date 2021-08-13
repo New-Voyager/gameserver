@@ -198,6 +198,7 @@ message HandResultClient {
   bool scoop = 8; // indicates whether the player scooped all the pots
   map<uint64, PlayerStats> player_stats = 9;
   uint32 hand_num = 10;
+  float tips_collected = 11;
 }
 
 message HandLogV2 {

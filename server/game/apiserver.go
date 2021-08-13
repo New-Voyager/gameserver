@@ -49,12 +49,11 @@ func (g *Game) saveHandResult2ToAPIServer(result2 *HandResultServer) (*SaveHandR
 	m.EmitUnpopulated = true
 	data, _ := m.Marshal(result2)
 	fmt.Printf("%s\n", string(data))
-	return nil, nil
 	url := fmt.Sprintf("%s/internal/save-hand/gameId/%d/handNum/%d", g.apiServerURL, result2.GameId, result2.HandNum)
 	resp, _ := http.Post(url, "application/json", bytes.NewBuffer(data))
 	// if the api server returns nil, do nothing
 	if resp == nil {
-		return nil, fmt.Errorf("Saving hand failed")
+		return nil, fmt.Errorf("saving hand failed")
 	}
 	defer resp.Body.Close()
 

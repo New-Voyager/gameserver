@@ -423,19 +423,27 @@ type VerifyPrivateMessages struct {
 	} `yaml:"messages"`
 }
 
+type HighHandWinner struct {
+	PlayerName  string   `yaml:"playerName" json:"playerName"`
+	BoardCards  []uint32 `yaml:"boardCards" json:"boardCards"`
+	PlayerCards []uint32 `yaml:"playerCards" json:"playerCards"`
+	HhCards     []uint32 `yaml:"hhCards" json:"hhCards"`
+}
+
 type NonProtoMessage struct {
-	Type       string `yaml:"type" json:"type"`
-	SubType    string `yaml:"subType" json:"subType"`
-	GameCode   string `yaml:"gameCode" json:"gameCode"`
-	OpenedSeat uint32 `yaml:"openedSeat" json:"openedSeat"`
-	PlayerName string `yaml:"playerName" json:"playerName"`
-	PlayerID   uint64 `yaml:"playerId" json:"playerId"`
-	PlayerUUID string `yaml:"playerUuid" json:"playerUuid"`
-	ExpTime    string `yaml:"expTime" json:"expTime"`
-	PromptSecs int    `yaml:"promptSecs" json:"promptSecs"`
-	OldSeatNo  int    `yaml:"oldSeatNo" json:"oldSeatNo"`
-	NewSeatNo  int    `yaml:"newSeatNo" json:"newSeatNo"`
-	RequestID  string `yaml:"requestId" json:"requestId"`
+	Type       string           `yaml:"type" json:"type"`
+	SubType    string           `yaml:"subType" json:"subType"`
+	GameCode   string           `yaml:"gameCode" json:"gameCode"`
+	OpenedSeat uint32           `yaml:"openedSeat" json:"openedSeat"`
+	PlayerName string           `yaml:"playerName" json:"playerName"`
+	PlayerID   uint64           `yaml:"playerId" json:"playerId"`
+	PlayerUUID string           `yaml:"playerUuid" json:"playerUuid"`
+	ExpTime    string           `yaml:"expTime" json:"expTime"`
+	PromptSecs int              `yaml:"promptSecs" json:"promptSecs"`
+	OldSeatNo  int              `yaml:"oldSeatNo" json:"oldSeatNo"`
+	NewSeatNo  int              `yaml:"newSeatNo" json:"newSeatNo"`
+	RequestID  string           `yaml:"requestId" json:"requestId"`
+	Winners    []HighHandWinner `yaml:"winners" json:"winners"`
 }
 
 type AfterGameVerification struct {

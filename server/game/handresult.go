@@ -496,6 +496,8 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 		}
 	}
 
+	// before sending the result, determine best card combination for each player
+
 	result := &HandResultClient{
 		ActiveSeats:   seats,
 		WonAt:         hs.getLog().GetWonAt(),
@@ -505,6 +507,7 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 		PlayerInfo:    playerInfo,
 		Scoop:         scoop,
 		HandNum:       hs.HandNum,
+		TipsCollected: hs.RakeCollected,
 	}
 	jsonb, _ := marshaller.Marshal(result)
 	fmt.Printf("\n\n\n")
