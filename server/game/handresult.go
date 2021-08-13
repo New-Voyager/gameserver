@@ -359,6 +359,7 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 			PotNo:        uint32(potNo),
 			Amount:       pot.Pot,
 			BoardWinners: make([]*BoardWinner, 0),
+			SeatsInPots:  pot.Seats,
 		}
 
 		// split the pot for each board

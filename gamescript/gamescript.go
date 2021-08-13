@@ -154,28 +154,29 @@ type Hand struct {
 
 // HandSetup contains the setup content in the hand config.
 type HandSetup struct {
-	PreDeal     []PreDealSetup       `yaml:"pre-deal"`
-	ButtonPos   uint32               `yaml:"button-pos"`
-	Board       []string             `yaml:"board"`
-	Board2      []string             `yaml:"board2"`
-	Flop        []string             `yaml:"flop"`
-	Turn        string               `yaml:"turn"`
-	River       string               `yaml:"river"`
-	SeatCards   []SeatCards          `yaml:"seat-cards"`
-	Verify      HandSetupVerfication `yaml:"verify"`
-	Auto        bool                 `yaml:"auto"`
-	SeatChange  []SeatChangeSetup    `yaml:"seat-change"` // players requesting seat-change
-	RunItTwice  []RunItTwiceSetup    `yaml:"run-it-twice"`
-	TakeBreak   []TakeBreakSetup     `yaml:"take-break"`
-	LeaveGame   []LeaveGame          `yaml:"leave-game"`
-	WaitLists   []WaitList           `yaml:"wait-list"`
-	Pause       uint32               `yaml:"pause"` // bot runner pauses and waits before next hand
-	NewPlayers  []StartingSeat       `yaml:"new-players"`
-	SwitchSeats []SwitchSeat         `yaml:"switch-seats"`
-	ReloadChips []ReloadChips        `yaml:"reload-chips"`
-	BombPot     bool                 `yaml:"bomb-pot"`
-	BombPotBet  float32              `yaml:"bomb-pot-bet"`
-	DoubleBoard bool                 `yaml:"double-board"`
+	PreDeal         []PreDealSetup       `yaml:"pre-deal"`
+	ButtonPos       uint32               `yaml:"button-pos"`
+	Board           []string             `yaml:"board"`
+	Board2          []string             `yaml:"board2"`
+	Flop            []string             `yaml:"flop"`
+	Turn            string               `yaml:"turn"`
+	River           string               `yaml:"river"`
+	SeatCards       []SeatCards          `yaml:"seat-cards"`
+	Verify          HandSetupVerfication `yaml:"verify"`
+	Auto            bool                 `yaml:"auto"`
+	SeatChange      []SeatChangeSetup    `yaml:"seat-change"` // players requesting seat-change
+	RunItTwice      []RunItTwiceSetup    `yaml:"run-it-twice"`
+	TakeBreak       []TakeBreakSetup     `yaml:"take-break"`
+	LeaveGame       []LeaveGame          `yaml:"leave-game"`
+	WaitLists       []WaitList           `yaml:"wait-list"`
+	Pause           uint32               `yaml:"pause"` // bot runner pauses and waits before next hand
+	NewPlayers      []StartingSeat       `yaml:"new-players"`
+	SwitchSeats     []SwitchSeat         `yaml:"switch-seats"`
+	ReloadChips     []ReloadChips        `yaml:"reload-chips"`
+	BombPot         bool                 `yaml:"bomb-pot"`
+	BombPotBet      float32              `yaml:"bomb-pot-bet"`
+	DoubleBoard     bool                 `yaml:"double-board"`
+	ResultPauseTime uint32               `yaml:"result-pause-time"`
 }
 
 type PreDealSetup struct {

@@ -25,6 +25,7 @@ type SetupDeck struct {
 	BombPotBet           uint32       `json:"bomb-pot-bet"`
 	DoubleBoard          bool         `json:"double-board"`
 	IncludeStatsInResult bool         `json:"include-stats"`
+	ResultPauseTime      uint32       `json:"result-pause-time"`
 }
 
 type PlayerCard struct {

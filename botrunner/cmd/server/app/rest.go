@@ -310,6 +310,9 @@ func startAppGame(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
 		return
 	}
+	for i, _ := range script.Hands {
+		script.Hands[i].Setup.ResultPauseTime = 3000
+	}
 	launcher := GetLauncher()
 	err = launcher.StartAppGame(clubCode, name, players, script)
 	if err != nil {

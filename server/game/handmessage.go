@@ -447,6 +447,9 @@ func validatePlayerAction(actionMsg *HandAction, handState *HandState) error {
 	// }
 
 	if actionMsg.Action == ACTION_CALL {
+		if handState.GetNextSeatAction() == nil {
+			return fmt.Errorf("Invalid seat action")
+		}
 		expectedCallAmount := handState.GetNextSeatAction().CallAmount
 		if actionMsg.Amount != expectedCallAmount {
 			return fmt.Errorf("Invalid call amount %f. Expected amount: %f", actionMsg.Amount, expectedCallAmount)
@@ -833,7 +836,7 @@ func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
 
 	pots, seatsInPots := g.getPots(handState)
 
-	balance := make(map[uint32]float32, 0)
+	balance := make(map[uint32]float32)
 	for seatNo, playerID := range handState.PlayersInSeats {
 		if seatNo == 0 {
 			continue
@@ -861,8 +864,8 @@ func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
 	}
 	boards := make([]*Board, 0)
 	for _, board := range handState.Boards {
-		riverCards := make([]uint32, 4)
-		for i, card := range board.Cards[:4] {
+		riverCards := make([]uint32, 5)
+		for i, card := range board.Cards[:5] {
 			riverCards[i] = uint32(card)
 		}
 		board1 := &Board{
@@ -1364,11 +1367,11 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	hs.TotalResultPauseTime = totalPauseTime
 	allMsgItems = append(allMsgItems, msgItems...)
 	// send the hand to the database to store first
-	handResult := handResultProcessor.getResult(true /*db*/)
-	handResult.NoCards = g.NumCards(handState.GameType)
-	handResult.SmallBlind = handState.SmallBlind
-	handResult.BigBlind = handState.BigBlind
-	handResult.MaxPlayers = handState.MaxSeats
+	// handResult := handResultProcessor.getResult(true /*db*/)
+	// handResult.NoCards = g.NumCards(handState.GameType)
+	// handResult.SmallBlind = handState.SmallBlind
+	// handResult.BigBlind = handState.BigBlind
+	// handResult.MaxPlayers = handState.MaxSeats
 
 	sendResultToApi := !g.isScriptTest
 	if sendResultToApi {

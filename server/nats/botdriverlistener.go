@@ -43,6 +43,7 @@ type HandSetup struct {
 	BombPotBet           float32      `json:"bomb-pot-bet"`
 	DoubleBoard          bool         `json:"double-board"`
 	IncludeStatsInResult bool         `json:"include-stats"`
+	ResultPauseTime      uint32       `json:"result-pause-time"`
 }
 
 // The NATS test driver adapter functionality is to listen for new game

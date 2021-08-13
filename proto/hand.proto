@@ -269,6 +269,7 @@ message PotWinnersV2 {
   uint32 pot_no = 1;
   float amount = 2;
   repeated BoardWinner board_winners = 3;
+  repeated uint32 seats_in_pots = 4;
 }
 
 message HandResultV2 {

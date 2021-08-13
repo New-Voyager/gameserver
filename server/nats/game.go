@@ -229,7 +229,11 @@ func (n *NatsGame) setupHand(handSetup HandSetup) {
 		BombPotBet:        handSetup.BombPotBet,
 		DoubleBoard:       handSetup.DoubleBoard,
 		IncludeStats:      handSetup.IncludeStatsInResult,
-		ResultPauseTime:   100,
+		ResultPauseTime:   handSetup.ResultPauseTime,
+	}
+
+	if nextHandSetup.ResultPauseTime == 0 {
+		nextHandSetup.ResultPauseTime = 100
 	}
 
 	message.ClubId = 0

@@ -2883,17 +2883,18 @@ func (bp *BotPlayer) setupNextHand() error {
 		}
 	} else {
 		setupDeckMsg = &SetupDeck{
-			MessageType: BotDriverSetupDeck,
-			Pause:       nextHand.Setup.Pause,
-			GameCode:    bp.gameCode,
-			GameID:      bp.gameID,
-			ButtonPos:   nextHand.Setup.ButtonPos,
-			Board:       nextHand.Setup.Board,
-			Board2:      nextHand.Setup.Board2,
-			Flop:        nextHand.Setup.Flop,
-			Turn:        nextHand.Setup.Turn,
-			River:       nextHand.Setup.River,
-			PlayerCards: bp.getPlayerCardsFromConfig(nextHand.Setup.SeatCards),
+			MessageType:     BotDriverSetupDeck,
+			Pause:           nextHand.Setup.Pause,
+			GameCode:        bp.gameCode,
+			GameID:          bp.gameID,
+			ButtonPos:       nextHand.Setup.ButtonPos,
+			Board:           nextHand.Setup.Board,
+			Board2:          nextHand.Setup.Board2,
+			Flop:            nextHand.Setup.Flop,
+			Turn:            nextHand.Setup.Turn,
+			River:           nextHand.Setup.River,
+			PlayerCards:     bp.getPlayerCardsFromConfig(nextHand.Setup.SeatCards),
+			ResultPauseTime: nextHand.Setup.ResultPauseTime,
 		}
 
 		if nextHand.Setup.BombPot {
@@ -2901,6 +2902,7 @@ func (bp *BotPlayer) setupNextHand() error {
 			setupDeckMsg.BombPotBet = uint32(nextHand.Setup.BombPotBet)
 			setupDeckMsg.DoubleBoard = nextHand.Setup.DoubleBoard
 		}
+
 	}
 	setupDeckMsg.IncludeStatsInResult = true
 	msgBytes, err := jsoniter.Marshal(setupDeckMsg)
