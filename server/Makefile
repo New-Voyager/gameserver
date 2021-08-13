@@ -98,11 +98,11 @@ script-test: export REDIS_PORT=$(DEV_REDIS_PORT)
 script-test: export REDIS_DB=$(DEV_REDIS_DB)
 script-test: export DISABLE_DELAYS=1
 script-test: test-build run-redis
-	./game-server.test --script-tests -test.coverprofile=coverage.out -test.run TestRunMain voyager.com/server
+	./game-server.test --script-tests -test.coverprofile=script_test_coverage.out -test.run TestRunMain voyager.com/server
 ifdef CI
-	go tool cover -html=coverage.out
+	go tool cover -html=script_test_coverage.out
 else
-	go tool cover -html=coverage.out -o coverage.html
+	go tool cover -html=script_test_coverage.out -o script_test_coverage.html
 endif
 
 .PHONY: docker-build

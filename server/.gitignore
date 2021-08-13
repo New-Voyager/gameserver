@@ -23,3 +23,5 @@ build/
 # Generated code coverage file
 coverage.out
 coverage.html
+script_test_coverage.out
+script_test_coverage.html
