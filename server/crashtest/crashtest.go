@@ -2,12 +2,13 @@ package crashtest
 
 import (
 	"fmt"
-	"os"
 	"sync"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 	"voyager.com/server/internal"
+	"voyager.com/server/util"
 )
 
 // CrashPoint is an enum representing different points in the code that the server can crash.
@@ -28,13 +29,16 @@ const (
 	CrashPoint_PREPARE_NEXT_ACTION_2  CrashPoint = "PREPARE_NEXT_ACTION_2"
 	CrashPoint_PREPARE_NEXT_ACTION_3  CrashPoint = "PREPARE_NEXT_ACTION_3"
 	CrashPoint_PENDING_UPDATES_1      CrashPoint = "PENDING_UPDATES_1"
-
-	ExitCode int = 66
 )
 
 var (
-	CrashSetLock sync.Mutex
+	CrashSetLock    sync.Mutex
+	exitProcessFunc func()
 )
+
+func SetExitFunc(exitFunc func()) {
+	exitProcessFunc = exitFunc
+}
 
 // IsValid checks if cp is a valid enum value for CrashPoint.
 func (cp CrashPoint) IsValid() bool {
@@ -56,6 +60,11 @@ var (
 // Set schedules for crashing at the specified point.
 // If cp == CrashPoint_NOW, the function will crash immediately without returning.
 func Set(gameCode string, cp CrashPoint, playerID uint64) error {
+	if !util.Env.IsSystemTest() {
+		fmt.Println("crashtest.Set called when not in system test.")
+		return nil
+	}
+
 	CrashSetLock.Lock()
 	defer CrashSetLock.Unlock()
 
@@ -69,7 +78,7 @@ func Set(gameCode string, cp CrashPoint, playerID uint64) error {
 
 	if cp == CrashPoint_NOW {
 		fmt.Printf("CRASHTEST Set called with NOW. Exiting immediately.")
-		os.Exit(ExitCode)
+		exitProcessFunc()
 	}
 
 	crashGameCode = gameCode
@@ -86,6 +95,12 @@ func Hit(gameCode string, cp CrashPoint, playerID uint64) {
 	if cp != crashPoint || playerID != crashPlayerID {
 		return
 	}
+
+	if !util.Env.IsSystemTest() {
+		fmt.Println("Ignoring crashtest.Hit since we are not in system test.")
+		return
+	}
+
 	// Save to the crash tracking trable.
 	err := saveToTracker(gameCode, cp)
 	if err != nil {
@@ -93,7 +108,12 @@ func Hit(gameCode string, cp CrashPoint, playerID uint64) {
 	} else {
 		fmt.Printf("CRASHTEST (This is an intentional crash) GameCode: %s CrashPoint: %s, CrashPlayerID: %d\n", gameCode, cp, crashPlayerID)
 	}
-	os.Exit(ExitCode)
+
+	// exitProcessFunc may not exit the process immediately.
+	// Add some sleep after to block the calling code from progressing any further
+	// before the process exits.
+	exitProcessFunc()
+	time.Sleep(10 * time.Second)
 }
 
 func saveToTracker(gameCode string, cp CrashPoint) error {
