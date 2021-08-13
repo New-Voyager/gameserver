@@ -27,6 +27,7 @@ var runGameScriptTests *bool
 var gameScriptsFileOrDir *string
 var delayConfigFile *string
 var testName *string
+var endSystemTest bool
 var mainLogger = log.With().Str("logger_name", "nats::main").Logger()
 
 func init() {
@@ -116,14 +117,25 @@ func runWithNats() {
 	nats.RegisterGameServer(apiServerURL, natsGameManager)
 
 	// run rest server
-	go rest.RunRestServer(natsGameManager)
+	go rest.RunRestServer(natsGameManager, onEndSystemTest)
 
 	// restart games
 	time.Sleep(1 * time.Second)
 	mainLogger.Info().Msg("Requesting to restart the active games.")
 	nats.RequestRestartGames(apiServerURL)
 
-	select {}
+	if util.Env.IsSystemTest() {
+		mainLogger.Info().Msg("Running in system test mode.")
+		for !endSystemTest {
+			time.Sleep(1 * time.Second)
+		}
+	} else {
+		select {}
+	}
+}
+
+func onEndSystemTest() {
+	endSystemTest = true
 }
 
 func testScripts() error {
