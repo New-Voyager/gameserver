@@ -29,6 +29,8 @@ BOTRUNNER_SCRIPT ?= botrunner_scripts/river-action-3-bots.yaml
 DOCKER_BUILDKIT ?= 1
 LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh botrunner)
 BOTRUNNER_IMAGE ?= $(LOCAL_IMAGE_NAME)
+GAME_SERVER_TEST_IMAGE := $(shell $(BUILD_HELPER)/get_local_image_name.sh test-game-server)
+TIMER_IMAGE := $(shell $(BUILD_HELPER)/get_local_image_name.sh timer)
 
 PROTO_DIR := $(PROJECT_ROOT)/proto
 PLAYERS_YAML := $(PWD)/botrunner_scripts/players/default.yaml
@@ -121,6 +123,7 @@ publish: gcp-publish do-publish
 .PHONY: clean-ci
 clean-ci: system-test-down
 	docker image rm $(BOTRUNNER_IMAGE) || true
+	docker image rm $(GAME_SERVER_TEST_IMAGE) || true
 	if docker network ls | grep $(TEST_DOCKER_NET); then docker network rm $(TEST_DOCKER_NET); fi
 
 .PHONY: do-publish
@@ -159,11 +162,6 @@ NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
 REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
 POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5
 
-# These images are built from local code.
-BOTRUNNER_IMAGE := $(LOCAL_IMAGE_NAME)
-GAME_SERVER_IMAGE := $(shell $(BUILD_HELPER)/get_local_image_name.sh game-server)
-TIMER_IMAGE := $(shell $(BUILD_HELPER)/get_local_image_name.sh timer)
-
 TEST_DOCKER_NET := $(shell $(BUILD_HELPER)/get_local_docker_net.sh system_test)
 COMPOSE_PROJECT_NAME := $(shell $(BUILD_HELPER)/get_compose_project_name.sh system_test)
 COMPOSE_SYSTEM_TEST := docker-compose -p $(COMPOSE_PROJECT_NAME) -f docker-compose-systest.yaml
@@ -199,7 +197,7 @@ endif
 
 .PHONY: system-test-build
 system-test-build:
-	GAME_SERVER_IMAGE=$(GAME_SERVER_IMAGE) $(MAKE) -C $(PROJECT_ROOT)/server docker-build-test
+	GAME_SERVER_IMAGE=$(GAME_SERVER_TEST_IMAGE) $(MAKE) -C $(PROJECT_ROOT)/server docker-build-test
 	TIMER_IMAGE=$(TIMER_IMAGE) $(MAKE) -C $(PROJECT_ROOT)/timer docker-build
 	BOTRUNNER_IMAGE=$(BOTRUNNER_IMAGE) $(MAKE) -C $(PROJECT_ROOT)/botrunner docker-build
 
@@ -223,7 +221,7 @@ system-test-create-network:
 system-test-generate-env:
 	> .env && \
 		echo "API_SERVER_IMAGE=$(API_SERVER_IMAGE)" >> .env && \
-		echo "GAME_SERVER_IMAGE=$(GAME_SERVER_IMAGE)" >> .env && \
+		echo "GAME_SERVER_TEST_IMAGE=$(GAME_SERVER_TEST_IMAGE)" >> .env && \
 		echo "BOTRUNNER_IMAGE=$(BOTRUNNER_IMAGE)" >> .env && \
 		echo "TIMER_IMAGE=$(TIMER_IMAGE)" >> .env && \
 		echo "NATS_SERVER_IMAGE=$(NATS_SERVER_IMAGE)" >> .env && \

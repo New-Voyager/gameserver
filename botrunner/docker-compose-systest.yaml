@@ -40,7 +40,7 @@ services:
       POSTGRES_DB: 'game'
 
   game-server:
-    image: ${GAME_SERVER_IMAGE}
+    image: ${GAME_SERVER_TEST_IMAGE}
     tty: true
     restart: always
     depends_on:
