@@ -19,6 +19,8 @@ require (
 	github.com/nats-io/nats.go v1.10.0
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.19.0
+	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad // indirect
+	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/godo.v2 v2.0.9
 	gopkg.in/yaml.v2 v2.4.0 // indirect

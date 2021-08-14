@@ -175,6 +175,20 @@ endif
 system-test: system-test-down system-test-up
 	$(COMPOSE_SYSTEM_TEST) exec -T botrunner bash -c "ABORT_ON_FAIL=$(ABORT_ON_FAIL) ./system_test.sh"
 
+.PHONY: get-gocovmerge
+get-gocovmerge:
+	if ! command -v gocovmerge; then \
+		go get -u github.com/wadey/gocovmerge; \
+	fi
+
+.PHONY: system-test-coverage
+system-test-coverage: get-gocovmerge
+	@# Copy the coverage files out of the game server container.
+	rm -rf ./system_test_code_coverage
+	docker cp $(COMPOSE_PROJECT_NAME)_game-server_1:/app/code_coverage ./system_test_code_coverage
+	@# Process the coverage files and generate a html file in the server directory.
+	./system_test_coverage_process.sh $(PROJECT_ROOT)/server ./system_test_code_coverage
+
 .PHONY: system-test-build
 system-test-build:
 	GAME_SERVER_IMAGE=$(GAME_SERVER_IMAGE) $(MAKE) -C $(PROJECT_ROOT)/server docker-build-test
