@@ -5,7 +5,7 @@ BUILD_NO := $(shell cat build_number.txt)
 DO_REGISTRY := registry.digitalocean.com/voyager
 GCP_PROJECT_ID := voyager-01-285603
 GCP_REGISTRY := gcr.io/$(GCP_PROJECT_ID)
-REGISTRY := $(DO_REGISTRY)
+REGISTRY := $(GCP_REGISTRY)
 PROTO_VER := v3.7.1
 PROTOC_ZIP := protoc-3.7.1-linux-x86_64.zip
 
