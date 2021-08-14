@@ -171,9 +171,16 @@ ifndef CI
 COMPOSE_SYSTEM_TEST := $(COMPOSE_SYSTEM_TEST) -f docker-compose-systest-local.yaml
 endif
 
+UNAME := $(shell uname)
+
 .PHONY: system-test
-system-test: system-test-down system-test-up
+system-test: get-gocovmerge system-test-down system-test-up
 	$(COMPOSE_SYSTEM_TEST) exec -T botrunner bash -c "ABORT_ON_FAIL=$(ABORT_ON_FAIL) ./system_test.sh"
+	@# Copy the coverage files out of the game server container.
+	rm -rf ./system_test_code_coverage
+	docker cp $(COMPOSE_PROJECT_NAME)_game-server_1:/app/code_coverage ./system_test_code_coverage
+	@# Process the coverage files and generate a html file in the server directory.
+	./system_test_coverage_process.sh $(PROJECT_ROOT)/server ./system_test_code_coverage
 
 .PHONY: get-gocovmerge
 get-gocovmerge:
@@ -182,12 +189,13 @@ get-gocovmerge:
 	fi
 
 .PHONY: system-test-coverage
-system-test-coverage: get-gocovmerge
-	@# Copy the coverage files out of the game server container.
-	rm -rf ./system_test_code_coverage
-	docker cp $(COMPOSE_PROJECT_NAME)_game-server_1:/app/code_coverage ./system_test_code_coverage
-	@# Process the coverage files and generate a html file in the server directory.
-	./system_test_coverage_process.sh $(PROJECT_ROOT)/server ./system_test_code_coverage
+system-test-coverage:
+ifeq ($(UNAME),Linux)
+	xdg-open $(PROJECT_ROOT)/server/system_test_coverage_merged.html
+else
+	# MAC
+	open $(PROJECT_ROOT)/server/system_test_coverage_merged.html
+endif
 
 .PHONY: system-test-build
 system-test-build:

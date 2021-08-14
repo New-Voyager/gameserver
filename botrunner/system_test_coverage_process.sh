@@ -20,9 +20,5 @@ popd
 pushd ${server_src_dir}
 rm -f ./system_test_coverage_merged.out ./system_test_coverage_merged.html
 mv ${coverage_file_dir}/system_test_coverage_merged.out ./
-if ! [ -z "${CI}" ]; then
-    go tool cover -html=system_test_coverage_merged.out -o system_test_coverage_merged.html
-else
-    go tool cover -html=system_test_coverage_merged.out
-fi
+go tool cover -html=system_test_coverage_merged.out -o system_test_coverage_merged.html
 popd

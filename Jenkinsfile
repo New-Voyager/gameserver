@@ -54,7 +54,6 @@ pipeline {
                     } finally {
                         printLastNLines("jenkins_logs/${SYSTEM_TEST_LOG}", num_log_lines)
                     }
-                    sh "cd botrunner && make system-test-coverage"
                     sh "mv server/system_test_coverage_merged.html jenkins_logs/"
                 }
             }
