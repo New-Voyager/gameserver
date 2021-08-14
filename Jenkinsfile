@@ -49,17 +49,13 @@ pipeline {
             steps {
                 echo "Running System Test. Last ${num_log_lines} lines of the log will be printed at the end and the full log will be saved as a build artifact (${SYSTEM_TEST_LOG})."
                 script {
-                    success = false
                     try {
                         sh "make system-test > jenkins_logs/${SYSTEM_TEST_LOG} 2>&1"
-                        success = true
                     } finally {
                         printLastNLines("jenkins_logs/${SYSTEM_TEST_LOG}", num_log_lines)
                     }
-                    if (success) {
-                        sh "cd botrunner && make system-test-coverage"
-                        sh "mv server/system_test_coverage_merged.html jenkins_logs/"
-                    }
+                    sh "cd botrunner && make system-test-coverage"
+                    sh "mv server/system_test_coverage_merged.html jenkins_logs/"
                 }
             }
         }
