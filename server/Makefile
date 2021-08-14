@@ -24,7 +24,9 @@ NATS_VERSION := 2.1.7-alpine3.11
 REDIS_VERSION := 6.0.9
 
 DOCKER_BUILDKIT ?= 1
+BUILD_MODE ?= prod
 LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh game-server)
+GAME_SERVER_IMAGE ?= $(LOCAL_IMAGE_NAME)
 PROTO_DIR := $(PROJECT_ROOT)/proto
 
 TEST_DOCKER_NET := $(shell $(BUILD_HELPER)/get_local_docker_net.sh game_server_docker_test)
@@ -84,18 +86,23 @@ test: build
 	go test voyager.com/server/poker
 	go test voyager.com/server/game
 
+.PHONY: test-build
+test-build:
+	@# This generates a binary 'game-server.test' that runs the tests when executed.
+	go test -coverpkg=./... -c -o game-server.test
+
 .PHONY: script-test
 script-test: export PERSIST_METHOD=redis
 script-test: export REDIS_HOST=$(DEV_REDIS_HOST)
 script-test: export REDIS_PORT=$(DEV_REDIS_PORT)
 script-test: export REDIS_DB=$(DEV_REDIS_DB)
 script-test: export DISABLE_DELAYS=1
-script-test: run-redis
-	go test -v -coverpkg=./... -coverprofile=coverage.out voyager.com/server -run TestScripts
+script-test: test-build run-redis
+	./game-server.test --script-tests -test.coverprofile=script_test_coverage.out -test.run TestRunMain voyager.com/server
 ifdef CI
-	go tool cover -html=coverage.out
+	go tool cover -html=script_test_coverage.out
 else
-	go tool cover -html=coverage.out -o coverage.html
+	go tool cover -html=script_test_coverage.out -o script_test_coverage.html
 endif
 
 .PHONY: docker-build
@@ -106,8 +113,14 @@ docker-build: compile-proto
 	else \
 		rsync -avu --delete $(PROJECT_ROOT)/encryption/ build/encryption; \
 	fi
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(LOCAL_IMAGE_NAME)
+	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . \
+		-t $(GAME_SERVER_IMAGE) \
+		--build-arg BUILD_MODE=$(BUILD_MODE)
 	rm -rf build/
+
+.PHONY: docker-build-test
+docker-build-test: export BUILD_MODE=test
+docker-build-test: docker-build
 
 .PHONY: create-network
 create-network:
@@ -163,7 +176,7 @@ docker-test: docker-test-up
 		-e REDIS_PORT=6379 \
 		-e REDIS_DB=0 \
 		-e DISABLE_DELAYS=1 \
-		$(LOCAL_IMAGE_NAME) sh -c "/app/game-server --script-tests"
+		$(GAME_SERVER_IMAGE) sh -c "/app/game-server --script-tests"
 
 .PHONY: stop
 stop:
@@ -184,7 +197,7 @@ publish: gcp-publish do-publish
 
 .PHONY: clean-ci
 clean-ci: docker-test-down
-	docker image rm $(LOCAL_IMAGE_NAME) || true
+	docker image rm $(GAME_SERVER_IMAGE) || true
 	if docker network ls | grep $(TEST_DOCKER_NET); then docker network rm $(TEST_DOCKER_NET); fi
 
 .PHONY: do-login
@@ -216,8 +229,8 @@ publish-all: publish-gameserver publish-3rdparty
 
 .PHONY: publish-gameserver
 publish-gameserver:
-	docker tag $(LOCAL_IMAGE_NAME) $(REGISTRY)/game-server:$(BUILD_NO)
-	docker tag $(LOCAL_IMAGE_NAME) $(REGISTRY)/game-server:latest
+	docker tag $(GAME_SERVER_IMAGE) $(REGISTRY)/game-server:$(BUILD_NO)
+	docker tag $(GAME_SERVER_IMAGE) $(REGISTRY)/game-server:latest
 	docker push $(REGISTRY)/game-server:$(BUILD_NO)
 	docker push $(REGISTRY)/game-server:latest
 

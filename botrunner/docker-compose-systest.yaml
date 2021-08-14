@@ -59,10 +59,9 @@ services:
       POSTGRES_DB: 'game'
       DISABLE_DELAYS: 1
       ENABLE_ENCRYPTION: 1
+      SYSTEM_TEST: 1
     command:
-      - "/bin/sh"
-      - "-c"
-      - "sleep 10 && /app/game-server --server"
+      - "./system_test_entrypoint.sh"
 
   botrunner:
     image: ${BOTRUNNER_IMAGE}

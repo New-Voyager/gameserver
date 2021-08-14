@@ -23,3 +23,6 @@ __debug_bin
 
 # docker-compose env file
 .env
+
+# System test code coverage out files.
+system_test_code_coverage/

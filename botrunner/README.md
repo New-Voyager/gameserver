@@ -129,3 +129,15 @@ Delete the tracker for the human-game.
 # Substitute the game code.
 curl -i -X POST http://localhost:8081/delete-human-game'?'game-code=CG-7YQTXD
 ```
+
+## System Test
+
+Run system test.
+```
+make system-test-build && make system-test
+```
+
+Get the code coverage report after the system test is run.
+```
+make system-test-coverage
+```
