@@ -16,6 +16,7 @@ tested_scripts=(
     $(find . -path './botrunner_scripts/system_test/*.yaml')
 )
 # tested_scripts=(
+#     './botrunner_scripts/system_test/basic/river-action-3-bots.yaml'
 #     './botrunner_scripts/system_test/timeout/timeout.yaml'
 #     './botrunner_scripts/system_test/timeout/consecutive-timeout.yaml'
 # )
@@ -74,6 +75,10 @@ for script in "${tested_scripts[@]}"; do
         fi
     fi
 done
+
+# Make the game server exit and create the code coverage file.
+curl -X POST game-server:8080/end-system-test
+sleep 2
 
 echo
 echo

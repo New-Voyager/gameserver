@@ -10,10 +10,12 @@ import (
 	"voyager.com/server/crashtest"
 	"voyager.com/server/game"
 	"voyager.com/server/nats"
+	"voyager.com/server/util"
 )
 
 var restLogger = log.With().Str("logger_name", "game::rest").Logger()
 var natsGameManager *nats.GameManager
+var onEndSystemTest func()
 
 //
 // APP error definition
@@ -63,7 +65,7 @@ func jsonAppErrorReporterT(errType gin.ErrorType) gin.HandlerFunc {
 	}
 }
 */
-func RunRestServer(gameManager *nats.GameManager) {
+func RunRestServer(gameManager *nats.GameManager, endSystemTestCallback func()) {
 	natsGameManager = gameManager
 	r := gin.Default()
 	//r.Use(JSONAppErrorReporter())
@@ -75,6 +77,10 @@ func RunRestServer(gameManager *nats.GameManager) {
 	r.GET("/current-hand-log", gameCurrentHandLog)
 	r.POST("/table-update", tableUpdate)
 	r.POST("/player-config-update", playerConfigUpdate)
+	if util.Env.IsSystemTest() {
+		onEndSystemTest = endSystemTestCallback
+		r.POST("/end-system-test", endSystemTest)
+	}
 
 	// Intentionally crash the process for testing
 	r.POST("/setup-crash", setupCrash)
@@ -248,4 +254,9 @@ func playerConfigUpdate(c *gin.Context) {
 	}
 
 	natsGameManager.PlayerConfigUpdate(playerConfigUpdate.GameId, &playerConfigUpdate)
+}
+
+func endSystemTest(c *gin.Context) {
+	onEndSystemTest()
+	return
 }

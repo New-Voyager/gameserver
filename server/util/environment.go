@@ -32,6 +32,7 @@ type gameServerEnvironment struct {
 	PostgresPW             string
 	EnableEncryption       string
 	DebugConnectivityCheck string
+	SystemTest             string
 }
 
 // Env is a helper object for accessing environment variables.
@@ -52,6 +53,7 @@ var Env = &gameServerEnvironment{
 	PostgresPW:             "POSTGRES_PASSWORD",
 	EnableEncryption:       "ENABLE_ENCRYPTION",
 	DebugConnectivityCheck: "DEBUG_CONNECTIVITY_CHECK",
+	SystemTest:             "SYSTEM_TEST",
 }
 
 func (g *gameServerEnvironment) GetNatsURL() string {
@@ -268,4 +270,16 @@ func (g *gameServerEnvironment) GetDebugConnectivityCheck() string {
 
 func (g *gameServerEnvironment) ShouldDebugConnectivityCheck() bool {
 	return g.GetDebugConnectivityCheck() == "1" || strings.ToLower(g.GetDebugConnectivityCheck()) == "true"
+}
+
+func (g *gameServerEnvironment) GetSystemTest() string {
+	v := os.Getenv(g.SystemTest)
+	if v == "" {
+		return "false"
+	}
+	return v
+}
+
+func (g *gameServerEnvironment) IsSystemTest() bool {
+	return g.GetSystemTest() == "1" || strings.ToLower(g.GetSystemTest()) == "true"
 }

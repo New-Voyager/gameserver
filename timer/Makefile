@@ -11,10 +11,11 @@ DEV_API_SERVER_URL ?= http://localhost:9501
 
 DOCKER_BUILDKIT ?= 1
 LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh timer)
+TIMER_IMAGE ?= $(LOCAL_IMAGE_NAME)
 
 .PHONY: docker-build
 docker-build:
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(LOCAL_IMAGE_NAME)
+	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(TIMER_IMAGE)
 
 .PHONY: build
 build:
@@ -29,7 +30,7 @@ publish: gcp-publish do-publish
 
 .PHONY: clean-ci
 clean-ci:
-	docker image rm $(LOCAL_IMAGE_NAME) || true
+	docker image rm $(TIMER_IMAGE) || true
 
 .PHONY: do-publish
 do-publish: export REGISTRY=$(DO_REGISTRY)
@@ -41,8 +42,8 @@ gcp-publish: gcp-login publish-timer
 
 .PHONY: publish-timer
 publish-timer:
-	docker tag $(LOCAL_IMAGE_NAME) $(REGISTRY)/timer:$(BUILD_NO)
-	docker tag $(LOCAL_IMAGE_NAME) $(REGISTRY)/timer:latest
+	docker tag $(TIMER_IMAGE) $(REGISTRY)/timer:$(BUILD_NO)
+	docker tag $(TIMER_IMAGE) $(REGISTRY)/timer:latest
 	docker push $(REGISTRY)/timer:$(BUILD_NO)
 	docker push $(REGISTRY)/timer:latest
 

@@ -1,14 +1,21 @@
 package main
 
 import (
-	"os"
 	"testing"
 )
 
-func TestScripts(t *testing.T) {
-	os.Args = append(os.Args, "--script-tests")
-	err := run()
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
+// TestRunMain is used to run the server within the test binary so
+// that we can get the coverage while running the main function normally.
+// The command line arguments for the app should be passed in to the
+// test binary before the test arguments.
+//
+// For example,
+//
+// go test -coverpkg=./... -c -o game-server.test
+// ./game-server.test --script-tests -test.coverprofile=coverage.out -test.run TestRunMain voyager.com/server
+//
+// Here is a good resource on how to build and use the test binary.
+// https://www.elastic.co/blog/code-coverage-for-your-golang-system-tests
+func TestRunMain(t *testing.T) {
+	main()
 }

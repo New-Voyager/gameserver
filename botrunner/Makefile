@@ -28,6 +28,7 @@ BOTRUNNER_SCRIPT ?= botrunner_scripts/river-action-3-bots.yaml
 
 DOCKER_BUILDKIT ?= 1
 LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh botrunner)
+BOTRUNNER_IMAGE ?= $(LOCAL_IMAGE_NAME)
 
 PROTO_DIR := $(PROJECT_ROOT)/proto
 PLAYERS_YAML := $(PWD)/botrunner_scripts/players/default.yaml
@@ -60,7 +61,7 @@ docker-build: compile-proto
 		rsync -avu --delete $(PROJECT_ROOT)/gamescript/ build/gamescript; \
 		rsync -avu --delete $(PROJECT_ROOT)/encryption/ build/encryption; \
 	fi
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(LOCAL_IMAGE_NAME)
+	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(BOTRUNNER_IMAGE)
 	rm -rf build/
 
 .PHONY: build
@@ -119,7 +120,7 @@ publish: gcp-publish do-publish
 
 .PHONY: clean-ci
 clean-ci: system-test-down
-	docker image rm $(LOCAL_IMAGE_NAME) || true
+	docker image rm $(BOTRUNNER_IMAGE) || true
 	if docker network ls | grep $(TEST_DOCKER_NET); then docker network rm $(TEST_DOCKER_NET); fi
 
 .PHONY: do-publish
@@ -132,8 +133,8 @@ gcp-publish: gcp-login publish-botrunner
 
 .PHONY: publish-botrunner
 publish-botrunner:
-	docker tag $(LOCAL_IMAGE_NAME) $(REGISTRY)/botrunner:$(BUILD_NO)
-	docker tag $(LOCAL_IMAGE_NAME) $(REGISTRY)/botrunner:latest
+	docker tag $(BOTRUNNER_IMAGE) $(REGISTRY)/botrunner:$(BUILD_NO)
+	docker tag $(BOTRUNNER_IMAGE) $(REGISTRY)/botrunner:latest
 	docker push $(REGISTRY)/botrunner:$(BUILD_NO)
 	docker push $(REGISTRY)/botrunner:latest
 
@@ -159,9 +160,9 @@ REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
 POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5
 
 # These images are built from local code.
-BOTRUNNER_IMAGE=$(LOCAL_IMAGE_NAME)
-GAME_SERVER_IMAGE=$(shell $(BUILD_HELPER)/get_local_image_name.sh game-server)
-TIMER_IMAGE=$(shell $(BUILD_HELPER)/get_local_image_name.sh timer)
+BOTRUNNER_IMAGE := $(LOCAL_IMAGE_NAME)
+GAME_SERVER_IMAGE := $(shell $(BUILD_HELPER)/get_local_image_name.sh game-server)
+TIMER_IMAGE := $(shell $(BUILD_HELPER)/get_local_image_name.sh timer)
 
 TEST_DOCKER_NET := $(shell $(BUILD_HELPER)/get_local_docker_net.sh system_test)
 COMPOSE_PROJECT_NAME := $(shell $(BUILD_HELPER)/get_compose_project_name.sh system_test)
@@ -170,15 +171,37 @@ ifndef CI
 COMPOSE_SYSTEM_TEST := $(COMPOSE_SYSTEM_TEST) -f docker-compose-systest-local.yaml
 endif
 
+UNAME := $(shell uname)
+
 .PHONY: system-test
-system-test: system-test-down system-test-up
+system-test: get-gocovmerge system-test-down system-test-up
 	$(COMPOSE_SYSTEM_TEST) exec -T botrunner bash -c "ABORT_ON_FAIL=$(ABORT_ON_FAIL) ./system_test.sh"
+	@# Copy the coverage files out of the game server container.
+	rm -rf ./system_test_code_coverage
+	docker cp $(COMPOSE_PROJECT_NAME)_game-server_1:/app/code_coverage ./system_test_code_coverage
+	@# Process the coverage files and generate a html file in the server directory.
+	./system_test_coverage_process.sh $(PROJECT_ROOT)/server ./system_test_code_coverage
+
+.PHONY: get-gocovmerge
+get-gocovmerge:
+	if ! command -v gocovmerge; then \
+		go get -u github.com/wadey/gocovmerge; \
+	fi
+
+.PHONY: system-test-coverage
+system-test-coverage:
+ifeq ($(UNAME),Linux)
+	xdg-open $(PROJECT_ROOT)/server/system_test_coverage_merged.html
+else
+	# MAC
+	open $(PROJECT_ROOT)/server/system_test_coverage_merged.html
+endif
 
 .PHONY: system-test-build
 system-test-build:
-	$(MAKE) -C $(PROJECT_ROOT)/server docker-build
-	$(MAKE) -C $(PROJECT_ROOT)/botrunner docker-build
-	$(MAKE) -C $(PROJECT_ROOT)/timer docker-build
+	GAME_SERVER_IMAGE=$(GAME_SERVER_IMAGE) $(MAKE) -C $(PROJECT_ROOT)/server docker-build-test
+	TIMER_IMAGE=$(TIMER_IMAGE) $(MAKE) -C $(PROJECT_ROOT)/timer docker-build
+	BOTRUNNER_IMAGE=$(BOTRUNNER_IMAGE) $(MAKE) -C $(PROJECT_ROOT)/botrunner docker-build
 
 .PHONY: system-test-down
 system-test-down: system-test-create-network system-test-generate-env

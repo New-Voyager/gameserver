@@ -11,6 +11,7 @@ import (
 	_ "github.com/lib/pq"
 	natsgo "github.com/nats-io/nats.go"
 
+	"voyager.com/server/crashtest"
 	"voyager.com/server/game"
 	"voyager.com/server/nats"
 	"voyager.com/server/rest"
@@ -27,18 +28,27 @@ var runGameScriptTests *bool
 var gameScriptsFileOrDir *string
 var delayConfigFile *string
 var testName *string
+var exit bool
 var mainLogger = log.With().Str("logger_name", "nats::main").Logger()
 
-func run() error {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+func init() {
 	runServer = flag.Bool("server", true, "runs game server")
 	runGameScriptTests = flag.Bool("script-tests", false, "runs script tests")
 	gameScriptsFileOrDir = flag.String("game-script", "test/game-scripts", "runs tests with game script files")
 	delayConfigFile = flag.String("delays", "delays.yaml", "YAML file containing pause times")
 	testName = flag.String("testname", "", "runs a specific test")
+}
 
+func main() {
+	err := run()
+	if err != nil {
+		os.Exit(1)
+	}
+}
+
+func run() error {
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	flag.Parse()
-
 	delays, err := game.ParseDelayConfig(*delayConfigFile)
 	if err != nil {
 		mainLogger.Panic().Msg(err.Error())
@@ -58,13 +68,6 @@ func run() error {
 
 	runWithNats()
 	return nil
-}
-
-func main() {
-	err := run()
-	if err != nil {
-		os.Exit(1)
-	}
 }
 
 func waitForAPIServer(apiServerURL string) {
@@ -114,15 +117,33 @@ func runWithNats() {
 	// subscribe to api server events
 	nats.RegisterGameServer(apiServerURL, natsGameManager)
 
+	crashtest.SetExitFunc(setupExit)
+
 	// run rest server
-	go rest.RunRestServer(natsGameManager)
+	go rest.RunRestServer(natsGameManager, setupExit)
 
 	// restart games
 	time.Sleep(1 * time.Second)
 	mainLogger.Info().Msg("Requesting to restart the active games.")
 	nats.RequestRestartGames(apiServerURL)
 
-	select {}
+	if util.Env.IsSystemTest() {
+		// System test needs a way to return from main to collect the code coverage.
+		// We shouldn't be exiting the process in production.
+		mainLogger.Info().Msg("Running in system test mode.")
+		for !exit {
+			time.Sleep(500 * time.Millisecond)
+		}
+		// Give another 0.5 sec to make sure the rest api call that triggered the
+		// exit has sent back the response before exiting.
+		time.Sleep(500 * time.Millisecond)
+	} else {
+		select {}
+	}
+}
+
+func setupExit() {
+	exit = true
 }
 
 func testScripts() error {
