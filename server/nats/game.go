@@ -225,6 +225,15 @@ func (n *NatsGame) setupHand(handSetup HandSetup) {
 		PlayerCards:       playerCards,
 		PlayerCardsBySeat: playerCardsBySeat,
 		Pause:             handSetup.Pause,
+		BombPot:           handSetup.BombPot,
+		BombPotBet:        handSetup.BombPotBet,
+		DoubleBoard:       handSetup.DoubleBoard,
+		IncludeStats:      handSetup.IncludeStatsInResult,
+		ResultPauseTime:   handSetup.ResultPauseTime,
+	}
+
+	if nextHandSetup.ResultPauseTime == 0 {
+		nextHandSetup.ResultPauseTime = 100
 	}
 
 	message.ClubId = 0

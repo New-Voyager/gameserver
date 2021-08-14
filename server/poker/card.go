@@ -192,10 +192,35 @@ func FromByteCards(byteCards []byte) []Card {
 	return cards
 }
 
+func FromUint32Cards(intCards []uint32) []Card {
+	cards := make([]Card, len(intCards))
+	for i, card := range intCards {
+		cards[i] = Card(card)
+	}
+	return cards
+}
+
+func FromUint32ByteCards(intCards []uint32) []byte {
+	cards := make([]byte, len(intCards))
+	for i, card := range intCards {
+		c := Card(card)
+		cards[i] = uint8(c)
+	}
+	return cards
+}
+
 func CardsToByteCards(cards []Card) []byte {
 	byteCards := make([]byte, len(cards))
 	for i, card := range cards {
 		byteCards[i] = card.GetByte()
 	}
 	return byteCards
+}
+
+func ByteCardsToUint32Cards(byteCards []byte) []uint32 {
+	cards := make([]uint32, len(byteCards))
+	for i, card := range byteCards {
+		cards[i] = uint32(NewCardFromByte(card).GetByte())
+	}
+	return cards
 }

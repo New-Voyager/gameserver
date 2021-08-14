@@ -149,6 +149,18 @@ func (h *HandState) initialize(gameConfig *GameConfig, testHandSetup *TestHandSe
 	h.BurnCards = false
 	h.CurrentActionNum = 0
 
+	if testHandSetup != nil {
+		h.DoubleBoard = testHandSetup.DoubleBoard
+		h.BombPot = testHandSetup.BombPot
+		if h.BombPot {
+			h.BombPotBet = testHandSetup.BombPotBet
+		}
+	}
+
+	if testHandSetup != nil {
+		h.IncludeStatsInResult = testHandSetup.IncludeStats
+	}
+
 	// if the players don't have money less than the blinds
 	// don't let them play
 	h.ActiveSeats = h.GetPlayersInSeats()
@@ -219,8 +231,27 @@ func (h *HandState) initialize(gameConfig *GameConfig, testHandSetup *TestHandSe
 	h.RakePaid = make(map[uint64]float32, 0)
 
 	// board cards
-	h.BoardCards = h.board(deck)
+	cards := h.board(deck)
+	h.BoardCards = cards
+	h.NoOfBoards = 1
+	h.Boards = make([]*Board, 0)
+	board1 := &Board{
+		BoardNo: 1,
+		Cards:   poker.ByteCardsToUint32Cards(cards),
+	}
+	h.Boards = append(h.Boards, board1)
 	fmt.Printf("Board1: %s", poker.CardsToString(h.BoardCards))
+
+	if h.DoubleBoard {
+		h.NoOfBoards = 2
+		cards := h.board(deck)
+		board2 := &Board{
+			BoardNo: 2,
+			Cards:   poker.ByteCardsToUint32Cards(cards),
+		}
+		h.Boards = append(h.Boards, board2)
+		fmt.Printf("Board2: %s", poker.CardsToString(cards))
+	}
 
 	// setup data structure to handle betting rounds
 	h.initializeBettingRound()
@@ -321,24 +352,41 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 	h.PreflopActions.PotStart = 0
 	h.setupRound(HandStatus_PREFLOP)
 
-	for _, seatNo := range postedBlinds {
+	if h.BombPot {
+		for seatNoIdx, playerID := range h.ActiveSeats {
+			if playerID == 0 {
+				continue
+			}
+			seatNo := uint32(seatNoIdx)
+			h.actionReceived(&HandAction{
+				SeatNo: seatNo,
+				Action: ACTION_BOMB_POT_BET,
+				Amount: h.BombPotBet,
+			}, 0)
+		}
+		// move to flop round
+		h.settleRound()
+		h.setupRound(HandStatus_FLOP)
+	} else {
+		for _, seatNo := range postedBlinds {
+			h.actionReceived(&HandAction{
+				SeatNo: seatNo,
+				Action: ACTION_POST_BLIND,
+				Amount: h.BigBlind,
+			}, 0)
+		}
+
 		h.actionReceived(&HandAction{
-			SeatNo: seatNo,
-			Action: ACTION_POST_BLIND,
+			SeatNo: h.SmallBlindPos,
+			Action: ACTION_SB,
+			Amount: h.SmallBlind,
+		}, 0)
+		h.actionReceived(&HandAction{
+			SeatNo: h.BigBlindPos,
+			Action: ACTION_BB,
 			Amount: h.BigBlind,
 		}, 0)
 	}
-
-	h.actionReceived(&HandAction{
-		SeatNo: h.SmallBlindPos,
-		Action: ACTION_SB,
-		Amount: h.SmallBlind,
-	}, 0)
-	h.actionReceived(&HandAction{
-		SeatNo: h.BigBlindPos,
-		Action: ACTION_BB,
-		Amount: h.BigBlind,
-	}, 0)
 
 	h.ActionCompleteAtSeat = h.BigBlindPos
 
@@ -393,7 +441,8 @@ func (h *HandState) acted(seatChangedAction uint32, state PlayerActState, amount
 			if state == PlayerActState_PLAYER_ACT_CALL ||
 				state == PlayerActState_PLAYER_ACT_BET ||
 				state == PlayerActState_PLAYER_ACT_RAISE ||
-				state == PlayerActState_PLAYER_ACT_STRADDLE {
+				state == PlayerActState_PLAYER_ACT_STRADDLE ||
+				state == PlayerActState_PLAYER_ACT_BOMB_POT {
 				h.PlayerStats[playerID].Vpip = true
 			}
 
@@ -707,6 +756,19 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		return nil
 	}
 
+	if action.Action == ACTION_BOMB_POT_BET {
+		// handle posting blind as special
+		amount := action.Amount
+		if amount > playerBalance {
+			amount = playerBalance
+		}
+		bettingState.PlayerBalance[action.SeatNo] = bettingState.PlayerBalance[action.SeatNo] - amount
+		h.acted(action.SeatNo, PlayerActState_PLAYER_ACT_POST_BLIND, amount)
+		action.Stack = bettingState.PlayerBalance[action.SeatNo]
+		action.ActionTime = uint32(actionResponseTime)
+		bettingRound.SeatBet[int(action.SeatNo)] = amount
+	}
+
 	amount := action.Amount
 	if action.Action == ACTION_ALLIN {
 		amount = bettingState.PlayerBalance[action.SeatNo] + playerBetSoFar
@@ -816,18 +878,20 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		diff = action.Amount
 	}
 
-	if action.Amount > h.CurrentRaise {
-		h.BetBeforeRaise = h.CurrentRaise
-		h.CurrentRaiseDiff = action.Amount - h.CurrentRaise
-		if h.CurrentState == HandStatus_PREFLOP && h.CurrentRaiseDiff < h.BigBlind {
-			h.CurrentRaiseDiff = h.BigBlind
-			h.BetBeforeRaise = 0
+	if action.Action != ACTION_BOMB_POT_BET {
+		if action.Amount > h.CurrentRaise {
+			h.BetBeforeRaise = h.CurrentRaise
+			h.CurrentRaiseDiff = action.Amount - h.CurrentRaise
+			if h.CurrentState == HandStatus_PREFLOP && h.CurrentRaiseDiff < h.BigBlind {
+				h.CurrentRaiseDiff = h.BigBlind
+				h.BetBeforeRaise = 0
+			}
+			h.CurrentRaise = action.Amount
+			h.ActionCompleteAtSeat = action.SeatNo
 		}
-		h.CurrentRaise = action.Amount
-		h.ActionCompleteAtSeat = action.SeatNo
-	}
 
-	bettingState.PlayerBalance[action.SeatNo] = bettingState.PlayerBalance[action.SeatNo] - diff
+		bettingState.PlayerBalance[action.SeatNo] = bettingState.PlayerBalance[action.SeatNo] - diff
+	}
 	action.Stack = bettingState.PlayerBalance[action.SeatNo]
 	action.ActionTime = uint32(actionResponseTime)
 	// add the action to the log
@@ -1374,7 +1438,7 @@ func (h *HandState) everyOneFoldedWinners() {
 		handWinners = append(handWinners, handWinner)
 		potWinners[uint32(i)] = &PotWinners{HiWinners: handWinners}
 	}
-	h.setWinners(potWinners, false)
+	//h.setWinners(potWinners, false)
 }
 
 func (h *HandState) setWinners(potWinners map[uint32]*PotWinners, board2 bool) {

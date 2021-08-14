@@ -96,6 +96,7 @@ hands:
         - seat: 1
           receive: 54.0
           rank: Pair
+          rake-paid: 2
       action-ended: SHOW_DOWN
       players:
         - seat: 1

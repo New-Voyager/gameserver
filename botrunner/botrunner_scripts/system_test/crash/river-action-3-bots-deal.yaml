@@ -91,6 +91,7 @@ hands:
         - seat: 1
           receive: 54.0
           rank: Pair
+          rake-paid: 2
       action-ended: SHOW_DOWN
 
       players:
@@ -158,6 +159,7 @@ hands:
         - seat: 8
           receive: 54.0
           rank: Two Pair
+          rake-paid: 2
       action-ended: SHOW_DOWN
 
       players:
@@ -225,6 +227,7 @@ hands:
         - seat: 8
           receive: 54.0
           rank: Two Pair
+          rake-paid: 2
       action-ended: SHOW_DOWN
 
       players:
@@ -292,6 +295,7 @@ hands:
         - seat: 1
           receive: 54.0
           rank: Pair
+          rake-paid: 2
       action-ended: SHOW_DOWN
 
       players:
@@ -359,6 +363,7 @@ hands:
         - seat: 8
           receive: 54.0
           rank: Two Pair
+          rake-paid: 2
       action-ended: SHOW_DOWN
 
       players:
@@ -426,6 +431,7 @@ hands:
         - seat: 8
           receive: 54.0
           rank: Two Pair
+          rake-paid: 2
       action-ended: SHOW_DOWN
 
       players:

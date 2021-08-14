@@ -91,6 +91,7 @@ hands:
         - seat: 1
           receive: 54.0
           rank: Pair
+          rake-paid: 2
       action-ended: SHOW_DOWN
       players:
         - seat: 1
@@ -132,6 +133,7 @@ hands:
         - seat: 1
           receive: 187
           rank: Pair
+          rake-paid: 5
       action-ended: SHOW_DOWN
       players:
         # Both players went all-in after seat 8 switched to seat 5.

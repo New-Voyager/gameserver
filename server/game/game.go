@@ -378,6 +378,7 @@ func (g *Game) dealNewHand() error {
 		}
 	}
 
+	resultPauseTime := 0
 	if !g.isScriptTest {
 		// we are not running tests
 		// get new hand information from the API server
@@ -390,23 +391,28 @@ func (g *Game) dealNewHand() error {
 		if newHandInfo.TableStatus != TableStatus_GAME_RUNNING {
 			return nil
 		}
-
+		resultPauseTime = int(newHandInfo.ResultPauseTime)
 		buttonPos = newHandInfo.ButtonPos
 		sbPos = newHandInfo.SbPos
 		bbPos = newHandInfo.BbPos
 
 		gameType = newHandInfo.GameType
 		newHandNum = newHandInfo.HandNum
-		playerUpdateConfig := make(map[uint64]PlayerConfigUpdate)
-		for seatNo, player := range g.PlayersInSeats {
-			g.PlayersInSeats[seatNo] = SeatPlayer{}
+
+		var playerUpdateConfig map[uint64]PlayerConfigUpdate
+		playerUpdateConfig = g.playerConfig.Load().(map[uint64]PlayerConfigUpdate)
+		if playerUpdateConfig == nil {
+			playerUpdateConfig = make(map[uint64]PlayerConfigUpdate)
+			g.playerConfig.Store(playerUpdateConfig)
+		}
+		for _, player := range g.PlayersInSeats {
+			// g.PlayersInSeats[seatNo] = SeatPlayer{}
 			playerUpdateConfig[player.PlayerID] = PlayerConfigUpdate{
 				PlayerId:         player.PlayerID,
 				MuckLosingHand:   player.MuckLosingHand,
 				RunItTwicePrompt: player.RunItTwicePrompt,
 			}
 		}
-		g.playerConfig.Store(playerUpdateConfig)
 
 		if newHandInfo.AnnounceGameType {
 			params := []string{
@@ -488,6 +494,19 @@ func (g *Game) dealNewHand() error {
 				break
 			}
 		}
+		var playerUpdateConfig map[uint64]PlayerConfigUpdate
+		playerUpdateConfig = g.playerConfig.Load().(map[uint64]PlayerConfigUpdate)
+		if playerUpdateConfig == nil {
+			playerUpdateConfig = make(map[uint64]PlayerConfigUpdate)
+			g.playerConfig.Store(playerUpdateConfig)
+		}
+		for _, player := range g.PlayersInSeats {
+			playerUpdateConfig[player.PlayerID] = PlayerConfigUpdate{
+				PlayerId:         player.PlayerID,
+				MuckLosingHand:   player.MuckLosingHand,
+				RunItTwicePrompt: player.RunItTwicePrompt,
+			}
+		}
 
 		sbPos = 0
 		bbPos = 0
@@ -509,6 +528,15 @@ func (g *Game) dealNewHand() error {
 	}
 
 	handState.initialize(g.config, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
+	if testHandSetup != nil {
+		resultPauseTime = int(testHandSetup.ResultPauseTime)
+	}
+	if resultPauseTime == 0 {
+		// 5 seconds to show each result
+		resultPauseTime = 5000
+	}
+
+	handState.ResultPauseTime = uint32(resultPauseTime)
 
 	if !g.isScriptTest {
 		var playerIDs []uint64
@@ -640,16 +668,29 @@ func (g *Game) dealNewHand() error {
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, g.PlayersInSeats)))
 
+	allMsgItems := make([]*HandMessageItem, 0)
+	if handState.BombPot {
+		messages, err := g.gotoFlop(handState)
+		if err == nil {
+			for _, msgItem := range messages {
+				allMsgItems = append(allMsgItems, msgItem)
+			}
+		}
+	}
+
 	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 	msgItems, err := g.moveToNextAction(handState)
 	if err != nil {
 		return err
 	}
+	for _, msgItem := range msgItems {
+		allMsgItems = append(allMsgItems, msgItem)
+	}
 	handMsg := HandMessage{
 		HandNum:    handState.HandNum,
 		HandStatus: handState.CurrentState,
 		MessageId:  g.generateMsgID("INITIAL_ACTION", handState.HandNum, handState.CurrentState, 0, "", handState.CurrentActionNum),
-		Messages:   msgItems,
+		Messages:   allMsgItems,
 	}
 	g.broadcastHandMessage(&handMsg)
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_5, 0)
@@ -894,14 +935,15 @@ func (g *Game) addScriptTestPlayer(player *Player, buyIn float32, postBlind bool
 
 	// add the player to playerSeatInfos
 	g.PlayersInSeats[int(player.SeatNo)] = SeatPlayer{
-		Name:        player.PlayerName,
-		PlayerID:    player.PlayerID,
-		PlayerUUID:  fmt.Sprintf("%d", player.PlayerID),
-		Status:      PlayerStatus_PLAYING,
-		Stack:       buyIn,
-		OpenSeat:    false,
-		SeatNo:      player.SeatNo,
-		PostedBlind: postBlind,
+		Name:             player.PlayerName,
+		PlayerID:         player.PlayerID,
+		PlayerUUID:       fmt.Sprintf("%d", player.PlayerID),
+		Status:           PlayerStatus_PLAYING,
+		Stack:            buyIn,
+		OpenSeat:         false,
+		SeatNo:           player.SeatNo,
+		PostedBlind:      postBlind,
+		RunItTwicePrompt: player.RunItTwice,
 	}
 	return nil
 }

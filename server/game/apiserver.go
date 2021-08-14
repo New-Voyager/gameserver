@@ -43,6 +43,37 @@ func (g *Game) saveHandResultToAPIServer(result *HandResult) (*SaveHandResult, e
 	}
 }
 
+func (g *Game) saveHandResult2ToAPIServer(result2 *HandResultServer) (*SaveHandResult, error) {
+	// call the API server to save the hand result
+	var m protojson.MarshalOptions
+	m.EmitUnpopulated = true
+	data, _ := m.Marshal(result2)
+	fmt.Printf("%s\n", string(data))
+	url := fmt.Sprintf("%s/internal/save-hand/gameId/%d/handNum/%d", g.apiServerURL, result2.GameId, result2.HandNum)
+	resp, _ := http.Post(url, "application/json", bytes.NewBuffer(data))
+	// if the api server returns nil, do nothing
+	if resp == nil {
+		return nil, fmt.Errorf("saving hand failed")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			channelGameLogger.Error().Msgf("Failed to read save result for hand num: %d", result2.HandNum)
+		}
+		bodyString := string(bodyBytes)
+		fmt.Printf(bodyString)
+		fmt.Printf("\n")
+		fmt.Printf("Posted successfully")
+
+		var saveResult SaveHandResult
+		json.Unmarshal(bodyBytes, &saveResult)
+		return &saveResult, nil
+	} else {
+		return nil, fmt.Errorf("faile to save hand")
+	}
+}
 func (g *Game) getNewHandInfo() (*NewHandInfo, error) {
 	// TODO: Implement retry.
 

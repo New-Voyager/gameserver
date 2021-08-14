@@ -78,5 +78,4 @@ hands:
         - action: 2, ALLIN
 
     result:
-      run-it-twice:
-        should-be-null: true
+      run-it-twice: false

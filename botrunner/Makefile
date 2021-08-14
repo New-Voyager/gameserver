@@ -5,7 +5,7 @@ BUILD_NO := $(shell cat build_number.txt)
 DO_REGISTRY := registry.digitalocean.com/voyager
 GCP_PROJECT_ID := voyager-01-285603
 GCP_REGISTRY := gcr.io/$(GCP_PROJECT_ID)
-REGISTRY := $(DO_REGISTRY)
+REGISTRY := $(GCP_REGISTRY)
 PROTO_VER := v3.7.1
 PROTOC_ZIP := protoc-3.7.1-linux-x86_64.zip
 
@@ -154,7 +154,7 @@ gcp-login:
 #################
 
 # These images are downloaded.
-API_SERVER_IMAGE := $(REGISTRY)/api-server:0.5.33
+API_SERVER_IMAGE := $(REGISTRY)/api-server:0.6.0
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
 REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
 POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5

@@ -60,7 +60,10 @@ hands:
     result:
       winners:
         - seat: 2
-          receive: 16.0
+          receive: 15.0
+          rank: Pair
+          rake-paid: 1
+
       action-ended: PREFLOP
 
       players:
@@ -69,7 +72,7 @@ hands:
             after: 96
         - seat: 2
           balance:
-            after: 106
+            after: 105
         - seat: 3
           balance:
             after: 98

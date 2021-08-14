@@ -1,4 +1,4 @@
-app-game: Flop App Game
+app-game: Bomb Pot Simple
 club:
   name: Manchester Club
   description: Club used for testing with the bot runner
@@ -38,8 +38,12 @@ auto-play: false
 # deal the following hands in the table
 hands:
   - setup:
+      bomb-pot: true
+      bomb-pot-bet: 10
+      double-board: true
       button-pos: 1
       board: ["Ac", "Ad", "2c", "Td", "4s"]
+      board2: ["8c", "4d", "6c", "7d", "Ks"]
       seat-cards:
         - seat: 1
           cards: ["9h", "2s"]
@@ -63,26 +67,39 @@ hands:
         - action: 2, CHECK
         - action: 3, BET, 2
         - action: 1, CALL, 2
-        - action: 2, RAISE, 10
+        - action: 2, RAISE, 4
         - action: 3, FOLD
-        - action: 1, FOLD 
+        - action: 1, CALL, 4
+
+    turn:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td"]
+      seat-actions:
+        - action: 2, CHECK
+        - action: 1, BET, 10
+        - action: 2, CALL, 10
+
+    river:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-actions:
+        - action: 2, BET, 10
+        - action: 1, CALL, 10
 
     result:
       winners:
-        - seat: 2
-          receive: 19
-          rank: Pair
-          rake-paid: 1
-
-      action-ended: FLOP
+        - seat: 1
+          receive: 54.0
+          rank: Two Pair
+      action-ended: SHOW_DOWN
 
       players:
         - seat: 1
           balance:
-            after: 96
+            after: 128
         - seat: 2
           balance:
-            after: 107
+            after: 74
         - seat: 3
           balance:
             after: 96

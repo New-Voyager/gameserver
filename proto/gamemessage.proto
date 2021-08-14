@@ -66,6 +66,11 @@ message TestHandSetup {
   map <uint32, GameSetupSeatCards> player_cards_by_seat = 9;
   uint32 pause = 10;
   uint32 hand_num = 11;
+  bool bomb_pot = 12;
+  float bomb_pot_bet = 13;
+  bool double_board = 14;
+  bool include_stats = 15;
+  uint32 result_pause_time = 16;
 }
 
 message GameStartMessage {

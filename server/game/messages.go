@@ -62,6 +62,7 @@ const (
 	HandDealStarted      string = "DEAL_STARTED" // used for animations
 	HandNextStep         string = "NEXT_STEP"
 	HandAnnouncement     string = "ANNOUNCEMENT"
+	HandResultMessage2   string = "RESULT2"
 )
 
 // sub message types used in TableUpdate message

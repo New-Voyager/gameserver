@@ -118,7 +118,6 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 				}
 			}
 		}
-		break
 	case "PLAYER_SEAT_MOVE":
 		oldSeatNo := message.OldSeatNo
 		newSeatNo := message.NewSeatNo
@@ -129,8 +128,9 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 		if bp.IsObserver() {
 			bp.logger.Info().Msgf("Player [%s] changed seat %d -> %d", message.PlayerName, oldSeatNo, newSeatNo)
 		}
-		break
 	case "PLAYER_SEAT_CHANGE_DONE":
+		break
+	case "NEW_HIGHHAND_WINNER":
 		break
 	}
 }

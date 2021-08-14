@@ -76,6 +76,7 @@ message Flop {
   repeated SeatsInPots seats_pots = 4; // seats that participate in the pots
   map <uint32, float> player_balance = 5; // player balance at the flop
   map <uint32, string> player_card_ranks = 6; // player card ranking
+  repeated Board boards = 7;
 }
 
 message Turn {
@@ -86,6 +87,7 @@ message Turn {
   repeated SeatsInPots seats_pots = 5; // seats that participate in the pots
   map <uint32, float> player_balance = 6; // player balance at the turn
   map <uint32, string> player_card_ranks = 7; // player card ranking
+  repeated Board boards = 8;
 }
 
 message River {
@@ -96,6 +98,7 @@ message River {
   repeated SeatsInPots seats_pots = 5; // seats that participate in the pots
   map <uint32, float> player_balance = 6; // player balance at the river
   map <uint32, string> player_card_ranks = 7; // player card ranking
+  repeated Board boards = 9;
 }
 
 message SeatCards {
@@ -143,12 +146,8 @@ message HandLog {
   bool run_it_twice = 12;            // run it twice
   RunItTwiceResult run_it_twice_result = 13;
   repeated SeatsInPots seats_pots_showdown = 14; // pots and associated seats at showdown
-}
-
-
-message HandPlayerBalance {
-  float before = 1;
-  float after = 2;
+  repeated Board boards = 15;
+  map <uint32, PotWinnersV2> pot_winners_2 = 16; // pot winners for each board
 }
 
 message PlayerInfo {
@@ -187,6 +186,47 @@ message HandResult  {
   float ante = 20;
   uint32 max_players = 21;
 }
+
+message HandResultClient {
+  bool run_it_twice = 1;                 // indicates the players ran it twice
+  repeated uint32 active_seats = 2;
+  HandStatus won_at = 3;
+  repeated Board boards = 4;
+  repeated PotWinnersV2 pot_winners = 5; // pot winners for each board
+  uint32 pause_time_secs = 6; // pauses for each pot winner animation
+  map <uint32, PlayerHandInfo> player_info = 7;
+  bool scoop = 8; // indicates whether the player scooped all the pots
+  map<uint64, PlayerStats> player_stats = 9;
+  uint32 hand_num = 10;
+  float tips_collected = 11;
+}
+
+message HandLogV2 {
+  HandActionLog preflop_actions = 1;
+  HandActionLog flop_actions = 2;
+  HandActionLog turn_actions = 3;
+  HandActionLog river_actions = 4;
+  uint64 hand_started_at = 9;  
+  uint64 hand_ended_at = 11;
+}
+
+message HandResultServer {
+  uint64 game_id = 1;
+  uint32 hand_num = 2;
+  GameType game_type = 3;
+  uint32 no_cards = 4;          // number of player cards
+  HandLog hand_log = 5;
+  HandStats hand_stats = 6;
+  bool run_it_twice = 8;                 // indicates the players ran it twice
+  uint32 button_pos = 9;
+  float small_blind = 10;
+  float big_blind = 11;
+  float ante = 12;
+  uint32 max_players = 13;
+  HandResultClient  result = 14;
+  HandLogV2 log = 15;
+}
+
 
 message MsgAcknowledgement {
   string message_id = 1;
@@ -244,5 +284,6 @@ message HandMessageItem {
     RunItTwiceBoards run_it_twice = 26;   // to display run it twice cards
     Announcement announcement = 27;
     DealerChoice dealer_choice = 28;
+    HandResultClient hand_result_client = 29;
   }
 }

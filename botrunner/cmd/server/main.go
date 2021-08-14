@@ -25,6 +25,6 @@ func init() {
 }
 
 func main() {
-	mainLogger.Info().Msg("Log Dir: " + cmdArgs.logDir)
+	mainLogger.Info().Msg("Log Dir:" + cmdArgs.logDir)
 	app.RunRestServer(cmdArgs.port, cmdArgs.logDir)
 }

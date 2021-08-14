@@ -1,10 +1,10 @@
 club:
-  name: Tester Club
+  name: Manchester Club
   description: Club used for testing with the bot runner
 
 game:
   create: true
-  title: "Run It Twice Seat 2 Timeout"
+  title: "NLH Testing Game"
   game-type: "HOLDEM"
   small-blind: 1.0
   big-blind: 2.0
@@ -18,9 +18,7 @@ game:
   rake-cap: 5.0
   buy-in-min: 100
   buy-in-max: 300
-  action-time: 10
-  run-it-twice-allowed: true
-  muck-losing-hand: true
+  action-time: 100
 
 starting-seats:
   - seat: 1
@@ -30,42 +28,30 @@ starting-seats:
     player: brian
     buy-in: 100
   - seat: 3
-    player: chris
-    buy-in: 100
-  - seat: 4
     player: tom
     buy-in: 100
+
+tester:
+auto-play: false
 
 # deal the following hands in the table
 hands:
   - setup:
       button-pos: 1
       board: ["Ac", "Ad", "2c", "Td", "4s"]
-      board2: ["6c", "7d", "4c", "8d", "8s"]
       seat-cards:
         - seat: 1
-          cards: ["Kh", "Qd"]
-        - seat: 2
-          cards: ["3s", "7s"]
-        - seat: 3
           cards: ["9h", "2s"]
-        - seat: 4
-          cards: ["9c", "5s"]
-      run-it-twice:
         - seat: 2
-          allow-prompt: true
-          confirm: true
+          cards: ["Kh", "Qd"]
         - seat: 3
-          allow-prompt: true
-          confirm: true
-          timeout: true
+          cards: ["3s", "7s"]
 
     # simulate pre-flop action
     preflop:
       seat-actions:
         # seat number/action/amount
-        - action: 4, CALL, 2
-        - action: 1, FOLD
+        - action: 1, CALL, 2
         - action: 2, CALL, 2
         - action: 3, CHECK
 
@@ -74,9 +60,41 @@ hands:
         board: ["Ac", "Ad", "2c"]
       seat-actions:
         - action: 2, CHECK
-        - action: 3, ALLIN
-        - action: 4, FOLD
-        - action: 2, ALLIN
+        - action: 3, BET, 2
+        - action: 1, CALL, 2
+        - action: 2, RAISE, 4
+        - action: 3, FOLD
+        - action: 1, CALL, 4
+
+    turn:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td"]
+      seat-actions:
+        - action: 2, CHECK
+        - action: 1, BET, 10
+        - action: 2, CALL, 10
+
+    river:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-actions:
+        - action: 2, BET, 10
+        - action: 1, CALL, 10
 
     result:
-      run-it-twice: false
+      winners:
+        - seat: 1
+          receive: 54.0
+          rank: Two Pair
+      action-ended: SHOW_DOWN
+
+      players:
+        - seat: 1
+          balance:
+            after: 128
+        - seat: 2
+          balance:
+            after: 74
+        - seat: 3
+          balance:
+            after: 96

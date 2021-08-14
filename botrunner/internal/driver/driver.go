@@ -469,7 +469,7 @@ func (br *BotRunner) processAfterGameAssertions() error {
 	errMsgs := make([]string, 0)
 	minExpectedHands := br.script.AfterGame.Verify.NumHandsPlayed.Gte
 	maxExpectedHands := br.script.AfterGame.Verify.NumHandsPlayed.Lte
-	totalHandsPlayed := br.observerBot.GetHandResult().HandNum
+	totalHandsPlayed := br.observerBot.GetHandResult2().HandNum
 	if minExpectedHands != nil {
 		if totalHandsPlayed < *minExpectedHands {
 			errMsgs = append(errMsgs, fmt.Sprintf("Total hands played: %d, Expected AT LEAST %d hands to have been played", totalHandsPlayed, *minExpectedHands))
@@ -506,7 +506,16 @@ func (br *BotRunner) processAfterGameAssertions() error {
 	for _, verifyGameMessage := range br.script.AfterGame.Verify.GameMessages {
 		// verify message exists
 		found := false
+
 		for _, gameMessage := range br.observerBot.GameMessages {
+			if verifyGameMessage.Type == "NEW_HIGHHAND_WINNER" {
+				// compare the winners
+				if cmp.Equal(verifyGameMessage.Winners, gameMessage.Winners) {
+					found = true
+					break
+				}
+				continue
+			}
 			if verifyGameMessage.Type == gameMessage.Type &&
 				verifyGameMessage.SubType == gameMessage.SubType {
 				found = true

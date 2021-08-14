@@ -154,25 +154,29 @@ type Hand struct {
 
 // HandSetup contains the setup content in the hand config.
 type HandSetup struct {
-	PreDeal     []PreDealSetup       `yaml:"pre-deal"`
-	ButtonPos   uint32               `yaml:"button-pos"`
-	Board       []string             `yaml:"board"`
-	Board2      []string             `yaml:"board2"`
-	Flop        []string             `yaml:"flop"`
-	Turn        string               `yaml:"turn"`
-	River       string               `yaml:"river"`
-	SeatCards   []SeatCards          `yaml:"seat-cards"`
-	Verify      HandSetupVerfication `yaml:"verify"`
-	Auto        bool                 `yaml:"auto"`
-	SeatChange  []SeatChangeSetup    `yaml:"seat-change"` // players requesting seat-change
-	RunItTwice  []RunItTwiceSetup    `yaml:"run-it-twice"`
-	TakeBreak   []TakeBreakSetup     `yaml:"take-break"`
-	LeaveGame   []LeaveGame          `yaml:"leave-game"`
-	WaitLists   []WaitList           `yaml:"wait-list"`
-	Pause       uint32               `yaml:"pause"` // bot runner pauses and waits before next hand
-	NewPlayers  []StartingSeat       `yaml:"new-players"`
-	SwitchSeats []SwitchSeat         `yaml:"switch-seats"`
-	ReloadChips []ReloadChips        `yaml:"reload-chips"`
+	PreDeal         []PreDealSetup       `yaml:"pre-deal"`
+	ButtonPos       uint32               `yaml:"button-pos"`
+	Board           []string             `yaml:"board"`
+	Board2          []string             `yaml:"board2"`
+	Flop            []string             `yaml:"flop"`
+	Turn            string               `yaml:"turn"`
+	River           string               `yaml:"river"`
+	SeatCards       []SeatCards          `yaml:"seat-cards"`
+	Verify          HandSetupVerfication `yaml:"verify"`
+	Auto            bool                 `yaml:"auto"`
+	SeatChange      []SeatChangeSetup    `yaml:"seat-change"` // players requesting seat-change
+	RunItTwice      []RunItTwiceSetup    `yaml:"run-it-twice"`
+	TakeBreak       []TakeBreakSetup     `yaml:"take-break"`
+	LeaveGame       []LeaveGame          `yaml:"leave-game"`
+	WaitLists       []WaitList           `yaml:"wait-list"`
+	Pause           uint32               `yaml:"pause"` // bot runner pauses and waits before next hand
+	NewPlayers      []StartingSeat       `yaml:"new-players"`
+	SwitchSeats     []SwitchSeat         `yaml:"switch-seats"`
+	ReloadChips     []ReloadChips        `yaml:"reload-chips"`
+	BombPot         bool                 `yaml:"bomb-pot"`
+	BombPotBet      float32              `yaml:"bomb-pot-bet"`
+	DoubleBoard     bool                 `yaml:"double-board"`
+	ResultPauseTime uint32               `yaml:"result-pause-time"`
 }
 
 type PreDealSetup struct {
@@ -354,19 +358,21 @@ type Pot struct {
 }
 
 type HandResult struct {
-	Winners       []HandWinner      `yaml:"winners"`
-	LoWinners     []HandWinner      `yaml:"lo-winners"`
-	ActionEndedAt string            `yaml:"action-ended"`
-	HighHand      []HighHandSeat    `yaml:"high-hand"`
-	Players       []ResultPlayer    `yaml:"players"`
-	PlayerStats   []PlayerStats     `yaml:"player-stats"`
-	RunItTwice    *RunItTwiceResult `yaml:"run-it-twice"`
+	Winners       []HandWinner   `yaml:"winners"`
+	LoWinners     []HandWinner   `yaml:"lo-winners"`
+	ActionEndedAt string         `yaml:"action-ended"`
+	HighHand      []HighHandSeat `yaml:"high-hand"`
+	Players       []ResultPlayer `yaml:"players"`
+	PlayerStats   []PlayerStats  `yaml:"player-stats"`
+	RunItTwice    *bool          `yaml:"run-it-twice"`
+	Boards        []BoardWinner  `yaml:"boards"`
 }
 
 type HandWinner struct {
-	Seat    uint32  `yaml:"seat"`
-	Receive float32 `yaml:"receive"`
-	RankStr string  `yaml:"rank"`
+	Seat     uint32   `yaml:"seat"`
+	Receive  float32  `yaml:"receive"`
+	RankStr  string   `yaml:"rank"`
+	RakePaid *float32 `yaml:"rake-paid"`
 }
 
 type ResultPlayer struct {
@@ -397,6 +403,10 @@ type RunItTwiceResult struct {
 	Board2Winners []WinnerPot `yaml:"board2-winners"`
 }
 
+type BoardWinner struct {
+	BoardNo      uint32    `yaml:"board-no"`
+	BoardWinners WinnerPot `yaml:"winners"`
+}
 type WinnerPot struct {
 	Amount    float32      `yaml:"amount"`
 	Winners   []HandWinner `yaml:"winners"`
@@ -414,19 +424,27 @@ type VerifyPrivateMessages struct {
 	} `yaml:"messages"`
 }
 
+type HighHandWinner struct {
+	PlayerName  string   `yaml:"playerName" json:"playerName"`
+	BoardCards  []uint32 `yaml:"boardCards" json:"boardCards"`
+	PlayerCards []uint32 `yaml:"playerCards" json:"playerCards"`
+	HhCards     []uint32 `yaml:"hhCards" json:"hhCards"`
+}
+
 type NonProtoMessage struct {
-	Type       string `yaml:"type" json:"type"`
-	SubType    string `yaml:"subType" json:"subType"`
-	GameCode   string `yaml:"gameCode" json:"gameCode"`
-	OpenedSeat uint32 `yaml:"openedSeat" json:"openedSeat"`
-	PlayerName string `yaml:"playerName" json:"playerName"`
-	PlayerID   uint64 `yaml:"playerId" json:"playerId"`
-	PlayerUUID string `yaml:"playerUuid" json:"playerUuid"`
-	ExpTime    string `yaml:"expTime" json:"expTime"`
-	PromptSecs int    `yaml:"promptSecs" json:"promptSecs"`
-	OldSeatNo  int    `yaml:"oldSeatNo" json:"oldSeatNo"`
-	NewSeatNo  int    `yaml:"newSeatNo" json:"newSeatNo"`
-	RequestID  string `yaml:"requestId" json:"requestId"`
+	Type       string           `yaml:"type" json:"type"`
+	SubType    string           `yaml:"subType" json:"subType"`
+	GameCode   string           `yaml:"gameCode" json:"gameCode"`
+	OpenedSeat uint32           `yaml:"openedSeat" json:"openedSeat"`
+	PlayerName string           `yaml:"playerName" json:"playerName"`
+	PlayerID   uint64           `yaml:"playerId" json:"playerId"`
+	PlayerUUID string           `yaml:"playerUuid" json:"playerUuid"`
+	ExpTime    string           `yaml:"expTime" json:"expTime"`
+	PromptSecs int              `yaml:"promptSecs" json:"promptSecs"`
+	OldSeatNo  int              `yaml:"oldSeatNo" json:"oldSeatNo"`
+	NewSeatNo  int              `yaml:"newSeatNo" json:"newSeatNo"`
+	RequestID  string           `yaml:"requestId" json:"requestId"`
+	Winners    []HighHandWinner `yaml:"winners" json:"winners"`
 }
 
 type AfterGameVerification struct {

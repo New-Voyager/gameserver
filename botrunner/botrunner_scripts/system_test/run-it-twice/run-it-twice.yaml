@@ -1,3 +1,5 @@
+app-game: Run it twice
+
 club:
   name: Tester Club
   description: Club used for testing with the bot runner
@@ -78,20 +80,23 @@ hands:
         - action: 2, ALLIN
 
     result:
-      run-it-twice:
-        should-be-null: false
-        started-at: FLOP
-        board1-winners:
-          - amount: 101
+      run-it-twice: true
+      boards:
+        - board-no: 1
+          winners:
+            amount: 101
             winners:
               - seat: 3
-                receive: 96
+                receive: 99
                 rank: Two Pair
+                rake-paid: 3
             lo-winners: []
-        board2-winners:
-          - amount: 101
+        - board-no: 2
+          winners:
+            amount: 101
             winners:
               - seat: 2
-                receive: 101
+                receive: 99
                 rank: Two Pair
+                rake-paid: 2
             lo-winners: []

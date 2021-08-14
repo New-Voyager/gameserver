@@ -416,46 +416,6 @@ func TestReadGameScript(t *testing.T) {
 							ActedAtLeastOnce:          false,
 						},
 					},
-					RunItTwice: &RunItTwiceResult{
-						ShouldBeNull: true,
-						StartedAt:    "FLOP",
-						Board1Winners: []WinnerPot{
-							{
-								Amount: 126,
-								Winners: []HandWinner{
-									{
-										Seat:    3,
-										Receive: 96,
-										RankStr: "Two Pair",
-									},
-								},
-								LoWinners: []HandWinner{
-									{
-										Seat:    2,
-										Receive: 30,
-									},
-								},
-							},
-						},
-						Board2Winners: []WinnerPot{
-							{
-								Amount: 121,
-								Winners: []HandWinner{
-									{
-										Seat:    2,
-										Receive: 101,
-										RankStr: "Pair",
-									},
-								},
-								LoWinners: []HandWinner{
-									{
-										Seat:    3,
-										Receive: 20,
-									},
-								},
-							},
-						},
-					},
 				},
 			},
 		},

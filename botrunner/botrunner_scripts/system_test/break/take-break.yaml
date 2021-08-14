@@ -169,8 +169,9 @@ hands:
     result:
       winners:
         - seat: 9
-          receive: 14.0
+          receive: 13.0
           rank: Full House
+          rake-paid: 1
       action-ended: SHOW_DOWN
 
   - setup:

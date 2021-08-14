@@ -6,6 +6,7 @@ type EvaluatedCards struct {
 	playerCards []byte
 	boardCards  []byte
 
+	loFound       bool
 	loRank        int32
 	locards       []byte
 	loPlayerCards []byte
@@ -62,6 +63,8 @@ func (e EvaluatedCards) GetBoardCards() []uint32 {
 
 type HandEvaluator interface {
 	Evaluate()
+	Evaluate2(playerCards []byte, boardCards []byte) EvaluatedCards
+
 	GetBestPlayerCards() map[uint32]*EvaluatedCards
 	GetHighHandCards() map[uint32]*EvaluatedCards
 	GetWinners() map[uint32]*PotWinners

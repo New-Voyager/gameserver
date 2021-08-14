@@ -85,6 +85,4 @@ hands:
         - action: 3, ALLIN
 
     result:
-      run-it-twice:
-        # ALLIN in river should not trigger run-it-twice.
-        should-be-null: true
+      run-it-twice: false

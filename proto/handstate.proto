@@ -115,4 +115,13 @@ message HandState {
   RunItTwice run_it_twice = 59;
   bool run_it_twice_confirmed = 60;
   map <uint32, PotWinners> board2_winners = 62; // second board winnners
+
+  uint32 no_of_boards = 63; 
+  repeated Board boards = 64;
+  bool bomb_pot = 65;
+  bool double_board = 66;
+  float bomb_pot_bet = 67;
+  bool include_stats_in_result = 68;
+  uint32 result_pause_time = 69;
+  uint32 total_result_pause_time = 70;
 }

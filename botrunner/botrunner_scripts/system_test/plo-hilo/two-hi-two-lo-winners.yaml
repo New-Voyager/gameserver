@@ -87,27 +87,29 @@ hands:
     result:
       winners:
         - seat: 1
-          receive: 18.0
-          rank: Full House
-        - seat: 3
           receive: 19.0
           rank: Full House
+          rake-paid: 2.0
+        - seat: 3
+          receive: 18.0
+          rank: Full House
+          rake-paid: 1.0
 
       lo-winners:
         - seat: 1
-          receive: 18.0
+          receive: 19.0
         - seat: 2
-          receive: 20.0
+          receive: 19.0
 
           action-ended: SHOW_DOWN
 
       players:
         - seat: 1
           balance:
-            after: 110
+            after: 112
         - seat: 2
           balance:
-            after: 94
+            after: 93
         - seat: 3
           balance:
-            after: 93
+            after: 92
