@@ -29,22 +29,22 @@ func (h *HandState) initializeBettingRound() {
 	h.RoundState = make(map[uint32]*RoundState)
 	//h.RoundBetting = make(map[uint32]*SeatBetting)
 	h.RoundState[uint32(HandStatus_PREFLOP)] = &RoundState{
-		PlayerBalance: make(map[uint32]float32, 0),
+		PlayerBalance: make(map[uint32]float32),
 		Betting:       &SeatBetting{SeatBet: make([]float32, maxSeats)},
 		BetIndex:      1,
 	}
 	h.RoundState[uint32(HandStatus_FLOP)] = &RoundState{
-		PlayerBalance: make(map[uint32]float32, 0),
+		PlayerBalance: make(map[uint32]float32),
 		Betting:       &SeatBetting{SeatBet: make([]float32, maxSeats)},
 		BetIndex:      1,
 	}
 	h.RoundState[uint32(HandStatus_TURN)] = &RoundState{
-		PlayerBalance: make(map[uint32]float32, 0),
+		PlayerBalance: make(map[uint32]float32),
 		Betting:       &SeatBetting{SeatBet: make([]float32, maxSeats)},
 		BetIndex:      1,
 	}
 	h.RoundState[uint32(HandStatus_RIVER)] = &RoundState{
-		PlayerBalance: make(map[uint32]float32, 0),
+		PlayerBalance: make(map[uint32]float32),
 		Betting:       &SeatBetting{SeatBet: make([]float32, maxSeats)},
 		BetIndex:      1,
 	}
@@ -103,7 +103,11 @@ func (h *HandState) board(deck *poker.Deck) []byte {
 	return board
 }
 
-func (h *HandState) initialize(gameConfig *GameConfig, testHandSetup *TestHandSetup, buttonPos uint32, sbPos uint32, bbPos uint32, playersInSeats []SeatPlayer) {
+func (h *HandState) initialize(gameConfig *GameConfig,
+	newHandInfo *NewHandInfo,
+	testHandSetup *TestHandSetup,
+	buttonPos uint32, sbPos uint32, bbPos uint32,
+	playersInSeats []SeatPlayer) {
 	// settle players in the seats
 	h.PlayersInSeats = make([]uint64, gameConfig.MaxPlayers+1) // seat 0 is dealer
 	h.NoActiveSeats = 0
@@ -148,6 +152,12 @@ func (h *HandState) initialize(gameConfig *GameConfig, testHandSetup *TestHandSe
 	h.BringIn = float32(gameConfig.BringIn)
 	h.BurnCards = false
 	h.CurrentActionNum = 0
+
+	if newHandInfo != nil {
+		h.BombPot = newHandInfo.BombPot
+		h.BombPotBet = newHandInfo.BombPotBet
+		h.DoubleBoard = newHandInfo.DoubleBoardBombPot
+	}
 
 	if testHandSetup != nil {
 		h.DoubleBoard = testHandSetup.DoubleBoard
@@ -228,7 +238,7 @@ func (h *HandState) initialize(gameConfig *GameConfig, testHandSetup *TestHandSe
 	h.Pots = make([]*SeatsInPots, 0)
 	mainPot := initializePot(gameConfig.MaxPlayers + 1)
 	h.Pots = append(h.Pots, mainPot)
-	h.RakePaid = make(map[uint64]float32, 0)
+	h.RakePaid = make(map[uint64]float32)
 
 	// board cards
 	cards := h.board(deck)
@@ -261,7 +271,7 @@ func (h *HandState) initialize(gameConfig *GameConfig, testHandSetup *TestHandSe
 }
 
 func (h *HandState) copyPlayersState(maxSeats uint32, playersInSeats []SeatPlayer) map[uint64]*PlayerInSeatState {
-	handPlayerState := make(map[uint64]*PlayerInSeatState, 0)
+	handPlayerState := make(map[uint64]*PlayerInSeatState)
 	for seatNo := 1; seatNo <= int(maxSeats); seatNo++ {
 		player := playersInSeats[seatNo]
 		handPlayerState[player.PlayerID] = &PlayerInSeatState{
@@ -316,7 +326,7 @@ func (h *HandState) setupRound(state HandStatus) {
 		}
 	}
 
-	h.RoundState[uint32(state)].PlayerBalance = make(map[uint32]float32, 0)
+	h.RoundState[uint32(state)].PlayerBalance = make(map[uint32]float32)
 	roundState := h.RoundState[uint32(state)]
 	for seatNo, playerID := range h.PlayersInSeats {
 		if seatNo == 0 || playerID == 0 {
@@ -557,7 +567,7 @@ func (h *HandState) getPlayersCards(deck *poker.Deck, scriptedCardsBySeat map[ui
 	activeSeats := h.activeSeatsCount()
 	totalCards := activeSeats * noOfCards
 
-	playerCards := make(map[uint32][]byte)
+	var playerCards map[uint32][]byte
 	if scriptedCardsBySeat == nil {
 		// Draw cards normally.
 		playerCards = h.drawPlayerCards(deck, noOfCards, totalCards)
@@ -1441,101 +1451,101 @@ func (h *HandState) everyOneFoldedWinners() {
 	//h.setWinners(potWinners, false)
 }
 
-func (h *HandState) setWinners(potWinners map[uint32]*PotWinners, board2 bool) {
+// func (h *HandState) setWinners(potWinners map[uint32]*PotWinners, board2 bool) {
 
-	if !board2 {
-		h.PotWinners = potWinners
-		h.CurrentState = HandStatus_RESULT
+// 	if !board2 {
+// 		h.PotWinners = potWinners
+// 		h.CurrentState = HandStatus_RESULT
 
-		// we will always take rake from the main pot for simplicity
-		rakePaid := make(map[uint64]float32, 0)
-		rake := float32(0.0)
-		rakeFromPlayer := float32(0.0)
-		mainPotWinners := potWinners[0]
-		if h.RakePercentage > 0.0 {
-			mainPot := h.Pots[0].Pot
-			rake = float32(int(mainPot * (h.RakePercentage / 100)))
-			if rake > h.RakeCap {
-				rake = h.RakeCap
-			}
+// 		// we will always take rake from the main pot for simplicity
+// 		rakePaid := make(map[uint64]float32, 0)
+// 		rake := float32(0.0)
+// 		rakeFromPlayer := float32(0.0)
+// 		mainPotWinners := potWinners[0]
+// 		if h.RakePercentage > 0.0 {
+// 			mainPot := h.Pots[0].Pot
+// 			rake = float32(int(mainPot * (h.RakePercentage / 100)))
+// 			if rake > h.RakeCap {
+// 				rake = h.RakeCap
+// 			}
 
-			// take rake from main pot winners evenly
-			winnersCount := len(mainPotWinners.HiWinners)
-			if potWinners[0].LowWinners != nil {
-				winnersCount = winnersCount + len(mainPotWinners.LowWinners)
-			}
+// 			// take rake from main pot winners evenly
+// 			winnersCount := len(mainPotWinners.HiWinners)
+// 			if potWinners[0].LowWinners != nil {
+// 				winnersCount = winnersCount + len(mainPotWinners.LowWinners)
+// 			}
 
-			rakeFromPlayer = float32(int(rake / float32(winnersCount)))
-			if rakeFromPlayer == 0.0 {
-				rakeFromPlayer = 1.0
-			}
-		}
+// 			rakeFromPlayer = float32(int(rake / float32(winnersCount)))
+// 			if rakeFromPlayer == 0.0 {
+// 				rakeFromPlayer = 1.0
+// 			}
+// 		}
 
-		if float32(rakeFromPlayer) > 0.0 {
-			totalRakeCollected := float32(0)
-			for _, handWinner := range mainPotWinners.HiWinners {
-				if totalRakeCollected == rake {
-					break
-				}
-				seatNo := handWinner.SeatNo
-				playerID := h.GetPlayersInSeats()[seatNo]
-				if _, ok := rakePaid[playerID]; !ok {
-					rakePaid[playerID] = float32(rakeFromPlayer)
-				} else {
-					rakePaid[playerID] += float32(rakeFromPlayer)
-				}
-				totalRakeCollected += rakeFromPlayer
-				handWinner.Amount -= rakeFromPlayer
-			}
-			for _, handWinner := range mainPotWinners.LowWinners {
-				if totalRakeCollected == rake {
-					break
-				}
-				seatNo := handWinner.SeatNo
-				playerID := h.GetPlayersInSeats()[seatNo]
-				if _, ok := rakePaid[playerID]; !ok {
-					rakePaid[playerID] = float32(rakeFromPlayer)
-				} else {
-					rakePaid[playerID] += float32(rakeFromPlayer)
-				}
-				totalRakeCollected += rakeFromPlayer
-				handWinner.Amount -= rakeFromPlayer
-			}
-			h.RakePaid = rakePaid
-			h.RakeCollected = totalRakeCollected
-		}
-	} else {
-		// board2
-		h.Board2Winners = potWinners
-	}
+// 		if float32(rakeFromPlayer) > 0.0 {
+// 			totalRakeCollected := float32(0)
+// 			for _, handWinner := range mainPotWinners.HiWinners {
+// 				if totalRakeCollected == rake {
+// 					break
+// 				}
+// 				seatNo := handWinner.SeatNo
+// 				playerID := h.GetPlayersInSeats()[seatNo]
+// 				if _, ok := rakePaid[playerID]; !ok {
+// 					rakePaid[playerID] = float32(rakeFromPlayer)
+// 				} else {
+// 					rakePaid[playerID] += float32(rakeFromPlayer)
+// 				}
+// 				totalRakeCollected += rakeFromPlayer
+// 				handWinner.Amount -= rakeFromPlayer
+// 			}
+// 			for _, handWinner := range mainPotWinners.LowWinners {
+// 				if totalRakeCollected == rake {
+// 					break
+// 				}
+// 				seatNo := handWinner.SeatNo
+// 				playerID := h.GetPlayersInSeats()[seatNo]
+// 				if _, ok := rakePaid[playerID]; !ok {
+// 					rakePaid[playerID] = float32(rakeFromPlayer)
+// 				} else {
+// 					rakePaid[playerID] += float32(rakeFromPlayer)
+// 				}
+// 				totalRakeCollected += rakeFromPlayer
+// 				handWinner.Amount -= rakeFromPlayer
+// 			}
+// 			h.RakePaid = rakePaid
+// 			h.RakeCollected = totalRakeCollected
+// 		}
+// 	} else {
+// 		// board2
+// 		h.Board2Winners = potWinners
+// 	}
 
-	// update player balance
-	for _, pot := range potWinners {
-		for _, handWinner := range pot.HiWinners {
-			seatNo := handWinner.SeatNo
-			playerID := h.GetPlayersInSeats()[seatNo]
-			h.PlayersState[playerID].Stack += handWinner.Amount
-			h.PlayersState[playerID].PlayerReceived += handWinner.Amount
-		}
-		for _, handWinner := range pot.LowWinners {
-			seatNo := handWinner.SeatNo
-			playerID := h.GetPlayersInSeats()[seatNo]
-			h.PlayersState[playerID].Stack += handWinner.Amount
-			h.PlayersState[playerID].PlayerReceived += handWinner.Amount
-		}
-	}
+// 	// update player balance
+// 	for _, pot := range potWinners {
+// 		for _, handWinner := range pot.HiWinners {
+// 			seatNo := handWinner.SeatNo
+// 			playerID := h.GetPlayersInSeats()[seatNo]
+// 			h.PlayersState[playerID].Stack += handWinner.Amount
+// 			h.PlayersState[playerID].PlayerReceived += handWinner.Amount
+// 		}
+// 		for _, handWinner := range pot.LowWinners {
+// 			seatNo := handWinner.SeatNo
+// 			playerID := h.GetPlayersInSeats()[seatNo]
+// 			h.PlayersState[playerID].Stack += handWinner.Amount
+// 			h.PlayersState[playerID].PlayerReceived += handWinner.Amount
+// 		}
+// 	}
 
-	h.BalanceAfterHand = make([]*PlayerBalance, 0)
-	// also populate current balance of the players in the table
-	for seatNo, player := range h.GetPlayersInSeats() {
-		if player == 0 {
-			continue
-		}
-		state := h.GetPlayersState()[player]
-		h.BalanceAfterHand = append(h.BalanceAfterHand,
-			&PlayerBalance{SeatNo: uint32(seatNo), PlayerId: player, Balance: state.Stack})
-	}
-}
+// 	h.BalanceAfterHand = make([]*PlayerBalance, 0)
+// 	// also populate current balance of the players in the table
+// 	for seatNo, player := range h.GetPlayersInSeats() {
+// 		if player == 0 {
+// 			continue
+// 		}
+// 		state := h.GetPlayersState()[player]
+// 		h.BalanceAfterHand = append(h.BalanceAfterHand,
+// 			&PlayerBalance{SeatNo: uint32(seatNo), PlayerId: player, Balance: state.Stack})
+// 	}
+// }
 
 func (h *HandState) getLog() *HandLog {
 	handResult := &HandLog{}

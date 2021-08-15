@@ -62,11 +62,11 @@ func (e EvaluatedCards) GetBoardCards() []uint32 {
 }
 
 type HandEvaluator interface {
-	Evaluate()
+	// Evaluate()
 	Evaluate2(playerCards []byte, boardCards []byte) EvaluatedCards
 
-	GetBestPlayerCards() map[uint32]*EvaluatedCards
-	GetHighHandCards() map[uint32]*EvaluatedCards
-	GetWinners() map[uint32]*PotWinners
-	GetBoard2Winners() map[uint32]*PotWinners
+	// GetBestPlayerCards() map[uint32]*EvaluatedCards
+	// GetHighHandCards() map[uint32]*EvaluatedCards
+	// GetWinners() map[uint32]*PotWinners
+	// GetBoard2Winners() map[uint32]*PotWinners
 }

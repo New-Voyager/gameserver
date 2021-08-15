@@ -46,3 +46,11 @@ system-test:
 .PHONY: %
 %:
 	$(MAKE) -C $(SERVER_DIR) $@
+
+.PHONY: compile-dart
+compile-dart:
+	rm -rf dart/
+	mkdir dart/
+	protoc -I=proto/ --dart_out=dart/ proto/enums.proto
+	protoc -I=proto/ --dart_out=dart/ proto/hand.proto
+	protoc -I=proto/ --dart_out=dart/ proto/handmessage.proto

@@ -89,15 +89,67 @@ hands:
 
   # Hand 2 - HOLDEM
   - setup:
-      auto: true
       verify:
         game-type: HOLDEM
+      board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-cards:
+        - seat: 1
+          cards: ["9h", "2s"]
+        - seat: 2
+          cards: ["Kh", "Qd"]
+        - seat: 3
+          cards: ["3s", "7s"]
+
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 2, CALL, 2
+        - action: 3, CALL, 2
+        - action: 1, CHECK
+
+    flop:
+      verify:
+        board: ["Ac", "Ad", "2c"]
+      seat-actions:
+        - action: 3, CHECK
+        - action: 1, BET, 2
+        - action: 2, CALL, 2
+        - action: 3, RAISE, 4
+        - action: 1, FOLD
+        - action: 2, FOLD 
 
   # Hand 3 - HOLDEM
   - setup:
-      auto: true
       verify:
         game-type: HOLDEM
+      board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-cards:
+        - seat: 2
+          cards: ["9h", "2s"]
+        - seat: 3
+          cards: ["Kh", "Qd"]
+        - seat: 1
+          cards: ["3s", "7s"]
+
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 3, CALL, 2
+        - action: 1, CALL, 2
+        - action: 2, CHECK
+
+    flop:
+      verify:
+        board: ["Ac", "Ad", "2c"]
+      seat-actions:
+        - action: 1, CHECK
+        - action: 2, BET, 2
+        - action: 3, CALL, 2
+        - action: 1, RAISE, 4
+        - action: 2, FOLD
+        - action: 3, FOLD
 
   # Hand 4 - PLO
   - setup:
@@ -160,15 +212,53 @@ hands:
 
   # Hand 5 - PLO
   - setup:
-      auto: true
+      board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-cards:
+        - seat: 1
+          cards: ["9h", "3c", "Ts", "Js"]
+        - seat: 2
+          cards: ["Kh", "Qd", "3h", "5s"]
+        - seat: 3
+          cards: ["3s", "7s", "9d", "8h"]
       verify:
         game-type: PLO
+        button-pos: 2
+        sb-pos: 3
+        bb-pos: 1
+        next-action-pos: 2
+
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 2, CALL, 2
+        - action: 3, FOLD
+        - action: 1, FOLD
 
   # Hand 6 - PLO
   - setup:
-      auto: true
+      board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-cards:
+        - seat: 1
+          cards: ["9h", "3c", "Ts", "Js"]
+        - seat: 2
+          cards: ["Kh", "Qd", "3h", "5s"]
+        - seat: 3
+          cards: ["3s", "7s", "9d", "8h"]
       verify:
         game-type: PLO
+        button-pos: 3
+        sb-pos: 1
+        bb-pos: 2
+        next-action-pos: 3
+
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 3, CALL, 2
+        - action: 1, FOLD
+        - action: 2, FOLD
 
   # Hand 7 - HOLDEM
   - setup:

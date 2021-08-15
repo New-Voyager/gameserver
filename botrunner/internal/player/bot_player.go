@@ -2319,10 +2319,12 @@ func (bp *BotPlayer) RequestEndGame(gameCode string) error {
 }
 
 func (bp *BotPlayer) queryCurrentHandState() error {
+	messageId := fmt.Sprintf("%d:QUERY_CURRENT_HAND:%d", bp.PlayerID, time.Now())
 	// query current hand state
 	msg := game.HandMessage{
-		GameCode: bp.gameCode,
-		PlayerId: bp.PlayerID,
+		GameCode:  bp.gameCode,
+		PlayerId:  bp.PlayerID,
+		MessageId: messageId,
 		//GameToken: 	 bp.GameToken,
 		Messages: []*game.HandMessageItem{
 			{

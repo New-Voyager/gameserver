@@ -3,7 +3,6 @@ package game
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
@@ -154,7 +153,7 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 		BigBlind:      handState.BigBlind,
 		NoCards:       g.NumCards(g.config.GameType),
 	}
-	currentHandState.PlayersActed = make(map[uint32]*PlayerActRound, 0)
+	currentHandState.PlayersActed = make(map[uint32]*PlayerActRound)
 
 	var playerSeatNo uint32
 	for seatNo, pid := range handState.GetPlayersInSeats() {
@@ -183,7 +182,7 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 		currentHandState.RemainingActionTime = g.GetRemainingActionTime()
 		currentHandState.NextSeatAction = handState.NextSeatAction
 	}
-	currentHandState.PlayersStack = make(map[uint64]float32, 0)
+	currentHandState.PlayersStack = make(map[uint64]float32)
 	playerState := handState.GetPlayersState()
 	for seatNo, playerID := range handState.GetPlayersInSeats() {
 		if playerID == 0 {
@@ -538,9 +537,7 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	if err != nil {
 		return err
 	}
-	for _, m := range msgItems {
-		allMsgItems = append(allMsgItems, m)
-	}
+	allMsgItems = append(allMsgItems, msgItems...)
 
 	// Create hand message with all of the message items.
 	serverMsg := HandMessage{
@@ -690,7 +687,7 @@ func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 	}
 	handState.setupFlop()
 	pots, seatsInPots := g.getPots(handState)
-	balance := make(map[uint32]float32, 0)
+	balance := make(map[uint32]float32)
 	for seatNo, playerID := range handState.PlayersInSeats {
 		if seatNo == 0 {
 			continue
@@ -763,7 +760,7 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 
 	pots, seatsInPots := g.getPots(handState)
 
-	balance := make(map[uint32]float32, 0)
+	balance := make(map[uint32]float32)
 	for seatNo, playerID := range handState.PlayersInSeats {
 		if seatNo == 0 {
 			continue
@@ -927,76 +924,76 @@ func (g *Game) handEnded(handState *HandState) ([]*HandMessageItem, error) {
 	return []*HandMessageItem{handEnded}, nil
 }
 
-func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, handResult *HandResult) ([]*HandMessageItem, error) {
-	if saveResult != nil {
-		if saveResult.HighHand != nil {
-			// a player in this game hit a high hand
-			handResult.HighHand = &HighHand{}
-			handResult.HighHand.GameCode = saveResult.GameCode
-			handResult.HighHand.HandNum = uint32(saveResult.HandNum)
-			handResult.HighHand.Winners = make([]*HighHandWinner, 0)
+// func (g *Game) sendResult(handState *HandState, saveResult *SaveHandResult, handResult *HandResult) ([]*HandMessageItem, error) {
+// 	if saveResult != nil {
+// 		if saveResult.HighHand != nil {
+// 			// a player in this game hit a high hand
+// 			handResult.HighHand = &HighHand{}
+// 			handResult.HighHand.GameCode = saveResult.GameCode
+// 			handResult.HighHand.HandNum = uint32(saveResult.HandNum)
+// 			handResult.HighHand.Winners = make([]*HighHandWinner, 0)
 
-			for _, winner := range saveResult.HighHand.Winners {
-				playerSeatNo := 0
+// 			for _, winner := range saveResult.HighHand.Winners {
+// 				playerSeatNo := 0
 
-				winningPlayer, _ := strconv.ParseInt(winner.PlayerID, 10, 64)
-				// get seat no
-				for seatNo, playerID := range handState.ActiveSeats {
-					if int64(playerID) == winningPlayer {
-						playerSeatNo = seatNo
-						break
-					}
-				}
-				playerCards := make([]uint32, len(winner.PlayerCards))
-				for i, card := range winner.PlayerCards {
-					playerCards[i] = uint32(card)
-				}
-				hhCards := make([]uint32, len(winner.HhCards))
-				for i, card := range winner.HhCards {
-					hhCards[i] = uint32(card)
-				}
+// 				winningPlayer, _ := strconv.ParseInt(winner.PlayerID, 10, 64)
+// 				// get seat no
+// 				for seatNo, playerID := range handState.ActiveSeats {
+// 					if int64(playerID) == winningPlayer {
+// 						playerSeatNo = seatNo
+// 						break
+// 					}
+// 				}
+// 				playerCards := make([]uint32, len(winner.PlayerCards))
+// 				for i, card := range winner.PlayerCards {
+// 					playerCards[i] = uint32(card)
+// 				}
+// 				hhCards := make([]uint32, len(winner.HhCards))
+// 				for i, card := range winner.HhCards {
+// 					hhCards[i] = uint32(card)
+// 				}
 
-				handResult.HighHand.Winners = append(handResult.HighHand.Winners, &HighHandWinner{
-					PlayerId:    uint64(winningPlayer),
-					PlayerName:  winner.PlayerName,
-					PlayerCards: playerCards,
-					HhCards:     hhCards,
-					SeatNo:      uint32(playerSeatNo),
-				})
-			}
+// 				handResult.HighHand.Winners = append(handResult.HighHand.Winners, &HighHandWinner{
+// 					PlayerId:    uint64(winningPlayer),
+// 					PlayerName:  winner.PlayerName,
+// 					PlayerCards: playerCards,
+// 					HhCards:     hhCards,
+// 					SeatNo:      uint32(playerSeatNo),
+// 				})
+// 			}
 
-			if len(saveResult.HighHand.AssociatedGames) >= 1 {
-				// announce the high hand to other games
-				g.announceHighHand(saveResult, handResult.HighHand)
-			}
-		}
-	}
+// 			if len(saveResult.HighHand.AssociatedGames) >= 1 {
+// 				// announce the high hand to other games
+// 				g.announceHighHand(saveResult, handResult.HighHand)
+// 			}
+// 		}
+// 	}
 
-	// update pause time
-	if handResult.HandLog.RunItTwice {
-		if handResult.HandLog.RunItTwiceResult.Board_1Winners != nil {
-			for _, potWinner := range handResult.HandLog.RunItTwiceResult.Board_1Winners {
-				potWinner.PauseTime = pauseTime
-			}
-			for _, potWinner := range handResult.HandLog.RunItTwiceResult.Board_2Winners {
-				potWinner.PauseTime = pauseTime
-			}
-		}
-	} else {
-		for _, potWinner := range handResult.HandLog.PotWinners {
-			potWinner.PauseTime = pauseTime
-		}
-	}
+// 	// update pause time
+// 	if handResult.HandLog.RunItTwice {
+// 		if handResult.HandLog.RunItTwiceResult.Board_1Winners != nil {
+// 			for _, potWinner := range handResult.HandLog.RunItTwiceResult.Board_1Winners {
+// 				potWinner.PauseTime = pauseTime
+// 			}
+// 			for _, potWinner := range handResult.HandLog.RunItTwiceResult.Board_2Winners {
+// 				potWinner.PauseTime = pauseTime
+// 			}
+// 		}
+// 	} else {
+// 		for _, potWinner := range handResult.HandLog.PotWinners {
+// 			potWinner.PauseTime = pauseTime
+// 		}
+// 	}
 
-	msgItem := &HandMessageItem{
-		MessageType: HandResultMessage,
-		Content:     &HandMessageItem_HandResult{HandResult: handResult},
-	}
+// 	msgItem := &HandMessageItem{
+// 		MessageType: HandResultMessage,
+// 		Content:     &HandMessageItem_HandResult{HandResult: handResult},
+// 	}
 
-	msgItems := make([]*HandMessageItem, 0)
-	msgItems = append(msgItems, msgItem)
-	return msgItems, nil
-}
+// 	msgItems := make([]*HandMessageItem, 0)
+// 	msgItems = append(msgItems, msgItem)
+// 	return msgItems, nil
+// }
 
 func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([]*HandMessageItem, error) {
 	//handResultClient.PlayerInfo = make(map[uint32]*PlayerHandInfo)
@@ -1047,18 +1044,18 @@ func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([
 	return msgItems, nil
 }
 
-func (g *Game) announceHighHand(saveResult *SaveHandResult, highHand *HighHand) {
-	for _, gameCode := range saveResult.HighHand.AssociatedGames {
-		gameMessage := &GameMessage{
-			GameCode:    gameCode,
-			MessageType: HighHandMsg,
-		}
-		gameMessage.GameMessage = &GameMessage_HighHand{
-			HighHand: highHand,
-		}
-		g.broadcastGameMessage(gameMessage)
-	}
-}
+// func (g *Game) announceHighHand(saveResult *SaveHandResult, highHand *HighHand) {
+// 	for _, gameCode := range saveResult.HighHand.AssociatedGames {
+// 		gameMessage := &GameMessage{
+// 			GameCode:    gameCode,
+// 			MessageType: HighHandMsg,
+// 		}
+// 		gameMessage.GameMessage = &GameMessage_HighHand{
+// 			HighHand: highHand,
+// 		}
+// 		g.broadcastGameMessage(gameMessage)
+// 	}
+// }
 
 func (g *Game) moveToNextRound(handState *HandState) ([]*HandMessageItem, error) {
 	expectedState := FlowState_MOVE_TO_NEXT_ROUND
@@ -1092,18 +1089,14 @@ func (g *Game) moveToNextRound(handState *HandState) ([]*HandMessageItem, error)
 	if err != nil {
 		return nil, err
 	}
-	for _, m := range msgItems {
-		allMsgItems = append(allMsgItems, m)
-	}
+	allMsgItems = append(allMsgItems, msgItems...)
 
 	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 	msgItems, err = g.moveToNextAction(handState)
 	if err != nil {
 		return nil, err
 	}
-	for _, m := range msgItems {
-		allMsgItems = append(allMsgItems, m)
-	}
+	allMsgItems = append(allMsgItems, msgItems...)
 
 	return allMsgItems, nil
 }
@@ -1215,9 +1208,7 @@ func (g *Game) allPlayersAllIn(handState *HandState) ([]*HandMessageItem, error)
 		if err != nil {
 			return nil, err
 		}
-		for _, m := range msgItems {
-			allMsgItems = append(allMsgItems, m)
-		}
+		allMsgItems = append(allMsgItems, msgItems...)
 	}
 
 	handState.FlowState = FlowState_SHOWDOWN
@@ -1225,10 +1216,7 @@ func (g *Game) allPlayersAllIn(handState *HandState) ([]*HandMessageItem, error)
 	if err != nil {
 		return nil, err
 	}
-	for _, m := range msgItems {
-		allMsgItems = append(allMsgItems, m)
-	}
-
+	allMsgItems = append(allMsgItems, msgItems...)
 	return allMsgItems, nil
 }
 
@@ -1270,17 +1258,14 @@ func (g *Game) showdown(handState *HandState) ([]*HandMessageItem, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, m := range msgItems {
-		allMsgItems = append(allMsgItems, m)
-	}
+	allMsgItems = append(allMsgItems, msgItems...)
 
 	msgItems, err = g.handEnded(handState)
 	if err != nil {
 		return nil, err
 	}
-	for _, m := range msgItems {
-		allMsgItems = append(allMsgItems, m)
-	}
+	allMsgItems = append(allMsgItems, msgItems...)
+
 	return allMsgItems, nil
 }
 
@@ -1310,18 +1295,15 @@ func (g *Game) onePlayerRemaining(handState *HandState) ([]*HandMessageItem, err
 	if err != nil {
 		return nil, err
 	}
-	for _, m := range msgItems {
-		allMsgItems = append(allMsgItems, m)
-	}
+	allMsgItems = append(allMsgItems, msgItems...)
 
 	handState.FlowState = FlowState_HAND_ENDED
 	msgItems, err = g.handEnded(handState)
 	if err != nil {
 		return nil, err
 	}
-	for _, m := range msgItems {
-		allMsgItems = append(allMsgItems, m)
-	}
+	allMsgItems = append(allMsgItems, msgItems...)
+
 	return allMsgItems, nil
 }
 
