@@ -137,7 +137,6 @@ func (h *HandState) initialize(gameConfig *GameConfig,
 			Uint64("game", h.GetGameId()).
 			Uint32("hand", h.GetHandNum()).
 			Msgf("Button Pos: %d does not have any active seat: %v. This is a dead button", buttonPos, h.PlayersInSeats)
-		//panic(fmt.Sprintf("Button Pos: %d does not have any active seats: %v", buttonPos, h.PlayersInSeats))
 	}
 
 	h.HandStats = &HandStats{}

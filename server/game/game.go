@@ -277,7 +277,10 @@ func (g *Game) startGame() (bool, error) {
 			err = g.moveAPIServerToNextHand(0)
 		}
 
-		g.dealNewHand()
+		err = g.dealNewHand()
+		if err != nil {
+			return false, errors.Wrap(err, "Error while dealing new hand")
+		}
 	}
 
 	return true, nil
@@ -385,8 +388,7 @@ func (g *Game) dealNewHand() error {
 		// new hand information contains players in seats/balance/status, game type, announce new game
 		newHandInfo, err = g.getNewHandInfo()
 		if err != nil {
-			// right now panic (shouldn't happen)
-			panic(err)
+			return errors.Wrap(err, "Error in getNewhandInfo")
 		}
 		if newHandInfo.TableStatus != TableStatus_GAME_RUNNING {
 			return nil
