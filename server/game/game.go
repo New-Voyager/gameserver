@@ -691,7 +691,7 @@ func (g *Game) dealNewHand() error {
 	allMsgItems := make([]*HandMessageItem, 0)
 	if handState.BombPot {
 		bombPotMessage := &HandMessageItem{
-			MessageType: HandDeal,
+			MessageType: HandBombPot,
 		}
 		allMsgItems = append(allMsgItems, bombPotMessage)
 		messages, err := g.gotoFlop(handState)
@@ -954,7 +954,10 @@ func (g *Game) addScriptTestPlayer(player *Player, buyIn float32, postBlind bool
 	g.lock.Lock()
 	defer g.lock.Unlock()
 	g.scriptTestPlayers[player.PlayerID] = player
-
+	inHand := true
+	if player.SeatNo == 0 {
+		inHand = false
+	}
 	// add the player to playerSeatInfos
 	g.PlayersInSeats[int(player.SeatNo)] = SeatPlayer{
 		Name:             player.PlayerName,
@@ -963,6 +966,7 @@ func (g *Game) addScriptTestPlayer(player *Player, buyIn float32, postBlind bool
 		Status:           PlayerStatus_PLAYING,
 		Stack:            buyIn,
 		OpenSeat:         false,
+		Inhand:           inHand,
 		SeatNo:           player.SeatNo,
 		PostedBlind:      postBlind,
 		RunItTwicePrompt: player.RunItTwice,

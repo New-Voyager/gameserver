@@ -119,7 +119,7 @@ func (h *HandState) initialize(gameConfig *GameConfig,
 
 	h.ActiveSeats = make([]uint64, gameConfig.MaxPlayers+1)
 	// update active seats with players who are playing
-	for _, playerInSeat := range playersInSeats {
+	for seatNo, playerInSeat := range playersInSeats {
 		if playerInSeat.PlayerID != 0 {
 			h.PlayersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
 				SeatNo:       playerInSeat.SeatNo,
@@ -134,9 +134,16 @@ func (h *HandState) initialize(gameConfig *GameConfig,
 			}
 			h.PlayerStats[playerInSeat.PlayerID] = &PlayerStats{InPreflop: true}
 		} else {
+			if playerInSeat.SeatNo == 0 {
+				playerInSeat.SeatNo = uint32(seatNo)
+			}
+			openSeat := playerInSeat.OpenSeat
+			if newHandInfo == nil {
+				openSeat = true
+			}
 			h.PlayersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
 				SeatNo:   playerInSeat.SeatNo,
-				OpenSeat: playerInSeat.OpenSeat,
+				OpenSeat: openSeat,
 				Inhand:   false,
 			}
 		}

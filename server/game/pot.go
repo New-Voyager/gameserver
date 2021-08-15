@@ -105,7 +105,7 @@ func (h *HandState) addChipsToPot(seatBets []float32, handEnded bool) {
 			newPot := initializePot(len(seatBets))
 			h.Pots = append(h.Pots, newPot)
 			h.addChipsToPot(seatBets, handEnded)
-		} else if allInPlayers && anyRemainingBets != 1 {
+		} else if allInPlayers && anyRemainingBets > 1 {
 			// add a new pot
 			newPot := initializePot(len(seatBets))
 			h.Pots = append(h.Pots, newPot)
