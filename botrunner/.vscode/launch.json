@@ -25,7 +25,7 @@
       "args": [
         "--script",
         // "botrunner_scripts/system_test/seat-change/river-action-3-bots-seat-change-decline.yaml"
-        "botrunner_scripts/system_test/basic/river-action-3-bots.yaml"
+        "botrunner_scripts/system_test/timeout/consecutive-timeout.yaml"
       ]
     },
     {

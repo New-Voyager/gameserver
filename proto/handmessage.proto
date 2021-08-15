@@ -49,6 +49,9 @@ message NewHand {
   float straddle = 12;
   map <uint32, PlayerInSeatState> players_in_seats = 13; // seat no, player status
   map<uint32, PlayerActRound> players_acted = 14;   // seat no, player action in this round
+  bool bomb_pot = 15;
+  bool double_board_bomb_pot = 16;
+  float bomb_pot_bet = 17;
 }
 
 //HandDealCards message is sent to each player when cards dealt to the player

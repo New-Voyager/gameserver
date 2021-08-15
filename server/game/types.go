@@ -317,6 +317,7 @@ type SeatPlayer struct {
 	MuckLosingHand   bool
 	RunItTwicePrompt bool
 	PostedBlind      bool
+	ActiveSeat       bool
 }
 
 /*
@@ -331,18 +332,21 @@ export interface NewHandInfo {
   playersInSeats: Array<PlayerInSeat>;
 }*/
 type NewHandInfo struct {
-	GameCode         string
-	GameType         GameType
-	MaxPlayers       uint32
-	SmallBlind       float32
-	BigBlind         float32
-	ButtonPos        uint32
-	HandNum          uint32
-	AnnounceGameType bool
-	PlayersInSeats   []SeatPlayer
-	GameStatus       GameStatus
-	TableStatus      TableStatus
-	SbPos            uint32
-	BbPos            uint32
-	ResultPauseTime  uint32
+	GameCode           string
+	GameType           GameType
+	MaxPlayers         uint32
+	SmallBlind         float32
+	BigBlind           float32
+	ButtonPos          uint32
+	HandNum            uint32
+	AnnounceGameType   bool
+	PlayersInSeats     []SeatPlayer
+	GameStatus         GameStatus
+	TableStatus        TableStatus
+	SbPos              uint32
+	BbPos              uint32
+	ResultPauseTime    uint32
+	BombPot            bool
+	DoubleBoardBombPot bool
+	BombPotBet         float32
 }

@@ -301,7 +301,7 @@ func (g *Game) resumeGame(handState *HandState) error {
 	case FlowState_MOVE_TO_NEXT_HAND:
 		err = g.moveToNextHand(handState)
 	default:
-		err = fmt.Errorf("Unhandled flow state in resumeGame: %s", handState.FlowState)
+		err = fmt.Errorf("unhandled flow state in resumeGame: %s", handState.FlowState)
 	}
 	return err
 }
@@ -317,10 +317,10 @@ func (g *Game) MaskCards(playerCards []byte, gameToken uint64) ([]uint32, uint64
 
 	// convert cards to uint64
 	cardsUint64 := binary.LittleEndian.Uint64(card64)
-	mask := gameToken
 
 	// TODO: mask it.
-	mask = 0
+	mask := uint64(0)
+	//mask := gameToken
 	maskCards := uint64(cardsUint64)
 	if mask != 0 {
 		maskCards = uint64(cardsUint64 ^ mask)
@@ -456,6 +456,10 @@ func (g *Game) dealNewHand() error {
 			}
 		*/
 		for _, playerInSeat := range newHandInfo.PlayersInSeats {
+			if !playerInSeat.ActiveSeat {
+				continue
+			}
+
 			if playerInSeat.SeatNo <= uint32(g.config.MaxPlayers) {
 				g.PlayersInSeats[playerInSeat.SeatNo] = playerInSeat
 			}
@@ -464,6 +468,7 @@ func (g *Game) dealNewHand() error {
 				MuckLosingHand:   playerInSeat.MuckLosingHand,
 				RunItTwicePrompt: playerInSeat.RunItTwicePrompt,
 			}
+
 			playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
 				Status:       playerInSeat.Status,
 				Stack:        playerInSeat.Stack,
@@ -527,7 +532,7 @@ func (g *Game) dealNewHand() error {
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
 
-	handState.initialize(g.config, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
+	handState.initialize(g.config, newHandInfo, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
 	if testHandSetup != nil {
 		resultPauseTime = int(testHandSetup.ResultPauseTime)
 	}
@@ -556,7 +561,7 @@ func (g *Game) dealNewHand() error {
 			Msg(fmt.Sprintf("Table: %s", handState.PrintTable(g.scriptTestPlayers)))
 	}
 
-	playersActed := make(map[uint32]*PlayerActRound, 0)
+	playersActed := make(map[uint32]*PlayerActRound)
 	for seatNo, action := range handState.GetPlayersActed() {
 		if action.State == PlayerActState_PLAYER_ACT_EMPTY_SEAT {
 			continue
@@ -566,19 +571,22 @@ func (g *Game) dealNewHand() error {
 
 	// send a new hand message to all players
 	newHand := NewHand{
-		HandNum:        handState.HandNum,
-		ButtonPos:      handState.ButtonPos,
-		SbPos:          handState.SmallBlindPos,
-		BbPos:          handState.BigBlindPos,
-		NextActionSeat: handState.NextSeatAction.SeatNo,
-		NoCards:        g.NumCards(gameType),
-		GameType:       gameType,
-		SmallBlind:     handState.SmallBlind,
-		BigBlind:       handState.BigBlind,
-		BringIn:        handState.BringIn,
-		Straddle:       handState.Straddle,
-		PlayersInSeats: playersInSeats,
-		PlayersActed:   playersActed,
+		HandNum:            handState.HandNum,
+		ButtonPos:          handState.ButtonPos,
+		SbPos:              handState.SmallBlindPos,
+		BbPos:              handState.BigBlindPos,
+		NextActionSeat:     handState.NextSeatAction.SeatNo,
+		NoCards:            g.NumCards(gameType),
+		GameType:           gameType,
+		SmallBlind:         handState.SmallBlind,
+		BigBlind:           handState.BigBlind,
+		BringIn:            handState.BringIn,
+		Straddle:           handState.Straddle,
+		PlayersInSeats:     playersInSeats,
+		PlayersActed:       playersActed,
+		BombPot:            handState.BombPot,
+		BombPotBet:         handState.BombPotBet,
+		DoubleBoardBombPot: handState.DoubleBoard,
 	}
 
 	handMessage := HandMessage{
@@ -672,9 +680,7 @@ func (g *Game) dealNewHand() error {
 	if handState.BombPot {
 		messages, err := g.gotoFlop(handState)
 		if err == nil {
-			for _, msgItem := range messages {
-				allMsgItems = append(allMsgItems, msgItem)
-			}
+			allMsgItems = append(allMsgItems, messages...)
 		}
 	}
 
@@ -683,9 +689,7 @@ func (g *Game) dealNewHand() error {
 	if err != nil {
 		return err
 	}
-	for _, msgItem := range msgItems {
-		allMsgItems = append(allMsgItems, msgItem)
-	}
+	allMsgItems = append(allMsgItems, msgItems...)
 	handMsg := HandMessage{
 		HandNum:    handState.HandNum,
 		HandStatus: handState.CurrentState,
@@ -826,9 +830,9 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 		if !ok || currentRoundState == nil {
 			b, err := json.Marshal(handState)
 			if err != nil {
-				return fmt.Errorf("Unable to find current round state. currentRoundState: %+v. handState.CurrentState: %d handState.RoundState: %+v", currentRoundState, handState.CurrentState, handState.RoundState)
+				return fmt.Errorf("unable to find current round state. currentRoundState: %+v. handState.CurrentState: %d handState.RoundState: %+v", currentRoundState, handState.CurrentState, handState.RoundState)
 			}
-			return fmt.Errorf("Unable to find current round state. handState: %s", string(b))
+			return fmt.Errorf("unable to find current round state. handState: %s", string(b))
 		}
 		currentBettingRound := currentRoundState.Betting
 		for _, bet := range currentBettingRound.SeatBet {
@@ -869,7 +873,7 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 		BigBlind:      handState.BigBlind,
 		NoCards:       g.NumCards(handState.GameType),
 	}
-	currentHandState.PlayersActed = make(map[uint32]*PlayerActRound, 0)
+	currentHandState.PlayersActed = make(map[uint32]*PlayerActRound)
 
 	var playerSeatNo uint32
 	for seatNo, pid := range handState.GetPlayersInSeats() {
@@ -898,7 +902,7 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 		currentHandState.RemainingActionTime = g.GetRemainingActionTime()
 		currentHandState.NextSeatAction = handState.NextSeatAction
 	}
-	currentHandState.PlayersStack = make(map[uint64]float32, 0)
+	currentHandState.PlayersStack = make(map[uint64]float32)
 	playerState := handState.GetPlayersState()
 	for seatNo, playerID := range handState.GetPlayersInSeats() {
 		if playerID == 0 {
