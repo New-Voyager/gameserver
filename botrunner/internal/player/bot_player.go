@@ -683,6 +683,9 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 
 		result := bp.game.handResult2
 		for seatNo, player := range result.PlayerInfo {
+			if seatNo == 0 {
+				continue
+			}
 			if seatNo == bp.seatNo {
 				if player.Balance.After == 0.0 {
 					// reload chips
@@ -2977,6 +2980,10 @@ func (bp *BotPlayer) isGamePaused() (bool, error) {
 	if err != nil {
 		return false, errors.Wrap(err, fmt.Sprintf("%s: Unable to get game info %s", bp.logPrefix, bp.gameCode))
 	}
+	if gi.Status == game.GameStatus_ENDED.String() {
+		return false, fmt.Errorf("%s: Game ended %s. Unexpected", bp.logPrefix, bp.gameCode)
+	}
+
 	if gi.Status == game.GameStatus_PAUSED.String() {
 		return true, nil
 	}

@@ -996,7 +996,7 @@ func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([
 	hs.CurrentState = HandStatus_RESULT
 
 	for seatNo, player := range hs.PlayersInSeats {
-		if seatNo == 0 {
+		if seatNo == 0 || !player.Inhand || player.OpenSeat {
 			continue
 		}
 
@@ -1038,19 +1038,6 @@ func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([
 	msgItems = append(msgItems, msgItem2)
 	return msgItems, nil
 }
-
-// func (g *Game) announceHighHand(saveResult *SaveHandResult, highHand *HighHand) {
-// 	for _, gameCode := range saveResult.HighHand.AssociatedGames {
-// 		gameMessage := &GameMessage{
-// 			GameCode:    gameCode,
-// 			MessageType: HighHandMsg,
-// 		}
-// 		gameMessage.GameMessage = &GameMessage_HighHand{
-// 			HighHand: highHand,
-// 		}
-// 		g.broadcastGameMessage(gameMessage)
-// 	}
-// }
 
 func (g *Game) moveToNextRound(handState *HandState) ([]*HandMessageItem, error) {
 	expectedState := FlowState_MOVE_TO_NEXT_ROUND

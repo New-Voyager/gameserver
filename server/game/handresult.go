@@ -367,7 +367,7 @@ func (hr *HandResultProcessor) calcRakeAndBalance(hs *HandState, potWinners []*P
 	playerReceived := make(map[uint32]float32)
 
 	for seatNoIdx, player := range hs.PlayersInSeats {
-		if !player.Inhand {
+		if !player.Inhand || player.SeatNo == 0 || player.OpenSeat {
 			continue
 		}
 		playerStack[player.PlayerId] = player.Stack
@@ -401,7 +401,7 @@ func (hr *HandResultProcessor) calcRakeAndBalance(hs *HandState, potWinners []*P
 
 	players := make(map[uint32]*PlayerHandInfo)
 	for seatNoIdx, player := range hs.PlayersInSeats {
-		if player.Inhand {
+		if !player.Inhand {
 			continue
 		}
 		seatNo := uint32(seatNoIdx)
@@ -414,7 +414,7 @@ func (hr *HandResultProcessor) calcRakeAndBalance(hs *HandState, potWinners []*P
 
 	// also populate current balance of the players in the table
 	for seatNo, player := range hs.PlayersInSeats {
-		if player.Inhand {
+		if !player.Inhand || player.SeatNo == 0 || player.OpenSeat {
 			continue
 		}
 
@@ -446,10 +446,10 @@ func (hr *HandResultProcessor) calcRakeAndBalance(hs *HandState, potWinners []*P
 			rakePaidAmount = rake
 		}
 
-		players[uint32(seatNo)] = &PlayerHandInfo{
+		players[player.SeatNo] = &PlayerHandInfo{
 			Id:          player.PlayerId,
 			PlayedUntil: player.Round,
-			Cards:       poker.ByteCardsToUint32Cards(hs.PlayersCards[uint32(seatNo)]),
+			Cards:       poker.ByteCardsToUint32Cards(hs.PlayersCards[player.SeatNo]),
 			Balance:     playerBalance,
 			Received:    playerBalance.After - playerBalance.Before,
 			RakePaid:    rakePaidAmount,
