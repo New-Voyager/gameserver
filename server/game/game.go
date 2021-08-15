@@ -405,12 +405,16 @@ func (g *Game) dealNewHand() error {
 			playerUpdateConfig = make(map[uint64]PlayerConfigUpdate)
 			g.playerConfig.Store(playerUpdateConfig)
 		}
-		for _, player := range g.PlayersInSeats {
+		for _, seat := range newHandInfo.PlayersInSeats {
+			if !seat.ActiveSeat {
+				continue
+			}
+
 			// g.PlayersInSeats[seatNo] = SeatPlayer{}
-			playerUpdateConfig[player.PlayerID] = PlayerConfigUpdate{
-				PlayerId:         player.PlayerID,
-				MuckLosingHand:   player.MuckLosingHand,
-				RunItTwicePrompt: player.RunItTwicePrompt,
+			playerUpdateConfig[seat.PlayerID] = PlayerConfigUpdate{
+				PlayerId:         seat.PlayerID,
+				MuckLosingHand:   seat.MuckLosingHand,
+				RunItTwicePrompt: seat.RunItTwicePrompt,
 			}
 		}
 
@@ -456,10 +460,6 @@ func (g *Game) dealNewHand() error {
 			}
 		*/
 		for _, playerInSeat := range newHandInfo.PlayersInSeats {
-			if !playerInSeat.ActiveSeat {
-				continue
-			}
-
 			if playerInSeat.SeatNo <= uint32(g.config.MaxPlayers) {
 				g.PlayersInSeats[playerInSeat.SeatNo] = playerInSeat
 			}
@@ -797,14 +797,14 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 			MessageType: HandQueryCurrentHand,
 			Content:     &HandMessageItem_CurrentHandState{CurrentHandState: &currentHandState},
 		}
-		msgID := g.GenerateMsgID("CURRENT_HAND", 0, HandStatus_DEAL, playerID, messageID, 0)
-		if handState != nil {
-			msgID = g.GenerateMsgID("CURRENT_HAND", handState.HandNum, handState.CurrentState, playerID, messageID, handState.CurrentActionNum)
-		}
+		// msgID := g.GenerateMsgID("CURRENT_HAND", 0, HandStatus_DEAL, playerID, messageID, 0)
+		// if handState != nil {
+		// 	msgID = g.GenerateMsgID("CURRENT_HAND", handState.HandNum, handState.CurrentState, playerID, messageID, handState.CurrentActionNum)
+		// }
 		serverMsg := &HandMessage{
 			PlayerId:  playerID,
 			HandNum:   0,
-			MessageId: msgID,
+			MessageId: messageID,
 			Messages:  []*HandMessageItem{handStateMsg},
 		}
 		g.sendHandMessageToPlayer(serverMsg, playerID)
