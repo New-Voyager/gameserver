@@ -79,6 +79,9 @@ type Game struct {
 	DealerChoiceGames  []string `yaml:"dealer-choice-games"`
 	HighHandTracked    bool     `yaml:"highhand-tracked"`
 	AppCoinsNeeded     bool     `yaml:"appcoins-needed"`
+	DoubleBoard        bool     `yaml:"double-board"`
+	BombPot            bool     `yaml:"bomb-pot"`
+	BombPotBet         bool     `yaml:"bomb-pot-bet"`
 }
 
 // StartingSeat contains an entry in the StartingSeats array in the game script.

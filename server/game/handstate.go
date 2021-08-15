@@ -109,30 +109,46 @@ func (h *HandState) initialize(gameConfig *GameConfig,
 	buttonPos uint32, sbPos uint32, bbPos uint32,
 	playersInSeats []SeatPlayer) {
 	// settle players in the seats
-	h.PlayersInSeats = make([]uint64, gameConfig.MaxPlayers+1) // seat 0 is dealer
+	h.PlayersInSeats = make([]*PlayerInSeatState, gameConfig.MaxPlayers+1) // seat 0 is dealer
 	h.NoActiveSeats = 0
 	h.GameType = gameConfig.GameType
 
 	// copy player's stack (we need to copy only the players that are in the hand)
-	h.PlayersState = h.copyPlayersState(uint32(gameConfig.MaxPlayers), playersInSeats)
+	// h.PlayersState = h.copyPlayersState(uint32(gameConfig.MaxPlayers), playersInSeats)
 	h.PlayerStats = make(map[uint64]*PlayerStats)
 
+	h.ActiveSeats = make([]uint64, gameConfig.MaxPlayers+1)
 	// update active seats with players who are playing
-	for _, player := range playersInSeats {
-		h.PlayersInSeats[int(player.SeatNo)] = 0
-		if player.SeatNo == 0 {
-			continue
+	for _, playerInSeat := range playersInSeats {
+		if playerInSeat.PlayerID != 0 {
+			h.PlayersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
+				SeatNo:       playerInSeat.SeatNo,
+				Status:       playerInSeat.Status,
+				Stack:        playerInSeat.Stack,
+				PlayerId:     playerInSeat.PlayerID,
+				Name:         playerInSeat.Name,
+				BuyInExpTime: playerInSeat.BuyInTimeExpAt,
+				BreakExpTime: playerInSeat.BreakTimeExpAt,
+				Inhand:       playerInSeat.Inhand,
+				PostedBlind:  playerInSeat.PostedBlind,
+			}
+			h.PlayerStats[playerInSeat.PlayerID] = &PlayerStats{InPreflop: true}
+		} else {
+			h.PlayersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
+				SeatNo:   playerInSeat.SeatNo,
+				OpenSeat: playerInSeat.OpenSeat,
+				Inhand:   false,
+			}
 		}
-		if player.Status != PlayerStatus_PLAYING {
-			continue
+
+		if h.PlayersInSeats[playerInSeat.SeatNo].Inhand {
+			h.NoActiveSeats++
+			h.ActiveSeats[playerInSeat.SeatNo] = playerInSeat.PlayerID
 		}
-		h.PlayersInSeats[int(player.SeatNo)] = player.PlayerID
-		h.PlayerStats[player.PlayerID] = &PlayerStats{InPreflop: true}
-		h.NoActiveSeats++
 	}
 
 	// if there is no active player in the button pos (panic)
-	if h.PlayersInSeats[buttonPos] == 0 {
+	if !h.PlayersInSeats[buttonPos].Inhand {
 		handLogger.Error().
 			Uint64("game", h.GetGameId()).
 			Uint32("hand", h.GetHandNum()).
@@ -173,7 +189,7 @@ func (h *HandState) initialize(gameConfig *GameConfig,
 
 	// if the players don't have money less than the blinds
 	// don't let them play
-	h.ActiveSeats = h.GetPlayersInSeats()
+	h.GetPlayersInSeats()
 
 	if sbPos != 0 && bbPos != 0 {
 		h.SmallBlindPos = sbPos
@@ -189,20 +205,18 @@ func (h *HandState) initialize(gameConfig *GameConfig,
 	postedBlinds := make([]uint32, 0)
 
 	// also populate current balance of the players in the table
-	for seatNo, player := range h.PlayersInSeats {
-		if player == 0 {
+	for _, playerInSeat := range h.PlayersInSeats {
+		if !playerInSeat.Inhand {
 			// player ID is 0, meaning an open seat or a dealer.
-			continue
-		}
-		playerInSeat := playersInSeats[seatNo]
-		if playerInSeat.Status != PlayerStatus_PLAYING {
 			continue
 		}
 		if playerInSeat.PostedBlind {
 			postedBlinds = append(postedBlinds, playerInSeat.SeatNo)
 		}
 		h.BalanceBeforeHand = append(h.BalanceBeforeHand,
-			&PlayerBalance{SeatNo: playerInSeat.SeatNo, PlayerId: playerInSeat.PlayerID, Balance: playerInSeat.Stack})
+			&PlayerBalance{SeatNo: playerInSeat.SeatNo,
+				PlayerId: playerInSeat.PlayerId,
+				Balance:  playerInSeat.Stack})
 	}
 
 	var deck *poker.Deck
@@ -328,21 +342,11 @@ func (h *HandState) setupRound(state HandStatus) {
 
 	h.RoundState[uint32(state)].PlayerBalance = make(map[uint32]float32)
 	roundState := h.RoundState[uint32(state)]
-	for seatNo, playerID := range h.PlayersInSeats {
-		if seatNo == 0 || playerID == 0 {
+	for seatNo, player := range h.PlayersInSeats {
+		if seatNo == 0 || !player.Inhand {
 			continue
 		}
-		if player, ok := h.PlayersState[playerID]; ok {
-			if player.Status != PlayerStatus_PLAYING {
-				continue
-			}
-		} else {
-			continue
-		}
-
-		if state, ok := h.PlayersState[playerID]; ok {
-			roundState.PlayerBalance[uint32(seatNo)] = state.Stack
-		}
+		roundState.PlayerBalance[uint32(seatNo)] = player.Stack
 	}
 }
 
@@ -402,20 +406,20 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 
 	// track whether the player is active in this round or not
 	for seatNo := 1; seatNo <= int(h.GetMaxSeats()); seatNo++ {
-		playerID := h.GetPlayersInSeats()[seatNo]
-		if playerID == 0 {
+		player := h.GetPlayersInSeats()[seatNo]
+		if !player.Inhand {
 			continue
 		}
-		playerState, found := h.GetPlayersState()[playerID]
-		if found {
-			playerState.Round = HandStatus_PREFLOP
-		}
+		player.Round = HandStatus_PREFLOP
 	}
 }
 
 func (h *HandState) resetPlayerActions() {
-	for seatNo, playerID := range h.GetPlayersInSeats() {
-		if seatNo == 0 || playerID == 0 || h.ActiveSeats[seatNo] == 0 {
+	for seatNo, player := range h.GetPlayersInSeats() {
+		if !player.Inhand {
+			continue
+		}
+		if seatNo == 0 || h.ActiveSeats[seatNo] == 0 {
 			h.PlayersActed[seatNo] = &PlayerActRound{
 				State: PlayerActState_PLAYER_ACT_EMPTY_SEAT,
 			}
@@ -660,17 +664,9 @@ func (h *HandState) getNextActivePlayer(seatNo uint32) uint32 {
 			seatNo = 1
 		}
 
-		playerID := h.GetPlayersInSeats()[seatNo]
+		player := h.GetPlayersInSeats()[seatNo]
 		// check to see whether the player is playing or sitting out
-		if playerID == 0 {
-			continue
-		}
-
-		if state, ok := h.GetPlayersState()[playerID]; ok {
-			if state.Status != PlayerStatus_PLAYING {
-				continue
-			}
-		} else {
+		if !player.Inhand {
 			continue
 		}
 
@@ -692,9 +688,9 @@ func (h *HandState) getNextActivePlayer(seatNo uint32) uint32 {
 
 func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64) error {
 	// get player ID from the seat
-	playerIds := h.GetPlayersInSeats()
-	if len(playerIds) < int(action.SeatNo) {
-		errMsg := fmt.Sprintf("Unable to find player ID for the action seat %d. PlayerIds: %v", action.SeatNo, playerIds)
+	playersInSeats := h.GetPlayersInSeats()
+	if len(playersInSeats) < int(action.SeatNo) {
+		errMsg := fmt.Sprintf("Unable to find player ID for the action seat %d. PlayerIds: %v", action.SeatNo, playersInSeats)
 		handLogger.Error().
 			Uint64("game", h.GetGameId()).
 			Uint32("hand", h.GetHandNum()).
@@ -714,8 +710,8 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		action.Amount = 0
 	}
 
-	playerID := playerIds[action.SeatNo]
-	if playerID == 0 {
+	player := playersInSeats[action.SeatNo]
+	if player.PlayerId == 0 {
 		errMsg := fmt.Sprintf("Invalid seat %d. PlayerID is 0", action.SeatNo)
 		// something wrong
 		handLogger.Error().
@@ -934,12 +930,11 @@ func index(vs []uint32, t uint32) int {
 }
 
 func (h *HandState) getPlayerFromSeat(seatNo uint32) *PlayerInSeatState {
-	playerID := h.GetPlayersInSeats()[seatNo]
-	if playerID == 0 {
+	player := h.PlayersInSeats[seatNo]
+	if !player.Inhand {
 		return nil
 	}
-	playerState, _ := h.PlayersState[playerID]
-	return playerState
+	return player
 }
 
 func (h *HandState) isAllActivePlayersAllIn() bool {
@@ -1058,11 +1053,11 @@ func (h *HandState) settleRound() {
 			continue
 		}
 
-		playerID := h.PlayersInSeats[seatNo]
-		if playerID == 0 {
+		player := h.PlayersInSeats[seatNo]
+		if !player.Inhand {
 			continue
 		}
-		h.PlayersState[playerID].Stack -= playerActRound.BetAmount
+		player.Stack -= playerActRound.BetAmount
 	}
 	if handEnded {
 		h.HandCompletedAt = h.CurrentState
@@ -1127,15 +1122,11 @@ func (h *HandState) setupNextRound(state HandStatus) {
 
 	// track whether the player is active in this round or not
 	for seatNo := 1; seatNo <= int(h.GetMaxSeats()); seatNo++ {
-		playerID := h.GetPlayersInSeats()[seatNo]
-		if playerID == 0 || h.ActiveSeats[seatNo] == 0 {
+		player := h.PlayersInSeats[seatNo]
+		if !player.Inhand {
 			continue
 		}
-
-		playerState, found := h.GetPlayersState()[playerID]
-		if found {
-			playerState.Round = state
-		}
+		player.Round = state
 	}
 }
 
@@ -1286,7 +1277,7 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 
 	allIn := bettingRound.SeatBet[actionSeat] + playerBalance
 	if canBet || canRaise {
-		playerID := h.GetPlayersInSeats()[actionSeat]
+		player := h.PlayersInSeats[actionSeat]
 		if h.CurrentRaiseDiff > 0 {
 			nextAction.MinRaiseAmount = (h.CurrentRaiseDiff * 2) + h.BetBeforeRaise
 		}
@@ -1322,20 +1313,29 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 		if canBet {
 			// calculate what the maximum amount the player can bet
 			//availableActions = append(availableActions, ACTION_BET)
-			betOptions = h.betOptions(actionSeat, h.CurrentState, playerID, nextAction.CallAmount)
+			betOptions = h.betOptions(actionSeat,
+				h.CurrentState,
+				player.PlayerId,
+				nextAction.CallAmount)
 		}
 
 		if canRaise {
 			// calculate what the maximum amount the player can bet
 			if h.CurrentState == HandStatus_PREFLOP && h.CurrentRaise == h.BigBlind {
-				betOptions = h.betOptions(actionSeat, h.CurrentState, playerID, nextAction.CallAmount)
+				betOptions = h.betOptions(actionSeat,
+					h.CurrentState,
+					player.PlayerId,
+					nextAction.CallAmount)
 				canBet = true
 				canRaise = false
 			} else {
 				if allIn > nextAction.MinRaiseAmount {
 					// calculate the maximum amount the player can raise
 					canRaise = true
-					betOptions = h.raiseOptions(actionSeat, nextAction.MinRaiseAmount, nextAction.MaxRaiseAmount, playerID)
+					betOptions = h.raiseOptions(actionSeat,
+						nextAction.MinRaiseAmount,
+						nextAction.MaxRaiseAmount,
+						player.PlayerId)
 				} else {
 					canRaise = false
 					// this player can go only all-in to raise

@@ -121,7 +121,13 @@ func NewPokerGame(
 }
 
 func (g *Game) playersInSeatsCount() int {
-	return len(g.PlayersInSeats) - 1
+	count := 0
+	for _, player := range g.PlayersInSeats {
+		if player.PlayerID != 0 {
+			count++
+		}
+	}
+	return count
 }
 
 func (g *Game) runGame() {
@@ -184,7 +190,7 @@ func (g *Game) initGameState() error {
 func (g *Game) countActivePlayers() int {
 	count := 0
 	for _, p := range g.PlayersInSeats {
-		if p.Status == PlayerStatus_PLAYING {
+		if p.Status == PlayerStatus_PLAYING && p.Inhand {
 			count++
 		}
 	}
@@ -406,10 +412,9 @@ func (g *Game) dealNewHand() error {
 			g.playerConfig.Store(playerUpdateConfig)
 		}
 		for _, seat := range newHandInfo.PlayersInSeats {
-			if !seat.ActiveSeat {
+			if seat.PlayerID == 0 {
 				continue
 			}
-
 			// g.PlayersInSeats[seatNo] = SeatPlayer{}
 			playerUpdateConfig[seat.PlayerID] = PlayerConfigUpdate{
 				PlayerId:         seat.PlayerID,
@@ -463,19 +468,26 @@ func (g *Game) dealNewHand() error {
 			if playerInSeat.SeatNo <= uint32(g.config.MaxPlayers) {
 				g.PlayersInSeats[playerInSeat.SeatNo] = playerInSeat
 			}
-			playerUpdateConfig[playerInSeat.PlayerID] = PlayerConfigUpdate{
-				PlayerId:         playerInSeat.PlayerID,
-				MuckLosingHand:   playerInSeat.MuckLosingHand,
-				RunItTwicePrompt: playerInSeat.RunItTwicePrompt,
-			}
-
-			playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
-				Status:       playerInSeat.Status,
-				Stack:        playerInSeat.Stack,
-				PlayerId:     playerInSeat.PlayerID,
-				Name:         playerInSeat.Name,
-				BuyInExpTime: playerInSeat.BuyInTimeExpAt,
-				BreakExpTime: playerInSeat.BreakTimeExpAt,
+			if playerInSeat.PlayerID != 0 {
+				playerUpdateConfig[playerInSeat.PlayerID] = PlayerConfigUpdate{
+					PlayerId:         playerInSeat.PlayerID,
+					MuckLosingHand:   playerInSeat.MuckLosingHand,
+					RunItTwicePrompt: playerInSeat.RunItTwicePrompt,
+				}
+				playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
+					Status:       playerInSeat.Status,
+					Stack:        playerInSeat.Stack,
+					PlayerId:     playerInSeat.PlayerID,
+					Name:         playerInSeat.Name,
+					BuyInExpTime: playerInSeat.BuyInTimeExpAt,
+					BreakExpTime: playerInSeat.BreakTimeExpAt,
+					Inhand:       playerInSeat.Inhand,
+				}
+			} else {
+				playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
+					OpenSeat: false,
+					Inhand:   false,
+				}
 			}
 		}
 
@@ -627,14 +639,14 @@ func (g *Game) dealNewHand() error {
 	numActivePlayers := uint32(g.countActivePlayers())
 	cardAnimationTime := time.Duration(numActivePlayers * g.delays.DealSingleCard * newHand.NoCards)
 	// send the cards to each player
-	for _, player := range g.PlayersInSeats {
-		if player.Status != PlayerStatus_PLAYING {
+	for _, player := range handState.PlayersInSeats {
+		if !player.Inhand {
 			// Open seat or not playing this hand
 			continue
 		}
 
 		// if the player balance is 0, then don't deal card to him
-		if _, ok := handState.PlayersState[player.PlayerID]; !ok {
+		if player.Stack == 0 {
 			handState.ActiveSeats[int(player.SeatNo)] = 0
 			continue
 		}
@@ -651,8 +663,8 @@ func (g *Game) dealNewHand() error {
 
 		//messageData, _ := proto.Marshal(&message)
 		handMessage := HandMessage{
-			PlayerId:  player.PlayerID,
-			MessageId: g.generateMsgID("CARDS", handState.HandNum, handState.CurrentState, player.PlayerID, "", handState.CurrentActionNum),
+			PlayerId:  player.PlayerId,
+			MessageId: g.generateMsgID("CARDS", handState.HandNum, handState.CurrentState, player.PlayerId, "", handState.CurrentActionNum),
 			Messages: []*HandMessageItem{
 				{
 					MessageType: HandDeal,
@@ -661,7 +673,7 @@ func (g *Game) dealNewHand() error {
 			},
 		}
 
-		g.sendHandMessageToPlayer(&handMessage, player.PlayerID)
+		g.sendHandMessageToPlayer(&handMessage, player.PlayerId)
 
 		crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_4, 0)
 	}
@@ -678,6 +690,10 @@ func (g *Game) dealNewHand() error {
 
 	allMsgItems := make([]*HandMessageItem, 0)
 	if handState.BombPot {
+		bombPotMessage := &HandMessageItem{
+			MessageType: HandDeal,
+		}
+		allMsgItems = append(allMsgItems, bombPotMessage)
 		messages, err := g.gotoFlop(handState)
 		if err == nil {
 			allMsgItems = append(allMsgItems, messages...)
@@ -876,8 +892,8 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 	currentHandState.PlayersActed = make(map[uint32]*PlayerActRound)
 
 	var playerSeatNo uint32
-	for seatNo, pid := range handState.GetPlayersInSeats() {
-		if pid == playerID {
+	for seatNo, player := range handState.PlayersInSeats {
+		if player.PlayerId == playerID {
 			playerSeatNo = uint32(seatNo)
 			break
 		}
@@ -903,12 +919,14 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 		currentHandState.NextSeatAction = handState.NextSeatAction
 	}
 	currentHandState.PlayersStack = make(map[uint64]float32)
-	playerState := handState.GetPlayersState()
-	for seatNo, playerID := range handState.GetPlayersInSeats() {
-		if playerID == 0 {
+	for seatNo, player := range handState.PlayersInSeats {
+		if player.OpenSeat {
 			continue
 		}
-		currentHandState.PlayersStack[uint64(seatNo)] = playerState[playerID].Stack
+		if player.PlayerId == 0 {
+			continue
+		}
+		currentHandState.PlayersStack[uint64(seatNo)] = player.Stack
 	}
 
 	handStateMsg := &HandMessageItem{

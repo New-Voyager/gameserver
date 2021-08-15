@@ -317,7 +317,7 @@ type SeatPlayer struct {
 	MuckLosingHand   bool
 	RunItTwicePrompt bool
 	PostedBlind      bool
-	ActiveSeat       bool
+	Inhand           bool
 }
 
 /*

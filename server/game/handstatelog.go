@@ -11,28 +11,31 @@ func (h *HandState) PrintTable(players map[uint64]*Player) string {
 	var b strings.Builder
 	b.Grow(32)
 	fmt.Fprintf(&b, "Game ID: %d Hand Num: %d, Seats: [", h.GameId, h.HandNum)
-	for seatNo, playerID := range h.GetPlayersInSeats() {
+	for seatNo, playerInSeat := range h.PlayersInSeats {
 		if seatNo == 0 {
 			// dealer seat
 			continue
 		}
 		seatNo++
-		if playerID == 0 {
+		if playerInSeat.OpenSeat {
 			// empty seat
-			fmt.Fprintf(&b, " {%d: Empty}, ", seatNo)
+			fmt.Fprintf(&b, " {%d: Open Seat}, ", seatNo)
 		} else {
-			player, _ := players[playerID]
-			playerState, _ := h.PlayersState[playerID]
+			player, _ := players[playerInSeat.PlayerId]
 			playerCards, _ := h.PlayersCards[uint32(seatNo)]
 			cardString := poker.CardsToString(playerCards)
 			if uint32(seatNo) == h.ButtonPos {
-				fmt.Fprintf(&b, " {%d: %s, %f, %s, BUTTON} ", seatNo, player.PlayerName, playerState.Stack, cardString)
+				fmt.Fprintf(&b, " {%d: %s, %f, %s, BUTTON} ",
+					seatNo, player.PlayerName, playerInSeat.Stack, cardString)
 			} else if uint32(seatNo) == h.SmallBlindPos {
-				fmt.Fprintf(&b, " {%d: %s, %f, %s, SB} ", seatNo, player.PlayerName, playerState.Stack, cardString)
+				fmt.Fprintf(&b, " {%d: %s, %f, %s, SB} ",
+					seatNo, player.PlayerName, playerInSeat.Stack, cardString)
 			} else if uint32(seatNo) == h.BigBlindPos {
-				fmt.Fprintf(&b, " {%d: %s, %f, %s, BB} ", seatNo, player.PlayerName, playerState.Stack, cardString)
+				fmt.Fprintf(&b, " {%d: %s, %f, %s, BB} ",
+					seatNo, player.PlayerName, playerInSeat.Stack, cardString)
 			} else {
-				fmt.Fprintf(&b, " {%d: %s, %f, %s} ", seatNo, player.PlayerName, playerState.Stack, cardString)
+				fmt.Fprintf(&b, " {%d: %s, %f, %s} ",
+					seatNo, player.PlayerName, playerInSeat.Stack, cardString)
 			}
 		}
 	}
