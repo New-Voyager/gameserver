@@ -574,7 +574,7 @@ func (g *Game) dealNewHand() error {
 	}
 
 	playersActed := make(map[uint32]*PlayerActRound)
-	for seatNo, action := range handState.GetPlayersActed() {
+	for seatNo, action := range handState.PlayersActed {
 		if action.State == PlayerActState_PLAYER_ACT_EMPTY_SEAT {
 			continue
 		}
@@ -899,7 +899,7 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 		}
 	}
 
-	for seatNo, action := range handState.GetPlayersActed() {
+	for seatNo, action := range handState.PlayersActed {
 		if action.State == PlayerActState_PLAYER_ACT_EMPTY_SEAT {
 			continue
 		}
