@@ -1,10 +1,10 @@
-# SYSTEM_TEST_TIMEOUT_SEC:60
+# SYSTEM_TEST_TIMEOUT_SEC:120
 
 server-settings:
   game-block-time: 30
   notify-host-time-window: 10
   game-coins-per-block: 3
-  free-time: 60
+  free-time: 30
   new-user-free-coins: 0
 
 club:
@@ -50,6 +50,7 @@ bot-config:
 after-game:
   verify:
     num-hands-played:
+      gte: 5
       lte: 5
 
     # verify host received APPCOIN_NEEDED message
@@ -83,6 +84,7 @@ hands:
         - action: 1, CHECK
   - setup:
       auto: true
+    pause-game: true
     preflop:
       seat-actions:
         - action: 2, CALL, 2
@@ -103,10 +105,12 @@ hands:
         - action: 3, CHECK
         - action: 1, CHECK
         - action: 2, CHECK
+    post-hand:
+      - buy-coins: 10
+      - resume-game: true
 
   - setup:
       auto: true
-    pause-game: true
     preflop:
       seat-actions:
         - action: 3, CALL, 2
@@ -127,9 +131,6 @@ hands:
         - action: 1, CHECK
         - action: 2, CHECK
         - action: 3, CHECK
-    post-hand:
-      - buy-coins: 10
-      - resume-game: true
 
   - setup:
       auto: true

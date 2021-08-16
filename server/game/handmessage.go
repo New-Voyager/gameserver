@@ -156,8 +156,8 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 	currentHandState.PlayersActed = make(map[uint32]*PlayerActRound)
 
 	var playerSeatNo uint32
-	for seatNo, pid := range handState.GetPlayersInSeats() {
-		if pid == playerMsg.PlayerId {
+	for seatNo, player := range handState.PlayersInSeats {
+		if player.PlayerId == playerMsg.PlayerId {
 			playerSeatNo = uint32(seatNo)
 			break
 		}
@@ -183,12 +183,11 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 		currentHandState.NextSeatAction = handState.NextSeatAction
 	}
 	currentHandState.PlayersStack = make(map[uint64]float32)
-	playerState := handState.GetPlayersState()
-	for seatNo, playerID := range handState.GetPlayersInSeats() {
-		if playerID == 0 {
+	for seatNo, player := range handState.PlayersInSeats {
+		if seatNo == 0 || player.OpenSeat {
 			continue
 		}
-		currentHandState.PlayersStack[uint64(seatNo)] = playerState[playerID].Stack
+		currentHandState.PlayersStack[uint64(seatNo)] = player.Stack
 	}
 
 	handStateMsg := &HandMessageItem{
@@ -232,9 +231,9 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 					break
 				}
 			}
-			playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
+			player := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
 			if handState.NextSeatAction.ActionTimesoutAt != 0 {
-				g.resetTimer(handState.NextSeatAction.SeatNo, playerID, canCheck, actionExpiresAt)
+				g.resetTimer(handState.NextSeatAction.SeatNo, player.PlayerId, canCheck, actionExpiresAt)
 			}
 			return nil
 		}
@@ -351,12 +350,12 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 			g.sendActionAck(playerMsg, handState.CurrentActionNum)
 		}
 
-		playerID := handState.PlayersInSeats[seatNo]
+		player := handState.PlayersInSeats[seatNo]
 		if actionMsg.GetPlayerActed().GetTimedOut() {
-			handState.PlayerStats[playerID].ConsecutiveActionTimeouts++
+			handState.PlayerStats[player.PlayerId].ConsecutiveActionTimeouts++
 		} else {
-			handState.PlayerStats[playerID].ConsecutiveActionTimeouts = 0
-			handState.PlayerStats[playerID].ActedAtLeastOnce = true
+			handState.PlayerStats[player.PlayerId].ConsecutiveActionTimeouts = 0
+			handState.PlayerStats[player.PlayerId].ActedAtLeastOnce = true
 		}
 
 		msg := HandMessage{
@@ -484,18 +483,18 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	}
 
 	seatNo := actionMsg.GetPlayerActed().GetSeatNo()
-	playerID := handState.PlayersInSeats[seatNo]
+	player := handState.PlayersInSeats[seatNo]
 
 	if actionMsg.GetPlayerActed().GetTimedOut() {
-		handState.PlayerStats[playerID].ConsecutiveActionTimeouts++
+		handState.PlayerStats[player.PlayerId].ConsecutiveActionTimeouts++
 	} else {
-		handState.PlayerStats[playerID].ConsecutiveActionTimeouts = 0
+		handState.PlayerStats[player.PlayerId].ConsecutiveActionTimeouts = 0
 
 		// When the consecutive timeout counts get reported to the api server,
 		// the api server needs to know if the player has acted at all this hand
 		// so that it can clear the count from the previous hand and start a new counter
 		// instead of adding to it.
-		handState.PlayerStats[playerID].ActedAtLeastOnce = true
+		handState.PlayerStats[player.PlayerId].ActedAtLeastOnce = true
 	}
 
 	// This number is used to generate hand message IDs uniquely and deterministically across the server crashes.
@@ -688,13 +687,11 @@ func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 	handState.setupFlop()
 	pots, seatsInPots := g.getPots(handState)
 	balance := make(map[uint32]float32)
-	for seatNo, playerID := range handState.PlayersInSeats {
+	for seatNo, player := range handState.PlayersInSeats {
 		if seatNo == 0 {
 			continue
 		}
-		if playerState, ok := handState.PlayersState[playerID]; ok {
-			balance[uint32(seatNo)] = playerState.Stack
-		}
+		balance[uint32(seatNo)] = player.Stack
 	}
 
 	// update player stats
@@ -761,13 +758,11 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 	pots, seatsInPots := g.getPots(handState)
 
 	balance := make(map[uint32]float32)
-	for seatNo, playerID := range handState.PlayersInSeats {
+	for seatNo, player := range handState.PlayersInSeats {
 		if seatNo == 0 {
 			continue
 		}
-		if playerState, ok := handState.PlayersState[playerID]; ok {
-			balance[uint32(seatNo)] = playerState.Stack
-		}
+		balance[uint32(seatNo)] = player.Stack
 	}
 
 	// update player stats
@@ -834,13 +829,11 @@ func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
 	pots, seatsInPots := g.getPots(handState)
 
 	balance := make(map[uint32]float32)
-	for seatNo, playerID := range handState.PlayersInSeats {
+	for seatNo, player := range handState.PlayersInSeats {
 		if seatNo == 0 {
 			continue
 		}
-		if playerState, ok := handState.PlayersState[playerID]; ok {
-			balance[uint32(seatNo)] = playerState.Stack
-		}
+		balance[uint32(seatNo)] = player.Stack
 	}
 
 	// update player stats
@@ -890,11 +883,14 @@ func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
 	return []*HandMessageItem{msgItem}, nil
 }
 
-func (g *Game) encryptPlayerCardRanks(playerCardRanks map[uint32]string, playersInSeats []uint64) (map[uint32]string, error) {
+func (g *Game) encryptPlayerCardRanks(playerCardRanks map[uint32]string, playersInSeats []*PlayerInSeatState) (map[uint32]string, error) {
 	encryptedRanks := make(map[uint32]string)
 	for seatNo, cardRank := range playerCardRanks {
-		playerID := playersInSeats[seatNo]
-		encryptedCardRank, err := g.EncryptAndB64ForPlayer([]byte(cardRank), playerID)
+		if seatNo == 0 {
+			continue
+		}
+		player := playersInSeats[seatNo]
+		encryptedCardRank, err := g.EncryptAndB64ForPlayer([]byte(cardRank), player.PlayerId)
 		if err != nil {
 			return nil, err
 		}
@@ -1000,10 +996,9 @@ func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([
 	hs.CurrentState = HandStatus_RESULT
 
 	for seatNo, player := range hs.PlayersInSeats {
-		if player == 0 {
+		if seatNo == 0 || !player.Inhand || player.OpenSeat {
 			continue
 		}
-		playerState := hs.PlayersState[player]
 
 		before := float32(0.0)
 		after := float32(0.0)
@@ -1016,20 +1011,20 @@ func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([
 		if balance, ok := handResultClient.PlayerInfo[uint32(seatNo)]; ok {
 			after = balance.Balance.After
 		} else {
-			after = hs.PlayersState[player].Stack
+			after = player.Stack
 		}
 		rakePaid := float32(0.0)
-		if playerRake, ok := hs.RakePaid[player]; ok {
+		if playerRake, ok := hs.RakePaid[player.PlayerId]; ok {
 			rakePaid = playerRake
 		}
 		if _, ok := handResultClient.PlayerInfo[uint32(seatNo)]; !ok {
 			handResultClient.PlayerInfo[uint32(seatNo)] = &PlayerHandInfo{
-				Id: playerState.PlayerId,
+				Id: player.PlayerId,
 				Balance: &HandPlayerBalance{
 					Before: before,
 					After:  after,
 				},
-				Received: playerState.PlayerReceived,
+				Received: player.PlayerReceived,
 				RakePaid: rakePaid,
 			}
 		}
@@ -1043,19 +1038,6 @@ func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([
 	msgItems = append(msgItems, msgItem2)
 	return msgItems, nil
 }
-
-// func (g *Game) announceHighHand(saveResult *SaveHandResult, highHand *HighHand) {
-// 	for _, gameCode := range saveResult.HighHand.AssociatedGames {
-// 		gameMessage := &GameMessage{
-// 			GameCode:    gameCode,
-// 			MessageType: HighHandMsg,
-// 		}
-// 		gameMessage.GameMessage = &GameMessage_HighHand{
-// 			HighHand: highHand,
-// 		}
-// 		g.broadcastGameMessage(gameMessage)
-// 	}
-// }
 
 func (g *Game) moveToNextRound(handState *HandState) ([]*HandMessageItem, error) {
 	expectedState := FlowState_MOVE_TO_NEXT_ROUND
@@ -1125,10 +1107,10 @@ func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error
 		MessageType: HandPlayerAction,
 		Content:     &HandMessageItem_SeatAction{SeatAction: handState.NextSeatAction},
 	}
-	playerID := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
+	player := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
 	actionTimesoutAt := time.Now().Add(time.Duration(g.config.ActionTime) * time.Second)
 	handState.NextSeatAction.ActionTimesoutAt = actionTimesoutAt.Unix()
-	g.resetTimer(handState.NextSeatAction.SeatNo, playerID, canCheck, actionTimesoutAt)
+	g.resetTimer(handState.NextSeatAction.SeatNo, player.PlayerId, canCheck, actionTimesoutAt)
 	allMsgItems = append(allMsgItems, yourActionMsg)
 
 	pots := make([]float32, 0)
@@ -1241,13 +1223,13 @@ func (g *Game) showdown(handState *HandState) ([]*HandMessageItem, error) {
 	handState.FlowState = FlowState_HAND_ENDED
 
 	// track whether the player is active in this round or not
-	for _, playerID := range handState.ActiveSeats {
+	for seatNo, playerID := range handState.ActiveSeats {
 		if playerID == 0 {
 			continue
 		}
-		playerState, found := handState.PlayersState[playerID]
-		if found {
-			playerState.Round = HandStatus_SHOW_DOWN
+		player := handState.PlayersInSeats[seatNo]
+		if player.Inhand {
+			player.Round = HandStatus_SHOW_DOWN
 		}
 	}
 
@@ -1318,8 +1300,8 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 		// if current pot has only one player, return the money to the player
 		if len(currentPot.Seats) == 1 {
 			activePlayer := currentPot.Seats[0]
-			playerID := hs.ActiveSeats[activePlayer]
-			hs.PlayersState[playerID].Stack += currentPot.Pot
+			player := hs.PlayersInSeats[activePlayer]
+			player.Stack += currentPot.Pot
 			// remove the pot
 			hs.Pots = hs.Pots[:len(hs.Pots)-1]
 		}

@@ -68,6 +68,10 @@ message PlayerInSeatState {
   float playerReceived = 6;
   string buy_in_exp_time = 7;
   string break_exp_time = 8;
+  bool inhand = 9;
+  bool open_seat = 10;
+  bool posted_blind = 11;
+  uint32 seat_no = 12;
 }
 
 message PlayerBalance {

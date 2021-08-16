@@ -27,10 +27,11 @@ func (s *SeatsInPots) add(seatNo uint32, amount float32) {
 func (h *HandState) lowestBet(seatBets []float32) float32 {
 	lowestBet := float32(-1.0)
 	for seatNo, bet := range seatBets {
-		if h.PlayersInSeats[seatNo] == 0 {
-			// empty seat
-			continue
-		}
+		// if !h.PlayersInSeats[seatNo].OpenSeat ||
+		//    !h.PlayersInSeats[seatNo].Inhand  {
+		// 	// empty seat
+		// 	continue
+		// }
 
 		// also eliminate the player who is not active any longer
 		if h.ActiveSeats[seatNo] == 0 || bet == 0 {
@@ -59,7 +60,7 @@ func (h *HandState) addChipsToPot(seatBets []float32, handEnded bool) {
 	lowestBet := h.lowestBet(seatBets)
 	allInPlayers := false
 	for seatNo, bet := range seatBets {
-		if h.PlayersInSeats[seatNo] == 0 || seatBets[seatNo] == 0.0 {
+		if seatBets[seatNo] == 0.0 {
 			// empty seat
 			continue
 		}
