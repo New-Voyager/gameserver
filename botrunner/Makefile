@@ -118,7 +118,7 @@ botrunner-server:
 	go run ./cmd/server/main.go
 
 .PHONY: publish
-publish: gcp-publish do-publish
+publish: gcp-publish
 
 .PHONY: clean-ci
 clean-ci: system-test-down
