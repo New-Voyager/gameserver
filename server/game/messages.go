@@ -63,6 +63,7 @@ const (
 	HandNextStep         string = "NEXT_STEP"
 	HandAnnouncement     string = "ANNOUNCEMENT"
 	HandResultMessage2   string = "RESULT2"
+	HandBombPot          string = "BOMBPOT"
 )
 
 // sub message types used in TableUpdate message

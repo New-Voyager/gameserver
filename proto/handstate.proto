@@ -32,7 +32,7 @@ message HandState {
   // the seats are arranged as in typical poker table
   // seat 1 is left side of the dealer, seat 0 is right side of the dealer
   // if a seat is empty, then the player id is 0
-  repeated uint64 players_in_seats = 6 [packed=true];
+  //repeated uint64 players_in_seats = 6 [packed=true];
 
   // player current stack
   uint32 button_pos = 7;
@@ -72,7 +72,8 @@ message HandState {
   uint32 big_blind_pos = 25;
 
   // key is player id
-  map <uint64, PlayerInSeatState> players_state = 26;
+  //map <uint64, PlayerInSeatState> players_state = 26;
+  repeated PlayerInSeatState players_in_seats = 26;
   float next_min_raise = 27;
 
   // game type

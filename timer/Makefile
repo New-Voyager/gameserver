@@ -26,7 +26,7 @@ run:
 	API_SERVER_URL=$(DEV_API_SERVER_URL) go run ./main.go
 
 .PHONY: publish
-publish: gcp-publish do-publish
+publish: gcp-publish
 
 .PHONY: clean-ci
 clean-ci:
