@@ -193,7 +193,7 @@ fmt:
 	cd poker && go fmt
 
 .PHONY: publish
-publish: gcp-publish do-publish
+publish: gcp-publish
 
 .PHONY: clean-ci
 clean-ci: docker-test-down
