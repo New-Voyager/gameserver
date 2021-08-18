@@ -10,6 +10,7 @@ import (
 
 	_ "github.com/lib/pq"
 	natsgo "github.com/nats-io/nats.go"
+	"github.com/pkg/errors"
 
 	"voyager.com/server/crashtest"
 	"voyager.com/server/game"
@@ -42,6 +43,7 @@ func init() {
 func main() {
 	err := run()
 	if err != nil {
+		mainLogger.Error().Msg(err.Error())
 		os.Exit(1)
 	}
 }
@@ -51,7 +53,7 @@ func run() error {
 	flag.Parse()
 	delays, err := game.ParseDelayConfig(*delayConfigFile)
 	if err != nil {
-		mainLogger.Panic().Msg(err.Error())
+		return errors.Wrap(err, "Error while parsing delay config")
 	}
 
 	if !*runGameScriptTests {
@@ -60,7 +62,10 @@ func run() error {
 	}
 
 	// create game manager
-	game.CreateGameManager(*runGameScriptTests, delays)
+	_, err = game.CreateGameManager(*runGameScriptTests, delays)
+	if err != nil {
+		return errors.Wrap(err, "Error while creating game manager")
+	}
 
 	if *runGameScriptTests {
 		return testScripts()
@@ -125,7 +130,10 @@ func runWithNats() {
 	// restart games
 	time.Sleep(1 * time.Second)
 	mainLogger.Info().Msg("Requesting to restart the active games.")
-	nats.RequestRestartGames(apiServerURL)
+	err = nats.RequestRestartGames(apiServerURL)
+	if err != nil {
+		mainLogger.Error().Msg("Error while requesting to restart active games")
+	}
 
 	if util.Env.IsSystemTest() {
 		// System test needs a way to return from main to collect the code coverage.

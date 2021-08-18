@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -131,6 +132,16 @@ func (g *Game) playersInSeatsCount() int {
 }
 
 func (g *Game) runGame() {
+	defer func() {
+		if err := recover(); err != nil {
+			// Panic occurred.
+			channelGameLogger.Error().
+				Uint32("club", g.config.ClubId).
+				Str("game", g.config.GameCode).
+				Msgf("runGame returning due to panic: %s\nStack Trace:\n%s", err, string(debug.Stack()))
+		}
+	}()
+
 	ended := false
 	for !ended {
 		if !g.running {
@@ -283,7 +294,10 @@ func (g *Game) startGame() (bool, error) {
 			err = g.moveAPIServerToNextHand(0)
 		}
 
-		g.dealNewHand()
+		err = g.dealNewHand()
+		if err != nil {
+			return false, errors.Wrap(err, "Error while dealing new hand")
+		}
 	}
 
 	return true, nil
@@ -391,8 +405,7 @@ func (g *Game) dealNewHand() error {
 		// new hand information contains players in seats/balance/status, game type, announce new game
 		newHandInfo, err = g.getNewHandInfo()
 		if err != nil {
-			// right now panic (shouldn't happen)
-			panic(err)
+			return errors.Wrap(err, "Error in getNewhandInfo")
 		}
 		if newHandInfo.TableStatus != TableStatus_GAME_RUNNING {
 			return nil
@@ -544,7 +557,10 @@ func (g *Game) dealNewHand() error {
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
 
-	handState.initialize(g.config, newHandInfo, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
+	err = handState.initialize(g.config, newHandInfo, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
+	if err != nil {
+		return errors.Wrapf(err, "Error while initializing hand state")
+	}
 	if testHandSetup != nil {
 		resultPauseTime = int(testHandSetup.ResultPauseTime)
 	}

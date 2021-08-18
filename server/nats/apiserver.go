@@ -161,7 +161,7 @@ func registerGameServer() error {
 	var err error
 	ip, err := getIp()
 	if err != nil {
-		panic(fmt.Sprintf("Could not get ip address of the server"))
+		return fmt.Errorf("Could not get ip address of the server")
 	}
 
 	hostname, err := getFqdn()
@@ -179,7 +179,7 @@ func registerGameServer() error {
 	resp, err := http.Post(statusUrl, "application/json", bytes.NewBuffer(reqData))
 	if err != nil {
 		logger.Fatal().Msg(fmt.Sprintf("Failed to register server. Error: %s", err.Error()))
-		panic("Failed when registering game server")
+		return errors.Wrap(err, "Failed when registering game server")
 	}
 	defer resp.Body.Close()
 

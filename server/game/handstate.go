@@ -5,6 +5,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"voyager.com/server/poker"
 )
@@ -107,7 +108,7 @@ func (h *HandState) initialize(gameConfig *GameConfig,
 	newHandInfo *NewHandInfo,
 	testHandSetup *TestHandSetup,
 	buttonPos uint32, sbPos uint32, bbPos uint32,
-	playersInSeats []SeatPlayer) {
+	playersInSeats []SeatPlayer) error {
 	// settle players in the seats
 	h.PlayersInSeats = make([]*PlayerInSeatState, gameConfig.MaxPlayers+1) // seat 0 is dealer
 	h.NoActiveSeats = 0
@@ -160,7 +161,6 @@ func (h *HandState) initialize(gameConfig *GameConfig,
 			Uint64("game", h.GetGameId()).
 			Uint32("hand", h.GetHandNum()).
 			Msgf("Button Pos: %d does not have any active seat: %v. This is a dead button", buttonPos, h.PlayersInSeats)
-		//panic(fmt.Sprintf("Button Pos: %d does not have any active seats: %v", buttonPos, h.PlayersInSeats))
 	}
 
 	h.HandStats = &HandStats{}
@@ -203,7 +203,11 @@ func (h *HandState) initialize(gameConfig *GameConfig,
 		// TODO: make sure small blind is still there
 		// if small blind left the game, we can have dead small
 		// to make it simple, we will make new players to always to post or wait for the big blind
-		h.SmallBlindPos, h.BigBlindPos = h.getBlindPos()
+		sb, bb, err := h.getBlindPos()
+		if err != nil {
+			return errors.Wrap(err, "Error while getting blind positions")
+		}
+		h.SmallBlindPos, h.BigBlindPos = sb, bb
 	}
 
 	h.BalanceBeforeHand = make([]*PlayerBalance, 0)
@@ -287,6 +291,8 @@ func (h *HandState) initialize(gameConfig *GameConfig,
 
 	// setup hand for preflop
 	h.setupPreflop(postedBlinds)
+
+	return nil
 }
 
 func (h *HandState) copyPlayersState(maxSeats uint32, playersInSeats []SeatPlayer) map[uint64]*PlayerInSeatState {
@@ -545,7 +551,7 @@ func (h *HandState) hasEveryOneActed() bool {
 	return allActed
 }
 
-func (h *HandState) getBlindPos() (uint32, uint32) {
+func (h *HandState) getBlindPos() (uint32, uint32, error) {
 
 	buttonSeat := uint32(h.GetButtonPos())
 	smallBlindPos := h.getNextActivePlayer(buttonSeat)
@@ -553,9 +559,9 @@ func (h *HandState) getBlindPos() (uint32, uint32) {
 
 	if smallBlindPos == 0 || bigBlindPos == 0 {
 		// TODO: handle not enough players condition
-		panic("Not enough players")
+		return 0, 0, fmt.Errorf("Small bind (%d) or big blind (%d) position is 0", smallBlindPos, bigBlindPos)
 	}
-	return uint32(smallBlindPos), uint32(bigBlindPos)
+	return uint32(smallBlindPos), uint32(bigBlindPos), nil
 }
 
 func (h *HandState) getPlayersCards(deck *poker.Deck, scriptedCardsBySeat map[uint32]*GameSetupSeatCards) map[uint32][]byte {
@@ -1107,7 +1113,7 @@ func (h *HandState) removeEmptyPots() {
 	h.Pots = pots
 }
 
-func (h *HandState) setupNextRound(state HandStatus) {
+func (h *HandState) setupNextRound(state HandStatus) error {
 	h.CurrentState = state
 	h.resetPlayerActions()
 	h.CurrentRaise = 0
@@ -1117,12 +1123,11 @@ func (h *HandState) setupNextRound(state HandStatus) {
 	actionSeat := h.getNextActivePlayer(h.ButtonPos)
 	if actionSeat == 0 {
 		// every one is all in
-		return
+		return nil
 	}
 	playerState := h.getPlayerFromSeat(actionSeat)
 	if playerState == nil {
-		// something wrong
-		panic("Something went wrong. player id cannot be null")
+		return fmt.Errorf("Player state for seat %d is nil", actionSeat)
 	}
 	h.NextSeatAction = h.prepareNextAction(actionSeat, false)
 
@@ -1134,18 +1139,32 @@ func (h *HandState) setupNextRound(state HandStatus) {
 		}
 		player.Round = state
 	}
+
+	return nil
 }
 
-func (h *HandState) setupFlop() {
-	h.setupNextRound(HandStatus_FLOP)
+func (h *HandState) setupFlop() error {
+	err := h.setupNextRound(HandStatus_FLOP)
+	if err != nil {
+		return errors.Wrap(err, "Error while setting up next round (flop)")
+	}
+	return nil
 }
 
-func (h *HandState) setupTurn() {
-	h.setupNextRound(HandStatus_TURN)
+func (h *HandState) setupTurn() error {
+	err := h.setupNextRound(HandStatus_TURN)
+	if err != nil {
+		return errors.Wrap(err, "Error while setting up next round (turn)")
+	}
+	return nil
 }
 
-func (h *HandState) setupRiver() {
-	h.setupNextRound(HandStatus_RIVER)
+func (h *HandState) setupRiver() error {
+	err := h.setupNextRound(HandStatus_RIVER)
+	if err != nil {
+		return errors.Wrap(err, "Error while setting up next round (river)")
+	}
+	return nil
 }
 
 func (h *HandState) adjustToBringIn(amount float32) float32 {

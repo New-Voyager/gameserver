@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/godo.v2/glob"
 	yaml "gopkg.in/yaml.v2"
@@ -114,8 +115,7 @@ func RunGameScriptTests(fileOrDir string, testName string) error {
 	files, _, err := glob.Glob(patterns)
 	// runs game scripts and reports results
 	if err != nil {
-		fmt.Printf("Failed to get game script file(s) from dir: %s\n", fileOrDir)
-		os.Exit(1)
+		return errors.Wrapf(err, "Failed to get game script file(s) from dir: %s", fileOrDir)
 	}
 
 	testDriver := NewTestDriver()

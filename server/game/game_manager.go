@@ -11,9 +11,9 @@ import (
 
 var GameManager *Manager
 
-func CreateGameManager(isScriptTest bool, delays Delays) *Manager {
+func CreateGameManager(isScriptTest bool, delays Delays) (*Manager, error) {
 	if GameManager != nil {
-		return GameManager
+		return GameManager, nil
 	}
 
 	var apiServerURL string
@@ -25,20 +25,20 @@ func CreateGameManager(isScriptTest bool, delays Delays) *Manager {
 
 		crashdb, err = sqlx.Open("postgres", internal.GetGamesConnStr())
 		if err != nil {
-			panic(errors.Wrap(err, "Unable to create sqlx handle to postgres"))
+			return nil, errors.Wrap(err, "Unable to create sqlx handle to postgres")
 		}
 		err = crashdb.Ping()
 		if err != nil {
-			panic(errors.Wrap(err, "Unable to verify postgres connection"))
+			return nil, errors.Wrap(err, "Unable to verify postgres connection")
 		}
 
 		usersdb, err = sqlx.Open("postgres", internal.GetUsersConnStr())
 		if err != nil {
-			panic(errors.Wrap(err, "Unable to create sqlx handle to postgres"))
+			return nil, errors.Wrap(err, "Unable to create sqlx handle to postgres")
 		}
 		err = usersdb.Ping()
 		if err != nil {
-			panic(errors.Wrap(err, "Unable to verify postgres connection"))
+			return nil, errors.Wrap(err, "Unable to verify postgres connection")
 		}
 	}
 
@@ -58,9 +58,9 @@ func CreateGameManager(isScriptTest bool, delays Delays) *Manager {
 
 	gm, err := NewGameManager(isScriptTest, apiServerURL, handPersist, handSetupPersist, usersdb, crashdb, delays)
 	if err != nil {
-		panic(err)
+		return nil, errors.Wrap(err, "Error in NewGameManager")
 	}
 
 	GameManager = gm
-	return GameManager
+	return GameManager, nil
 }

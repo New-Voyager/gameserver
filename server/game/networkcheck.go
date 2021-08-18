@@ -1,13 +1,16 @@
 package game
 
 import (
-	"fmt"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"voyager.com/server/util"
 )
+
+var networkCheckLogger = log.With().Str("logger_name", "game::networkcheck").Logger()
 
 type playerPingState struct {
 	pongSeq      uint32
@@ -53,6 +56,14 @@ func (n *NetworkCheck) Destroy() {
 }
 
 func (n *NetworkCheck) loop() {
+	defer func() {
+		if err := recover(); err != nil {
+			// Panic occurred.
+			networkCheckLogger.Error().
+				Msgf("network check loop returning due to panic: %s\nStack Trace:\n%s", err, string(debug.Stack()))
+		}
+	}()
+
 	var paused bool
 	var currentPingSeq uint32
 	for {
@@ -124,7 +135,7 @@ func (n *NetworkCheck) doPingCheck(pingSeq uint32, playerIDs []uint64) {
 			if ps.pongSeq == pingSeq {
 				// Pong is received as expected.
 				if n.debugConnectivityCheck {
-					fmt.Printf("Player %d pong response time: %.3f seconds\n", playerID, ps.pongRecvTime.Sub(pingSentTime).Seconds())
+					networkCheckLogger.Info().Msgf("Player %d pong response time: %.3f seconds\n", playerID, ps.pongRecvTime.Sub(pingSentTime).Seconds())
 				}
 			} else {
 				// Response (pong) not received in time.
@@ -182,7 +193,7 @@ func (n *NetworkCheck) broadcastGameMessage(msg *GameMessage) error {
 func (n *NetworkCheck) handlePongMessage(message *PingPongMessage) {
 	err := n.onPlayerResponse(message)
 	if err != nil {
-		channelGameLogger.Error().Msgf("Error while processing pong message. Error: %s", err.Error())
+		networkCheckLogger.Error().Msgf("Error while processing pong message. Error: %s", err.Error())
 	}
 }
 
@@ -193,7 +204,7 @@ func (n *NetworkCheck) onPlayerResponse(playerPongMsg *PingPongMessage) error {
 	pongRecvTime := time.Now()
 
 	if n.debugConnectivityCheck {
-		fmt.Printf("PONG %d from player %d at %s\n", pongSeq, playerID, pongRecvTime.Format(time.RFC3339))
+		networkCheckLogger.Info().Msgf("PONG %d from player %d at %s\n", pongSeq, playerID, pongRecvTime.Format(time.RFC3339))
 	}
 
 	n.pingStatesLock.Lock()
