@@ -1320,9 +1320,7 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 
 	handResult2Client := handResultProcessor.determineWinners()
 	allMsgItems := make([]*HandMessageItem, 0)
-	if handState.IncludeStatsInResult {
-		handResult2Client.PlayerStats = handState.GetPlayerStats()
-	}
+	handResult2Client.PlayerStats = handState.GetPlayerStats()
 
 	msgItems, err := g.sendResult2(handState, handResult2Client)
 	if err != nil {

@@ -458,6 +458,9 @@ func (h *HandState) acted(seatChangedAction uint32, state PlayerActState, amount
 			h.PlayersActed[seatChangedAction].RaiseAmount = h.CurrentRaiseDiff
 		}
 		playerID := h.ActiveSeats[int(seatChangedAction)]
+		if playerID == 0 {
+			return
+		}
 		// this player put money in the pot
 		if h.CurrentState == HandStatus_PREFLOP {
 			if state == PlayerActState_PLAYER_ACT_CALL ||
