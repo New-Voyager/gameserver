@@ -206,7 +206,7 @@ system-test-down: system-test-create-network system-test-generate-env
 	timeout 15 $(COMPOSE_SYSTEM_TEST) down --timeout 10
 
 .PHONY: system-test-up
-system-test-up: system-test-create-network do-login system-test-generate-env
+system-test-up: system-test-create-network gcp-login system-test-generate-env
 	$(COMPOSE_SYSTEM_TEST) up -d
 
 .PHONY: system-test-logs
