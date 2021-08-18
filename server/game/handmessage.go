@@ -684,7 +684,10 @@ func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 	for i, card := range handState.BoardCards[:3] {
 		flopCards[i] = uint32(card)
 	}
-	handState.setupFlop()
+	err := handState.setupFlop()
+	if err != nil {
+		return nil, err
+	}
 	pots, seatsInPots := g.getPots(handState)
 	balance := make(map[uint32]float32)
 	for seatNo, player := range handState.PlayersInSeats {
@@ -746,7 +749,10 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 		Str("game", g.config.GameCode).
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
-	handState.setupTurn()
+	err := handState.setupTurn()
+	if err != nil {
+		return nil, err
+	}
 
 	boardCards := make([]uint32, 4)
 	for i, card := range handState.BoardCards[:4] {
@@ -818,7 +824,10 @@ func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
 		Str("game", g.config.GameCode).
 		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
 
-	handState.setupRiver()
+	err := handState.setupRiver()
+	if err != nil {
+		return nil, err
+	}
 
 	cardsStr := poker.CardsToString(handState.BoardCards)
 	boardCards := make([]uint32, 5)

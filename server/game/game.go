@@ -546,7 +546,10 @@ func (g *Game) dealNewHand() error {
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
 
-	handState.initialize(g.config, newHandInfo, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
+	err = handState.initialize(g.config, newHandInfo, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
+	if err != nil {
+		return errors.Wrapf(err, "Error while initializing hand state")
+	}
 	if testHandSetup != nil {
 		resultPauseTime = int(testHandSetup.ResultPauseTime)
 	}
