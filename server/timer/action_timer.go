@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var actionTimerLogger = log.With().Str("logger_name", "game::networkcheck").Logger()
+var actionTimerLogger = log.With().Str("logger_name", "game::action_timer").Logger()
 
 type TimerMsg struct {
 	SeatNo           uint32
