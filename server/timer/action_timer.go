@@ -2,9 +2,14 @@ package timer
 
 import (
 	"fmt"
+	"runtime/debug"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
+
+var actionTimerLogger = log.With().Str("logger_name", "game::networkcheck").Logger()
 
 type TimerMsg struct {
 	SeatNo           uint32
@@ -48,6 +53,14 @@ func (a *ActionTimer) Destroy() {
 }
 
 func (a *ActionTimer) loop() {
+	defer func() {
+		if err := recover(); err != nil {
+			// Panic occurred.
+			actionTimerLogger.Error().
+				Msgf("action timer loop returning due to panic: %s\nStack Trace:\n%s", err, string(debug.Stack()))
+		}
+	}()
+
 	var expirationTime time.Time
 	paused := true
 	for {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -131,6 +132,16 @@ func (g *Game) playersInSeatsCount() int {
 }
 
 func (g *Game) runGame() {
+	defer func() {
+		if err := recover(); err != nil {
+			// Panic occurred.
+			channelGameLogger.Error().
+				Uint32("club", g.config.ClubId).
+				Str("game", g.config.GameCode).
+				Msgf("runGame returning due to panic: %s\nStack Trace:\n%s", err, string(debug.Stack()))
+		}
+	}()
+
 	ended := false
 	for !ended {
 		if !g.running {

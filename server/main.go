@@ -130,7 +130,10 @@ func runWithNats() {
 	// restart games
 	time.Sleep(1 * time.Second)
 	mainLogger.Info().Msg("Requesting to restart the active games.")
-	nats.RequestRestartGames(apiServerURL)
+	err = nats.RequestRestartGames(apiServerURL)
+	if err != nil {
+		mainLogger.Error().Msg("Error while requesting to restart active games")
+	}
 
 	if util.Env.IsSystemTest() {
 		// System test needs a way to return from main to collect the code coverage.
