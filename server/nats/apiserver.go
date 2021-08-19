@@ -123,7 +123,7 @@ func UpdateTableStatus(gameID uint64, status game.TableStatus, maxRetries uint32
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		logger.Fatal().Uint64("game", gameID).Msg(fmt.Sprintf("Failed to update table status. Error: %d", resp.StatusCode))
+		logger.Fatal().Uint64("game", gameID).Msgf("Failed to update table status. Error: %d", resp.StatusCode)
 	}
 	return err
 }
@@ -204,7 +204,7 @@ func registerGameServer() error {
 	}
 
 	if err != nil {
-		logger.Error().Msg(fmt.Sprintf("Failed to register server. Error: %s", err.Error()))
+		logger.Error().Msgf("Failed to register server. Error: %s", err.Error())
 		return errors.Wrap(err, "Error from post request")
 	}
 	defer resp.Body.Close()

@@ -71,7 +71,7 @@ func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCod
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		channelGameLogger.Fatal().Uint64("game", gameID).Msg(fmt.Sprintf("Failed to process pending updates. Error: %d", resp.StatusCode))
+		channelGameLogger.Fatal().Uint64("game", gameID).Msgf("Failed to process pending updates. Error: %d", resp.StatusCode)
 	}
 }
 

@@ -100,13 +100,13 @@ func runWithNats() {
 
 	nc, err := natsgo.Connect(natsURL)
 	if err != nil {
-		mainLogger.Error().Msg(fmt.Sprintf("Error connecting to NATS server, error: %v", err))
+		mainLogger.Error().Msgf("Error connecting to NATS server, error: %v", err)
 		return
 	}
 	natsGameManager, err := nats.NewGameManager(nc)
 	// initialize nats game manager
 	if err != nil {
-		mainLogger.Error().Msg(fmt.Sprintf("Error creating NATS game manager, error: %v", err))
+		mainLogger.Error().Msgf("Error creating NATS game manager, error: %v", err)
 		return
 	}
 

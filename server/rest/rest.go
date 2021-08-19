@@ -155,11 +155,11 @@ func playerUpdate(c *gin.Context) {
 
 	err = c.BindJSON(&playerUpdate)
 	if err != nil {
-		restLogger.Error().Msg(fmt.Sprintf("Failed to read player update message. Error: %s", err.Error()))
+		restLogger.Error().Msgf("Failed to read player update message. Error: %s", err.Error())
 		return
 	}
 
-	log.Info().Uint64("gameId", playerUpdate.GameId).Msg(fmt.Sprintf("Player: %d seatNo: %d is updated: %v", playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate))
+	log.Info().Uint64("gameId", playerUpdate.GameId).Msgf("Player: %d seatNo: %d is updated: %v", playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate)
 	natsGameManager.PlayerUpdate(playerUpdate.GameId, &playerUpdate)
 }
 
@@ -169,10 +169,10 @@ func gameUpdateStatus(c *gin.Context) {
 
 	err = c.BindJSON(&gameStatus)
 	if err != nil {
-		restLogger.Error().Msg(fmt.Sprintf("Failed to read game update message. Error: %s", err.Error()))
+		restLogger.Error().Msgf("Failed to read game update message. Error: %s", err.Error())
 		return
 	}
-	log.Info().Uint64("gameId", gameStatus.GameId).Msg(fmt.Sprintf("New game status: %d", gameStatus.GameStatus))
+	log.Info().Uint64("gameId", gameStatus.GameId).Msgf("New game status: %d", gameStatus.GameStatus)
 	natsGameManager.GameStatusChanged(gameStatus.GameId, gameStatus)
 }
 
@@ -235,11 +235,11 @@ func tableUpdate(c *gin.Context) {
 
 	err = c.BindJSON(&tableUpdate)
 	if err != nil {
-		restLogger.Error().Msg(fmt.Sprintf("Failed to read table update message. Error: %s", err.Error()))
+		restLogger.Error().Msgf("Failed to read table update message. Error: %s", err.Error())
 		return
 	}
 
-	log.Info().Uint64("gameId", tableUpdate.GameId).Msg(fmt.Sprintf("Type: %s", tableUpdate.Type))
+	log.Info().Uint64("gameId", tableUpdate.GameId).Msgf("Type: %s", tableUpdate.Type)
 	natsGameManager.TableUpdate(tableUpdate.GameId, &tableUpdate)
 }
 
@@ -249,7 +249,7 @@ func playerConfigUpdate(c *gin.Context) {
 
 	err = c.BindJSON(&playerConfigUpdate)
 	if err != nil {
-		restLogger.Error().Msg(fmt.Sprintf("Failed to read table update message. Error: %s", err.Error()))
+		restLogger.Error().Msgf("Failed to read table update message. Error: %s", err.Error())
 		return
 	}
 

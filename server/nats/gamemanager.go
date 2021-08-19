@@ -4,12 +4,14 @@ import (
 	"fmt"
 
 	natsgo "github.com/nats-io/nats.go"
+	"github.com/rs/zerolog/log"
 
 	"voyager.com/server/game"
 	"voyager.com/server/util"
 )
 
 var NatsURL string
+var natsGMLogger = log.With().Str("logger_name", "nats::gamemanager").Logger()
 
 // This game manager is similar to game.GameManager.
 // However, this game manager active NatsGame objects.
@@ -17,7 +19,7 @@ var NatsURL string
 type GameManager struct {
 	activeGames  map[string]*NatsGame
 	gameCodes    map[string]string
-	gameCodeToId map[string]string
+	gameCodeToID map[string]string
 	nc           *natsgo.Conn
 }
 
@@ -34,7 +36,7 @@ func NewGameManager(nc *natsgo.Conn) (*GameManager, error) {
 	// let us try to connect to nats server
 	nc, err := natsgo.Connect(NatsURL)
 	if err != nil {
-		natsLogger.Error().Msg(fmt.Sprintf("Failed to connect to nats server: %v", err))
+		natsGMLogger.Error().Msgf("Failed to connect to nats server: %v", err)
 		return nil, err
 	}
 
@@ -42,12 +44,12 @@ func NewGameManager(nc *natsgo.Conn) (*GameManager, error) {
 		nc:           nc,
 		activeGames:  make(map[string]*NatsGame),
 		gameCodes:    make(map[string]string),
-		gameCodeToId: make(map[string]string),
+		gameCodeToID: make(map[string]string),
 	}, nil
 }
 
 func (gm *GameManager) NewGame(clubID uint32, gameID uint64, config *game.GameConfig) (*NatsGame, error) {
-	natsLogger.Info().Msgf("New game club %d game %d code %s", clubID, gameID, config.GameCode)
+	natsGMLogger.Info().Msgf("New game club %d game %d code %s", clubID, gameID, config.GameCode)
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	game, err := newNatsGame(gm.nc, clubID, gameID, config)
 	if err != nil {
@@ -55,7 +57,7 @@ func (gm *GameManager) NewGame(clubID uint32, gameID uint64, config *game.GameCo
 	}
 	gm.activeGames[gameIDStr] = game
 	gm.gameCodes[gameIDStr] = config.GameCode
-	gm.gameCodeToId[config.GameCode] = gameIDStr
+	gm.gameCodeToID[config.GameCode] = gameIDStr
 	return game, nil
 }
 
@@ -80,7 +82,7 @@ func (gm *GameManager) GameStatusChanged(gameID uint64, newStatus GameStatus) {
 			game.gameStatusChanged(gameID, newStatus)
 		}
 	} else {
-		natsLogger.Error().Uint64("gameId", gameID).Msg(fmt.Sprintf("GameID: %d does not exist", gameID))
+		natsGMLogger.Error().Uint64("gameId", gameID).Msgf("GameID: %d does not exist", gameID)
 	}
 }
 
@@ -89,7 +91,7 @@ func (gm *GameManager) PlayerUpdate(gameID uint64, playerUpdate *PlayerUpdate) {
 	if game, ok := gm.activeGames[gameIDStr]; ok {
 		game.playerUpdate(gameID, playerUpdate)
 	} else {
-		natsLogger.Error().Uint64("gameId", gameID).Msg(fmt.Sprintf("GameID: %d does not exist", gameID))
+		natsGMLogger.Error().Uint64("gameId", gameID).Msgf("GameID: %d does not exist", gameID)
 	}
 }
 
@@ -101,7 +103,7 @@ func (gm *GameManager) PendingUpdatesDone(gameID uint64, gameStatusInt uint64, t
 
 		g.pendingUpdatesDone(gameStatus, tableStatus)
 	} else {
-		natsLogger.Error().Uint64("gameId", gameID).Msg(fmt.Sprintf("GameID: %d does not exist", gameID))
+		natsGMLogger.Error().Uint64("gameId", gameID).Msgf("GameID: %d does not exist", gameID)
 	}
 }
 
@@ -109,7 +111,7 @@ func (gm *GameManager) SetupHand(handSetup HandSetup) {
 	// first check whether the game is hosted by this game server
 	gameIDStr := fmt.Sprintf("%d", handSetup.GameId)
 	if handSetup.GameId == 0 {
-		gameIDStr = gm.gameCodeToId[handSetup.GameCode]
+		gameIDStr = gm.gameCodeToID[handSetup.GameCode]
 	}
 	var natsGame *NatsGame
 	var ok bool
@@ -117,7 +119,7 @@ func (gm *GameManager) SetupHand(handSetup HandSetup) {
 		// lookup using game code
 		gameIDStr, ok = gm.gameCodes[handSetup.GameCode]
 		if !ok {
-			natsLogger.Error().Str("gameId", handSetup.GameCode).Msg(fmt.Sprintf("Game code: %s does not exist. Aborting setup-deck.", handSetup.GameCode))
+			natsGMLogger.Error().Str("gameId", handSetup.GameCode).Msgf("Game code: %s does not exist. Aborting setup-deck.", handSetup.GameCode)
 			return
 		}
 	}
@@ -130,7 +132,7 @@ func (gm *GameManager) GetCurrentHandLog(gameID uint64, gameCode string) *map[st
 	// first check whether the game is hosted by this game server
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	if gameID == 0 {
-		gameIDStr = gm.gameCodeToId[gameCode]
+		gameIDStr = gm.gameCodeToID[gameCode]
 	}
 	var natsGame *NatsGame
 	var ok bool
@@ -154,7 +156,7 @@ func (gm *GameManager) TableUpdate(gameID uint64, tableUpdate *TableUpdate) {
 	if game, ok := gm.activeGames[gameIDStr]; ok {
 		game.tableUpdate(gameID, tableUpdate)
 	} else {
-		natsLogger.Error().Uint64("gameId", gameID).Msg(fmt.Sprintf("GameID: %d does not exist", gameID))
+		natsGMLogger.Error().Uint64("gameId", gameID).Msgf("GameID: %d does not exist", gameID)
 	}
 }
 
@@ -164,6 +166,6 @@ func (gm *GameManager) PlayerConfigUpdate(gameID uint64, playerConfigUpdate *Pla
 	if game, ok := gm.activeGames[gameIDStr]; ok {
 		game.playerConfigUpdate(playerConfigUpdate)
 	} else {
-		natsLogger.Error().Uint64("gameId", gameID).Msg(fmt.Sprintf("GameID: %d does not exist", gameID))
+		natsGMLogger.Error().Uint64("gameId", gameID).Msgf("GameID: %d does not exist", gameID)
 	}
 }
