@@ -60,6 +60,7 @@ type Game struct {
 	PlayersInSeats          []SeatPlayer
 	Status                  GameStatus
 	TableStatus             TableStatus
+	maxRetries              uint32
 	retryDelayMillis        uint32
 
 	// used for storing player configuration of runItTwicePrompt, muckLosingHand
@@ -98,7 +99,8 @@ func NewPokerGame(
 		delays:             delays,
 		handSetupPersist:   handSetupPersist,
 		apiServerURL:       apiServerURL,
-		retryDelayMillis:   500,
+		maxRetries:         5,
+		retryDelayMillis:   1000,
 		userdb:             userdb,
 		crashdb:            crashdb,
 		encryptionKeyCache: cache,

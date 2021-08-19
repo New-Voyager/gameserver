@@ -44,11 +44,19 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 	}
 }
 
-func processPendingUpdates(apiServerURL string, gameID uint64, gameCode string) {
+func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCode string) {
 	// call api server processPendingUpdates
 	channelGameLogger.Info().Msgf("Processing pending updates for the game %d", gameID)
 	url := fmt.Sprintf("%s/internal/process-pending-updates/gameId/%d", apiServerURL, gameID)
-	resp, _ := http.Post(url, "application/json", nil)
+
+	retries := 0
+	resp, err := http.Post(url, "application/json", nil)
+	for err != nil && retries < int(g.maxRetries) {
+		retries++
+		channelGameLogger.Error().Msgf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, g.maxRetries)
+		time.Sleep(time.Duration(g.retryDelayMillis) * time.Millisecond)
+		resp, err = http.Post(url, "application/json", nil)
+	}
 
 	// Server crashes right after pending updates were processed.
 	// At this point pending updates were done and the server has
@@ -140,7 +148,7 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 	pendingUpdates, _ := anyPendingUpdates(g.apiServerURL, g.config.GameId, g.delays.PendingUpdatesRetry)
 	if pendingUpdates {
 		g.inProcessPendingUpdates = true
-		go processPendingUpdates(g.apiServerURL, g.config.GameId, g.config.GameCode)
+		go g.processPendingUpdates(g.apiServerURL, g.config.GameId, g.config.GameCode)
 	} else {
 		err := g.moveAPIServerToNextHandAndScheduleDealHand(handState)
 		if err != nil {

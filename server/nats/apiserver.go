@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -94,7 +95,7 @@ func RequestRestartGames(apiServerURL string) error {
 	return requestRestartGames(apiServerURL)
 }
 
-func UpdateTableStatus(gameID uint64, status game.TableStatus) error {
+func UpdateTableStatus(gameID uint64, status game.TableStatus, maxRetries uint32, retryDelayMillis uint32) error {
 	// update table status
 	var reqData []byte
 	var err error
@@ -104,14 +105,29 @@ func UpdateTableStatus(gameID uint64, status game.TableStatus) error {
 		return err
 	}
 
-	statusUrl := fmt.Sprintf("%s/internal/update-table-status", apiServerUrl)
-	resp, err := http.Post(statusUrl, "application/json", bytes.NewBuffer(reqData))
+	url := fmt.Sprintf("%s/internal/update-table-status", apiServerUrl)
+
+	retries := 0
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(reqData))
+	for err != nil && retries < int(maxRetries) {
+		retries++
+		fmt.Printf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, maxRetries)
+		time.Sleep(time.Duration(retryDelayMillis) * time.Millisecond)
+		resp, err = http.Post(url, "application/json", bytes.NewBuffer(reqData))
+	}
+
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
 		logger.Fatal().Uint64("game", gameID).Msg(fmt.Sprintf("Failed to update table status. Error: %d", resp.StatusCode))
 	}
-	defer resp.Body.Close()
 	return err
 }
+
 func getIp() (string, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
@@ -168,26 +184,37 @@ func registerGameServer() error {
 	if err != nil {
 		return err
 	}
-	url := fmt.Sprintf("http://%s:8080", hostname)
-	payload := map[string]interface{}{"ipAddress": ip, "currentMemory": 10000, "status": "ACTIVE", "url": url}
+	gameServerURL := fmt.Sprintf("http://%s:8080", hostname)
+	payload := map[string]interface{}{"ipAddress": ip, "currentMemory": 10000, "status": "ACTIVE", "url": gameServerURL}
 	reqData, err = json.Marshal(payload)
 	if err != nil {
 		return err
 	}
 
-	statusUrl := fmt.Sprintf("%s/internal/register-game-server", apiServerUrl)
-	resp, err := http.Post(statusUrl, "application/json", bytes.NewBuffer(reqData))
+	url := fmt.Sprintf("%s/internal/register-game-server", apiServerUrl)
+
+	retries := 0
+	maxRetries := 5
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(reqData))
+	for err != nil && retries < maxRetries {
+		retries++
+		fmt.Printf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, maxRetries)
+		time.Sleep(time.Duration(1000) * time.Millisecond)
+		resp, err = http.Post(url, "application/json", bytes.NewBuffer(reqData))
+	}
+
 	if err != nil {
-		logger.Fatal().Msg(fmt.Sprintf("Failed to register server. Error: %s", err.Error()))
-		return errors.Wrap(err, "Failed when registering game server")
+		logger.Error().Msg(fmt.Sprintf("Failed to register server. Error: %s", err.Error()))
+		return errors.Wrap(err, "Error from post request")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		logger.Fatal().Msg(fmt.Sprintf("Failed to register server. Error: %d", resp.StatusCode))
-		panic("Failed when registering game server")
+		logger.Error().Msgf("Failed to register server. Error: %d", resp.StatusCode)
+		return fmt.Errorf("Received HTTP status %d", resp.StatusCode)
 	}
-	return err
+
+	return nil
 }
 
 func requestRestartGames(apiServerURL string) error {
@@ -197,22 +224,32 @@ func requestRestartGames(apiServerURL string) error {
 	if err != nil {
 		return errors.Wrap(err, "Unable to get game server fqdn")
 	}
-	url := fmt.Sprintf("http://%s:8080", hostname)
-	payload := map[string]interface{}{"url": url}
+	gameServerURL := fmt.Sprintf("http://%s:8080", hostname)
+	payload := map[string]interface{}{"url": gameServerURL}
 	reqData, err = json.Marshal(payload)
 	if err != nil {
 		return errors.Wrap(err, "Unable to create payload")
 	}
 
-	restartURL := fmt.Sprintf("%s/internal/restart-games", apiServerURL)
-	resp, err := http.Post(restartURL, "application/json", bytes.NewBuffer(reqData))
+	url := fmt.Sprintf("%s/internal/restart-games", apiServerURL)
+
+	retries := 0
+	maxRetries := 5
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(reqData))
+	for err != nil && retries < maxRetries {
+		retries++
+		fmt.Printf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, maxRetries)
+		time.Sleep(time.Duration(1000) * time.Millisecond)
+		resp, err = http.Post(url, "application/json", bytes.NewBuffer(reqData))
+	}
+
 	if err != nil {
 		return errors.Wrap(err, "Error while sending post request")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("Received HTTP %d", resp.StatusCode)
+		return fmt.Errorf("Received HTTP status %d", resp.StatusCode)
 	}
 
 	return nil

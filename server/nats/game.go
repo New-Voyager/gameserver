@@ -62,6 +62,9 @@ type NatsGame struct {
 	pongSubscription        *natsgo.Subscription
 	natsConn                *natsgo.Conn
 
+	maxRetries       uint32
+	retryDelayMillis uint32
+
 	serverGame *game.Game
 }
 
@@ -85,6 +88,8 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 		hand2AllPlayersSubject: hand2AllPlayersSubject,
 		pingSubject:            GetPingSubject(config.GameCode),
 		natsConn:               nc,
+		maxRetries:             5,
+		retryDelayMillis:       1000,
 	}
 
 	// subscribe to topics
@@ -324,7 +329,7 @@ func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 		fmt.Printf("%s\n", string(data))
 		if message.MessageType == game.GameCurrentStatus {
 			// update table status
-			UpdateTableStatus(message.GameId, message.GetStatus().GetTableStatus())
+			UpdateTableStatus(message.GameId, message.GetStatus().GetTableStatus(), n.maxRetries, n.retryDelayMillis)
 		}
 		n.natsConn.Publish(n.game2AllPlayersSubject, data)
 	}
