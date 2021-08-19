@@ -662,7 +662,7 @@ func (g *Game) getPlayerCardRank(handState *HandState, boardCards []uint32) map[
 			handState.GameType == GameType_PLO_HILO ||
 			handState.GameType == GameType_FIVE_CARD_PLO_HILO ||
 			handState.GameType == GameType_FIVE_CARD_PLO {
-			result := poker.EvaluateOmaha(pokerBoardCards, pokerPlayerCards)
+			result := poker.EvaluateOmaha(pokerPlayerCards, pokerBoardCards)
 			rank = result.HiRank
 		}
 
