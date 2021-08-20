@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -17,7 +18,14 @@ func (g *Game) saveHandResult2ToAPIServer(result2 *HandResultServer) (*SaveHandR
 	data, _ := m.Marshal(result2)
 	fmt.Printf("%s\n", string(data))
 	url := fmt.Sprintf("%s/internal/save-hand/gameId/%d/handNum/%d", g.apiServerURL, result2.GameId, result2.HandNum)
-	resp, _ := http.Post(url, "application/json", bytes.NewBuffer(data))
+	retries := 0
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
+	for err != nil && retries < int(g.maxRetries) {
+		retries++
+		channelGameLogger.Error().Msgf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, g.maxRetries)
+		time.Sleep(time.Duration(g.retryDelayMillis) * time.Millisecond)
+		resp, err = http.Post(url, "application/json", bytes.NewBuffer(data))
+	}
 	// if the api server returns nil, do nothing
 	if resp == nil {
 		return nil, fmt.Errorf("saving hand failed")
@@ -41,7 +49,15 @@ func (g *Game) getNewHandInfo() (*NewHandInfo, error) {
 
 	url := fmt.Sprintf("%s/internal/next-hand-info/game_num/%s", g.apiServerURL, g.config.GameCode)
 
-	resp, _ := http.Get(url)
+	retries := 0
+	resp, err := http.Get(url)
+	for err != nil && retries < int(g.maxRetries) {
+		retries++
+		fmt.Printf("Error in get %s: %s. Retrying (%d/%d)", url, err, retries, g.maxRetries)
+		time.Sleep(time.Duration(g.retryDelayMillis) * time.Millisecond)
+		resp, err = http.Get(url)
+	}
+
 	// if the api server returns nil, do nothing
 	if resp == nil {
 		return nil, fmt.Errorf("[%s] Cannot get new hand information", g.config.GameCode)
@@ -65,7 +81,15 @@ func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) error {
 
 	url := fmt.Sprintf("%s/internal/move-to-next-hand/game_num/%s/hand_num/%d", g.apiServerURL, g.config.GameCode, gameServerHandNum)
 
-	resp, _ := http.Post(url, "text/plain", bytes.NewBuffer([]byte{}))
+	retries := 0
+	resp, err := http.Post(url, "text/plain", bytes.NewBuffer([]byte{}))
+	for err != nil && retries < int(g.maxRetries) {
+		retries++
+		channelGameLogger.Error().Msgf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, g.maxRetries)
+		time.Sleep(time.Duration(g.retryDelayMillis) * time.Millisecond)
+		resp, err = http.Post(url, "text/plain", bytes.NewBuffer([]byte{}))
+	}
+
 	// if the api server returns nil, do nothing
 	if resp == nil {
 		return fmt.Errorf("[%s] Cannot move API server to next hand", g.config.GameCode)

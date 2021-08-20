@@ -86,7 +86,7 @@ func NewNatsDriverBotListener(nc *natsgo.Conn, gameManager *GameManager) (*NatsD
 		nc:          nc,
 	}
 
-	natsTestDriverLogger.Info().Msg(fmt.Sprintf("Listenting nats subject: %s for bot messages", BotDriverToGame))
+	natsTestDriverLogger.Info().Msgf("Listenting nats subject: %s for bot messages", BotDriverToGame)
 	nc.Subscribe(BotDriverToGame, natsTestDriver.listenForMessages)
 	return natsTestDriver, nil
 }
@@ -101,7 +101,7 @@ func (n *NatsDriverBotListener) listenForMessages(msg *natsgo.Msg) {
 	}
 	messageType := data["message-type"].(string)
 	gameCode := data["game-code"].(string)
-	log.Info().Msg(fmt.Sprintf("Message type: %s Game code:- %s", messageType, gameCode))
+	log.Info().Msgf("Message type: %s Game code:- %s", messageType, gameCode)
 
 	switch messageType {
 	case BotDriverInitializeGame:
@@ -110,7 +110,7 @@ func (n *NatsDriverBotListener) listenForMessages(msg *natsgo.Msg) {
 		err := jsoniter.Unmarshal(msg.Data, &botDriverMessage)
 		if err != nil {
 			// log the error
-			natsTestDriverLogger.Error().Msg(fmt.Sprintf("Invalid driver bot message: %s", string(msg.Data)))
+			natsTestDriverLogger.Error().Msgf("Invalid driver bot message: %s", string(msg.Data))
 			return
 		}
 
@@ -120,12 +120,12 @@ func (n *NatsDriverBotListener) listenForMessages(msg *natsgo.Msg) {
 		fmt.Printf("%s", string(msg.Data))
 		err := jsoniter.Unmarshal(msg.Data, &handSetup)
 		if err != nil {
-			natsTestDriverLogger.Error().Msg(fmt.Sprintf("Invalid setup deck message. %s", string(msg.Data)))
+			natsTestDriverLogger.Error().Msgf("Invalid setup deck message. %s", string(msg.Data))
 			return
 		}
 		n.gameManager.SetupHand(handSetup)
 	default:
-		natsTestDriverLogger.Warn().Msg(fmt.Sprintf("Unhandled bot driver message: %s", string(msg.Data)))
+		natsTestDriverLogger.Warn().Msgf("Unhandled bot driver message: %s", string(msg.Data))
 	}
 
 }
@@ -153,7 +153,7 @@ func (n *NatsDriverBotListener) initializeGame(botDriverMessage *DriverBotMessag
 	data, _ := jsoniter.Marshal(response)
 	err = n.nc.Publish(GameToBotDriver, data)
 	if err != nil {
-		natsTestDriverLogger.Error().Msg(fmt.Sprintf("Failed to deliver message to driver bot"))
+		natsTestDriverLogger.Error().Msgf("Failed to deliver message to driver bot")
 		return
 	}
 }

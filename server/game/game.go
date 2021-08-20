@@ -60,6 +60,7 @@ type Game struct {
 	PlayersInSeats          []SeatPlayer
 	Status                  GameStatus
 	TableStatus             TableStatus
+	maxRetries              uint32
 	retryDelayMillis        uint32
 
 	// used for storing player configuration of runItTwicePrompt, muckLosingHand
@@ -98,7 +99,8 @@ func NewPokerGame(
 		delays:             delays,
 		handSetupPersist:   handSetupPersist,
 		apiServerURL:       apiServerURL,
-		retryDelayMillis:   500,
+		maxRetries:         5,
+		retryDelayMillis:   1000,
 		userdb:             userdb,
 		crashdb:            crashdb,
 		encryptionKeyCache: cache,
@@ -106,11 +108,11 @@ func NewPokerGame(
 	g.scriptTestPlayers = make(map[uint64]*Player)
 	g.chGame = make(chan []byte, 10)
 	g.chHand = make(chan []byte, 10)
-	g.end = make(chan bool)
+	g.end = make(chan bool, 10)
 	g.chPlayTimedOut = make(chan timer.TimerMsg)
-	g.actionTimer = timer.NewActionTimer(g.queueActionTimeoutMsg)
-	g.actionTimer2 = timer.NewActionTimer(g.queueActionTimeoutMsg)
-	g.networkCheck = NewNetworkCheck(g.config.GameId, g.config.GameCode, messageSender)
+	g.actionTimer = timer.NewActionTimer(g.queueActionTimeoutMsg, g.crashHandler)
+	g.actionTimer2 = timer.NewActionTimer(g.queueActionTimeoutMsg, g.crashHandler)
+	g.networkCheck = NewNetworkCheck(g.config.GameId, g.config.GameCode, messageSender, g.crashHandler)
 
 	playerConfig := make(map[uint64]PlayerConfigUpdate)
 	g.playerConfig.Store(playerConfig)
@@ -131,6 +133,22 @@ func (g *Game) playersInSeatsCount() int {
 	return count
 }
 
+func (g *Game) GameStarted() {
+	go g.runGame()
+	g.actionTimer.Run()
+	g.actionTimer2.Run()
+	g.networkCheck.Run()
+}
+
+func (g *Game) GameEnded() error {
+	g.end <- true
+	g.actionTimer.Destroy()
+	g.actionTimer2.Destroy()
+	g.networkCheck.Destroy()
+	g.removeHandState()
+	return nil
+}
+
 func (g *Game) runGame() {
 	defer func() {
 		if err := recover(); err != nil {
@@ -139,6 +157,8 @@ func (g *Game) runGame() {
 				Uint32("club", g.config.ClubId).
 				Str("game", g.config.GameCode).
 				Msgf("runGame returning due to panic: %s\nStack Trace:\n%s", err, string(debug.Stack()))
+
+			g.crashHandler()
 		}
 	}()
 
@@ -191,6 +211,10 @@ func (g *Game) runGame() {
 		}
 	}
 	g.manager.gameEnded(g)
+}
+
+func (g *Game) crashHandler() {
+	g.manager.OnGameCrash(g.config.GameId)
 }
 
 func (g *Game) initGameState() error {
@@ -1079,7 +1103,7 @@ func anyPendingUpdates(apiServerUrl string, gameID uint64, retryDelay uint32) (b
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
-			channelGameLogger.Fatal().Uint64("game", gameID).Msg(fmt.Sprintf("Failed to get pending status. Error: %d", resp.StatusCode))
+			channelGameLogger.Fatal().Uint64("game", gameID).Msgf("Failed to get pending status. Error: %d", resp.StatusCode)
 			return false, fmt.Errorf("Failed to get pending status")
 		}
 
@@ -1094,22 +1118,6 @@ func anyPendingUpdates(apiServerUrl string, gameID uint64, retryDelay uint32) (b
 		retry = false
 	}
 	return updates.PendingUpdates, nil
-}
-
-func (g *Game) GameStarted() {
-	go g.runGame()
-	g.actionTimer.Run()
-	g.actionTimer2.Run()
-	g.networkCheck.Run()
-}
-
-func (g *Game) GameEnded() error {
-	g.removeHandState()
-	g.end <- true
-	g.actionTimer.Destroy()
-	g.actionTimer2.Destroy()
-	g.networkCheck.Destroy()
-	return nil
 }
 
 func (g *Game) GetEncryptionKey(playerID uint64) (string, error) {
