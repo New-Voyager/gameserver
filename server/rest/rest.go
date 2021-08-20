@@ -213,19 +213,16 @@ func gamePendingUpdates(c *gin.Context) {
 
 func gameCurrentHandLog(c *gin.Context) {
 	gameIDStr := c.Query("game-id")
-	gameCode := c.Query("game-code")
 	if gameIDStr == "" {
-		if gameCode == "" {
-			c.String(400, "Either game code or game id should be specified (e.g /current-hand-log?game-code=<>")
-			return
-		}
+		c.String(400, "Game id should be specified (e.g /current-hand-log?game-id=<>")
+		return
 	}
 
 	gameID, err := strconv.ParseUint(gameIDStr, 10, 64)
 	if err != nil {
-		c.String(400, "Failed to parse game-id [%s] from pending-updates endpoint.", gameIDStr)
+		c.String(400, "Failed to parse game-id [%s] from current hand log endpoint.", gameIDStr)
 	}
-	log := natsGameManager.GetCurrentHandLog(gameID, gameCode)
+	log := natsGameManager.GetCurrentHandLog(gameID)
 	c.JSON(http.StatusOK, log)
 }
 

@@ -61,13 +61,13 @@ func (gm *GameManager) NewGame(clubID uint32, gameID uint64, config *game.GameCo
 	return game, nil
 }
 
-func (gm *GameManager) EndNatsGame(clubID uint32, gameID uint64) {
+func (gm *GameManager) EndNatsGame(gameID uint64) {
 	gameIDStr := fmt.Sprintf("%d", gameID)
-	if game, ok := gm.activeGames[gameIDStr]; ok {
+	if game, exists := gm.activeGames[gameIDStr]; exists {
+		game.gameEnded()
 		game.cleanup()
 		delete(gm.activeGames, gameIDStr)
-		gameCode, exists := gm.gameIDToCode[gameIDStr]
-		if exists {
+		if gameCode, exists := gm.gameIDToCode[gameIDStr]; exists {
 			delete(gm.gameCodeToID, gameCode)
 		}
 		delete(gm.gameIDToCode, gameIDStr)
@@ -79,13 +79,7 @@ func (gm *GameManager) GameStatusChanged(gameID uint64, newStatus GameStatus) {
 	if game, ok := gm.activeGames[gameIDStr]; ok {
 		// if game ended, remove natsgame and game
 		if newStatus.GameStatus == GAMESTATUS_ENDED {
-			delete(gm.activeGames, gameIDStr)
-			gameCode, exists := gm.gameIDToCode[gameIDStr]
-			if exists {
-				delete(gm.gameCodeToID, gameCode)
-			}
-			delete(gm.gameIDToCode, gameIDStr)
-			game.gameEnded()
+			gm.EndNatsGame(gameID)
 		} else {
 			game.gameStatusChanged(gameID, newStatus)
 		}
@@ -124,35 +118,24 @@ func (gm *GameManager) SetupHand(handSetup HandSetup) {
 	var natsGame *NatsGame
 	var ok bool
 	if natsGame, ok = gm.activeGames[gameIDStr]; !ok {
-		// lookup using game code
-		gameIDStr, ok = gm.gameIDToCode[handSetup.GameCode]
-		if !ok {
-			natsGMLogger.Error().Str("gameId", handSetup.GameCode).Msgf("Game code: %s does not exist. Aborting setup-deck.", handSetup.GameCode)
-			return
-		}
+		natsGMLogger.Error().Str("gameId", handSetup.GameCode).Msgf("Game code: %s does not exist. Aborting setup-deck.", handSetup.GameCode)
+		return
 	}
 
 	// send the message to the game to setup next hand
 	natsGame.setupHand(handSetup)
 }
 
-func (gm *GameManager) GetCurrentHandLog(gameID uint64, gameCode string) *map[string]interface{} {
+func (gm *GameManager) GetCurrentHandLog(gameID uint64) *map[string]interface{} {
 	// first check whether the game is hosted by this game server
 	gameIDStr := fmt.Sprintf("%d", gameID)
-	if gameID == 0 {
-		gameIDStr = gm.gameCodeToID[gameCode]
-	}
 	var natsGame *NatsGame
 	var ok bool
 	if natsGame, ok = gm.activeGames[gameIDStr]; !ok {
 		// lookup using game code
-		gameIDStr, ok = gm.gameIDToCode[gameCode]
-		if !ok {
-			var errors map[string]interface{}
-			errors["errors"] = fmt.Sprintf("Cannot find game %d", gameID)
-			return &errors
-		}
-		natsGame = gm.activeGames[gameIDStr]
+		var errors map[string]interface{}
+		errors["errors"] = fmt.Sprintf("Cannot find game %d", gameID)
+		return &errors
 	}
 	handLog := natsGame.getHandLog()
 	return handLog
