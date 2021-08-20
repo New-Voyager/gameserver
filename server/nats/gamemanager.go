@@ -66,6 +66,10 @@ func (gm *GameManager) EndNatsGame(clubID uint32, gameID uint64) {
 	if game, ok := gm.activeGames[gameIDStr]; ok {
 		game.cleanup()
 		delete(gm.activeGames, gameIDStr)
+		gameCode, exists := gm.gameCodes[gameIDStr]
+		if exists {
+			delete(gm.gameCodeToID, gameCode)
+		}
 		delete(gm.gameCodes, gameIDStr)
 	}
 }
@@ -76,6 +80,10 @@ func (gm *GameManager) GameStatusChanged(gameID uint64, newStatus GameStatus) {
 		// if game ended, remove natsgame and game
 		if newStatus.GameStatus == GAMESTATUS_ENDED {
 			delete(gm.activeGames, gameIDStr)
+			gameCode, exists := gm.gameCodes[gameIDStr]
+			if exists {
+				delete(gm.gameCodeToID, gameCode)
+			}
 			delete(gm.gameCodes, gameIDStr)
 			game.gameEnded()
 		} else {
