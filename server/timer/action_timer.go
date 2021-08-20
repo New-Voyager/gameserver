@@ -30,14 +30,17 @@ type ActionTimer struct {
 
 	secondsTillTimeout uint32
 	lastResetAt        time.Time
+
+	crashHandler func()
 }
 
-func NewActionTimer(callback func(TimerMsg)) *ActionTimer {
+func NewActionTimer(callback func(TimerMsg), crashHandler func()) *ActionTimer {
 	at := ActionTimer{
-		chReset:   make(chan TimerMsg),
-		chPause:   make(chan bool),
-		chEndLoop: make(chan bool),
-		callback:  callback,
+		chReset:      make(chan TimerMsg),
+		chPause:      make(chan bool),
+		chEndLoop:    make(chan bool, 10),
+		callback:     callback,
+		crashHandler: crashHandler,
 	}
 	return &at
 }
@@ -58,6 +61,8 @@ func (a *ActionTimer) loop() {
 			// Panic occurred.
 			actionTimerLogger.Error().
 				Msgf("action timer loop returning due to panic: %s\nStack Trace:\n%s", err, string(debug.Stack()))
+
+			a.crashHandler()
 		}
 	}()
 

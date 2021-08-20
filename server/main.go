@@ -62,7 +62,7 @@ func run() error {
 	}
 
 	// create game manager
-	_, err = game.CreateGameManager(*runGameScriptTests, delays)
+	gameManager, err := game.CreateGameManager(*runGameScriptTests, delays)
 	if err != nil {
 		return errors.Wrap(err, "Error while creating game manager")
 	}
@@ -71,7 +71,7 @@ func run() error {
 		return testScripts()
 	}
 
-	runWithNats()
+	runWithNats(gameManager)
 	return nil
 }
 
@@ -93,7 +93,7 @@ func waitForAPIServer(apiServerURL string) {
 	}
 }
 
-func runWithNats() {
+func runWithNats(gameManager *game.Manager) {
 	fmt.Printf("Running the server with NATS\n")
 	natsURL := util.Env.GetNatsURL()
 	fmt.Printf("NATS URL: %s\n", natsURL)
@@ -109,6 +109,8 @@ func runWithNats() {
 		mainLogger.Error().Msgf("Error creating NATS game manager, error: %v", err)
 		return
 	}
+
+	gameManager.SetCrashHandler(natsGameManager.CrashCleanup)
 
 	listener, err := nats.NewNatsDriverBotListener(nc, natsGameManager)
 	if err != nil {

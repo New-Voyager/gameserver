@@ -61,6 +61,11 @@ func (gm *GameManager) NewGame(clubID uint32, gameID uint64, config *game.GameCo
 	return game, nil
 }
 
+func (gm *GameManager) CrashCleanup(gameID uint64) {
+	natsGMLogger.Error().Msgf("CrashCleanup called for game ID %d", gameID)
+	gm.EndNatsGame(gameID)
+}
+
 func (gm *GameManager) EndNatsGame(gameID uint64) {
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	if game, exists := gm.activeGames[gameIDStr]; exists {
