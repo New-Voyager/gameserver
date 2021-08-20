@@ -18,7 +18,7 @@ var natsGMLogger = log.With().Str("logger_name", "nats::gamemanager").Logger()
 // This will cleanup a NatsGame object and removes when the game ends.
 type GameManager struct {
 	activeGames  map[string]*NatsGame
-	gameCodes    map[string]string
+	gameIDToCode map[string]string
 	gameCodeToID map[string]string
 	nc           *natsgo.Conn
 }
@@ -43,7 +43,7 @@ func NewGameManager(nc *natsgo.Conn) (*GameManager, error) {
 	return &GameManager{
 		nc:           nc,
 		activeGames:  make(map[string]*NatsGame),
-		gameCodes:    make(map[string]string),
+		gameIDToCode: make(map[string]string),
 		gameCodeToID: make(map[string]string),
 	}, nil
 }
@@ -56,7 +56,7 @@ func (gm *GameManager) NewGame(clubID uint32, gameID uint64, config *game.GameCo
 		return nil, err
 	}
 	gm.activeGames[gameIDStr] = game
-	gm.gameCodes[gameIDStr] = config.GameCode
+	gm.gameIDToCode[gameIDStr] = config.GameCode
 	gm.gameCodeToID[config.GameCode] = gameIDStr
 	return game, nil
 }
@@ -66,11 +66,11 @@ func (gm *GameManager) EndNatsGame(clubID uint32, gameID uint64) {
 	if game, ok := gm.activeGames[gameIDStr]; ok {
 		game.cleanup()
 		delete(gm.activeGames, gameIDStr)
-		gameCode, exists := gm.gameCodes[gameIDStr]
+		gameCode, exists := gm.gameIDToCode[gameIDStr]
 		if exists {
 			delete(gm.gameCodeToID, gameCode)
 		}
-		delete(gm.gameCodes, gameIDStr)
+		delete(gm.gameIDToCode, gameIDStr)
 	}
 }
 
@@ -80,11 +80,11 @@ func (gm *GameManager) GameStatusChanged(gameID uint64, newStatus GameStatus) {
 		// if game ended, remove natsgame and game
 		if newStatus.GameStatus == GAMESTATUS_ENDED {
 			delete(gm.activeGames, gameIDStr)
-			gameCode, exists := gm.gameCodes[gameIDStr]
+			gameCode, exists := gm.gameIDToCode[gameIDStr]
 			if exists {
 				delete(gm.gameCodeToID, gameCode)
 			}
-			delete(gm.gameCodes, gameIDStr)
+			delete(gm.gameIDToCode, gameIDStr)
 			game.gameEnded()
 		} else {
 			game.gameStatusChanged(gameID, newStatus)
@@ -125,7 +125,7 @@ func (gm *GameManager) SetupHand(handSetup HandSetup) {
 	var ok bool
 	if natsGame, ok = gm.activeGames[gameIDStr]; !ok {
 		// lookup using game code
-		gameIDStr, ok = gm.gameCodes[handSetup.GameCode]
+		gameIDStr, ok = gm.gameIDToCode[handSetup.GameCode]
 		if !ok {
 			natsGMLogger.Error().Str("gameId", handSetup.GameCode).Msgf("Game code: %s does not exist. Aborting setup-deck.", handSetup.GameCode)
 			return
@@ -146,7 +146,7 @@ func (gm *GameManager) GetCurrentHandLog(gameID uint64, gameCode string) *map[st
 	var ok bool
 	if natsGame, ok = gm.activeGames[gameIDStr]; !ok {
 		// lookup using game code
-		gameIDStr, ok = gm.gameCodes[gameCode]
+		gameIDStr, ok = gm.gameIDToCode[gameCode]
 		if !ok {
 			var errors map[string]interface{}
 			errors["errors"] = fmt.Sprintf("Cannot find game %d", gameID)
