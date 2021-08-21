@@ -29,7 +29,7 @@ BOTRUNNER_SCRIPT ?= botrunner_scripts/river-action-3-bots.yaml
 DOCKER_BUILDKIT ?= 1
 LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh botrunner)
 BOTRUNNER_IMAGE ?= $(LOCAL_IMAGE_NAME)
-GAME_SERVER_TEST_IMAGE := $(shell $(BUILD_HELPER)/get_local_image_name.sh test-game-server)
+GAME_SERVER_IMAGE := $(shell $(BUILD_HELPER)/get_local_image_name.sh game-server)
 TIMER_IMAGE := $(shell $(BUILD_HELPER)/get_local_image_name.sh timer)
 
 PROTO_DIR := $(PROJECT_ROOT)/proto
@@ -123,7 +123,7 @@ publish: gcp-publish
 .PHONY: clean-ci
 clean-ci: system-test-down
 	docker image rm $(BOTRUNNER_IMAGE) || true
-	docker image rm $(GAME_SERVER_TEST_IMAGE) || true
+	docker image rm $(GAME_SERVER_IMAGE) || true
 	if docker network ls | grep $(TEST_DOCKER_NET); then docker network rm $(TEST_DOCKER_NET); fi
 
 .PHONY: do-publish
@@ -197,7 +197,7 @@ endif
 
 .PHONY: system-test-build
 system-test-build:
-	GAME_SERVER_IMAGE=$(GAME_SERVER_TEST_IMAGE) $(MAKE) -C $(PROJECT_ROOT)/server docker-build-test
+	GAME_SERVER_IMAGE=$(GAME_SERVER_IMAGE) $(MAKE) -C $(PROJECT_ROOT)/server docker-build
 	TIMER_IMAGE=$(TIMER_IMAGE) $(MAKE) -C $(PROJECT_ROOT)/timer docker-build
 	BOTRUNNER_IMAGE=$(BOTRUNNER_IMAGE) $(MAKE) -C $(PROJECT_ROOT)/botrunner docker-build
 
@@ -221,7 +221,7 @@ system-test-create-network:
 system-test-generate-env:
 	> .env && \
 		echo "API_SERVER_IMAGE=$(API_SERVER_IMAGE)" >> .env && \
-		echo "GAME_SERVER_TEST_IMAGE=$(GAME_SERVER_TEST_IMAGE)" >> .env && \
+		echo "GAME_SERVER_IMAGE=$(GAME_SERVER_IMAGE)" >> .env && \
 		echo "BOTRUNNER_IMAGE=$(BOTRUNNER_IMAGE)" >> .env && \
 		echo "TIMER_IMAGE=$(TIMER_IMAGE)" >> .env && \
 		echo "NATS_SERVER_IMAGE=$(NATS_SERVER_IMAGE)" >> .env && \
