@@ -208,7 +208,7 @@ hands:
       high-hand:
         - seat: 1
 
-      player-stats:
+      timeout-stats:
         - seat: 1
           consecutive-action-timeouts: 0
           acted-at-least-once: true

@@ -1403,9 +1403,9 @@ func (bp *BotPlayer) verifyResult2() {
 		}
 	}
 
-	if len(scriptResult.PlayerStats) > 0 {
-		actualPlayerStats := actualResult.GetPlayerStats()
-		for _, scriptStat := range scriptResult.PlayerStats {
+	if len(scriptResult.TimeoutStats) > 0 {
+		actualPlayerStats := actualResult.GetTimeoutStats()
+		for _, scriptStat := range scriptResult.TimeoutStats {
 			seatNo := scriptStat.Seat
 			playerID := bp.getPlayerIDBySeatNo(seatNo)
 			actualTimeouts := actualPlayerStats[playerID].ConsecutiveActionTimeouts

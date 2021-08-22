@@ -96,7 +96,7 @@ hands:
           rake-paid: 5.0
           rank: Two Pair
       action-ended: SHOW_DOWN
-      player-stats:
+      timeout-stats:
         - seat: 1
           consecutive-action-timeouts: 0
           acted-at-least-once: true
@@ -178,7 +178,7 @@ hands:
           rank: Two Pair
           rake-paid: 1
       action-ended: SHOW_DOWN
-      player-stats:
+      timeout-stats:
         - seat: 1
           consecutive-action-timeouts: 0
           acted-at-least-once: true
@@ -258,7 +258,7 @@ hands:
           rank: Straight
           rake-paid: 1
       action-ended: SHOW_DOWN
-      player-stats:
+      timeout-stats:
         - seat: 1
           consecutive-action-timeouts: 0
           acted-at-least-once: true
@@ -335,7 +335,7 @@ hands:
           receive: 5
           rank: Pair
       action-ended: SHOW_DOWN
-      player-stats:
+      timeout-stats:
         - seat: 1
           consecutive-action-timeouts: 0
           acted-at-least-once: true
