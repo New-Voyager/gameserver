@@ -352,10 +352,10 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 		player := handState.PlayersInSeats[seatNo]
 		if actionMsg.GetPlayerActed().GetTimedOut() {
-			handState.PlayerStats[player.PlayerId].ConsecutiveActionTimeouts++
+			handState.TimeoutStats[player.PlayerId].ConsecutiveActionTimeouts++
 		} else {
-			handState.PlayerStats[player.PlayerId].ConsecutiveActionTimeouts = 0
-			handState.PlayerStats[player.PlayerId].ActedAtLeastOnce = true
+			handState.TimeoutStats[player.PlayerId].ConsecutiveActionTimeouts = 0
+			handState.TimeoutStats[player.PlayerId].ActedAtLeastOnce = true
 		}
 
 		msg := HandMessage{
@@ -486,15 +486,15 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	player := handState.PlayersInSeats[seatNo]
 
 	if actionMsg.GetPlayerActed().GetTimedOut() {
-		handState.PlayerStats[player.PlayerId].ConsecutiveActionTimeouts++
+		handState.TimeoutStats[player.PlayerId].ConsecutiveActionTimeouts++
 	} else {
-		handState.PlayerStats[player.PlayerId].ConsecutiveActionTimeouts = 0
+		handState.TimeoutStats[player.PlayerId].ConsecutiveActionTimeouts = 0
 
 		// When the consecutive timeout counts get reported to the api server,
 		// the api server needs to know if the player has acted at all this hand
 		// so that it can clear the count from the previous hand and start a new counter
 		// instead of adding to it.
-		handState.PlayerStats[player.PlayerId].ActedAtLeastOnce = true
+		handState.TimeoutStats[player.PlayerId].ActedAtLeastOnce = true
 	}
 
 	// This number is used to generate hand message IDs uniquely and deterministically across the server crashes.
@@ -1321,6 +1321,7 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	handResult2Client := handResultProcessor.determineWinners()
 	allMsgItems := make([]*HandMessageItem, 0)
 	handResult2Client.PlayerStats = handState.GetPlayerStats()
+	handResult2Client.TimeoutStats = handState.GetTimeoutStats()
 
 	msgItems, err := g.sendResult2(handState, handResult2Client)
 	if err != nil {

@@ -117,6 +117,7 @@ func (h *HandState) initialize(gameConfig *GameConfig,
 	// copy player's stack (we need to copy only the players that are in the hand)
 	// h.PlayersState = h.copyPlayersState(uint32(gameConfig.MaxPlayers), playersInSeats)
 	h.PlayerStats = make(map[uint64]*PlayerStats)
+	h.TimeoutStats = make(map[uint64]*TimeoutStats)
 
 	h.ActiveSeats = make([]uint64, gameConfig.MaxPlayers+1)
 	// update active seats with players who are playing
@@ -134,6 +135,10 @@ func (h *HandState) initialize(gameConfig *GameConfig,
 				PostedBlind:  playerInSeat.PostedBlind,
 			}
 			h.PlayerStats[playerInSeat.PlayerID] = &PlayerStats{InPreflop: true}
+			h.TimeoutStats[playerInSeat.PlayerID] = &TimeoutStats{
+				ConsecutiveActionTimeouts: 0,
+				ActedAtLeastOnce:          false,
+			}
 		} else {
 			if playerInSeat.SeatNo == 0 {
 				playerInSeat.SeatNo = uint32(seatNo)
