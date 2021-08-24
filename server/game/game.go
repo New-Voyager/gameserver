@@ -430,7 +430,7 @@ func (g *Game) dealNewHand() error {
 		}
 	}
 
-	resultPauseTime := 0
+	var resultPauseTime uint32
 	if !g.isScriptTest {
 		// we are not running tests
 		// get new hand information from the API server
@@ -442,7 +442,7 @@ func (g *Game) dealNewHand() error {
 		if newHandInfo.TableStatus != TableStatus_GAME_RUNNING {
 			return nil
 		}
-		resultPauseTime = int(newHandInfo.ResultPauseTime)
+		resultPauseTime = newHandInfo.ResultPauseTime
 		buttonPos = newHandInfo.ButtonPos
 		sbPos = newHandInfo.SbPos
 		bbPos = newHandInfo.BbPos
@@ -594,14 +594,16 @@ func (g *Game) dealNewHand() error {
 		return errors.Wrapf(err, "Error while initializing hand state")
 	}
 	if testHandSetup != nil {
-		resultPauseTime = int(testHandSetup.ResultPauseTime)
+		resultPauseTime = testHandSetup.ResultPauseTime
 	}
 	if resultPauseTime == 0 {
-		// 5 seconds to show each result
-		resultPauseTime = 5000
+		channelGameLogger.Warn().
+			Str("game", g.config.GameCode).
+			Msgf("Using the default result delay value (delays.ResultPerWinner = %d) instead of the one from the hand config", g.delays.ResultPerWinner)
+		resultPauseTime = g.delays.ResultPerWinner
 	}
 
-	handState.ResultPauseTime = uint32(resultPauseTime)
+	handState.ResultPauseTime = resultPauseTime
 
 	if !g.isScriptTest {
 		var playerIDs []uint64
@@ -665,6 +667,9 @@ func (g *Game) dealNewHand() error {
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_2, 0)
 
 	if !util.Env.ShouldDisableDelays() {
+		channelGameLogger.Debug().
+			Str("game", g.config.GameCode).
+			Msgf("Sleeping %d milliseconds (adjust delays.BeforeDeal)", g.delays.BeforeDeal)
 		time.Sleep(time.Duration(g.delays.BeforeDeal) * time.Millisecond)
 	}
 
@@ -685,7 +690,6 @@ func (g *Game) dealNewHand() error {
 
 	playersCards := make(map[uint32]string)
 	numActivePlayers := uint32(g.countActivePlayers())
-	cardAnimationTime := time.Duration(numActivePlayers * g.delays.DealSingleCard * newHand.NoCards)
 	// send the cards to each player
 	for _, player := range handState.PlayersInSeats {
 		if !player.Inhand {
@@ -726,7 +730,11 @@ func (g *Game) dealNewHand() error {
 		crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_4, 0)
 	}
 	if !util.Env.ShouldDisableDelays() {
-		time.Sleep(cardAnimationTime * time.Millisecond)
+		dealAnimationTime := time.Duration(numActivePlayers * g.delays.DealSingleCard * newHand.NoCards)
+		channelGameLogger.Debug().
+			Str("game", g.config.GameCode).
+			Msgf("Sleeping %d milliseconds (adjust delays.DealSingleCard)", dealAnimationTime)
+		time.Sleep(dealAnimationTime * time.Millisecond)
 	}
 
 	// print next action
