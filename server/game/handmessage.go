@@ -569,9 +569,10 @@ func (g *Game) handleHandEnded(totalPauseTime uint32, allMsgItems []*HandMessage
 
 	if handEnded {
 		if totalPauseTime > 0 {
-			fmt.Printf("Waiting for result animation\n")
+			channelGameLogger.Debug().
+				Str("game", g.config.GameCode).
+				Msg("Sleeping %d milliseconds for result animation")
 			time.Sleep(time.Duration(totalPauseTime) * time.Millisecond)
-			fmt.Printf("Waiting for result animation done\n")
 		}
 		gameMessage := &GameMessage{
 			GameId:      g.config.GameId,
