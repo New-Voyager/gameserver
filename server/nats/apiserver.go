@@ -111,7 +111,7 @@ func UpdateTableStatus(gameID uint64, status game.TableStatus, maxRetries uint32
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(reqData))
 	for err != nil && retries < int(maxRetries) {
 		retries++
-		fmt.Printf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, maxRetries)
+		logger.Error().Msgf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, maxRetries)
 		time.Sleep(time.Duration(retryDelayMillis) * time.Millisecond)
 		resp, err = http.Post(url, "application/json", bytes.NewBuffer(reqData))
 	}
@@ -198,7 +198,7 @@ func registerGameServer() error {
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(reqData))
 	for err != nil && retries < maxRetries {
 		retries++
-		fmt.Printf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, maxRetries)
+		logger.Error().Msgf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, maxRetries)
 		time.Sleep(time.Duration(1000) * time.Millisecond)
 		resp, err = http.Post(url, "application/json", bytes.NewBuffer(reqData))
 	}
@@ -238,7 +238,7 @@ func requestRestartGames(apiServerURL string) error {
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(reqData))
 	for err != nil && retries < maxRetries {
 		retries++
-		fmt.Printf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, maxRetries)
+		logger.Error().Msgf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, maxRetries)
 		time.Sleep(time.Duration(1000) * time.Millisecond)
 		resp, err = http.Post(url, "application/json", bytes.NewBuffer(reqData))
 	}

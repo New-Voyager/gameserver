@@ -321,12 +321,12 @@ func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 		Msg(fmt.Sprintf("Game->AllPlayers: %s", message.MessageType))
 	// let send this to all players
 	data, _ := protojson.Marshal(message)
-	fmt.Printf("%s\n", string(data))
+	// fmt.Printf("%s\n", string(data))
 
 	if message.GameCode != n.gameCode {
 		// TODO: send to the other games
 	} else if message.GameCode == n.gameCode {
-		fmt.Printf("%s\n", string(data))
+		// fmt.Printf("%s\n", string(data))
 		if message.MessageType == game.GameCurrentStatus {
 			// update table status
 			UpdateTableStatus(message.GameId, message.GetStatus().GetTableStatus(), n.maxRetries, n.retryDelayMillis)

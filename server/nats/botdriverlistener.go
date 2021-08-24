@@ -117,7 +117,7 @@ func (n *NatsDriverBotListener) listenForMessages(msg *natsgo.Msg) {
 		n.initializeGame(&botDriverMessage)
 	case BotDriverSetupDeck:
 		var handSetup HandSetup
-		fmt.Printf("%s", string(msg.Data))
+		fmt.Printf("Received setup deck message: %s", string(msg.Data))
 		err := jsoniter.Unmarshal(msg.Data, &handSetup)
 		if err != nil {
 			natsTestDriverLogger.Error().Msgf("Invalid setup deck message. %s", string(msg.Data))

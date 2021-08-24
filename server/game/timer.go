@@ -1,14 +1,15 @@
 package game
 
 import (
-	"fmt"
 	"time"
 
 	"voyager.com/server/timer"
 )
 
 func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireAt time.Time) {
-	channelGameLogger.Debug().Msgf("Resetting timer. Current timer seat: %d expires at %s (%f seconds from now)", seatNo, expireAt, expireAt.Sub(time.Now()).Seconds())
+	channelGameLogger.Debug().
+		Str("game", g.config.GameCode).
+		Msgf("Resetting timer. Current timer seat: %d expires at %s (%f seconds from now)", seatNo, expireAt, expireAt.Sub(time.Now()).Seconds())
 	g.actionTimer.Reset(timer.TimerMsg{
 		SeatNo:   seatNo,
 		PlayerID: playerID,
@@ -18,7 +19,9 @@ func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireA
 }
 
 func (g *Game) runItTwiceTimer(seatNo uint32, playerID uint64, seatNo2 uint32, playerID2 uint64, expireAt time.Time) {
-	channelGameLogger.Debug().Msgf("Resetting timers for run-it-twice prompt. SeatNo 1: %d SeatNo 2: %d expires at %s (%f seconds from now)", seatNo, seatNo2, expireAt, expireAt.Sub(time.Now()).Seconds())
+	channelGameLogger.Debug().
+		Str("game", g.config.GameCode).
+		Msgf("Resetting timers for run-it-twice prompt. SeatNo 1: %d SeatNo 2: %d expires at %s (%f seconds from now)", seatNo, seatNo2, expireAt, expireAt.Sub(time.Now()).Seconds())
 	g.actionTimer.Reset(timer.TimerMsg{
 		SeatNo:     seatNo,
 		PlayerID:   playerID,
@@ -36,14 +39,18 @@ func (g *Game) runItTwiceTimer(seatNo uint32, playerID uint64, seatNo2 uint32, p
 func (g *Game) pausePlayTimer(seatNo uint32) {
 	actionResponseTime := g.actionTimer.GetElapsedTime()
 
-	fmt.Printf("Pausing timer. Seat responded seat: %d Responded in: %fs \n", seatNo, actionResponseTime.Seconds())
+	channelGameLogger.Debug().
+		Str("game", g.config.GameCode).
+		Msgf("Pausing timer. Seat responded seat: %d Responded in: %fs \n", seatNo, actionResponseTime.Seconds())
 	g.actionTimer.Pause()
 }
 
 func (g *Game) pausePlayTimer2(seatNo uint32) {
 	actionResponseTime := g.actionTimer2.GetElapsedTime()
 
-	fmt.Printf("Pausing timer 2. Seat responded seat: %d Responded in: %fs \n", seatNo, actionResponseTime.Seconds())
+	channelGameLogger.Debug().
+		Str("game", g.config.GameCode).
+		Msgf("Pausing timer 2. Seat responded seat: %d Responded in: %fs \n", seatNo, actionResponseTime.Seconds())
 	g.actionTimer2.Pause()
 }
 

@@ -1361,7 +1361,10 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 			MaxPlayers: hs.MaxSeats,
 			Result:     handResult2Client,
 		}
-		saveResult, _ := g.saveHandResult2ToAPIServer(handResultServer)
+		saveResult, err := g.saveHandResult2ToAPIServer(handResultServer)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Could not save result to api server")
+		}
 		if saveResult != nil {
 			// retry here
 		}

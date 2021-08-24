@@ -133,7 +133,7 @@ func newGame(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("new-game payload: %+v\n", gameConfig)
+	restLogger.Debug().Msgf("new-game payload: %+v", gameConfig)
 
 	// initialize nats game
 	_, e := natsGameManager.NewGame(gameConfig.ClubId, gameConfig.GameId, &gameConfig)

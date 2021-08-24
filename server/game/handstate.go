@@ -278,7 +278,10 @@ func (h *HandState) initialize(gameConfig *GameConfig,
 		Cards:   poker.ByteCardsToUint32Cards(cards),
 	}
 	h.Boards = append(h.Boards, board1)
-	fmt.Printf("Board1: %s", poker.CardsToString(h.BoardCards))
+	handLogger.Debug().
+		Uint64("game", h.GetGameId()).
+		Uint32("hand", h.GetHandNum()).
+		Msgf("Board1: %s", poker.CardsToString(h.BoardCards))
 
 	if h.DoubleBoard {
 		h.NoOfBoards = 2
@@ -288,7 +291,10 @@ func (h *HandState) initialize(gameConfig *GameConfig,
 			Cards:   poker.ByteCardsToUint32Cards(cards),
 		}
 		h.Boards = append(h.Boards, board2)
-		fmt.Printf("Board2: %s", poker.CardsToString(cards))
+		handLogger.Debug().
+			Uint64("game", h.GetGameId()).
+			Uint32("hand", h.GetHandNum()).
+			Msgf("Board2: %s", poker.CardsToString(cards))
 	}
 
 	// setup data structure to handle betting rounds
