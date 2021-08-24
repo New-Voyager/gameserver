@@ -664,6 +664,9 @@ func (g *Game) dealNewHand() error {
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_2, 0)
 
 	if !util.Env.ShouldDisableDelays() {
+		channelGameLogger.Debug().
+			Str("game", g.config.GameCode).
+			Msgf("Sleeping %d milliseconds (adjust delays.BeforeDeal)", g.delays.BeforeDeal)
 		time.Sleep(time.Duration(g.delays.BeforeDeal) * time.Millisecond)
 	}
 
@@ -684,7 +687,6 @@ func (g *Game) dealNewHand() error {
 
 	playersCards := make(map[uint32]string)
 	numActivePlayers := uint32(g.countActivePlayers())
-	cardAnimationTime := time.Duration(numActivePlayers * g.delays.DealSingleCard * newHand.NoCards)
 	// send the cards to each player
 	for _, player := range handState.PlayersInSeats {
 		if !player.Inhand {
@@ -725,6 +727,10 @@ func (g *Game) dealNewHand() error {
 		crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_4, 0)
 	}
 	if !util.Env.ShouldDisableDelays() {
+		cardAnimationTime := time.Duration(numActivePlayers * g.delays.DealSingleCard * newHand.NoCards)
+		channelGameLogger.Debug().
+			Str("game", g.config.GameCode).
+			Msgf("Sleeping %d milliseconds (adjust delays.DealSingleCard)", cardAnimationTime)
 		time.Sleep(cardAnimationTime * time.Millisecond)
 	}
 

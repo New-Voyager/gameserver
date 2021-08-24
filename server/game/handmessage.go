@@ -569,10 +569,12 @@ func (g *Game) handleHandEnded(totalPauseTime uint32, allMsgItems []*HandMessage
 
 	if handEnded {
 		if totalPauseTime > 0 {
-			channelGameLogger.Debug().
-				Str("game", g.config.GameCode).
-				Msgf("Sleeping %d milliseconds for result animation", totalPauseTime)
-			time.Sleep(time.Duration(totalPauseTime) * time.Millisecond)
+			if !util.Env.ShouldDisableDelays() {
+				channelGameLogger.Debug().
+					Str("game", g.config.GameCode).
+					Msgf("Sleeping %d milliseconds for result animation", totalPauseTime)
+				time.Sleep(time.Duration(totalPauseTime) * time.Millisecond)
+			}
 		}
 		gameMessage := &GameMessage{
 			GameId:      g.config.GameId,
@@ -914,12 +916,6 @@ func (g *Game) handEnded(handState *HandState) ([]*HandMessageItem, error) {
 	if handState.FlowState != expectedState {
 		return nil, fmt.Errorf("handEnded called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
-
-	// wait 5 seconds to show the result
-	// send a message to game to start new hand
-	// if !util.GameServerEnvironment.ShouldDisableDelays() {
-	// 	time.Sleep(time.Duration(g.delays.MoveToNextHand) * time.Millisecond)
-	// }
 
 	handEnded := &HandMessageItem{
 		MessageType: HandEnded,

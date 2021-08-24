@@ -316,6 +316,9 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 		}
 		allMsgItems = append(allMsgItems, msgItem)
 		if !util.Env.ShouldDisableDelays() {
+			channelGameLogger.Debug().
+				Str("game", g.config.GameCode).
+				Msgf("Sleeping %d milliseconds (adjust delays.GoToFlop)", g.delays.GoToFlop)
 			time.Sleep(time.Duration(g.delays.GoToFlop) * time.Millisecond)
 		}
 

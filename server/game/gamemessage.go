@@ -129,6 +129,9 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 	}
 
 	if !util.Env.ShouldDisableDelays() {
+		channelGameLogger.Debug().
+			Str("game", g.config.GameCode).
+			Msgf("Sleeping %d milliseconds (adjust delays.OnMoveToNextHand)", g.delays.OnMoveToNextHand)
 		time.Sleep(time.Duration(g.delays.OnMoveToNextHand) * time.Millisecond)
 	}
 
