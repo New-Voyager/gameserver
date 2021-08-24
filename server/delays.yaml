@@ -7,6 +7,6 @@ goToFlop: 500
 goToTurn: 500
 goToRiver: 500
 pendingUpdatesRetry: 5000
-onMoveToNextHand: 3000
+onMoveToNextHand: 0
 moveToNextHand: 5000
-resultPerWinner: 5000
+resultPerWinner: 4500
