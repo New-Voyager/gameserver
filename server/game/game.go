@@ -597,6 +597,9 @@ func (g *Game) dealNewHand() error {
 		resultPauseTime = testHandSetup.ResultPauseTime
 	}
 	if resultPauseTime == 0 {
+		channelGameLogger.Warn().
+			Str("game", g.config.GameCode).
+			Msgf("Using the default result delay value (delays.ResultPerWinner = %d) instead of the one from the hand config", g.delays.ResultPerWinner)
 		resultPauseTime = g.delays.ResultPerWinner
 	}
 
