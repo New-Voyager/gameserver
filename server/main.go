@@ -49,7 +49,9 @@ func main() {
 }
 
 func run() error {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	logLevel := util.Env.GetZeroLogLogLevel()
+	fmt.Printf("Setting log level to %s\n", logLevel)
+	zerolog.SetGlobalLevel(logLevel)
 	flag.Parse()
 	delays, err := game.ParseDelayConfig(*delayConfigFile)
 	if err != nil {
@@ -94,9 +96,9 @@ func waitForAPIServer(apiServerURL string) {
 }
 
 func runWithNats(gameManager *game.Manager) {
-	fmt.Printf("Running the server with NATS\n")
+	mainLogger.Info().Msg("Running the server with NATS")
 	natsURL := util.Env.GetNatsURL()
-	fmt.Printf("NATS URL: %s\n", natsURL)
+	mainLogger.Info().Msgf("NATS URL: %s", natsURL)
 
 	nc, err := natsgo.Connect(natsURL)
 	if err != nil {
@@ -114,7 +116,7 @@ func runWithNats(gameManager *game.Manager) {
 
 	listener, err := nats.NewNatsDriverBotListener(nc, natsGameManager)
 	if err != nil {
-		fmt.Printf("Error when subscribing to NATS")
+		mainLogger.Error().Msgf("Error when creating NatsDriverBotListener, error: %v", err)
 		return
 	}
 	_ = listener
@@ -140,7 +142,7 @@ func runWithNats(gameManager *game.Manager) {
 	if util.Env.IsSystemTest() {
 		// System test needs a way to return from main to collect the code coverage.
 		// We shouldn't be exiting the process in production.
-		mainLogger.Info().Msg("Running in system test mode.")
+		mainLogger.Warn().Msg("Running in system test mode.")
 		for !exit {
 			time.Sleep(500 * time.Millisecond)
 		}

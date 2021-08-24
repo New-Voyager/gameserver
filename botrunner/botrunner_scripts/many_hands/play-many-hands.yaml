@@ -26,6 +26,10 @@ game:
   action-time: 100
   rewards: High Hand
 
+bot-config:
+  min-action-pause-time: 1000
+  max-action-pause-time: 2000
+
 starting-seats:
   - seat: 1
     player: yong

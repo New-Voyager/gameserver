@@ -119,7 +119,7 @@ func setupCrash(c *gin.Context) {
 }
 
 func newGame(c *gin.Context) {
-	restLogger.Info().Msgf("New game is received")
+	restLogger.Debug().Msgf("New game is received")
 	var gameConfig game.GameConfig
 	var err error
 	err = c.BindJSON(&gameConfig)
@@ -133,7 +133,7 @@ func newGame(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("new-game payload: %+v\n", gameConfig)
+	restLogger.Debug().Msgf("new-game payload: %+v", gameConfig)
 
 	// initialize nats game
 	_, e := natsGameManager.NewGame(gameConfig.ClubId, gameConfig.GameId, &gameConfig)
@@ -159,7 +159,7 @@ func playerUpdate(c *gin.Context) {
 		return
 	}
 
-	log.Info().Uint64("gameId", playerUpdate.GameId).Msgf("Player: %d seatNo: %d is updated: %v", playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate)
+	log.Debug().Uint64("gameId", playerUpdate.GameId).Msgf("Player: %d seatNo: %d is updated: %v", playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate)
 	natsGameManager.PlayerUpdate(playerUpdate.GameId, &playerUpdate)
 }
 
@@ -172,7 +172,7 @@ func gameUpdateStatus(c *gin.Context) {
 		restLogger.Error().Msgf("Failed to read game update message. Error: %s", err.Error())
 		return
 	}
-	log.Info().Uint64("gameId", gameStatus.GameId).Msgf("New game status: %d", gameStatus.GameStatus)
+	log.Debug().Uint64("gameId", gameStatus.GameId).Msgf("New game status: %d", gameStatus.GameStatus)
 	natsGameManager.GameStatusChanged(gameStatus.GameId, gameStatus)
 }
 
@@ -205,7 +205,7 @@ func gamePendingUpdates(c *gin.Context) {
 		//natsGameManager.GamePendingUpdatesStarted(gameID)
 		panic("Not implemented")
 	} else if done != "" {
-		restLogger.Info().Msgf("****** Pending updates done for game %d", gameID)
+		restLogger.Debug().Msgf("****** Pending updates done for game %d", gameID)
 		// pending updates done, game can resume
 		natsGameManager.PendingUpdatesDone(gameID, gameStatus, tableStatus)
 	}
@@ -236,7 +236,7 @@ func tableUpdate(c *gin.Context) {
 		return
 	}
 
-	log.Info().Uint64("gameId", tableUpdate.GameId).Msgf("Type: %s", tableUpdate.Type)
+	log.Debug().Uint64("gameId", tableUpdate.GameId).Msgf("Type: %s", tableUpdate.Type)
 	natsGameManager.TableUpdate(tableUpdate.GameId, &tableUpdate)
 }
 

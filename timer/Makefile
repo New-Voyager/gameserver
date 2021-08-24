@@ -8,6 +8,7 @@ GCP_REGISTRY := gcr.io/$(GCP_PROJECT_ID)
 REGISTRY := $(DO_REGISTRY)
 
 DEV_API_SERVER_URL ?= http://localhost:9501
+DEV_LOG_LEVEL ?= info
 
 DOCKER_BUILDKIT ?= 1
 LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh timer)
@@ -22,8 +23,10 @@ build:
 	go build -o timer
 
 .PHONY: run
+run: export API_SERVER_URL=$(DEV_API_SERVER_URL)
+run: export LOG_LEVEL=$(DEV_LOG_LEVEL)
 run:
-	API_SERVER_URL=$(DEV_API_SERVER_URL) go run ./main.go
+	go run ./main.go
 
 .PHONY: publish
 publish: gcp-publish

@@ -68,16 +68,16 @@ func (h *HandState) board(deck *poker.Deck) []byte {
 	//fmt.Printf("Flop Cards: ")
 	for i, card := range cards {
 		board[i] = card.GetByte()
-		fmt.Printf("%s", poker.CardToString(uint32(card.GetByte())))
+		// fmt.Printf("%s", poker.CardToString(uint32(card.GetByte())))
 	}
-	fmt.Printf("\n")
+	// fmt.Printf("\n")
 
-	var burnCard uint32
+	// var burnCard uint32
 	if h.BurnCards {
 		// burn card
 		cards = deck.Draw(1)
-		burnCard = uint32(cards[0].GetByte())
-		fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
+		// burnCard = uint32(cards[0].GetByte())
+		// fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
 		h.DeckIndex++
 	}
 
@@ -91,8 +91,8 @@ func (h *HandState) board(deck *poker.Deck) []byte {
 	if h.BurnCards {
 		cards = deck.Draw(1)
 		h.DeckIndex++
-		burnCard = uint32(cards[0].GetByte())
-		fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
+		// burnCard = uint32(cards[0].GetByte())
+		// fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
 	}
 
 	// river card
@@ -278,7 +278,10 @@ func (h *HandState) initialize(gameConfig *GameConfig,
 		Cards:   poker.ByteCardsToUint32Cards(cards),
 	}
 	h.Boards = append(h.Boards, board1)
-	fmt.Printf("Board1: %s", poker.CardsToString(h.BoardCards))
+	handLogger.Debug().
+		Uint64("game", h.GetGameId()).
+		Uint32("hand", h.GetHandNum()).
+		Msgf("Board1: %s", poker.CardsToString(h.BoardCards))
 
 	if h.DoubleBoard {
 		h.NoOfBoards = 2
@@ -288,7 +291,10 @@ func (h *HandState) initialize(gameConfig *GameConfig,
 			Cards:   poker.ByteCardsToUint32Cards(cards),
 		}
 		h.Boards = append(h.Boards, board2)
-		fmt.Printf("Board2: %s", poker.CardsToString(cards))
+		handLogger.Debug().
+			Uint64("game", h.GetGameId()).
+			Uint32("hand", h.GetHandNum()).
+			Msgf("Board2: %s", poker.CardsToString(cards))
 	}
 
 	// setup data structure to handle betting rounds

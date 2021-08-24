@@ -53,19 +53,21 @@ func (n *NetworkCheck) Run() {
 	go n.loop()
 }
 func (n *NetworkCheck) Destroy() {
-	go func() {
-		n.chEndLoop <- true
-	}()
+	n.chEndLoop <- true
 }
 
 func (n *NetworkCheck) loop() {
 	defer func() {
-		if err := recover(); err != nil {
+		err := recover()
+		if err != nil {
 			// Panic occurred.
 			networkCheckLogger.Error().
+				Str("game", n.gameCode).
 				Msgf("network check loop returning due to panic: %s\nStack Trace:\n%s", err, string(debug.Stack()))
 
 			n.crashHandler()
+		} else {
+			networkCheckLogger.Info().Str("game", n.gameCode).Msg("Network check loop returning")
 		}
 	}()
 

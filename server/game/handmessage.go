@@ -246,7 +246,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 	actionMsg := g.getClientMsgItem(playerMsg)
 	messageSeatNo := actionMsg.GetPlayerActed().GetSeatNo()
-	channelGameLogger.Info().
+	channelGameLogger.Debug().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
 		Uint32("player", messageSeatNo).
@@ -569,9 +569,10 @@ func (g *Game) handleHandEnded(totalPauseTime uint32, allMsgItems []*HandMessage
 
 	if handEnded {
 		if totalPauseTime > 0 {
-			fmt.Printf("Waiting for result animation\n")
+			channelGameLogger.Debug().
+				Str("game", g.config.GameCode).
+				Msg("Sleeping %d milliseconds for result animation")
 			time.Sleep(time.Duration(totalPauseTime) * time.Millisecond)
-			fmt.Printf("Waiting for result animation done\n")
 		}
 		gameMessage := &GameMessage{
 			GameId:      g.config.GameId,
@@ -607,7 +608,7 @@ func (g *Game) sendActionAck(playerMsg *HandMessage, currentActionNum uint32) {
 		Messages:   []*HandMessageItem{ack},
 	}
 	g.sendHandMessageToPlayer(serverMsg, playerMsg.GetPlayerId())
-	channelGameLogger.Info().
+	channelGameLogger.Debug().
 		Str("game", g.config.GameCode).
 		Msg(fmt.Sprintf("Acknowledgment sent to %d. Message Id: %s", playerMsg.GetPlayerId(), playerMsg.GetMessageId()))
 }
@@ -675,10 +676,10 @@ func (g *Game) getPlayerCardRank(handState *HandState, boardCards []uint32) map[
 }
 
 func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
-	channelGameLogger.Info().
+	channelGameLogger.Debug().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
-		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
+		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	flopCards := make([]uint32, 3)
 	for i, card := range handState.BoardCards[:3] {
@@ -744,10 +745,10 @@ func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 }
 
 func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
-	channelGameLogger.Info().
+	channelGameLogger.Debug().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
-		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
+		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	err := handState.setupTurn()
 	if err != nil {
@@ -819,10 +820,10 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 }
 
 func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
-	channelGameLogger.Info().
+	channelGameLogger.Debug().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
-		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
+		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	err := handState.setupRiver()
 	if err != nil {
@@ -1361,7 +1362,10 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 			MaxPlayers: hs.MaxSeats,
 			Result:     handResult2Client,
 		}
-		saveResult, _ := g.saveHandResult2ToAPIServer(handResultServer)
+		saveResult, err := g.saveHandResult2ToAPIServer(handResultServer)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Could not save result to api server")
+		}
 		if saveResult != nil {
 			// retry here
 		}

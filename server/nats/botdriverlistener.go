@@ -101,7 +101,7 @@ func (n *NatsDriverBotListener) listenForMessages(msg *natsgo.Msg) {
 	}
 	messageType := data["message-type"].(string)
 	gameCode := data["game-code"].(string)
-	log.Info().Msgf("Message type: %s Game code:- %s", messageType, gameCode)
+	log.Debug().Msgf("Message type: %s Game code:- %s", messageType, gameCode)
 
 	switch messageType {
 	case BotDriverInitializeGame:
@@ -117,7 +117,7 @@ func (n *NatsDriverBotListener) listenForMessages(msg *natsgo.Msg) {
 		n.initializeGame(&botDriverMessage)
 	case BotDriverSetupDeck:
 		var handSetup HandSetup
-		fmt.Printf("%s", string(msg.Data))
+		fmt.Printf("Received setup deck message: %s", string(msg.Data))
 		err := jsoniter.Unmarshal(msg.Data, &handSetup)
 		if err != nil {
 			natsTestDriverLogger.Error().Msgf("Invalid setup deck message. %s", string(msg.Data))

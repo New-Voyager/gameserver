@@ -110,8 +110,8 @@ func NewPokerGame(
 	g.chHand = make(chan []byte, 10)
 	g.end = make(chan bool, 10)
 	g.chPlayTimedOut = make(chan timer.TimerMsg)
-	g.actionTimer = timer.NewActionTimer(g.queueActionTimeoutMsg, g.crashHandler)
-	g.actionTimer2 = timer.NewActionTimer(g.queueActionTimeoutMsg, g.crashHandler)
+	g.actionTimer = timer.NewActionTimer(g.config.GameCode, g.queueActionTimeoutMsg, g.crashHandler)
+	g.actionTimer2 = timer.NewActionTimer(g.config.GameCode, g.queueActionTimeoutMsg, g.crashHandler)
 	g.networkCheck = NewNetworkCheck(g.config.GameId, g.config.GameCode, messageSender, g.crashHandler)
 
 	playerConfig := make(map[uint64]PlayerConfigUpdate)
@@ -141,11 +141,19 @@ func (g *Game) GameStarted() {
 }
 
 func (g *Game) GameEnded() error {
+	channelGameLogger.Info().
+		Uint32("club", g.config.ClubId).
+		Str("game", g.config.GameCode).
+		Msg("Cleaning up game")
 	g.end <- true
 	g.actionTimer.Destroy()
 	g.actionTimer2.Destroy()
 	g.networkCheck.Destroy()
 	g.removeHandState()
+	channelGameLogger.Info().
+		Uint32("club", g.config.ClubId).
+		Str("game", g.config.GameCode).
+		Msg("Finished cleaning up game")
 	return nil
 }
 
@@ -300,7 +308,7 @@ func (g *Game) startGame() (bool, error) {
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
-		Msg(fmt.Sprintf("Game started. Good luck every one. %d players are in the table.", numActivePlayers))
+		Msgf("Game started. %d players are in the table.", numActivePlayers)
 
 	g.Status = GameStatus_ACTIVE
 
@@ -331,7 +339,7 @@ func (g *Game) resumeGame(handState *HandState) error {
 	channelGameLogger.Info().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
-		Msgf("Restarting hand at flow state [%s].", handState.FlowState)
+		Msgf("Resuming game. Restarting hand at flow state [%s].", handState.FlowState)
 
 	g.running = true
 	var err error
@@ -413,7 +421,7 @@ func (g *Game) dealNewHand() error {
 	if testHandSetup != nil {
 		pauseBeforeHand := testHandSetup.Pause
 		if pauseBeforeHand != 0 {
-			channelGameLogger.Info().
+			channelGameLogger.Debug().
 				Uint32("club", g.config.ClubId).
 				Str("game", g.config.GameCode).
 				Uint32("hand", newHandNum).

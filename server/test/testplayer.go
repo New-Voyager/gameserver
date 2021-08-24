@@ -146,7 +146,7 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 			msgItem.MessageType == game.HandRunItTwice {
 
 			if msgItem.MessageType != game.HandNextAction {
-				testPlayerLogger.Info().
+				testPlayerLogger.Debug().
 					Uint32("club", t.player.ClubID).
 					Uint64("game", t.player.GameID).
 					Uint64("playerid", t.player.PlayerID).
@@ -155,7 +155,7 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 					Msg(fmt.Sprintf("%s", string(jsonb)))
 			}
 			if msgItem.MessageType == game.HandResultMessage {
-				testPlayerLogger.Info().
+				testPlayerLogger.Debug().
 					Uint32("club", t.player.ClubID).
 					Uint64("game", t.player.GameID).
 					Uint64("playerid", t.player.PlayerID).
@@ -164,7 +164,7 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 					Msg(fmt.Sprintf("%s", string(jsonb)))
 			}
 			if msgItem.MessageType == game.HandResultMessage2 {
-				testPlayerLogger.Info().
+				testPlayerLogger.Debug().
 					Uint32("club", t.player.ClubID).
 					Uint64("game", t.player.GameID).
 					Uint64("playerid", t.player.PlayerID).

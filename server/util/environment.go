@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -33,6 +34,7 @@ type gameServerEnvironment struct {
 	EnableEncryption       string
 	DebugConnectivityCheck string
 	SystemTest             string
+	LogLevel               string
 }
 
 // Env is a helper object for accessing environment variables.
@@ -54,6 +56,7 @@ var Env = &gameServerEnvironment{
 	EnableEncryption:       "ENABLE_ENCRYPTION",
 	DebugConnectivityCheck: "DEBUG_CONNECTIVITY_CHECK",
 	SystemTest:             "SYSTEM_TEST",
+	LogLevel:               "LOG_LEVEL",
 }
 
 func (g *gameServerEnvironment) GetNatsURL() string {
@@ -282,4 +285,36 @@ func (g *gameServerEnvironment) GetSystemTest() string {
 
 func (g *gameServerEnvironment) IsSystemTest() bool {
 	return g.GetSystemTest() == "1" || strings.ToLower(g.GetSystemTest()) == "true"
+}
+
+func (g *gameServerEnvironment) GetLogLevel() string {
+	v := os.Getenv(g.LogLevel)
+	if v == "" {
+		defaultVal := "info"
+		environmentLogger.Warn().Msgf("%s is not defined. Using default %s", g.LogLevel, defaultVal)
+		return defaultVal
+	}
+	return v
+}
+
+func (g *gameServerEnvironment) GetZeroLogLogLevel() zerolog.Level {
+	l := g.GetLogLevel()
+	switch strings.ToLower(l) {
+	case "trace":
+		return zerolog.TraceLevel
+	case "debug":
+		return zerolog.DebugLevel
+	case "info":
+		return zerolog.InfoLevel
+	case "warn":
+		fallthrough
+	case "warning":
+		return zerolog.WarnLevel
+	case "error":
+		return zerolog.ErrorLevel
+	case "disabled":
+		return zerolog.Disabled
+	default:
+		panic(fmt.Sprintf("Unsupported %s: %s", g.LogLevel, l))
+	}
 }

@@ -19,6 +19,7 @@ DEV_POSTGRES_PASSWORD := game
 
 DEV_DISABLE_DELAYS ?= 1
 DEV_ENABLE_ENCRYPTION ?= 1
+DEV_LOG_LEVEL ?= debug
 
 NATS_VERSION := 2.1.7-alpine3.11
 REDIS_VERSION := 6.0.9
@@ -96,6 +97,7 @@ script-test: export REDIS_HOST=$(DEV_REDIS_HOST)
 script-test: export REDIS_PORT=$(DEV_REDIS_PORT)
 script-test: export REDIS_DB=$(DEV_REDIS_DB)
 script-test: export DISABLE_DELAYS=1
+script-test: export LOG_LEVEL=$(DEV_LOG_LEVEL)
 script-test: test-build run-redis
 	./game-server.test --script-tests -test.coverprofile=script_test_coverage.out -test.run TestRunMain voyager.com/server
 ifdef CI
@@ -142,6 +144,7 @@ run-server: export POSTGRES_USER=$(DEV_POSTGRES_USER)
 run-server: export POSTGRES_PASSWORD=$(DEV_POSTGRES_PASSWORD)
 run-server: export ENABLE_ENCRYPTION=$(DEV_ENABLE_ENCRYPTION)
 run-server: export DISABLE_DELAYS=$(DEV_DISABLE_DELAYS)
+run-server: export LOG_LEVEL=$(DEV_LOG_LEVEL)
 run-server:
 	go run ./main.go --server
 

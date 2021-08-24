@@ -2,10 +2,13 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	_ "github.com/lib/pq"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"voyager.com/botrunner/cmd/server/app"
+	"voyager.com/botrunner/internal/util"
 )
 
 var (
@@ -25,6 +28,9 @@ func init() {
 }
 
 func main() {
+	logLevel := util.Env.GetZeroLogLogLevel()
+	fmt.Printf("Setting log level to %s\n", logLevel)
+	zerolog.SetGlobalLevel(logLevel)
 	mainLogger.Info().Msg("Log Dir:" + cmdArgs.logDir)
 	app.RunRestServer(cmdArgs.port, cmdArgs.logDir)
 }

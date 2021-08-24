@@ -2,11 +2,14 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	_ "github.com/lib/pq"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"voyager.com/botrunner/cmd/tester/app"
+	"voyager.com/botrunner/internal/util"
 	"voyager.com/gamescript"
 )
 
@@ -33,6 +36,9 @@ func main() {
 }
 
 func tester() int {
+	logLevel := util.Env.GetZeroLogLogLevel()
+	fmt.Printf("Setting log level to %s\n", logLevel)
+	zerolog.SetGlobalLevel(logLevel)
 	mainLogger.Info().Msg("Game Code: " + cmdArgs.gameCode)
 	mainLogger.Info().Msg("Players File: " + cmdArgs.playersFile)
 	mainLogger.Info().Msg("Script File: " + cmdArgs.scriptFile)
