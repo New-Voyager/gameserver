@@ -571,7 +571,7 @@ func (g *Game) handleHandEnded(totalPauseTime uint32, allMsgItems []*HandMessage
 		if totalPauseTime > 0 {
 			channelGameLogger.Debug().
 				Str("game", g.config.GameCode).
-				Msg("Sleeping %d milliseconds for result animation")
+				Msgf("Sleeping %d milliseconds for result animation", totalPauseTime)
 			time.Sleep(time.Duration(totalPauseTime) * time.Millisecond)
 		}
 		gameMessage := &GameMessage{
