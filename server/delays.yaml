@@ -3,9 +3,9 @@
 beforeDeal: 2000
 dealSingleCard: 250
 playerActed: 1000
-goToFlop: 1000
-goToTurn: 1000
-goToRiver: 1000
+goToFlop: 500
+goToTurn: 500
+goToRiver: 500
 pendingUpdatesRetry: 5000
 onMoveToNextHand: 3000
 moveToNextHand: 5000
