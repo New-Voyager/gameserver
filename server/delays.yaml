@@ -9,3 +9,4 @@ goToRiver: 500
 pendingUpdatesRetry: 5000
 onMoveToNextHand: 3000
 moveToNextHand: 5000
+resultPerWinner: 5000

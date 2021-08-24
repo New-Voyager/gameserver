@@ -430,7 +430,7 @@ func (g *Game) dealNewHand() error {
 		}
 	}
 
-	resultPauseTime := 0
+	var resultPauseTime uint32
 	if !g.isScriptTest {
 		// we are not running tests
 		// get new hand information from the API server
@@ -442,7 +442,7 @@ func (g *Game) dealNewHand() error {
 		if newHandInfo.TableStatus != TableStatus_GAME_RUNNING {
 			return nil
 		}
-		resultPauseTime = int(newHandInfo.ResultPauseTime)
+		resultPauseTime = newHandInfo.ResultPauseTime
 		buttonPos = newHandInfo.ButtonPos
 		sbPos = newHandInfo.SbPos
 		bbPos = newHandInfo.BbPos
@@ -594,14 +594,13 @@ func (g *Game) dealNewHand() error {
 		return errors.Wrapf(err, "Error while initializing hand state")
 	}
 	if testHandSetup != nil {
-		resultPauseTime = int(testHandSetup.ResultPauseTime)
+		resultPauseTime = testHandSetup.ResultPauseTime
 	}
 	if resultPauseTime == 0 {
-		// 5 seconds to show each result
-		resultPauseTime = 5000
+		resultPauseTime = g.delays.Result
 	}
 
-	handState.ResultPauseTime = uint32(resultPauseTime)
+	handState.ResultPauseTime = resultPauseTime
 
 	if !g.isScriptTest {
 		var playerIDs []uint64
