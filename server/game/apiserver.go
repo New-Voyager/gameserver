@@ -101,7 +101,7 @@ func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) error {
 		channelGameLogger.Error().Msgf("[%s] Cannot read response from /move-to-next-hand", g.config.GameCode)
 		return err
 	}
-	channelGameLogger.Info().Msgf("[%s] Response from /move-to-next-hand: %s", g.config.GameCode, bodyBytes)
+	channelGameLogger.Debug().Msgf("[%s] Response from /move-to-next-hand: %s", g.config.GameCode, bodyBytes)
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("[%s] /move-to-next-hand returned %d", g.config.GameCode, resp.StatusCode)

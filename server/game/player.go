@@ -129,7 +129,7 @@ func (p *Player) onCardsDealt(messageBytes []byte, message *HandMessage, msgItem
 	if err != nil {
 		return err
 	}
-	playerLogger.Info().Msg(string(jsonb))
+	playerLogger.Debug().Msg(string(jsonb))
 
 	if p.delegate != nil {
 		p.delegate.HandMessageFromGame(messageBytes, message, msgItem, jsonb)
@@ -180,7 +180,7 @@ func (p *Player) onPlayerAction(messageBytes []byte, message *HandMessage, msgIt
 		seatAction := msgItem.GetSeatAction()
 		if seatAction.AvailableActions != nil && len(seatAction.AvailableActions) >= 1 {
 			if seatAction.AvailableActions[0] == ACTION_RUN_IT_TWICE_PROMPT {
-				playerLogger.Info().
+				playerLogger.Debug().
 					Str("game", message.GameCode).
 					Msg(fmt.Sprintf("Run it twice prompt. Seat No: %d", seatAction.SeatNo))
 			}

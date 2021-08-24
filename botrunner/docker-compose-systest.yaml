@@ -60,7 +60,7 @@ services:
       DISABLE_DELAYS: 1
       ENABLE_ENCRYPTION: 1
       SYSTEM_TEST: 1
-      LOG_LEVEL: 'info'
+      LOG_LEVEL: 'debug'
     command:
       - "./entrypoint_system_test.sh"
 
@@ -80,14 +80,14 @@ services:
       POSTGRES_DB: 'game'
       DISABLE_DELAYS: 0
       ENABLE_ENCRYPTION: 1
-      LOG_LEVEL: 'info'
+      LOG_LEVEL: 'debug'
 
   timer:
     image: ${TIMER_IMAGE}
     tty: true
     environment:
       API_SERVER_URL: http://api-server:9501
-      LOG_LEVEL: 'info'
+      LOG_LEVEL: 'debug'
 
 networks:
   default:

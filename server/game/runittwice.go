@@ -211,7 +211,7 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 		channelGameLogger.Info().
 			Str("game", g.config.GameCode).
 			Uint32("handNum", h.HandNum).
-			Msgf("Run two boards")
+			Msgf("Both seats YES. Running two boards")
 		h.RunItTwiceConfirmed = true
 
 		deck := poker.DeckFromBytes(h.Deck)
@@ -332,7 +332,7 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 		channelGameLogger.Info().
 			Str("game", g.config.GameCode).
 			Uint32("handNum", h.HandNum).
-			Msgf("Run one board")
+			Msgf("Running one board")
 		h.RunItTwiceConfirmed = false
 
 		// run a single board

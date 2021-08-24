@@ -246,7 +246,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 	actionMsg := g.getClientMsgItem(playerMsg)
 	messageSeatNo := actionMsg.GetPlayerActed().GetSeatNo()
-	channelGameLogger.Info().
+	channelGameLogger.Debug().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
 		Uint32("player", messageSeatNo).
@@ -607,7 +607,7 @@ func (g *Game) sendActionAck(playerMsg *HandMessage, currentActionNum uint32) {
 		Messages:   []*HandMessageItem{ack},
 	}
 	g.sendHandMessageToPlayer(serverMsg, playerMsg.GetPlayerId())
-	channelGameLogger.Info().
+	channelGameLogger.Debug().
 		Str("game", g.config.GameCode).
 		Msg(fmt.Sprintf("Acknowledgment sent to %d. Message Id: %s", playerMsg.GetPlayerId(), playerMsg.GetMessageId()))
 }
@@ -675,10 +675,10 @@ func (g *Game) getPlayerCardRank(handState *HandState, boardCards []uint32) map[
 }
 
 func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
-	channelGameLogger.Info().
+	channelGameLogger.Debug().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
-		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
+		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	flopCards := make([]uint32, 3)
 	for i, card := range handState.BoardCards[:3] {
@@ -744,10 +744,10 @@ func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 }
 
 func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
-	channelGameLogger.Info().
+	channelGameLogger.Debug().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
-		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
+		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	err := handState.setupTurn()
 	if err != nil {
@@ -819,10 +819,10 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 }
 
 func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
-	channelGameLogger.Info().
+	channelGameLogger.Debug().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
-		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
+		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	err := handState.setupRiver()
 	if err != nil {

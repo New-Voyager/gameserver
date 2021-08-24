@@ -46,7 +46,7 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 
 func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCode string) {
 	// call api server processPendingUpdates
-	channelGameLogger.Info().Msgf("Processing pending updates for the game %d", gameID)
+	channelGameLogger.Debug().Msgf("Processing pending updates for the game %d", gameID)
 	url := fmt.Sprintf("%s/internal/process-pending-updates/gameId/%d", apiServerURL, gameID)
 
 	retries := 0

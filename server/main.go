@@ -140,7 +140,7 @@ func runWithNats(gameManager *game.Manager) {
 	if util.Env.IsSystemTest() {
 		// System test needs a way to return from main to collect the code coverage.
 		// We shouldn't be exiting the process in production.
-		mainLogger.Info().Msg("Running in system test mode.")
+		mainLogger.Warn().Msg("Running in system test mode.")
 		for !exit {
 			time.Sleep(500 * time.Millisecond)
 		}

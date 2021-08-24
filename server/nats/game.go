@@ -128,7 +128,7 @@ func (n *NatsGame) cleanup() {
 
 // message sent from apiserver to game
 func (n *NatsGame) gameStatusChanged(gameID uint64, newStatus GameStatus) {
-	natsGameLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+	natsGameLogger.Debug().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("APIServer->Game: Status changed. GameID: %d, NewStatus: %s", gameID, game.GameStatus_name[int32(newStatus.GameStatus)]))
 
 	var statusChangeMessage game.GameMessage
@@ -151,7 +151,7 @@ func (n *NatsGame) gameStatusChanged(gameID uint64, newStatus GameStatus) {
 
 // message sent from apiserver to game
 func (n *NatsGame) playerUpdate(gameID uint64, update *PlayerUpdate) {
-	natsGameLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+	natsGameLogger.Debug().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("APIServer->Game: Player update. GameID: %d, PlayerId: %d NewStatus: %s",
 			gameID, update.PlayerId, game.PlayerStatus_name[int32(update.Status)]))
 	var message game.GameMessage
@@ -175,7 +175,7 @@ func (n *NatsGame) playerUpdate(gameID uint64, update *PlayerUpdate) {
 }
 
 func (n *NatsGame) pendingUpdatesDone(gameStatus game.GameStatus, tableStatus game.TableStatus) {
-	natsGameLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+	natsGameLogger.Debug().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("APIServer->Game: Pending updates done. GameID: %d GameStatus: %d Table Status: %d", n.gameID, gameStatus, tableStatus))
 
 	status := &game.GameStatusMessage{Status: gameStatus, TableStatus: tableStatus}
@@ -197,7 +197,7 @@ func (n *NatsGame) pendingUpdatesDone(gameStatus game.GameStatus, tableStatus ga
 
 // message sent from bot to game
 func (n *NatsGame) setupHand(handSetup HandSetup) {
-	natsGameLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+	natsGameLogger.Debug().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Bot->Game: Setup deck. GameID: %d, ButtonPos: %d", n.gameID, handSetup.ButtonPos))
 	// build a game message and send to the game
 	var message game.GameMessage
@@ -252,7 +252,7 @@ func (n *NatsGame) setupHand(handSetup HandSetup) {
 
 // messages sent from player to game
 func (n *NatsGame) player2Game(msg *natsgo.Msg) {
-	natsGameLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+	natsGameLogger.Debug().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Player->Game: %s", string(msg.Data)))
 	// convert to protobuf message
 	// convert json message to go message
@@ -268,7 +268,7 @@ func (n *NatsGame) player2Game(msg *natsgo.Msg) {
 
 // messages sent from player to game hand
 func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
-	natsGameLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+	natsGameLogger.Debug().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Player->Hand: %s", string(msg.Data)))
 	var message game.HandMessage
 	e := proto.Unmarshal(msg.Data, &message)
@@ -290,10 +290,10 @@ func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
 }
 
 func (n *NatsGame) onQueryHand(gameID uint64, playerID uint64, messageID string) error {
-	natsGameLogger.Info().Uint64("game", n.gameID).
+	natsGameLogger.Debug().Uint64("game", n.gameID).
 		Msgf("Player->Hand: Player [%d] Query current hand", playerID)
 	err := n.serverGame.HandleQueryCurrentHand(playerID, messageID)
-	natsGameLogger.Info().Uint64("game", n.gameID).
+	natsGameLogger.Debug().Uint64("game", n.gameID).
 		Msgf("Player->Hand: Query current hand [%d] returned", playerID)
 	if err != nil {
 		return err
@@ -317,7 +317,7 @@ func (n *NatsGame) player2Pong(msg *natsgo.Msg) {
 }
 
 func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
-	natsGameLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+	natsGameLogger.Debug().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Game->AllPlayers: %s", message.MessageType))
 	// let send this to all players
 	data, _ := protojson.Marshal(message)
@@ -346,7 +346,7 @@ func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 	for _, msgItem := range message.GetMessages() {
 		msgTypes = append(msgTypes, msgItem.MessageType)
 	}
-	natsGameLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Messages", fmt.Sprintf("%v", msgTypes)).
+	natsGameLogger.Debug().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Messages", fmt.Sprintf("%v", msgTypes)).
 		Str("subject", n.hand2AllPlayersSubject).
 		Msg(fmt.Sprintf("H->A: %s", string(jsonData)))
 	data, _ := proto.Marshal(message)
@@ -373,7 +373,7 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 	for _, msgItem := range message.GetMessages() {
 		msgTypes = append(msgTypes, msgItem.MessageType)
 	}
-	natsGameLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", fmt.Sprintf("%v", msgTypes)).
+	natsGameLogger.Debug().Uint64("game", n.gameID).Uint32("clubID", n.clubID).Str("Message", fmt.Sprintf("%v", msgTypes)).
 		Str("subject", hand2PlayerSubject).
 		Msg(fmt.Sprintf("H->P: %s", string(jsonData)))
 
@@ -390,7 +390,7 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 }
 
 func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID uint64) {
-	natsGameLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+	natsGameLogger.Debug().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Game->Player: %s", message.MessageType))
 
 	if playerID == 0 {
@@ -412,7 +412,7 @@ func (n *NatsGame) gameEnded() error {
 	}
 	message.GameMessage = &game.GameMessage_Status{Status: &game.GameStatusMessage{Status: game.GameStatus_ENDED,
 		TableStatus: game.TableStatus_WAITING_TO_BE_STARTED}}
-	natsGameLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+	natsGameLogger.Debug().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("Game->All: %s Game ENDED", message.MessageType))
 	n.BroadcastGameMessage(message)
 
@@ -421,7 +421,7 @@ func (n *NatsGame) gameEnded() error {
 }
 
 func (n *NatsGame) getHandLog() *map[string]interface{} {
-	natsGameLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+	natsGameLogger.Debug().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("APIServer->Game: Get HAND LOG: %d", n.gameID))
 	// build a game message and send to the game
 	var message game.GameMessage
@@ -444,7 +444,7 @@ func (n *NatsGame) getHandLog() *map[string]interface{} {
 }
 
 func (n *NatsGame) tableUpdate(gameID uint64, update *TableUpdate) {
-	natsGameLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+	natsGameLogger.Debug().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 		Msg(fmt.Sprintf("APIServer->Game: Table update. GameID: %d, Type: %s",
 			gameID, update.Type))
 	var message game.GameMessage
@@ -474,7 +474,7 @@ func (n *NatsGame) tableUpdate(gameID uint64, update *TableUpdate) {
 				Stack:      float32(move.Stack),
 			}
 		}
-		natsGameLogger.Info().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
+		natsGameLogger.Debug().Uint64("game", n.gameID).Uint32("clubID", n.clubID).
 			Msgf("APIServer->Game: SeatMove. GameID: %d, Code: %s, Moves: +%v",
 				gameID, n.gameCode, update.SeatMoves)
 	} else if update.Type == game.TableHostSeatChangeProcessStart {

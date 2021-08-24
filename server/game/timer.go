@@ -8,7 +8,7 @@ import (
 )
 
 func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireAt time.Time) {
-	channelGameLogger.Info().Msgf("Resetting timer. Current timer seat: %d expires at %s (%f seconds from now)", seatNo, expireAt, expireAt.Sub(time.Now()).Seconds())
+	channelGameLogger.Debug().Msgf("Resetting timer. Current timer seat: %d expires at %s (%f seconds from now)", seatNo, expireAt, expireAt.Sub(time.Now()).Seconds())
 	g.actionTimer.Reset(timer.TimerMsg{
 		SeatNo:   seatNo,
 		PlayerID: playerID,
@@ -18,7 +18,7 @@ func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireA
 }
 
 func (g *Game) runItTwiceTimer(seatNo uint32, playerID uint64, seatNo2 uint32, playerID2 uint64, expireAt time.Time) {
-	channelGameLogger.Info().Msgf("Resetting timers for run-it-twice prompt. SeatNo 1: %d SeatNo 2: %d expires at %s (%f seconds from now)", seatNo, seatNo2, expireAt, expireAt.Sub(time.Now()).Seconds())
+	channelGameLogger.Debug().Msgf("Resetting timers for run-it-twice prompt. SeatNo 1: %d SeatNo 2: %d expires at %s (%f seconds from now)", seatNo, seatNo2, expireAt, expireAt.Sub(time.Now()).Seconds())
 	g.actionTimer.Reset(timer.TimerMsg{
 		SeatNo:     seatNo,
 		PlayerID:   playerID,
