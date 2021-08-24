@@ -37,17 +37,21 @@ func (g *Game) saveHandResult2ToAPIServer(result2 *HandResultServer) (*SaveHandR
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusOK {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("Unable to read response body")
-		}
-		var saveResult SaveHandResult
-		json.Unmarshal(bodyBytes, &saveResult)
-		return &saveResult, nil
-	} else {
-		return nil, fmt.Errorf("faile to save hand")
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Received HTTP status %d from %s", resp.StatusCode, url)
 	}
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Unable to read response body from %s", url)
+	}
+
+	var saveResult SaveHandResult
+	err = json.Unmarshal(bodyBytes, &saveResult)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to parse response body json into struct")
+	}
+	return &saveResult, nil
 }
 func (g *Game) getNewHandInfo() (*NewHandInfo, error) {
 	// TODO: Implement retry.
