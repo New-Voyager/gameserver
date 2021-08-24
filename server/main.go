@@ -49,7 +49,7 @@ func main() {
 }
 
 func run() error {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	zerolog.SetGlobalLevel(util.Env.GetZeroLogLogLevel())
 	flag.Parse()
 	delays, err := game.ParseDelayConfig(*delayConfigFile)
 	if err != nil {

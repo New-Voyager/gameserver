@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -29,6 +30,7 @@ type environment struct {
 	PostgresPW   string
 	PostgresDB   string
 	APIServerURL string
+	LogLevel     string
 }
 
 // Env is a helper object for accessing environment variables.
@@ -43,6 +45,7 @@ var Env = &environment{
 	PostgresPW:   "POSTGRES_PASSWORD",
 	PostgresDB:   "POSTGRES_DB",
 	APIServerURL: "API_SERVER_URL",
+	LogLevel:     "LOG_LEVEL",
 }
 
 func (e *environment) GetRedisHost() string {
@@ -192,4 +195,36 @@ func (e *environment) GetGameServerURL(gameCode string) string {
 		envLogger.Error().Msgf("Unable to parse game server URL from response: %s", body)
 	}
 	return p.Server.URL
+}
+
+func (e *environment) GetLogLevel() string {
+	v := os.Getenv(e.LogLevel)
+	if v == "" {
+		defaultVal := "info"
+		envLogger.Warn().Msgf("%s is not defined. Using default %s", e.LogLevel, defaultVal)
+		return defaultVal
+	}
+	return v
+}
+
+func (e *environment) GetZeroLogLogLevel() zerolog.Level {
+	l := e.GetLogLevel()
+	switch strings.ToLower(l) {
+	case "trace":
+		return zerolog.TraceLevel
+	case "debug":
+		return zerolog.DebugLevel
+	case "info":
+		return zerolog.InfoLevel
+	case "warn":
+		fallthrough
+	case "warning":
+		return zerolog.WarnLevel
+	case "error":
+		return zerolog.ErrorLevel
+	case "disabled":
+		return zerolog.Disabled
+	default:
+		panic(fmt.Sprintf("Unsupported %s: %s", e.LogLevel, l))
+	}
 }

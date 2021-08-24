@@ -23,6 +23,7 @@
         "POSTGRES_PASSWORD": "game",
         "ENABLE_ENCRYPTION": "1",
         "DEBUG_CONNECTIVITY_CHECK": "0",
+        "LOG_LEVEL": "info",
       },
       "args": ["--server"]
     },
@@ -38,7 +39,8 @@
         "REDIS_PORT": "6379",
         "REDIS_DB": "0",
         "API_SERVER_URL": "http://localhost:9501",
-        "DISABLE_DELAYS": "1"
+        "DISABLE_DELAYS": "1",
+        "LOG_LEVEL": "info",
       },
       "args": ["--script-tests"]
       // "args": [

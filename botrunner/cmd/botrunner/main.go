@@ -5,6 +5,7 @@ import (
 	"os"
 
 	_ "github.com/lib/pq"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"voyager.com/botrunner/internal/driver"
 	"voyager.com/botrunner/internal/util"
@@ -37,6 +38,7 @@ func main() {
 }
 
 func botrunner() int {
+	zerolog.SetGlobalLevel(util.Env.GetZeroLogLogLevel())
 	mainLogger.Info().Msgf("Nats url: %s", util.Env.GetNatsURL())
 	mainLogger.Info().Msgf("Players Config File: %s", cmdArgs.playersFile)
 	mainLogger.Info().Msgf("Game Script File: %s", cmdArgs.scriptFile)
