@@ -49,7 +49,9 @@ func main() {
 }
 
 func run() error {
-	zerolog.SetGlobalLevel(util.Env.GetZeroLogLogLevel())
+	logLevel := util.Env.GetZeroLogLogLevel()
+	fmt.Printf("Setting log level to %s\n", logLevel)
+	zerolog.SetGlobalLevel(logLevel)
 	flag.Parse()
 	delays, err := game.ParseDelayConfig(*delayConfigFile)
 	if err != nil {

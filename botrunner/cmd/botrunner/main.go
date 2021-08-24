@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	_ "github.com/lib/pq"
@@ -38,7 +39,9 @@ func main() {
 }
 
 func botrunner() int {
-	zerolog.SetGlobalLevel(util.Env.GetZeroLogLogLevel())
+	logLevel := util.Env.GetZeroLogLogLevel()
+	fmt.Printf("Setting log level to %s\n", logLevel)
+	zerolog.SetGlobalLevel(logLevel)
 	mainLogger.Info().Msgf("Nats url: %s", util.Env.GetNatsURL())
 	mainLogger.Info().Msgf("Players Config File: %s", cmdArgs.playersFile)
 	mainLogger.Info().Msgf("Game Script File: %s", cmdArgs.scriptFile)

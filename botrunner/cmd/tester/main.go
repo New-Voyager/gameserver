@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	_ "github.com/lib/pq"
@@ -35,7 +36,9 @@ func main() {
 }
 
 func tester() int {
-	zerolog.SetGlobalLevel(util.Env.GetZeroLogLogLevel())
+	logLevel := util.Env.GetZeroLogLogLevel()
+	fmt.Printf("Setting log level to %s\n", logLevel)
+	zerolog.SetGlobalLevel(logLevel)
 	mainLogger.Info().Msg("Game Code: " + cmdArgs.gameCode)
 	mainLogger.Info().Msg("Players File: " + cmdArgs.playersFile)
 	mainLogger.Info().Msg("Script File: " + cmdArgs.scriptFile)
