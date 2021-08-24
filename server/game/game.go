@@ -727,11 +727,11 @@ func (g *Game) dealNewHand() error {
 		crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_4, 0)
 	}
 	if !util.Env.ShouldDisableDelays() {
-		cardAnimationTime := time.Duration(numActivePlayers * g.delays.DealSingleCard * newHand.NoCards)
+		dealAnimationTime := time.Duration(numActivePlayers * g.delays.DealSingleCard * newHand.NoCards)
 		channelGameLogger.Debug().
 			Str("game", g.config.GameCode).
-			Msgf("Sleeping %d milliseconds (adjust delays.DealSingleCard)", cardAnimationTime)
-		time.Sleep(cardAnimationTime * time.Millisecond)
+			Msgf("Sleeping %d milliseconds (adjust delays.DealSingleCard)", dealAnimationTime)
+		time.Sleep(dealAnimationTime * time.Millisecond)
 	}
 
 	// print next action
