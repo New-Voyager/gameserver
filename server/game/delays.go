@@ -18,7 +18,7 @@ type Delays struct {
 	PendingUpdatesRetry uint32 `yaml:"pendingUpdatesRetry"`
 	OnMoveToNextHand    uint32 `yaml:"onMoveToNextHand"`
 	MoveToNextHand      uint32 `yaml:"moveToNextHand"`
-	Result              uint32 `yaml:"result"`
+	ResultPerWinner     uint32 `yaml:"resultPerWinner"`
 }
 
 func ParseDelayConfig(delaysFile string) (Delays, error) {

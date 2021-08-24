@@ -597,7 +597,7 @@ func (g *Game) dealNewHand() error {
 		resultPauseTime = testHandSetup.ResultPauseTime
 	}
 	if resultPauseTime == 0 {
-		resultPauseTime = g.delays.Result
+		resultPauseTime = g.delays.ResultPerWinner
 	}
 
 	handState.ResultPauseTime = resultPauseTime
