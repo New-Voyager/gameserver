@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"voyager.com/server/crashtest"
-	"voyager.com/server/util"
 )
 
 func (g *Game) handleGameMessage(message *GameMessage) {
@@ -126,13 +125,6 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 	expectedState := FlowState_MOVE_TO_NEXT_HAND
 	if handState.FlowState != expectedState {
 		return fmt.Errorf("moveToNextHand called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
-	}
-
-	if !util.Env.ShouldDisableDelays() {
-		channelGameLogger.Debug().
-			Str("game", g.config.GameCode).
-			Msgf("Sleeping %d milliseconds (adjust delays.OnMoveToNextHand)", g.delays.OnMoveToNextHand)
-		time.Sleep(time.Duration(g.delays.OnMoveToNextHand) * time.Millisecond)
 	}
 
 	// if this game is used by script test, don't look for pending updates

@@ -20,7 +20,6 @@ import (
 	"voyager.com/server/internal/encryptionkey"
 	"voyager.com/server/poker"
 	"voyager.com/server/timer"
-	"voyager.com/server/util"
 )
 
 /**
@@ -666,13 +665,6 @@ func (g *Game) dealNewHand() error {
 	g.broadcastHandMessage(&handMessage)
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_2, 0)
 
-	if !util.Env.ShouldDisableDelays() {
-		channelGameLogger.Debug().
-			Str("game", g.config.GameCode).
-			Msgf("Sleeping %d milliseconds (adjust delays.BeforeDeal)", g.delays.BeforeDeal)
-		time.Sleep(time.Duration(g.delays.BeforeDeal) * time.Millisecond)
-	}
-
 	// indicate the clients card distribution began
 	handMessage = HandMessage{
 		GameCode:   g.config.GameCode,
@@ -689,7 +681,6 @@ func (g *Game) dealNewHand() error {
 	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_3, 0)
 
 	playersCards := make(map[uint32]string)
-	numActivePlayers := uint32(g.countActivePlayers())
 	// send the cards to each player
 	for _, player := range handState.PlayersInSeats {
 		if !player.Inhand {
@@ -728,13 +719,6 @@ func (g *Game) dealNewHand() error {
 		g.sendHandMessageToPlayer(&handMessage, player.PlayerId)
 
 		crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_DEAL_4, 0)
-	}
-	if !util.Env.ShouldDisableDelays() {
-		dealAnimationTime := time.Duration(numActivePlayers * g.delays.DealSingleCard * newHand.NoCards)
-		channelGameLogger.Debug().
-			Str("game", g.config.GameCode).
-			Msgf("Sleeping %d milliseconds (adjust delays.DealSingleCard)", dealAnimationTime)
-		time.Sleep(dealAnimationTime * time.Millisecond)
 	}
 
 	// print next action
