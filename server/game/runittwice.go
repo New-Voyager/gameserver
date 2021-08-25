@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"voyager.com/server/poker"
-	"voyager.com/server/util"
 )
 
 func (g *Game) runItTwice(h *HandState, lastPlayerAction *PlayerActRound) bool {
@@ -315,12 +314,6 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 			Content:     &HandMessageItem_RunItTwice{RunItTwice: runItTwiceMessage},
 		}
 		allMsgItems = append(allMsgItems, msgItem)
-		if !util.Env.ShouldDisableDelays() {
-			channelGameLogger.Debug().
-				Str("game", g.config.GameCode).
-				Msgf("Sleeping %d milliseconds (adjust delays.GoToFlop)", g.delays.GoToFlop)
-			time.Sleep(time.Duration(g.delays.GoToFlop) * time.Millisecond)
-		}
 
 		h.FlowState = FlowState_SHOWDOWN
 		msgItems, err := g.showdown(h)
