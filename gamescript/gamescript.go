@@ -448,6 +448,10 @@ type NonProtoMessage struct {
 	NewSeatNo  int              `yaml:"newSeatNo" json:"newSeatNo"`
 	RequestID  string           `yaml:"requestId" json:"requestId"`
 	Winners    []HighHandWinner `yaml:"winners" json:"winners"`
+	SeatNo     uint32           `yaml:"seatNo" json:"seatNo"`
+	Status     string           `yaml:"status" json:"status"`
+	Stack      float32          `yaml:"stack" json:"stack"`
+	NewUpdate  string           `yaml:"newUpdate" json:"newUpdate"`
 }
 
 type AfterGameVerification struct {

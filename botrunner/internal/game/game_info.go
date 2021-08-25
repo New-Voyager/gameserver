@@ -18,7 +18,7 @@ type GameInfo struct {
 	BuyInApproval         bool
 	BreakLength           uint32
 	AutoKickAfterBreak    bool
-	WaitlistSupported     bool
+	WaitlistAllowed       bool
 	SitInApproval         bool
 	MaxWaitList           uint32
 	RakePercentage        float32
