@@ -21,6 +21,8 @@ type TimerMsg struct {
 }
 
 type ActionTimer struct {
+	gameCode string
+
 	chReset   chan TimerMsg
 	chPause   chan bool
 	chEndLoop chan bool
@@ -30,14 +32,18 @@ type ActionTimer struct {
 
 	secondsTillTimeout uint32
 	lastResetAt        time.Time
+
+	crashHandler func()
 }
 
-func NewActionTimer(callback func(TimerMsg)) *ActionTimer {
+func NewActionTimer(gameCode string, callback func(TimerMsg), crashHandler func()) *ActionTimer {
 	at := ActionTimer{
-		chReset:   make(chan TimerMsg),
-		chPause:   make(chan bool),
-		chEndLoop: make(chan bool),
-		callback:  callback,
+		gameCode:     gameCode,
+		chReset:      make(chan TimerMsg),
+		chPause:      make(chan bool),
+		chEndLoop:    make(chan bool, 10),
+		callback:     callback,
+		crashHandler: crashHandler,
 	}
 	return &at
 }
@@ -47,17 +53,21 @@ func (a *ActionTimer) Run() {
 }
 
 func (a *ActionTimer) Destroy() {
-	go func() {
-		a.chEndLoop <- true
-	}()
+	a.chEndLoop <- true
 }
 
 func (a *ActionTimer) loop() {
 	defer func() {
-		if err := recover(); err != nil {
+		err := recover()
+		if err != nil {
 			// Panic occurred.
 			actionTimerLogger.Error().
-				Msgf("action timer loop returning due to panic: %s\nStack Trace:\n%s", err, string(debug.Stack()))
+				Str("game", a.gameCode).
+				Msgf("Action timer loop returning due to panic: %s\nStack Trace:\n%s", err, string(debug.Stack()))
+
+			a.crashHandler()
+		} else {
+			actionTimerLogger.Info().Str("game", a.gameCode).Msg("Action timer loop returning")
 		}
 	}()
 

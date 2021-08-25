@@ -399,7 +399,7 @@ func TestReadGameScript(t *testing.T) {
 							Seat: 1,
 						},
 					},
-					PlayerStats: []PlayerStats{
+					TimeoutStats: []TimeoutStats{
 						{
 							Seat:                      1,
 							ConsecutiveActionTimeouts: 0,

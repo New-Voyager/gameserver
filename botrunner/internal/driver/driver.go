@@ -566,8 +566,10 @@ func (br *BotRunner) verifyGameServerCrashLog() error {
 		return errors.Wrapf(err, "Error from sqlx. Query: [%s]", query)
 	}
 
-	fmt.Printf("Expected Crash Points: %v\n", expectedCrashPoints)
-	fmt.Printf("Actual Crash Points  : %v\n", crashPoints)
+	if len(expectedCrashPoints) > 0 {
+		br.logger.Info().Msgf("Expected Crash Points: %v\n", expectedCrashPoints)
+		br.logger.Info().Msgf("Actual Crash Points  : %v\n", crashPoints)
+	}
 	if !cmp.Equal(crashPoints, expectedCrashPoints) {
 		return fmt.Errorf("Game server crash log does not match the expected. Crashed: %v, Expected: %v", crashPoints, expectedCrashPoints)
 	}

@@ -285,12 +285,11 @@ func (bp *BotPlayer) updateLogPrefix() {
 
 func (bp *BotPlayer) handleGameMsg(msg *natsgo.Msg) {
 	if bp.printGameMsg {
-		bp.logger.Info().Msg(fmt.Sprintf("%s: Received game message %s", bp.logPrefix, string(msg.Data)))
+		bp.logger.Info().Msgf("%s: Received game message %s", bp.logPrefix, string(msg.Data))
 	}
 
 	var message game.GameMessage
 	var nonProtoMsg gamescript.NonProtoMessage
-	fmt.Printf("%s\n", string(msg.Data))
 	err := protojson.Unmarshal(msg.Data, &message)
 	if err != nil {
 		// bp.logger.Debug().Msgf("%s: Error [%s] while unmarshalling protobuf game message [%s]. Assuming non-protobuf message", bp.logPrefix, err, string(msg.Data))
@@ -1404,9 +1403,9 @@ func (bp *BotPlayer) verifyResult2() {
 		}
 	}
 
-	if len(scriptResult.PlayerStats) > 0 {
-		actualPlayerStats := actualResult.GetPlayerStats()
-		for _, scriptStat := range scriptResult.PlayerStats {
+	if len(scriptResult.TimeoutStats) > 0 {
+		actualPlayerStats := actualResult.GetTimeoutStats()
+		for _, scriptStat := range scriptResult.TimeoutStats {
 			seatNo := scriptStat.Seat
 			playerID := bp.getPlayerIDBySeatNo(seatNo)
 			actualTimeouts := actualPlayerStats[playerID].ConsecutiveActionTimeouts

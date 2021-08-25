@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -35,6 +36,7 @@ type environment struct {
 	PrintStateMsg    string
 	DisableDelays    string
 	EnableEncryption string
+	LogLevel         string
 }
 
 // Env is a helper object for accessing environment variables.
@@ -54,6 +56,7 @@ var Env = &environment{
 	PrintStateMsg:    "PRINT_STATE_MSG",
 	DisableDelays:    "DISABLE_DELAYS",
 	EnableEncryption: "ENABLE_ENCRYPTION",
+	LogLevel:         "LOG_LEVEL",
 }
 
 func (e *environment) GetNatsURL() string {
@@ -290,4 +293,36 @@ func (e *environment) ShouldDisableDelays() bool {
 
 func (e *environment) IsEncryptionEnabled() bool {
 	return e.GetEnableEncryption() == "1" || strings.ToLower(e.GetEnableEncryption()) == "true"
+}
+
+func (e *environment) GetLogLevel() string {
+	v := os.Getenv(e.LogLevel)
+	if v == "" {
+		defaultVal := "info"
+		environmentLogger.Warn().Msgf("%s is not defined. Using default %s", e.LogLevel, defaultVal)
+		return defaultVal
+	}
+	return v
+}
+
+func (e *environment) GetZeroLogLogLevel() zerolog.Level {
+	l := e.GetLogLevel()
+	switch strings.ToLower(l) {
+	case "trace":
+		return zerolog.TraceLevel
+	case "debug":
+		return zerolog.DebugLevel
+	case "info":
+		return zerolog.InfoLevel
+	case "warn":
+		fallthrough
+	case "warning":
+		return zerolog.WarnLevel
+	case "error":
+		return zerolog.ErrorLevel
+	case "disabled":
+		return zerolog.Disabled
+	default:
+		panic(fmt.Sprintf("Unsupported %s: %s", e.LogLevel, l))
+	}
 }

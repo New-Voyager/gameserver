@@ -21,8 +21,11 @@ message PlayerStats {
   bool in_flop = 14;
   bool in_turn = 15;
   bool in_river = 16;
-  uint32 consecutive_action_timeouts = 17;
-  bool acted_at_least_once = 18;
+}
+
+message TimeoutStats {
+  uint32 consecutive_action_timeouts = 1;
+  bool acted_at_least_once = 2;
 }
 
 message HandStats {
@@ -200,8 +203,9 @@ message HandResultClient {
   map <uint32, PlayerHandInfo> player_info = 7;
   bool scoop = 8; // indicates whether the player scooped all the pots
   map<uint64, PlayerStats> player_stats = 9;
-  uint32 hand_num = 10;
-  float tips_collected = 11;
+  map<uint64, TimeoutStats> timeout_stats = 10;
+  uint32 hand_num = 11;
+  float tips_collected = 12;
 }
 
 message HandLogV2 {

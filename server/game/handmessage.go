@@ -246,7 +246,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 	actionMsg := g.getClientMsgItem(playerMsg)
 	messageSeatNo := actionMsg.GetPlayerActed().GetSeatNo()
-	channelGameLogger.Info().
+	channelGameLogger.Debug().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
 		Uint32("player", messageSeatNo).
@@ -352,10 +352,10 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 		player := handState.PlayersInSeats[seatNo]
 		if actionMsg.GetPlayerActed().GetTimedOut() {
-			handState.PlayerStats[player.PlayerId].ConsecutiveActionTimeouts++
+			handState.TimeoutStats[player.PlayerId].ConsecutiveActionTimeouts++
 		} else {
-			handState.PlayerStats[player.PlayerId].ConsecutiveActionTimeouts = 0
-			handState.PlayerStats[player.PlayerId].ActedAtLeastOnce = true
+			handState.TimeoutStats[player.PlayerId].ConsecutiveActionTimeouts = 0
+			handState.TimeoutStats[player.PlayerId].ActedAtLeastOnce = true
 		}
 
 		msg := HandMessage{
@@ -486,15 +486,15 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	player := handState.PlayersInSeats[seatNo]
 
 	if actionMsg.GetPlayerActed().GetTimedOut() {
-		handState.PlayerStats[player.PlayerId].ConsecutiveActionTimeouts++
+		handState.TimeoutStats[player.PlayerId].ConsecutiveActionTimeouts++
 	} else {
-		handState.PlayerStats[player.PlayerId].ConsecutiveActionTimeouts = 0
+		handState.TimeoutStats[player.PlayerId].ConsecutiveActionTimeouts = 0
 
 		// When the consecutive timeout counts get reported to the api server,
 		// the api server needs to know if the player has acted at all this hand
 		// so that it can clear the count from the previous hand and start a new counter
 		// instead of adding to it.
-		handState.PlayerStats[player.PlayerId].ActedAtLeastOnce = true
+		handState.TimeoutStats[player.PlayerId].ActedAtLeastOnce = true
 	}
 
 	// This number is used to generate hand message IDs uniquely and deterministically across the server crashes.
@@ -569,9 +569,12 @@ func (g *Game) handleHandEnded(totalPauseTime uint32, allMsgItems []*HandMessage
 
 	if handEnded {
 		if totalPauseTime > 0 {
-			fmt.Printf("Waiting for result animation\n")
-			time.Sleep(time.Duration(totalPauseTime) * time.Millisecond)
-			fmt.Printf("Waiting for result animation done\n")
+			if !util.Env.ShouldDisableDelays() {
+				channelGameLogger.Debug().
+					Str("game", g.config.GameCode).
+					Msgf("Sleeping %d milliseconds for result animation", totalPauseTime)
+				time.Sleep(time.Duration(totalPauseTime) * time.Millisecond)
+			}
 		}
 		gameMessage := &GameMessage{
 			GameId:      g.config.GameId,
@@ -607,7 +610,7 @@ func (g *Game) sendActionAck(playerMsg *HandMessage, currentActionNum uint32) {
 		Messages:   []*HandMessageItem{ack},
 	}
 	g.sendHandMessageToPlayer(serverMsg, playerMsg.GetPlayerId())
-	channelGameLogger.Info().
+	channelGameLogger.Debug().
 		Str("game", g.config.GameCode).
 		Msg(fmt.Sprintf("Acknowledgment sent to %d. Message Id: %s", playerMsg.GetPlayerId(), playerMsg.GetMessageId()))
 }
@@ -675,10 +678,10 @@ func (g *Game) getPlayerCardRank(handState *HandState, boardCards []uint32) map[
 }
 
 func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
-	channelGameLogger.Info().
+	channelGameLogger.Debug().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
-		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
+		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	flopCards := make([]uint32, 3)
 	for i, card := range handState.BoardCards[:3] {
@@ -744,10 +747,10 @@ func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 }
 
 func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
-	channelGameLogger.Info().
+	channelGameLogger.Debug().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
-		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
+		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	err := handState.setupTurn()
 	if err != nil {
@@ -819,10 +822,10 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 }
 
 func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
-	channelGameLogger.Info().
+	channelGameLogger.Debug().
 		Uint32("club", g.config.ClubId).
 		Str("game", g.config.GameCode).
-		Msg(fmt.Sprintf("Moving to %s", HandStatus_name[int32(handState.CurrentState)]))
+		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	err := handState.setupRiver()
 	if err != nil {
@@ -913,12 +916,6 @@ func (g *Game) handEnded(handState *HandState) ([]*HandMessageItem, error) {
 	if handState.FlowState != expectedState {
 		return nil, fmt.Errorf("handEnded called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 	}
-
-	// wait 5 seconds to show the result
-	// send a message to game to start new hand
-	// if !util.GameServerEnvironment.ShouldDisableDelays() {
-	// 	time.Sleep(time.Duration(g.delays.MoveToNextHand) * time.Millisecond)
-	// }
 
 	handEnded := &HandMessageItem{
 		MessageType: HandEnded,
@@ -1321,6 +1318,7 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	handResult2Client := handResultProcessor.determineWinners()
 	allMsgItems := make([]*HandMessageItem, 0)
 	handResult2Client.PlayerStats = handState.GetPlayerStats()
+	handResult2Client.TimeoutStats = handState.GetTimeoutStats()
 
 	msgItems, err := g.sendResult2(handState, handResult2Client)
 	if err != nil {
@@ -1360,7 +1358,10 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 			MaxPlayers: hs.MaxSeats,
 			Result:     handResult2Client,
 		}
-		saveResult, _ := g.saveHandResult2ToAPIServer(handResultServer)
+		saveResult, err := g.saveHandResult2ToAPIServer(handResultServer)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Could not save result to api server")
+		}
 		if saveResult != nil {
 			// retry here
 		}

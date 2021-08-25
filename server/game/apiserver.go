@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
+	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -15,33 +17,58 @@ func (g *Game) saveHandResult2ToAPIServer(result2 *HandResultServer) (*SaveHandR
 	var m protojson.MarshalOptions
 	m.EmitUnpopulated = true
 	data, _ := m.Marshal(result2)
-	fmt.Printf("%s\n", string(data))
+	channelGameLogger.Debug().
+		Str("game", g.config.GameCode).
+		Msgf("Result to API server: %s", string(data))
 	url := fmt.Sprintf("%s/internal/save-hand/gameId/%d/handNum/%d", g.apiServerURL, result2.GameId, result2.HandNum)
-	resp, _ := http.Post(url, "application/json", bytes.NewBuffer(data))
+	retries := 0
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
+	for err != nil && retries < int(g.maxRetries) {
+		retries++
+		channelGameLogger.Error().
+			Str("game", g.config.GameCode).
+			Msgf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, g.maxRetries)
+		time.Sleep(time.Duration(g.retryDelayMillis) * time.Millisecond)
+		resp, err = http.Post(url, "application/json", bytes.NewBuffer(data))
+	}
 	// if the api server returns nil, do nothing
-	if resp == nil {
-		return nil, fmt.Errorf("saving hand failed")
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error from post %s", url)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusOK {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			channelGameLogger.Error().Msgf("Failed to read save result for hand num: %d", result2.HandNum)
-		}
-		var saveResult SaveHandResult
-		json.Unmarshal(bodyBytes, &saveResult)
-		return &saveResult, nil
-	} else {
-		return nil, fmt.Errorf("faile to save hand")
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Received HTTP status %d from %s", resp.StatusCode, url)
 	}
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Unable to read response body from %s", url)
+	}
+
+	var saveResult SaveHandResult
+	err = json.Unmarshal(bodyBytes, &saveResult)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to parse response body json into struct")
+	}
+	return &saveResult, nil
 }
 func (g *Game) getNewHandInfo() (*NewHandInfo, error) {
 	// TODO: Implement retry.
 
 	url := fmt.Sprintf("%s/internal/next-hand-info/game_num/%s", g.apiServerURL, g.config.GameCode)
 
-	resp, _ := http.Get(url)
+	retries := 0
+	resp, err := http.Get(url)
+	for err != nil && retries < int(g.maxRetries) {
+		retries++
+		channelGameLogger.Error().
+			Str("game", g.config.GameCode).
+			Msgf("Error in get %s: %s. Retrying (%d/%d)", url, err, retries, g.maxRetries)
+		time.Sleep(time.Duration(g.retryDelayMillis) * time.Millisecond)
+		resp, err = http.Get(url)
+	}
+
 	// if the api server returns nil, do nothing
 	if resp == nil {
 		return nil, fmt.Errorf("[%s] Cannot get new hand information", g.config.GameCode)
@@ -51,7 +78,9 @@ func (g *Game) getNewHandInfo() (*NewHandInfo, error) {
 	if resp.StatusCode == http.StatusOK {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			channelGameLogger.Error().Msgf("[%s] Cannot get new hand information", g.config.GameCode)
+			channelGameLogger.Error().
+				Str("game", g.config.GameCode).
+				Msgf("[%s] Cannot get new hand information", g.config.GameCode)
 		}
 		var newHandInfo NewHandInfo
 		json.Unmarshal(bodyBytes, &newHandInfo)
@@ -65,7 +94,17 @@ func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) error {
 
 	url := fmt.Sprintf("%s/internal/move-to-next-hand/game_num/%s/hand_num/%d", g.apiServerURL, g.config.GameCode, gameServerHandNum)
 
-	resp, _ := http.Post(url, "text/plain", bytes.NewBuffer([]byte{}))
+	retries := 0
+	resp, err := http.Post(url, "text/plain", bytes.NewBuffer([]byte{}))
+	for err != nil && retries < int(g.maxRetries) {
+		retries++
+		channelGameLogger.Error().
+			Str("game", g.config.GameCode).
+			Msgf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, g.maxRetries)
+		time.Sleep(time.Duration(g.retryDelayMillis) * time.Millisecond)
+		resp, err = http.Post(url, "text/plain", bytes.NewBuffer([]byte{}))
+	}
+
 	// if the api server returns nil, do nothing
 	if resp == nil {
 		return fmt.Errorf("[%s] Cannot move API server to next hand", g.config.GameCode)
@@ -74,10 +113,14 @@ func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) error {
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		channelGameLogger.Error().Msgf("[%s] Cannot read response from /move-to-next-hand", g.config.GameCode)
+		channelGameLogger.Error().
+			Str("game", g.config.GameCode).
+			Msgf("[%s] Cannot read response from /move-to-next-hand", g.config.GameCode)
 		return err
 	}
-	channelGameLogger.Info().Msgf("[%s] Response from /move-to-next-hand: %s", g.config.GameCode, bodyBytes)
+	channelGameLogger.Debug().
+		Str("game", g.config.GameCode).
+		Msgf("[%s] Response from /move-to-next-hand: %s", g.config.GameCode, bodyBytes)
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("[%s] /move-to-next-hand returned %d", g.config.GameCode, resp.StatusCode)

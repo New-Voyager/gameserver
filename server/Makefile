@@ -19,12 +19,12 @@ DEV_POSTGRES_PASSWORD := game
 
 DEV_DISABLE_DELAYS ?= 1
 DEV_ENABLE_ENCRYPTION ?= 1
+DEV_LOG_LEVEL ?= debug
 
 NATS_VERSION := 2.1.7-alpine3.11
 REDIS_VERSION := 6.0.9
 
 DOCKER_BUILDKIT ?= 1
-BUILD_MODE ?= prod
 LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh game-server)
 GAME_SERVER_IMAGE ?= $(LOCAL_IMAGE_NAME)
 PROTO_DIR := $(PROJECT_ROOT)/proto
@@ -97,6 +97,7 @@ script-test: export REDIS_HOST=$(DEV_REDIS_HOST)
 script-test: export REDIS_PORT=$(DEV_REDIS_PORT)
 script-test: export REDIS_DB=$(DEV_REDIS_DB)
 script-test: export DISABLE_DELAYS=1
+script-test: export LOG_LEVEL=$(DEV_LOG_LEVEL)
 script-test: test-build run-redis
 	./game-server.test --script-tests -test.coverprofile=script_test_coverage.out -test.run TestRunMain voyager.com/server
 ifdef CI
@@ -113,14 +114,8 @@ docker-build: compile-proto
 	else \
 		rsync -avu --delete $(PROJECT_ROOT)/encryption/ build/encryption; \
 	fi
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . \
-		-t $(GAME_SERVER_IMAGE) \
-		--build-arg BUILD_MODE=$(BUILD_MODE)
+	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(GAME_SERVER_IMAGE)
 	rm -rf build/
-
-.PHONY: docker-build-test
-docker-build-test: export BUILD_MODE=test
-docker-build-test: docker-build
 
 .PHONY: create-network
 create-network:
@@ -149,6 +144,7 @@ run-server: export POSTGRES_USER=$(DEV_POSTGRES_USER)
 run-server: export POSTGRES_PASSWORD=$(DEV_POSTGRES_PASSWORD)
 run-server: export ENABLE_ENCRYPTION=$(DEV_ENABLE_ENCRYPTION)
 run-server: export DISABLE_DELAYS=$(DEV_DISABLE_DELAYS)
+run-server: export LOG_LEVEL=$(DEV_LOG_LEVEL)
 run-server:
 	go run ./main.go --server
 

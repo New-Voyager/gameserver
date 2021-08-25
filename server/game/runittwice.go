@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"voyager.com/server/poker"
-	"voyager.com/server/util"
 )
 
 func (g *Game) runItTwice(h *HandState, lastPlayerAction *PlayerActRound) bool {
@@ -211,7 +210,7 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 		channelGameLogger.Info().
 			Str("game", g.config.GameCode).
 			Uint32("handNum", h.HandNum).
-			Msgf("Run two boards")
+			Msgf("Both seats YES. Running two boards")
 		h.RunItTwiceConfirmed = true
 
 		deck := poker.DeckFromBytes(h.Deck)
@@ -315,9 +314,6 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 			Content:     &HandMessageItem_RunItTwice{RunItTwice: runItTwiceMessage},
 		}
 		allMsgItems = append(allMsgItems, msgItem)
-		if !util.Env.ShouldDisableDelays() {
-			time.Sleep(time.Duration(g.delays.GoToFlop) * time.Millisecond)
-		}
 
 		h.FlowState = FlowState_SHOWDOWN
 		msgItems, err := g.showdown(h)
@@ -332,7 +328,7 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 		channelGameLogger.Info().
 			Str("game", g.config.GameCode).
 			Uint32("handNum", h.HandNum).
-			Msgf("Run one board")
+			Msgf("Running one board")
 		h.RunItTwiceConfirmed = false
 
 		// run a single board

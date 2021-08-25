@@ -21,6 +21,7 @@
         "PRINT_GAME_MSG": "false",
         "PRINT_HAND_MSG": "false",
         "ENABLE_ENCRYPTION": "1",
+        "LOG_LEVEL": "info",
       },
       "args": [
         "--script",
@@ -40,6 +41,7 @@
         "PRINT_GAME_MSG": "false",
         "PRINT_HAND_MSG": "false",
         "ENABLE_ENCRYPTION": "1",
+        "LOG_LEVEL": "info",
       },
       "args": [
         "--config",
@@ -65,6 +67,7 @@
         "PRINT_GAME_MSG": "false",
         "PRINT_HAND_MSG": "false",
         "ENABLE_ENCRYPTION": "1",
+        "LOG_LEVEL": "info",
       },
       "args": []
     }

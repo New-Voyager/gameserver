@@ -28,20 +28,23 @@ type NetworkCheck struct {
 	pingStatesLock         sync.Mutex
 	debugConnectivityCheck bool
 	messageSender          *MessageSender
+	crashHandler           func()
 }
 
 func NewNetworkCheck(
 	gameID uint64,
 	gameCode string,
 	messageReceiver *MessageSender,
+	crashHandler func(),
 ) *NetworkCheck {
 	n := NetworkCheck{
 		gameID:                 gameID,
 		gameCode:               gameCode,
-		chEndLoop:              make(chan bool),
+		chEndLoop:              make(chan bool, 10),
 		pingTimeoutSec:         uint32(util.Env.GetPingTimeout()),
 		debugConnectivityCheck: util.Env.ShouldDebugConnectivityCheck(),
 		messageSender:          messageReceiver,
+		crashHandler:           crashHandler,
 	}
 	return &n
 }
@@ -50,17 +53,21 @@ func (n *NetworkCheck) Run() {
 	go n.loop()
 }
 func (n *NetworkCheck) Destroy() {
-	go func() {
-		n.chEndLoop <- true
-	}()
+	n.chEndLoop <- true
 }
 
 func (n *NetworkCheck) loop() {
 	defer func() {
-		if err := recover(); err != nil {
+		err := recover()
+		if err != nil {
 			// Panic occurred.
 			networkCheckLogger.Error().
+				Str("game", n.gameCode).
 				Msgf("network check loop returning due to panic: %s\nStack Trace:\n%s", err, string(debug.Stack()))
+
+			n.crashHandler()
+		} else {
+			networkCheckLogger.Info().Str("game", n.gameCode).Msg("Network check loop returning")
 		}
 	}()
 

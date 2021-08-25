@@ -15,6 +15,7 @@ type Manager struct {
 	activeGames      map[string]*Game
 	crashdb          *sqlx.DB
 	userdb           *sqlx.DB
+	crashHandler     func(uint64)
 }
 
 func NewGameManager(isScriptTest bool, apiServerURL string, handPersist PersistHandState, handSetupPersist *RedisHandsSetupTracker, userdb *sqlx.DB, crashdb *sqlx.DB, delays Delays) (*Manager, error) {
@@ -49,6 +50,14 @@ func (gm *Manager) InitializeGame(messageSender MessageSender, config *GameConfi
 		return nil, 0, err
 	}
 	return game, config.GameId, nil
+}
+
+func (gm *Manager) SetCrashHandler(handler func(uint64)) {
+	gm.crashHandler = handler
+}
+
+func (gm *Manager) OnGameCrash(gameID uint64) {
+	gm.crashHandler(gameID)
 }
 
 func (gm *Manager) gameEnded(game *Game) {

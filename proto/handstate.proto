@@ -109,12 +109,13 @@ message HandState {
   FlowState flow_state = 53;
   HandMessage action_msg_in_progress = 54;
   map<uint64, PlayerStats> player_stats = 55;
-  HandStats hand_stats = 56;
+  map<uint64, TimeoutStats> timeout_stats = 56;
+  HandStats hand_stats = 57;
 
-  bool burn_cards = 57;
-  bool run_it_twice_prompt = 58;      // Action waits on next seat action or run it twice prompt
-  RunItTwice run_it_twice = 59;
-  bool run_it_twice_confirmed = 60;
+  bool burn_cards = 58;
+  bool run_it_twice_prompt = 59;      // Action waits on next seat action or run it twice prompt
+  RunItTwice run_it_twice = 60;
+  bool run_it_twice_confirmed = 61;
   map <uint32, PotWinners> board2_winners = 62; // second board winnners
 
   uint32 no_of_boards = 63; 

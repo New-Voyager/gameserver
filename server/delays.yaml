@@ -1,11 +1,4 @@
 # Delays in milliseconds.
 
-beforeDeal: 2000
-dealSingleCard: 250
-playerActed: 1000
-goToFlop: 1000
-goToTurn: 1000
-goToRiver: 1000
 pendingUpdatesRetry: 5000
-onMoveToNextHand: 3000
-moveToNextHand: 5000
+resultPerWinner: 5000

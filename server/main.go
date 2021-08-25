@@ -49,7 +49,9 @@ func main() {
 }
 
 func run() error {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	logLevel := util.Env.GetZeroLogLogLevel()
+	fmt.Printf("Setting log level to %s\n", logLevel)
+	zerolog.SetGlobalLevel(logLevel)
 	flag.Parse()
 	delays, err := game.ParseDelayConfig(*delayConfigFile)
 	if err != nil {
@@ -62,7 +64,7 @@ func run() error {
 	}
 
 	// create game manager
-	_, err = game.CreateGameManager(*runGameScriptTests, delays)
+	gameManager, err := game.CreateGameManager(*runGameScriptTests, delays)
 	if err != nil {
 		return errors.Wrap(err, "Error while creating game manager")
 	}
@@ -71,7 +73,7 @@ func run() error {
 		return testScripts()
 	}
 
-	runWithNats()
+	runWithNats(gameManager)
 	return nil
 }
 
@@ -93,26 +95,28 @@ func waitForAPIServer(apiServerURL string) {
 	}
 }
 
-func runWithNats() {
-	fmt.Printf("Running the server with NATS\n")
+func runWithNats(gameManager *game.Manager) {
+	mainLogger.Info().Msg("Running the server with NATS")
 	natsURL := util.Env.GetNatsURL()
-	fmt.Printf("NATS URL: %s\n", natsURL)
+	mainLogger.Info().Msgf("NATS URL: %s", natsURL)
 
 	nc, err := natsgo.Connect(natsURL)
 	if err != nil {
-		mainLogger.Error().Msg(fmt.Sprintf("Error connecting to NATS server, error: %v", err))
+		mainLogger.Error().Msgf("Error connecting to NATS server, error: %v", err)
 		return
 	}
 	natsGameManager, err := nats.NewGameManager(nc)
 	// initialize nats game manager
 	if err != nil {
-		mainLogger.Error().Msg(fmt.Sprintf("Error creating NATS game manager, error: %v", err))
+		mainLogger.Error().Msgf("Error creating NATS game manager, error: %v", err)
 		return
 	}
 
+	gameManager.SetCrashHandler(natsGameManager.CrashCleanup)
+
 	listener, err := nats.NewNatsDriverBotListener(nc, natsGameManager)
 	if err != nil {
-		fmt.Printf("Error when subscribing to NATS")
+		mainLogger.Error().Msgf("Error when creating NatsDriverBotListener, error: %v", err)
 		return
 	}
 	_ = listener
@@ -138,7 +142,7 @@ func runWithNats() {
 	if util.Env.IsSystemTest() {
 		// System test needs a way to return from main to collect the code coverage.
 		// We shouldn't be exiting the process in production.
-		mainLogger.Info().Msg("Running in system test mode.")
+		mainLogger.Warn().Msg("Running in system test mode.")
 		for !exit {
 			time.Sleep(500 * time.Millisecond)
 		}

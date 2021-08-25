@@ -40,7 +40,7 @@ services:
       POSTGRES_DB: 'game'
 
   game-server:
-    image: ${GAME_SERVER_TEST_IMAGE}
+    image: ${GAME_SERVER_IMAGE}
     tty: true
     restart: always
     depends_on:
@@ -60,8 +60,9 @@ services:
       DISABLE_DELAYS: 1
       ENABLE_ENCRYPTION: 1
       SYSTEM_TEST: 1
+      LOG_LEVEL: 'debug'
     command:
-      - "./system_test_entrypoint.sh"
+      - "./entrypoint_system_test.sh"
 
   botrunner:
     image: ${BOTRUNNER_IMAGE}
@@ -79,12 +80,14 @@ services:
       POSTGRES_DB: 'game'
       DISABLE_DELAYS: 0
       ENABLE_ENCRYPTION: 1
+      LOG_LEVEL: 'debug'
 
   timer:
     image: ${TIMER_IMAGE}
     tty: true
     environment:
       API_SERVER_URL: http://api-server:9501
+      LOG_LEVEL: 'debug'
 
 networks:
   default:

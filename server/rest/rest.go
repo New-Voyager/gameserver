@@ -119,7 +119,7 @@ func setupCrash(c *gin.Context) {
 }
 
 func newGame(c *gin.Context) {
-	restLogger.Info().Msgf("New game is received")
+	restLogger.Debug().Msgf("New game is received")
 	var gameConfig game.GameConfig
 	var err error
 	err = c.BindJSON(&gameConfig)
@@ -133,7 +133,7 @@ func newGame(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("new-game payload: %+v\n", gameConfig)
+	restLogger.Debug().Msgf("new-game payload: %+v", gameConfig)
 
 	// initialize nats game
 	_, e := natsGameManager.NewGame(gameConfig.ClubId, gameConfig.GameId, &gameConfig)
@@ -155,11 +155,11 @@ func playerUpdate(c *gin.Context) {
 
 	err = c.BindJSON(&playerUpdate)
 	if err != nil {
-		restLogger.Error().Msg(fmt.Sprintf("Failed to read player update message. Error: %s", err.Error()))
+		restLogger.Error().Msgf("Failed to read player update message. Error: %s", err.Error())
 		return
 	}
 
-	log.Info().Uint64("gameId", playerUpdate.GameId).Msg(fmt.Sprintf("Player: %d seatNo: %d is updated: %v", playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate))
+	log.Debug().Uint64("gameId", playerUpdate.GameId).Msgf("Player: %d seatNo: %d is updated: %v", playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate)
 	natsGameManager.PlayerUpdate(playerUpdate.GameId, &playerUpdate)
 }
 
@@ -169,10 +169,10 @@ func gameUpdateStatus(c *gin.Context) {
 
 	err = c.BindJSON(&gameStatus)
 	if err != nil {
-		restLogger.Error().Msg(fmt.Sprintf("Failed to read game update message. Error: %s", err.Error()))
+		restLogger.Error().Msgf("Failed to read game update message. Error: %s", err.Error())
 		return
 	}
-	log.Info().Uint64("gameId", gameStatus.GameId).Msg(fmt.Sprintf("New game status: %d", gameStatus.GameStatus))
+	log.Debug().Uint64("gameId", gameStatus.GameId).Msgf("New game status: %d", gameStatus.GameStatus)
 	natsGameManager.GameStatusChanged(gameStatus.GameId, gameStatus)
 }
 
@@ -205,7 +205,7 @@ func gamePendingUpdates(c *gin.Context) {
 		//natsGameManager.GamePendingUpdatesStarted(gameID)
 		panic("Not implemented")
 	} else if done != "" {
-		restLogger.Info().Msgf("****** Pending updates done for game %d", gameID)
+		restLogger.Debug().Msgf("****** Pending updates done for game %d", gameID)
 		// pending updates done, game can resume
 		natsGameManager.PendingUpdatesDone(gameID, gameStatus, tableStatus)
 	}
@@ -213,19 +213,16 @@ func gamePendingUpdates(c *gin.Context) {
 
 func gameCurrentHandLog(c *gin.Context) {
 	gameIDStr := c.Query("game-id")
-	gameCode := c.Query("game-code")
 	if gameIDStr == "" {
-		if gameCode == "" {
-			c.String(400, "Either game code or game id should be specified (e.g /current-hand-log?game-code=<>")
-			return
-		}
+		c.String(400, "Game id should be specified (e.g /current-hand-log?game-id=<>")
+		return
 	}
 
 	gameID, err := strconv.ParseUint(gameIDStr, 10, 64)
 	if err != nil {
-		c.String(400, "Failed to parse game-id [%s] from pending-updates endpoint.", gameIDStr)
+		c.String(400, "Failed to parse game-id [%s] from current hand log endpoint.", gameIDStr)
 	}
-	log := natsGameManager.GetCurrentHandLog(gameID, gameCode)
+	log := natsGameManager.GetCurrentHandLog(gameID)
 	c.JSON(http.StatusOK, log)
 }
 
@@ -235,11 +232,11 @@ func tableUpdate(c *gin.Context) {
 
 	err = c.BindJSON(&tableUpdate)
 	if err != nil {
-		restLogger.Error().Msg(fmt.Sprintf("Failed to read table update message. Error: %s", err.Error()))
+		restLogger.Error().Msgf("Failed to read table update message. Error: %s", err.Error())
 		return
 	}
 
-	log.Info().Uint64("gameId", tableUpdate.GameId).Msg(fmt.Sprintf("Type: %s", tableUpdate.Type))
+	log.Debug().Uint64("gameId", tableUpdate.GameId).Msgf("Type: %s", tableUpdate.Type)
 	natsGameManager.TableUpdate(tableUpdate.GameId, &tableUpdate)
 }
 
@@ -249,7 +246,7 @@ func playerConfigUpdate(c *gin.Context) {
 
 	err = c.BindJSON(&playerConfigUpdate)
 	if err != nil {
-		restLogger.Error().Msg(fmt.Sprintf("Failed to read table update message. Error: %s", err.Error()))
+		restLogger.Error().Msgf("Failed to read table update message. Error: %s", err.Error())
 		return
 	}
 
