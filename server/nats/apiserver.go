@@ -20,6 +20,8 @@ var logger = log.With().Str("logger_name", "server::apiserver").Logger()
 // Subscribes to messages coming from apiserver and act on the messages
 // that is sent to this game server.
 var apiServerUrl = ""
+var maxRetries = 10
+var retryDelayMillis = 1500
 
 type GameStatus struct {
 	GameId      uint64           `json:"gameId"`
@@ -194,12 +196,11 @@ func registerGameServer() error {
 	url := fmt.Sprintf("%s/internal/register-game-server", apiServerUrl)
 
 	retries := 0
-	maxRetries := 5
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(reqData))
 	for err != nil && retries < maxRetries {
 		retries++
 		logger.Error().Msgf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, maxRetries)
-		time.Sleep(time.Duration(1000) * time.Millisecond)
+		time.Sleep(time.Duration(retryDelayMillis) * time.Millisecond)
 		resp, err = http.Post(url, "application/json", bytes.NewBuffer(reqData))
 	}
 
@@ -234,12 +235,11 @@ func requestRestartGames(apiServerURL string) error {
 	url := fmt.Sprintf("%s/internal/restart-games", apiServerURL)
 
 	retries := 0
-	maxRetries := 5
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(reqData))
 	for err != nil && retries < maxRetries {
 		retries++
 		logger.Error().Msgf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, maxRetries)
-		time.Sleep(time.Duration(1000) * time.Millisecond)
+		time.Sleep(time.Duration(retryDelayMillis) * time.Millisecond)
 		resp, err = http.Post(url, "application/json", bytes.NewBuffer(reqData))
 	}
 

@@ -88,8 +88,8 @@ func newNatsGame(nc *natsgo.Conn, clubID uint32, gameID uint64, config *game.Gam
 		hand2AllPlayersSubject: hand2AllPlayersSubject,
 		pingSubject:            GetPingSubject(config.GameCode),
 		natsConn:               nc,
-		maxRetries:             5,
-		retryDelayMillis:       1000,
+		maxRetries:             10,
+		retryDelayMillis:       1500,
 	}
 
 	// subscribe to topics
