@@ -19,6 +19,7 @@ DEV_POSTGRES_PASSWORD := game
 
 DEV_DISABLE_DELAYS ?= 1
 DEV_ENABLE_ENCRYPTION ?= 1
+DEV_SYSTEM_TEST ?= 0
 DEV_LOG_LEVEL ?= debug
 
 NATS_VERSION := 2.1.7-alpine3.11
@@ -145,6 +146,7 @@ run-server: export POSTGRES_PASSWORD=$(DEV_POSTGRES_PASSWORD)
 run-server: export ENABLE_ENCRYPTION=$(DEV_ENABLE_ENCRYPTION)
 run-server: export DISABLE_DELAYS=$(DEV_DISABLE_DELAYS)
 run-server: export LOG_LEVEL=$(DEV_LOG_LEVEL)
+run-server: export SYSTEM_TEST=$(DEV_SYSTEM_TEST)
 run-server:
 	go run ./main.go --server
 
