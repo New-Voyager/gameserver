@@ -100,6 +100,36 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 	fmt.Printf("[%s] HANDLING NON-PROTO GAME MESSAGE: %+v\n", bp.logPrefix, message)
 	bp.GameMessages = append(bp.GameMessages, message)
 	switch message.Type {
+	case "PLAYER_UPDATE":
+		if message == nil {
+			return
+		}
+		seatNo := message.SeatNo
+		playerID := message.PlayerID
+		playerStatus := game.PlayerStatus(game.PlayerStatus_value[message.Status])
+		buyIn := message.Stack
+		stack := message.Stack
+		p := &player{
+			seatNo:   seatNo,
+			playerID: playerID,
+			status:   playerStatus,
+			buyIn:    buyIn,
+			stack:    stack,
+		}
+		// SOMA: Don't update table view here
+		// table view is updated for every hand
+		//bp.game.table.playersBySeat[seatNo] = p
+		if playerID == bp.PlayerID {
+			// me
+			bp.seatNo = p.seatNo
+
+			if playerStatus == game.PlayerStatus_PLAYING &&
+				message.Stack > 0.0 {
+				bp.observing = false
+			}
+		}
+		bp.logger.Info().Msgf("%s: PlayerUpdate: ID: %d Seat No: %d Stack: %f Status: %d",
+			bp.logPrefix, playerID, message.SeatNo, message.Stack, message.Status)
 	case "PLAYER_SEAT_CHANGE_PROMPT":
 		if message.PlayerID != bp.PlayerID {
 			// This message is for some other player.

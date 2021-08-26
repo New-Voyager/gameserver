@@ -834,7 +834,7 @@ const GameInfoGQL = `query game_info($gameCode: String!) {
         buyInApproval
         breakLength
         autoKickAfterBreak
-        waitlistSupported
+        waitlistAllowed
         sitInApproval
         maxWaitList
         rakePercentage
