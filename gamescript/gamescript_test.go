@@ -151,6 +151,15 @@ func TestReadGameScript(t *testing.T) {
 							Seat: 7,
 						},
 					},
+					SitBack: []SitBackSetup{
+						{
+							Seat: 5,
+						},
+						{
+							Seat: 7,
+						},
+					},
+
 					LeaveGame: []LeaveGame{
 						{
 							Seat: 6,
@@ -174,15 +183,20 @@ func TestReadGameScript(t *testing.T) {
 							{
 								Seat:   1,
 								Player: "tom",
+								InHand: getBoolPointer(true),
+								Button: getBoolPointer(true),
+								Bb:     getBoolPointer(true),
 							},
 							{
 								Seat:   2,
 								Player: "brian",
 								Status: "IN_BREAK",
+								InHand: getBoolPointer(false),
 							},
 							{
 								Seat:   3,
 								Player: "yong",
+								Sb:     getBoolPointer(true),
 							},
 						},
 					},

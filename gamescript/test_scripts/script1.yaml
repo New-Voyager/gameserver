@@ -99,6 +99,9 @@ hands:
       take-break:
         - seat: 5
         - seat: 7
+      sit-back:
+        - seat: 5
+        - seat: 7
       leave-game:
         - seat: 6
       wait-list:
@@ -115,11 +118,16 @@ hands:
         seats:
           - seat: 1
             player: tom
+            inhand: true
+            button: true
+            bb: true
           - seat: 2
             player: brian
             status: IN_BREAK
+            inhand: false
           - seat: 3
             player: yong
+            sb: true
 
     preflop:
       seat-actions:

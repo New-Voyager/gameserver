@@ -296,6 +296,27 @@ func (bp *BotPlayer) setupTakeBreak() error {
 	return nil
 }
 
+func (bp *BotPlayer) setupSitBack() error {
+	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
+		return nil
+	}
+
+	currentHand := bp.config.Script.GetHand(bp.game.handNum)
+	sitbackConfigs := currentHand.Setup.SitBack
+	if sitbackConfigs == nil {
+		return nil
+	}
+
+	// using seat no, get the bot player and make seat change request
+	for _, sitbackConfig := range sitbackConfigs {
+		if sitbackConfig.Seat == bp.seatNo {
+			bp.logger.Info().Msgf("%s: Player [%s] sitting back.", bp.logPrefix, bp.config.Name)
+			bp.gqlHelper.RequestSitBack(bp.gameCode)
+		}
+	}
+	return nil
+}
+
 func (bp *BotPlayer) setupRunItTwice() error {
 	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
 		return nil

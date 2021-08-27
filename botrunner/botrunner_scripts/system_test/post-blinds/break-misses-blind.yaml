@@ -1,0 +1,154 @@
+# SYSTEM_TEST_TIMEOUT_SEC:60
+
+# a player goes on break and returns in next hand
+# the player does not post blind and waits for natural big blind
+# the player will not be in hand until the player in big blind position
+description: Player goes on break and returns and does not post blind
+club:
+  name: post blind testing
+  description: Club used for testing with the bot runner
+  rewards:
+    - name: High Hand
+      type: HIGH_HAND
+      amount: 100
+      schedule: ENTIRE_GAME
+
+game:
+  create: true
+  title: "Waitlist Testing"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 9
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 500
+  buy-in-max: 2000
+  action-time: 10
+  rewards: High Hand
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 2000
+  - seat: 2
+    player: brian
+    buy-in: 2000
+  - seat: 3
+    player: tom
+    buy-in: 2000
+  - seat: 4
+    player: jim
+    buy-in: 2000
+
+hands:
+  - setup:
+      auto: true
+      button-pos: 1
+      take-break:
+        - seat: 4
+      verify:
+        seats:
+          - seat: 1
+            button: true
+            inhand: true
+            status: PLAYING
+          - seat: 2
+            inhand: true
+            sb: true
+            status: PLAYING
+          - seat: 3
+            inhand: true
+            bb: true
+            status: PLAYING
+          - seat: 4
+            inhand: true
+            status: PLAYING
+  - setup:
+      auto: true
+      sit-back:
+        - seat: 4
+      verify:
+        seats:
+          - seat: 1
+            inhand: true
+            bb: true
+            status: PLAYING
+          - seat: 2
+            button: true
+            inhand: true
+            status: PLAYING
+          - seat: 3
+            inhand: true
+            sb: true
+            status: PLAYING
+          - seat: 4
+            inhand: false
+            status: IN_BREAK
+
+  - setup:
+      auto: true
+      verify:
+        seats:
+          - seat: 1
+            inhand: true
+            sb: true
+            status: PLAYING
+          - seat: 2
+            inhand: true
+            bb: true
+            status: PLAYING
+          - seat: 3
+            button: true
+            inhand: true
+            status: PLAYING
+          - seat: 4
+            inhand: false
+            status: NEED_TO_POST_BLIND
+
+  # seat 4 misses another hand
+  - setup:
+      auto: true
+      verify:
+        seats:
+          - seat: 1
+            inhand: true
+            button: true
+            status: PLAYING
+          - seat: 2
+            inhand: true
+            sb: true
+            status: PLAYING
+          - seat: 3
+            bb: true
+            inhand: true
+            status: PLAYING
+          - seat: 4
+            inhand: false
+            status: NEED_TO_POST_BLIND
+
+  # seat 4 is natural big blind
+  - setup:
+      auto: true
+      verify:
+        seats:
+          - seat: 1
+            inhand: true
+            status: PLAYING
+          - seat: 2
+            inhand: true
+            button: true
+            status: PLAYING
+          - seat: 3
+            sb: true
+            inhand: true
+            status: PLAYING
+          - seat: 4
+            bb: true
+            inhand: true
+            status: PLAYING
