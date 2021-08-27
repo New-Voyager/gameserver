@@ -516,6 +516,9 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		// setup take break request
 		bp.setupTakeBreak()
 
+		// setup sit back request
+		bp.setupSitBack()
+
 		// process any leave game requests
 		// the player will after this hand
 		bp.setupLeaveGame()
@@ -892,15 +895,52 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 	if len(verify.Seats) > 0 {
 		for _, seat := range currentHand.Setup.Verify.Seats {
 			seatPlayer := newHand.PlayersInSeats[seat.Seat]
-			if seatPlayer.Name != seat.Player {
+			if seat.Player != "" && seatPlayer.Name != seat.Player {
 				errMsg := fmt.Sprintf("Player [%s] should be in seat %d, but found another player: [%s]", seat.Player, seat.Seat, seatPlayer.Name)
 				bp.logger.Error().Msg(errMsg)
 				panic(errMsg)
 			}
-			if seat.Status != "" && seatPlayer.Status.String() != seat.Status {
+			playerStatus := seatPlayer.Status.String()
+			if seat.Status != "" && playerStatus != seat.Status {
 				errMsg := fmt.Sprintf("Player [%s] Status: %s. Expected Status: %s", seat.Player, seat.Status, seatPlayer.Status)
 				bp.logger.Error().Msg(errMsg)
 				panic(errMsg)
+			}
+
+			if seat.InHand != nil {
+				if seatPlayer.Inhand != *seat.InHand {
+					errMsg := fmt.Sprintf("Player [%s] inhand is not matching: Expected: %t Actual: %t",
+						seat.Player, *seat.InHand, seatPlayer.Inhand)
+					bp.logger.Error().Msg(errMsg)
+					panic(errMsg)
+				}
+			}
+
+			if seat.Button != nil {
+				if seat.Seat != newHand.ButtonPos {
+					errMsg := fmt.Sprintf("Player [%s] button position is not matching: Expected: %d Actual: %d",
+						seat.Player, seat.Seat, newHand.ButtonPos)
+					bp.logger.Error().Msg(errMsg)
+					panic(errMsg)
+				}
+			}
+
+			if seat.Sb != nil {
+				if seat.Seat != newHand.SbPos {
+					errMsg := fmt.Sprintf("Player [%s] small blind position is not matching: Expected: %d Actual: %d",
+						seat.Player, seat.Seat, newHand.SbPos)
+					bp.logger.Error().Msg(errMsg)
+					panic(errMsg)
+				}
+			}
+
+			if seat.Bb != nil {
+				if seat.Seat != newHand.BbPos {
+					errMsg := fmt.Sprintf("Player [%s] big blind position is not matching: Expected: %d Actual: %d",
+						seat.Player, seat.Seat, newHand.BbPos)
+					bp.logger.Error().Msg(errMsg)
+					panic(errMsg)
+				}
 			}
 		}
 	}
