@@ -550,6 +550,27 @@ func (g *GQLHelper) RequestTakeBreak(gameCode string) (bool, error) {
 	return resp.Status, nil
 }
 
+// RequestSitBack returning from break
+func (g *GQLHelper) RequestSitBack(gameCode string) (bool, error) {
+	req := graphql.NewRequest(SitBackRequestGQL)
+
+	//var respData EndGameResp
+	var resp SitBackRequestResp
+	req.Var("gameCode", gameCode)
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", g.authToken)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+
+	err := g.client.Run(ctx, req, &resp)
+	if err != nil {
+		return false, err
+	}
+
+	return resp.Status, nil
+}
+
 // ConfirmSeatChange confirms to make a seat change to a open seat
 func (g *GQLHelper) ConfirmSeatChange(gameCode string, seatNo uint32) (bool, error) {
 	req := graphql.NewRequest(ConfirmSeatChangeGQL)
@@ -1234,6 +1255,16 @@ const TakeBreakRequestGQL = `mutation takeBreak($gameCode: String!) {
 }`
 
 type TakeBreakRequestResp struct {
+	Status bool
+}
+
+const SitBackRequestGQL = `mutation sitBack($gameCode: String!) {
+	status: sitBack(
+		gameCode: $gameCode
+	)
+}`
+
+type SitBackRequestResp struct {
 	Status bool
 }
 
