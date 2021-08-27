@@ -17,9 +17,6 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 		Msg(fmt.Sprintf("Game message: %s. %v", message.MessageType, message))
 
 	switch message.MessageType {
-	// case GameStatusChanged:
-	// 	g.onStatusChanged(message)
-
 	case GameSetupNextHand:
 		g.onNextHandSetup(message)
 
@@ -29,20 +26,11 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 	case GameMoveToNextHand:
 		g.onMoveToNextHand(message)
 
-	// case GamePendingUpdatesDone:
-	// 	g.onPendingUpdatesDone(message)
-
 	case GameResume:
 		g.onResume(message)
 
 	case GetHandLog:
 		g.onGetHandLog(message)
-
-		// case GameCurrentStatus:
-		// 	g.onStatusUpdate(message)
-
-		// case PlayerConfigUpdateMsg:
-		// 	g.onPlayerConfigUpdate(message)
 	}
 }
 
@@ -191,19 +179,6 @@ func (g *Game) moveAPIServerToNextHandAndScheduleDealHand(handState *HandState) 
 	return nil
 }
 
-// func (g *Game) onStatusChanged(message *GameMessage) error {
-// 	gameStatusChanged := message.GetStatusChange()
-// 	g.Status = gameStatusChanged.NewStatus
-// 	return nil
-// }
-
-// func (g *Game) onStatusUpdate(message *GameMessage) error {
-// 	gameStatusChanged := message.GetStatus()
-// 	g.Status = gameStatusChanged.Status
-// 	g.TableStatus = gameStatusChanged.TableStatus
-// 	return nil
-// }
-
 func (g *Game) onNextHandSetup(message *GameMessage) error {
 	nextHandSetup := message.GetNextHand()
 
@@ -237,15 +212,3 @@ func (g *Game) broadcastTableState() error {
 	}
 	return nil
 }
-
-// func (g *Game) onPlayerConfigUpdate(message *GameMessage) error {
-// 	updateMessage := message.GetPlayerConfigUpdate()
-// 	playerConfig := g.playerConfig.Load().(map[uint64]PlayerConfigUpdate)
-// 	playerConfig[updateMessage.PlayerId] = PlayerConfigUpdate{
-// 		PlayerId:         updateMessage.PlayerId,
-// 		MuckLosingHand:   updateMessage.MuckLosingHand,
-// 		RunItTwicePrompt: updateMessage.RunItTwicePrompt,
-// 	}
-// 	g.playerConfig.Store(playerConfig)
-// 	return nil
-// }

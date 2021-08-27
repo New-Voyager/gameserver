@@ -72,12 +72,7 @@ func RunRestServer(gameManager *nats.GameManager, endSystemTestCallback func()) 
 
 	r.POST("/new-game", newGame)
 	r.POST("/resume-game", resumeGame)
-	//r.POST("/player-update", playerUpdate)
-	//r.POST("/game-update-status", gameUpdateStatus)
-	//r.POST("/pending-updates", gamePendingUpdates)
 	r.GET("/current-hand-log", gameCurrentHandLog)
-	//r.POST("/table-update", tableUpdate)
-	//r.POST("/player-config-update", playerConfigUpdate)
 	if util.Env.IsSystemTest() {
 		onEndSystemTest = endSystemTestCallback
 		r.POST("/end-system-test", endSystemTest)
@@ -150,68 +145,6 @@ func newGame(c *gin.Context) {
 	})
 }
 
-// func playerUpdate(c *gin.Context) {
-// 	var playerUpdate nats.PlayerUpdate
-// 	var err error
-
-// 	err = c.BindJSON(&playerUpdate)
-// 	if err != nil {
-// 		restLogger.Error().Msgf("Failed to read player update message. Error: %s", err.Error())
-// 		return
-// 	}
-
-// 	log.Debug().Uint64("gameId", playerUpdate.GameId).Msgf("Player: %d seatNo: %d is updated: %v", playerUpdate.PlayerId, playerUpdate.SeatNo, playerUpdate)
-// 	natsGameManager.PlayerUpdate(playerUpdate.GameId, &playerUpdate)
-// }
-
-// func gameUpdateStatus(c *gin.Context) {
-// 	var gameStatus nats.GameStatus
-// 	var err error
-
-// 	err = c.BindJSON(&gameStatus)
-// 	if err != nil {
-// 		restLogger.Error().Msgf("Failed to read game update message. Error: %s", err.Error())
-// 		return
-// 	}
-// 	log.Debug().Uint64("gameId", gameStatus.GameId).Msgf("New game status: %d", gameStatus.GameStatus)
-// 	natsGameManager.GameStatusChanged(gameStatus.GameId, gameStatus)
-// }
-
-// func gamePendingUpdates(c *gin.Context) {
-// 	gameIDStr := c.Query("game-id")
-// 	if gameIDStr == "" {
-// 		c.String(400, "Failed to read game-id param from pending-updates endpoint")
-// 	}
-
-// 	started := c.Query("started")
-// 	done := c.Query("done")
-// 	gameStatusStr := c.Query("status")
-// 	tableStatusStr := c.Query("table-status")
-
-// 	gameID, err := strconv.ParseUint(gameIDStr, 10, 64)
-// 	if err != nil {
-// 		c.String(400, "Failed to parse game-id [%s] from pending-updates endpoint.", gameIDStr)
-// 	}
-// 	gameStatus, err := strconv.ParseUint(gameStatusStr, 10, 64)
-// 	if err != nil {
-// 		c.String(400, "Failed to parse game-status [%s] from pending-updates endpoint.", gameIDStr)
-// 	}
-// 	tableStatus, err := strconv.ParseUint(tableStatusStr, 10, 64)
-// 	if err != nil {
-// 		c.String(400, "Failed to parse table-status [%s] from pending-updates endpoint.", gameIDStr)
-// 	}
-
-// 	if started != "" {
-// 		// API server started processing pending updates
-// 		//natsGameManager.GamePendingUpdatesStarted(gameID)
-// 		panic("Not implemented")
-// 	} else if done != "" {
-// 		restLogger.Debug().Msgf("****** Pending updates done for game %d", gameID)
-// 		// pending updates done, game can resume
-// 		natsGameManager.PendingUpdatesDone(gameID, gameStatus, tableStatus)
-// 	}
-// }
-
 func resumeGame(c *gin.Context) {
 	gameIDStr := c.Query("game-id")
 	if gameIDStr == "" {
@@ -241,33 +174,6 @@ func gameCurrentHandLog(c *gin.Context) {
 	log := natsGameManager.GetCurrentHandLog(gameID)
 	c.JSON(http.StatusOK, log)
 }
-
-// func tableUpdate(c *gin.Context) {
-// 	var tableUpdate nats.TableUpdate
-// 	var err error
-
-// 	err = c.BindJSON(&tableUpdate)
-// 	if err != nil {
-// 		restLogger.Error().Msgf("Failed to read table update message. Error: %s", err.Error())
-// 		return
-// 	}
-
-// 	log.Debug().Uint64("gameId", tableUpdate.GameId).Msgf("Type: %s", tableUpdate.Type)
-// 	natsGameManager.TableUpdate(tableUpdate.GameId, &tableUpdate)
-// }
-
-// func playerConfigUpdate(c *gin.Context) {
-// 	var playerConfigUpdate nats.PlayerConfigUpdate
-// 	var err error
-
-// 	err = c.BindJSON(&playerConfigUpdate)
-// 	if err != nil {
-// 		restLogger.Error().Msgf("Failed to read table update message. Error: %s", err.Error())
-// 		return
-// 	}
-
-// 	natsGameManager.PlayerConfigUpdate(playerConfigUpdate.GameId, &playerConfigUpdate)
-// }
 
 func endSystemTest(c *gin.Context) {
 	onEndSystemTest()
