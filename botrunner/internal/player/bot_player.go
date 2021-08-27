@@ -100,9 +100,9 @@ type BotPlayer struct {
 	endPing chan bool
 
 	// Points to the most recent messages from the game server.
-	lastGameMessage    *game.GameMessage
-	lastHandMessage    *game.HandMessage
-	playerStateMessage *game.GameTableStateMessage
+	lastGameMessage *game.GameMessage
+	lastHandMessage *game.HandMessage
+	//playerStateMessage *game.GameTableStateMessage
 
 	// GameInfo received from the api server.
 	gameInfo *game.GameInfo
@@ -365,7 +365,8 @@ func (bp *BotPlayer) messageLoop() {
 			return
 		case chItem := <-bp.chGame:
 			if chItem.ProtoGameMsg != nil {
-				bp.processGameMessage(chItem.ProtoGameMsg)
+				//bp.processGameMessage(chItem.ProtoGameMsg)
+				panic("We should not get any messages from game server")
 			} else if chItem.NonProtoGameMsg != nil {
 				bp.processNonProtoGameMessage(chItem.NonProtoGameMsg)
 			}

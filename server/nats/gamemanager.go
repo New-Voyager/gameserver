@@ -79,36 +79,45 @@ func (gm *GameManager) EndNatsGame(gameID uint64) {
 	}
 }
 
-func (gm *GameManager) GameStatusChanged(gameID uint64, newStatus GameStatus) {
-	gameIDStr := fmt.Sprintf("%d", gameID)
-	if game, ok := gm.activeGames[gameIDStr]; ok {
-		// if game ended, remove natsgame and game
-		if newStatus.GameStatus == GAMESTATUS_ENDED {
-			gm.EndNatsGame(gameID)
-		} else {
-			game.gameStatusChanged(gameID, newStatus)
-		}
-	} else {
-		natsGMLogger.Error().Uint64("gameId", gameID).Msgf("GameID: %d does not exist", gameID)
-	}
-}
+// func (gm *GameManager) GameStatusChanged(gameID uint64, newStatus GameStatus) {
+// 	gameIDStr := fmt.Sprintf("%d", gameID)
+// 	if game, ok := gm.activeGames[gameIDStr]; ok {
+// 		// if game ended, remove natsgame and game
+// 		if newStatus.GameStatus == GAMESTATUS_ENDED {
+// 			gm.EndNatsGame(gameID)
+// 		} else {
+// 			game.gameStatusChanged(gameID, newStatus)
+// 		}
+// 	} else {
+// 		natsGMLogger.Error().Uint64("gameId", gameID).Msgf("GameID: %d does not exist", gameID)
+// 	}
+// }
 
-func (gm *GameManager) PlayerUpdate(gameID uint64, playerUpdate *PlayerUpdate) {
-	gameIDStr := fmt.Sprintf("%d", gameID)
-	if game, ok := gm.activeGames[gameIDStr]; ok {
-		game.playerUpdate(gameID, playerUpdate)
-	} else {
-		natsGMLogger.Error().Uint64("gameId", gameID).Msgf("GameID: %d does not exist", gameID)
-	}
-}
+// func (gm *GameManager) PlayerUpdate(gameID uint64, playerUpdate *PlayerUpdate) {
+// 	gameIDStr := fmt.Sprintf("%d", gameID)
+// 	if game, ok := gm.activeGames[gameIDStr]; ok {
+// 		game.playerUpdate(gameID, playerUpdate)
+// 	} else {
+// 		natsGMLogger.Error().Uint64("gameId", gameID).Msgf("GameID: %d does not exist", gameID)
+// 	}
+// }
 
-func (gm *GameManager) PendingUpdatesDone(gameID uint64, gameStatusInt uint64, tableStatusInt uint64) {
+// func (gm *GameManager) PendingUpdatesDone(gameID uint64, gameStatusInt uint64, tableStatusInt uint64) {
+// 	gameIDStr := fmt.Sprintf("%d", gameID)
+// 	if g, ok := gm.activeGames[gameIDStr]; ok {
+// 		gameStatus := game.GameStatus(gameStatusInt)
+// 		tableStatus := game.TableStatus(tableStatusInt)
+
+// 		g.pendingUpdatesDone(gameStatus, tableStatus)
+// 	} else {
+// 		natsGMLogger.Error().Uint64("gameId", gameID).Msgf("GameID: %d does not exist", gameID)
+// 	}
+// }
+
+func (gm *GameManager) ResumeGame(gameID uint64) {
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	if g, ok := gm.activeGames[gameIDStr]; ok {
-		gameStatus := game.GameStatus(gameStatusInt)
-		tableStatus := game.TableStatus(tableStatusInt)
-
-		g.pendingUpdatesDone(gameStatus, tableStatus)
+		g.resumeGame()
 	} else {
 		natsGMLogger.Error().Uint64("gameId", gameID).Msgf("GameID: %d does not exist", gameID)
 	}
@@ -147,21 +156,21 @@ func (gm *GameManager) GetCurrentHandLog(gameID uint64) *map[string]interface{} 
 }
 
 // TableUpdate used for sending table updates to the players
-func (gm *GameManager) TableUpdate(gameID uint64, tableUpdate *TableUpdate) {
-	gameIDStr := fmt.Sprintf("%d", gameID)
-	if game, ok := gm.activeGames[gameIDStr]; ok {
-		game.tableUpdate(gameID, tableUpdate)
-	} else {
-		natsGMLogger.Error().Uint64("gameId", gameID).Msgf("GameID: %d does not exist", gameID)
-	}
-}
+// func (gm *GameManager) TableUpdate(gameID uint64, tableUpdate *TableUpdate) {
+// 	gameIDStr := fmt.Sprintf("%d", gameID)
+// 	if game, ok := gm.activeGames[gameIDStr]; ok {
+// 		game.tableUpdate(gameID, tableUpdate)
+// 	} else {
+// 		natsGMLogger.Error().Uint64("gameId", gameID).Msgf("GameID: %d does not exist", gameID)
+// 	}
+// }
 
 // PlayerConfigUpdate used for sending player config updates (muckLosingHand, runItTwicePrompt) to the game
-func (gm *GameManager) PlayerConfigUpdate(gameID uint64, playerConfigUpdate *PlayerConfigUpdate) {
-	gameIDStr := fmt.Sprintf("%d", gameID)
-	if game, ok := gm.activeGames[gameIDStr]; ok {
-		game.playerConfigUpdate(playerConfigUpdate)
-	} else {
-		natsGMLogger.Error().Uint64("gameId", gameID).Msgf("GameID: %d does not exist", gameID)
-	}
-}
+// func (gm *GameManager) PlayerConfigUpdate(gameID uint64, playerConfigUpdate *PlayerConfigUpdate) {
+// 	gameIDStr := fmt.Sprintf("%d", gameID)
+// 	if game, ok := gm.activeGames[gameIDStr]; ok {
+// 		game.playerConfigUpdate(playerConfigUpdate)
+// 	} else {
+// 		natsGMLogger.Error().Uint64("gameId", gameID).Msgf("GameID: %d does not exist", gameID)
+// 	}
+// }

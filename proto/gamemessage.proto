@@ -12,16 +12,16 @@ message PlayerInSeat {
   float  buy_in = 4;
 }
 
-message GameJoinMessage {
-  uint64 player_id = 1;
-  string name = 2;
-}
+// message GameJoinMessage {
+//   uint64 player_id = 1;
+//   string name = 2;
+// }
 
 
-message GameStatusMessage {
-  GameStatus status = 1;
-  TableStatus table_status = 2;
-}
+// message GameStatusMessage {
+//   GameStatus status = 1;
+//   TableStatus table_status = 2;
+// }
 
 message GamePlayerSatMessage {
   uint64 player_id = 1;
@@ -29,9 +29,9 @@ message GamePlayerSatMessage {
   float  buy_in = 3;
 }
 
-message GameStatusChangeMessage {
-  GameStatus newStatus = 1;
-}
+// message GameStatusChangeMessage {
+//   GameStatus newStatus = 1;
+// }
 
 message PlayerAtTableState {
   uint64 player_id = 1;
@@ -45,10 +45,10 @@ message PlayerAtTableState {
 message GameDealHandMessage {
 }
 
-message GameTableStateMessage {
+message TestGameTableStateMessage {
   repeated PlayerAtTableState players_state = 1;
-  GameStatus status = 2;
-  TableStatus table_status = 3;
+  // GameStatus status = 2;
+  // TableStatus table_status = 3;
 }
 
 message GameSetupSeatCards {
@@ -73,9 +73,9 @@ message TestHandSetup {
   uint32 result_pause_time = 16;
 }
 
-message GameStartMessage {
-  uint64 requesting_player_id = 1;
-}
+// message GameStartMessage {
+//   uint64 requesting_player_id = 1;
+// }
 
 message GameQueryTableStateMessage {
   uint64 player_id = 1;     // the player asked for this
@@ -93,19 +93,19 @@ message GameMessage {
   uint64 player_id = 5;
   string message_type = 6;
   oneof game_message {
-    GameStatusMessage status = 8;
-    GameStatusChangeMessage status_change = 10;
-    GameJoinMessage join_game = 11;
+    // GameStatusMessage status = 8;
+    // GameStatusChangeMessage status_change = 10;
+    // GameJoinMessage join_game = 11;
     GameDealHandMessage deal_hand = 12;
-    GameTableStateMessage table_state = 13;
+    TestGameTableStateMessage table_state = 13;
     TestHandSetup next_hand = 14;
-    GameStartMessage start_game = 15;
+    // GameStartMessage start_game = 15;
     GameQueryTableStateMessage query_table_state = 16;
-    GamePlayerUpdate player_update = 17;
+    // GamePlayerUpdate player_update = 17;
     bytes hand_log = 18;
-    HighHand high_hand = 19;
-    TableUpdate table_update = 20;
-    PlayerConfigUpdate player_config_update = 21;
+    //HighHand high_hand = 19;
+    // TableUpdate table_update = 20;
+    // PlayerConfigUpdate player_config_update = 21;
     GameNetworkConnectivityMessage network_connectivity = 22;
   }
 }

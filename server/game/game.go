@@ -313,9 +313,9 @@ func (g *Game) startGame() (bool, error) {
 
 	g.running = true
 
-	gameMessage := GameMessage{MessageType: GameCurrentStatus, GameId: g.config.GameId, PlayerId: 0}
-	gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: g.Status, TableStatus: g.TableStatus}}
-	g.broadcastGameMessage(&gameMessage)
+	// gameMessage := GameMessage{MessageType: GameCurrentStatus, GameId: g.config.GameId, PlayerId: 0}
+	// gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: g.Status, TableStatus: g.TableStatus}}
+	// g.broadcastGameMessage(&gameMessage)
 
 	if !g.isScriptTest {
 		err := g.moveAPIServerToNextHand(0)
