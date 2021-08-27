@@ -98,6 +98,26 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 	fmt.Printf("[%s] HANDLING NON-PROTO GAME MESSAGE: %+v\n", bp.logPrefix, message)
 	bp.GameMessages = append(bp.GameMessages, message)
 	switch message.Type {
+	case "GAME_STATUS":
+		gs := game.GameStatus(game.GameStatus_value[message.GameStatus])
+		ts := game.TableStatus(game.TableStatus_value[message.TableStatus])
+		bp.game.status = gs
+		bp.game.tableStatus = ts
+		bp.logger.Info().Msgf("%s: Received game status message. Game Status: %s Table Status: %s", bp.logPrefix, gs, ts)
+		if ts == game.TableStatus_GAME_RUNNING {
+			err := bp.queryCurrentHandState()
+			if err != nil {
+				bp.logger.Error().Msgf("%s: Error while querying current hand state. Error: %v", bp.logPrefix, err)
+			}
+		}
+		if gs == game.GameStatus_ENDED {
+			// The game just ended. Player should leave the game.
+			err := bp.LeaveGameImmediately()
+			if err != nil {
+				bp.logger.Error().Msgf("%s: Error while leaving game: %s", bp.logPrefix, err)
+			}
+		}
+
 	case "PLAYER_UPDATE":
 		if message == nil {
 			return

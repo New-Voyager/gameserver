@@ -47,7 +47,18 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 }
 
 func (g *Game) onResume(message *GameMessage) error {
-	return nil
+	g.inProcessPendingUpdates = false
+	if g.Status != GameStatus_ACTIVE || g.TableStatus != TableStatus_GAME_RUNNING {
+		return nil
+	}
+
+	// deal next hand
+	handState, err := g.loadHandState()
+	if err != nil {
+		return err
+	}
+
+	return g.moveAPIServerToNextHandAndScheduleDealHand(handState)
 }
 
 func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCode string) {
