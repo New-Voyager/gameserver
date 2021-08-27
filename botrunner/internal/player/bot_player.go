@@ -365,8 +365,12 @@ func (bp *BotPlayer) messageLoop() {
 			return
 		case chItem := <-bp.chGame:
 			if chItem.ProtoGameMsg != nil {
-				//bp.processGameMessage(chItem.ProtoGameMsg)
-				panic("We should not get any messages from game server")
+				if chItem.ProtoGameMsg.MessageType == "PLAYER_CONNECTIVITY_LOST" ||
+					chItem.ProtoGameMsg.MessageType == "PLAYER_CONNECTIVITY_RESTORED" {
+
+				} else {
+					panic("We should not get any messages from game server")
+				}
 			} else if chItem.NonProtoGameMsg != nil {
 				bp.processNonProtoGameMessage(chItem.NonProtoGameMsg)
 			}

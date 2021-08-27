@@ -443,27 +443,50 @@ type HighHandWinner struct {
 	HhCards     []uint32 `yaml:"hhCards" json:"hhCards"`
 }
 
+/*
+export interface SeatUpdate {
+	seatNo: number;
+	openSeat: boolean;
+	playerId?: number;
+	playerUuid?: string;
+	name?: string;
+	stack?: number;
+	status?: PlayerStatus;
+  }
+*/
+type SeatUpdate struct {
+	SeatNo     int32   `yaml:"seatNo" json:"seatNo"`
+	OpenSeat   bool    `yaml:"openSeat" json:"openSeat"`
+	PlayerId   int64   `yaml:"playerId" json:"playerId"`
+	PlayerUuid string  `yaml:"playerUuid" json:"playerUuid"`
+	Name       string  `yaml:"name" json:"name"`
+	Stack      float32 `yaml:"stack" json:"stack"`
+	Status     string  `yaml:"status" json:"status"`
+}
 type NonProtoMessage struct {
-	Type        string           `yaml:"type" json:"type"`
-	SubType     string           `yaml:"subType" json:"subType"`
-	GameCode    string           `yaml:"gameCode" json:"gameCode"`
-	OpenedSeat  uint32           `yaml:"openedSeat" json:"openedSeat"`
-	PlayerName  string           `yaml:"playerName" json:"playerName"`
-	PlayerID    uint64           `yaml:"playerId" json:"playerId"`
-	PlayerUUID  string           `yaml:"playerUuid" json:"playerUuid"`
-	ExpTime     string           `yaml:"expTime" json:"expTime"`
-	PromptSecs  int              `yaml:"promptSecs" json:"promptSecs"`
-	OldSeatNo   int              `yaml:"oldSeatNo" json:"oldSeatNo"`
-	NewSeatNo   int              `yaml:"newSeatNo" json:"newSeatNo"`
-	RequestID   string           `yaml:"requestId" json:"requestId"`
-	Winners     []HighHandWinner `yaml:"winners" json:"winners"`
-	SeatNo      uint32           `yaml:"seatNo" json:"seatNo"`
-	Status      string           `yaml:"status" json:"status"`
-	Stack       float32          `yaml:"stack" json:"stack"`
-	NewUpdate   string           `yaml:"newUpdate" json:"newUpdate"`
-	GameId      uint64           `yaml:"gameId" json:"gameId"`
-	GameStatus  string           `yaml:"gameStatus" json:"gameStatus"`
-	TableStatus string           `yaml:"tableStatus" json:"tableStatus"`
+	Type             string           `yaml:"type" json:"type"`
+	SubType          string           `yaml:"subType" json:"subType"`
+	GameCode         string           `yaml:"gameCode" json:"gameCode"`
+	OpenedSeat       uint32           `yaml:"openedSeat" json:"openedSeat"`
+	PlayerName       string           `yaml:"playerName" json:"playerName"`
+	PlayerID         uint64           `yaml:"playerId" json:"playerId"`
+	PlayerUUID       string           `yaml:"playerUuid" json:"playerUuid"`
+	ExpTime          string           `yaml:"expTime" json:"expTime"`
+	PromptSecs       int              `yaml:"promptSecs" json:"promptSecs"`
+	OldSeatNo        int              `yaml:"oldSeatNo" json:"oldSeatNo"`
+	NewSeatNo        int              `yaml:"newSeatNo" json:"newSeatNo"`
+	RequestID        string           `yaml:"requestId" json:"requestId"`
+	Winners          []HighHandWinner `yaml:"winners" json:"winners"`
+	SeatNo           uint32           `yaml:"seatNo" json:"seatNo"`
+	Status           string           `yaml:"status" json:"status"`
+	Stack            float32          `yaml:"stack" json:"stack"`
+	NewUpdate        string           `yaml:"newUpdate" json:"newUpdate"`
+	GameId           uint64           `yaml:"gameId" json:"gameId"`
+	GameStatus       string           `yaml:"gameStatus" json:"gameStatus"`
+	TableStatus      string           `yaml:"tableStatus" json:"tableStatus"`
+	SeatChangeHostId int64            `yaml:"seatChangeHostId" json:"seatChangeHostId"`
+	SeatUpdates      []SeatUpdate     `yaml:"seatUpdates" json:"seatUpdates"`
+	SeatMoves        []SeatUpdate     `yaml:"seatMoves" json:"seatMoves"`
 }
 
 type AfterGameVerification struct {

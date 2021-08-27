@@ -180,6 +180,14 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 		break
 	case "NEW_HIGHHAND_WINNER":
 		break
+	case "TABLE_UPDATE":
+		bp.onTableUpdate(message)
+	}
+}
+
+func (bp *BotPlayer) onTableUpdate(message *gamescript.NonProtoMessage) {
+	if message.SubType == "HostSeatChangeMove" {
+		fmt.Printf("Player moved")
 	}
 }
 

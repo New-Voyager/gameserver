@@ -1,5 +1,5 @@
 app-game: Run it twice
-
+disabled: true
 club:
   name: Tester Club
   description: Club used for testing with the bot runner
