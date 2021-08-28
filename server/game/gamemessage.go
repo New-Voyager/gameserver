@@ -104,21 +104,6 @@ func (g *Game) onGetHandLog(message *GameMessage) error {
 	return nil
 }
 
-func (g *Game) onPendingUpdatesDone(message *GameMessage) error {
-	g.inProcessPendingUpdates = false
-	if g.Status != GameStatus_ACTIVE || g.TableStatus != TableStatus_GAME_RUNNING {
-		return nil
-	}
-
-	// deal next hand
-	handState, err := g.loadHandState()
-	if err != nil {
-		return err
-	}
-
-	return g.moveAPIServerToNextHandAndScheduleDealHand(handState)
-}
-
 func (g *Game) onMoveToNextHand(message *GameMessage) error {
 	handState, err := g.loadHandState()
 	if err != nil {
