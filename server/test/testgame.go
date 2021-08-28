@@ -9,7 +9,7 @@ import (
 )
 
 var testGameLogger = log.With().Str("logger_name", "test::testgame").Logger()
-var gameID = 1
+var gameID uint64 = 1
 
 // TestGame is a game simulation object to drive the game from client perspective
 // this is used for testing the game, hands, winners, split pots
@@ -40,7 +40,7 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	now := time.Now().UnixNano()
 	gameCode := fmt.Sprintf("%d", now)
 	maxPlayers := 9
-	config := game.GameConfig{
+	config := game.TestGameConfig{
 		ClubId:     clubID,
 		GameType:   gameType,
 		GameCode:   gameCode,
@@ -61,7 +61,7 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	gameScript.gameScript.GameConfig.GameType = gameType
 	gameScript.gameScript.GameConfig.GameId = uint64(now)
 
-	serverGame, gameID, err := game.GameManager.InitializeGame(nil, &gameScript.gameScript.GameConfig)
+	serverGame, gameID, err := game.GameManager.InitializeTestGame(nil, gameID, gameCode, &gameScript.gameScript.GameConfig)
 	if err != nil {
 		return nil, nil, err
 	}

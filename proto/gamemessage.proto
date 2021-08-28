@@ -87,7 +87,6 @@ message GameNetworkConnectivityMessage {
 
 message GameMessage {
   string version = 1;
-  uint32 club_id = 2;
   uint64 game_id = 3;
   string game_code = 4;
   uint64 player_id = 5;

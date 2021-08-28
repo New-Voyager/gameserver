@@ -77,7 +77,7 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 	}
 
 	// +1 second buffer to account for network delay to the client
-	timeoutAt := time.Now().Add(time.Duration(g.config.ActionTime+1) * time.Second)
+	timeoutAt := time.Now().Add(time.Duration(h.ActionTime+1) * time.Second)
 
 	// create run it twice
 	h.RunItTwice = &RunItTwice{
@@ -96,7 +96,7 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 		AvailableActions:    []ACTION{ACTION_RUN_IT_TWICE_PROMPT},
 		SeatNo:              player1Seat,
 		ActionTimesoutAt:    timeoutAtUnix,
-		SecondsTillTimesout: uint32(g.config.ActionTime),
+		SecondsTillTimesout: uint32(h.ActionTime),
 	}
 	player1MsgItem := &HandMessageItem{
 		MessageType: HandPlayerAction,
@@ -109,7 +109,7 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 		AvailableActions:    []ACTION{ACTION_RUN_IT_TWICE_PROMPT},
 		SeatNo:              player2Seat,
 		ActionTimesoutAt:    timeoutAtUnix,
-		SecondsTillTimesout: uint32(g.config.ActionTime),
+		SecondsTillTimesout: uint32(h.ActionTime),
 	}
 	player2MsgItem := &HandMessageItem{
 		MessageType: HandPlayerAction,
@@ -127,7 +127,7 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 func (g *Game) runItTwiceConfirmation(h *HandState, message *HandMessage) ([]*HandMessageItem, error) {
 	actionMsg := g.getClientMsgItem(message)
 	channelGameLogger.Info().
-		Str("game", g.config.GameCode).
+		Str("game", g.gameCode).
 		Uint32("seatNo", message.SeatNo).
 		Str("message", actionMsg.MessageType).
 		Msgf("Run it twice confirmation: %d", actionMsg.GetPlayerActed().Action)
@@ -208,7 +208,7 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 	if runItTwice.Seat1Confirmed && runItTwice.Seat2Confirmed {
 		// run two boards
 		channelGameLogger.Info().
-			Str("game", g.config.GameCode).
+			Str("game", g.gameCode).
 			Uint32("handNum", h.HandNum).
 			Msgf("Both seats YES. Running two boards")
 		h.RunItTwiceConfirmed = true
@@ -326,7 +326,7 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 	} else {
 		// one of the players didn't confirm
 		channelGameLogger.Info().
-			Str("game", g.config.GameCode).
+			Str("game", g.gameCode).
 			Uint32("handNum", h.HandNum).
 			Msgf("Running one board")
 		h.RunItTwiceConfirmed = false

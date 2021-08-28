@@ -604,8 +604,8 @@ func (br *BotRunner) verifyGameServerCrashLog() error {
 	}
 
 	if len(expectedCrashPoints) > 0 {
-		br.logger.Info().Msgf("Expected Crash Points: %v\n", expectedCrashPoints)
-		br.logger.Info().Msgf("Actual Crash Points  : %v\n", crashPoints)
+		br.logger.Info().Msgf("Expected Crash Points: %v", expectedCrashPoints)
+		br.logger.Info().Msgf("Actual Crash Points  : %v", crashPoints)
 	}
 	if !cmp.Equal(crashPoints, expectedCrashPoints) {
 		return fmt.Errorf("Game server crash log does not match the expected. Crashed: %v, Expected: %v", crashPoints, expectedCrashPoints)

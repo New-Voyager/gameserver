@@ -6,7 +6,6 @@ import (
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/rs/zerolog/log"
 
-	"voyager.com/server/game"
 	"voyager.com/server/util"
 )
 
@@ -48,16 +47,16 @@ func NewGameManager(nc *natsgo.Conn) (*GameManager, error) {
 	}, nil
 }
 
-func (gm *GameManager) NewGame(clubID uint32, gameID uint64, config *game.GameConfig) (*NatsGame, error) {
-	natsGMLogger.Info().Msgf("New game club %d game %d code %s", clubID, gameID, config.GameCode)
+func (gm *GameManager) NewGame(gameID uint64, gameCode string) (*NatsGame, error) {
+	natsGMLogger.Info().Msgf("New game %d/%s", gameID, gameCode)
 	gameIDStr := fmt.Sprintf("%d", gameID)
-	game, err := newNatsGame(gm.nc, clubID, gameID, config)
+	game, err := newNatsGame(gm.nc, gameID, gameCode)
 	if err != nil {
 		return nil, err
 	}
 	gm.activeGames[gameIDStr] = game
-	gm.gameIDToCode[gameIDStr] = config.GameCode
-	gm.gameCodeToID[config.GameCode] = gameIDStr
+	gm.gameIDToCode[gameIDStr] = gameCode
+	gm.gameCodeToID[gameCode] = gameIDStr
 	return game, nil
 }
 

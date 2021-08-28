@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"voyager.com/server/crashtest"
 )
 
 func (g *Game) handleGameMessage(message *GameMessage) {
 	channelGameLogger.Trace().
-		Uint32("club", g.config.ClubId).
-		Str("game", g.config.GameCode).
+		Str("game", g.gameCode).
 		Msg(fmt.Sprintf("Game message: %s. %v", message.MessageType, message))
 
 	switch message.MessageType {
@@ -36,14 +36,21 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 
 func (g *Game) onResume(message *GameMessage) error {
 	g.inProcessPendingUpdates = false
-	if g.Status != GameStatus_ACTIVE || g.TableStatus != TableStatus_GAME_RUNNING {
-		return nil
-	}
 
 	// deal next hand
 	handState, err := g.loadHandState()
 	if err != nil {
-		return err
+		// No existing hand state means new game (first hand)
+		err := g.moveAPIServerToNextHand(0)
+		if err != nil {
+			return errors.Wrap(err, "Could not move the api server to the first hand")
+		}
+
+		err = g.dealNewHand()
+		if err != nil {
+			return errors.Wrap(err, "Error while dealing new hand")
+		}
+		return nil
 	}
 
 	return g.moveAPIServerToNextHandAndScheduleDealHand(handState)
@@ -82,7 +89,7 @@ func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCod
 
 func (g *Game) onGetHandLog(message *GameMessage) error {
 	gameMessage := &GameMessage{
-		GameId:      g.config.GameId,
+		GameId:      g.gameID,
 		MessageType: GetHandLog,
 		PlayerId:    message.PlayerId,
 	}
@@ -131,10 +138,10 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 	// if there are no pending updates, deal next hand
 
 	// check any pending updates
-	pendingUpdates, _ := anyPendingUpdates(g.apiServerURL, g.config.GameId, g.delays.PendingUpdatesRetry)
+	pendingUpdates, _ := anyPendingUpdates(g.apiServerURL, g.gameID, g.delays.PendingUpdatesRetry)
 	if pendingUpdates {
 		g.inProcessPendingUpdates = true
-		go g.processPendingUpdates(g.apiServerURL, g.config.GameId, g.config.GameCode)
+		go g.processPendingUpdates(g.apiServerURL, g.gameID, g.gameCode)
 	} else {
 		err := g.moveAPIServerToNextHandAndScheduleDealHand(handState)
 		if err != nil {
@@ -157,7 +164,7 @@ func (g *Game) moveAPIServerToNextHandAndScheduleDealHand(handState *HandState) 
 	g.saveHandState(handState)
 
 	gameMessage := &GameMessage{
-		GameId:      g.config.GameId,
+		GameId:      g.gameID,
 		MessageType: GameDealHand,
 	}
 	g.QueueGameMessage(gameMessage)
@@ -169,7 +176,7 @@ func (g *Game) onNextHandSetup(message *GameMessage) error {
 
 	// Hand setup is persisted in Redis instead of stored in memory
 	// so that we can continue with the same setup after crash during crash testing.
-	g.handSetupPersist.Save(g.config.GameCode, nextHandSetup)
+	g.handSetupPersist.Save(g.gameCode, nextHandSetup)
 	return nil
 }
 
@@ -187,8 +194,7 @@ func (g *Game) broadcastTableState() error {
 
 	gameTableState := &TestGameTableStateMessage{PlayersState: playersAtTable}
 	var gameMessage GameMessage
-	gameMessage.ClubId = g.config.ClubId
-	gameMessage.GameId = g.config.GameId
+	gameMessage.GameId = g.gameID
 	gameMessage.MessageType = GameTableState
 	gameMessage.GameMessage = &GameMessage_TableState{TableState: gameTableState}
 

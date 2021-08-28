@@ -72,6 +72,7 @@ func RunRestServer(gameManager *nats.GameManager, endSystemTestCallback func()) 
 
 	r.POST("/new-game", newGame)
 	r.POST("/resume-game", resumeGame)
+	r.POST("/end-game", endGame)
 	r.GET("/current-hand-log", gameCurrentHandLog)
 	if util.Env.IsSystemTest() {
 		onEndSystemTest = endSystemTestCallback
@@ -116,7 +117,11 @@ func setupCrash(c *gin.Context) {
 
 func newGame(c *gin.Context) {
 	restLogger.Debug().Msgf("New game is received")
-	var gameConfig game.GameConfig
+	type payload struct {
+		GameID   uint64 `json:"gameId"`
+		GameCode string `json:"gameCode"`
+	}
+	var gameConfig payload
 	var err error
 	err = c.BindJSON(&gameConfig)
 	if err != nil {
@@ -132,7 +137,7 @@ func newGame(c *gin.Context) {
 	restLogger.Debug().Msgf("new-game payload: %+v", gameConfig)
 
 	// initialize nats game
-	_, e := natsGameManager.NewGame(gameConfig.ClubId, gameConfig.GameId, &gameConfig)
+	_, e := natsGameManager.NewGame(gameConfig.GameID, gameConfig.GameCode)
 	if e != nil {
 		msg := fmt.Sprintf("Unable to initialize nats game: %v", e)
 		restLogger.Error().Msg(msg)
@@ -140,7 +145,7 @@ func newGame(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, tableStatus{
-		GameID:      gameConfig.GameId,
+		GameID:      gameConfig.GameID,
 		TableStatus: uint32(game.TableStatus_WAITING_TO_BE_STARTED),
 	})
 }
@@ -148,15 +153,29 @@ func newGame(c *gin.Context) {
 func resumeGame(c *gin.Context) {
 	gameIDStr := c.Query("game-id")
 	if gameIDStr == "" {
-		c.String(400, "Failed to read game-id param from pending-updates endpoint")
+		c.String(400, "Failed to read game-id param from resume-game endpoint")
 	}
 	gameID, err := strconv.ParseUint(gameIDStr, 10, 64)
 	if err != nil {
-		c.String(400, "Failed to parse game-id [%s] from pending-updates endpoint.", gameIDStr)
+		c.String(400, "Failed to parse game-id [%s] from resume-game endpoint.", gameIDStr)
 	}
 
 	restLogger.Debug().Msgf("****** Resuming game %s", gameIDStr)
 	natsGameManager.ResumeGame(gameID)
+}
+
+func endGame(c *gin.Context) {
+	gameIDStr := c.Query("game-id")
+	if gameIDStr == "" {
+		c.String(400, "Failed to read game-id param from end-game endpoint")
+	}
+	gameID, err := strconv.ParseUint(gameIDStr, 10, 64)
+	if err != nil {
+		c.String(400, "Failed to parse game-id [%s] from end-game endpoint.", gameIDStr)
+	}
+
+	restLogger.Debug().Msgf("****** Resuming game %s", gameIDStr)
+	natsGameManager.EndNatsGame(gameID)
 }
 
 func gameCurrentHandLog(c *gin.Context) {

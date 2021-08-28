@@ -31,9 +31,33 @@ func NewGameManager(isScriptTest bool, apiServerURL string, handPersist PersistH
 	}, nil
 }
 
-func (gm *Manager) InitializeGame(messageSender MessageSender, config *GameConfig) (*Game, uint64, error) {
-	gameIDStr := fmt.Sprintf("%d", config.GameId)
+func (gm *Manager) InitializeGame(messageSender MessageSender, gameID uint64, gameCode string) (*Game, uint64, error) {
+	gameIDStr := fmt.Sprintf("%d", gameID)
 	game, err := NewPokerGame(
+		gameID,
+		gameCode,
+		gm.isScriptTest,
+		gm,
+		&messageSender,
+		gm.delays,
+		gm.handStatePersist,
+		gm.handSetupPersist,
+		gm.apiServerURL,
+		gm.crashdb,
+		gm.userdb)
+	gm.activeGames[gameIDStr] = game
+
+	if err != nil {
+		return nil, 0, err
+	}
+	return game, gameID, nil
+}
+
+func (gm *Manager) InitializeTestGame(messageSender MessageSender, gameID uint64, gameCode string, config *TestGameConfig) (*Game, uint64, error) {
+	gameIDStr := fmt.Sprintf("%d", config.GameId)
+	game, err := NewTestPokerGame(
+		gameID,
+		gameCode,
 		gm.isScriptTest,
 		gm,
 		&messageSender,
@@ -61,6 +85,6 @@ func (gm *Manager) OnGameCrash(gameID uint64) {
 }
 
 func (gm *Manager) gameEnded(game *Game) {
-	gameIDStr := fmt.Sprintf("%d", game.config.GameId)
+	gameIDStr := fmt.Sprintf("%d", game.gameID)
 	delete(gm.activeGames, gameIDStr)
 }
