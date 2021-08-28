@@ -455,7 +455,8 @@ export interface SeatUpdate {
   }
 */
 type SeatUpdate struct {
-	SeatNo     int32   `yaml:"seatNo" json:"seatNo"`
+	OldSeatNo  int32   `yaml:"oldSeatNo" json:"oldSeatNo"`
+	NewSeatNo  int32   `yaml:"newSeatNo" json:"newSeatNo"`
 	OpenSeat   bool    `yaml:"openSeat" json:"openSeat"`
 	PlayerId   int64   `yaml:"playerId" json:"playerId"`
 	PlayerUuid string  `yaml:"playerUuid" json:"playerUuid"`
@@ -487,6 +488,7 @@ type NonProtoMessage struct {
 	SeatChangeHostId int64            `yaml:"seatChangeHostId" json:"seatChangeHostId"`
 	SeatUpdates      []SeatUpdate     `yaml:"seatUpdates" json:"seatUpdates"`
 	SeatMoves        []SeatUpdate     `yaml:"seatMoves" json:"seatMoves"`
+	Verified         bool
 }
 
 type AfterGameVerification struct {

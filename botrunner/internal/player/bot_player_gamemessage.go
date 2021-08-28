@@ -1,6 +1,7 @@
 package player
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -187,7 +188,8 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 
 func (bp *BotPlayer) onTableUpdate(message *gamescript.NonProtoMessage) {
 	if message.SubType == "HostSeatChangeMove" {
-		fmt.Printf("Player moved")
+		data, _ := json.Marshal(message)
+		fmt.Printf("%s", string(data))
 	}
 }
 

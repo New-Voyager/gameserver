@@ -100,3 +100,53 @@ hands:
             player: bill
           - seat: 9
             player: david
+
+after-game:
+  verify:
+
+    # verify game messages
+    game-messages:
+      - type: TABLE_UPDATE
+        subType: HostSeatChangeMove
+        seatMoves:
+          - name: tom
+            oldSeatNo: 3
+            newSeatNo: 1
+            openSeat: false
+          - name: yong
+            oldSeatNo: 1
+            newSeatNo: 3
+            openSeat: false
+      - type: TABLE_UPDATE
+        subType: HostSeatChangeMove
+        seatMoves:
+          - oldSeatNo: 5
+            newSeatNo: 4
+            openSeat: false
+            name: rob
+          - name: jim
+            oldSeatNo: 4
+            newSeatNo: 5
+            openSeat: false
+      - type: TABLE_UPDATE
+        subType: HostSeatChangeMove
+        seatMoves:
+          - name: rob
+            oldSeatNo: 4
+            newSeatNo: 5
+            openSeat: false
+          - name: jim
+            oldSeatNo: 5
+            newSeatNo: 4
+            openSeat: false
+      - type: TABLE_UPDATE
+        subType: HostSeatChangeMove
+        seatMoves:
+          - name: john
+            oldSeatNo: 6
+            newSeatNo: 4
+            openSeat: false
+          - name: jim
+            oldSeatNo: 4
+            newSeatNo: 6
+            openSeat: false
