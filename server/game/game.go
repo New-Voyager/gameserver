@@ -250,6 +250,7 @@ func (g *Game) startGame() (bool, error) {
 
 		g.config = gameConfig
 		g.Status = gameConfig.Status
+		g.TableStatus = gameConfig.TableStatus
 		// channelGameLogger.Info().Msgf("New Game Config: %+v\n", g.config)
 
 		// Initialize stateful information in the game object.
