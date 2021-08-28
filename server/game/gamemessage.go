@@ -85,6 +85,9 @@ func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCod
 	if resp.StatusCode != 200 {
 		channelGameLogger.Fatal().Uint64("game", gameID).Msgf("Failed to process pending updates. Error: %d", resp.StatusCode)
 	}
+
+	// remove hand state
+	g.removeHandState()
 }
 
 func (g *Game) onGetHandLog(message *GameMessage) error {
@@ -134,7 +137,7 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 		return nil
 	}
 
-	// before we move to next hand, query API server whether we have any pending updates
+	// before we move tmoveToNextHando next hand, query API server whether we have any pending updates
 	// if there are no pending updates, deal next hand
 
 	// check any pending updates
