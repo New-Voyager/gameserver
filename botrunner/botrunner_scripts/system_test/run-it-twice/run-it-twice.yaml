@@ -28,15 +28,19 @@ starting-seats:
   - seat: 1
     player: yong
     buy-in: 100
+    run-it-twice: true
   - seat: 2
     player: brian
     buy-in: 100
+    run-it-twice: true
   - seat: 3
     player: chris
     buy-in: 100
+    run-it-twice: true
   - seat: 4
     player: tom
     buy-in: 100
+    run-it-twice: true
 
 # deal the following hands in the table
 hands:
