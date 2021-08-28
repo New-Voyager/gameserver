@@ -155,8 +155,7 @@ func resumeGame(c *gin.Context) {
 		c.String(400, "Failed to parse game-id [%s] from pending-updates endpoint.", gameIDStr)
 	}
 
-	restLogger.Debug().Msgf("****** Pending updates done for game %s", gameIDStr)
-	// pending updates done, game can resume
+	restLogger.Debug().Msgf("****** Resuming game %s", gameIDStr)
 	natsGameManager.ResumeGame(gameID)
 }
 
