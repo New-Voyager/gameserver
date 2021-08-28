@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"runtime/debug"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -66,7 +65,7 @@ type Game struct {
 	retryDelayMillis        uint32
 
 	// used for storing player configuration of runItTwicePrompt, muckLosingHand
-	playerConfig atomic.Value
+	//playerConfig atomic.Value
 
 	actionTimer        *timer.ActionTimer
 	actionTimer2       *timer.ActionTimer
@@ -118,9 +117,6 @@ func NewPokerGame(
 	g.actionTimer2 = timer.NewActionTimer(g.gameCode, g.queueActionTimeoutMsg, g.crashHandler)
 	g.networkCheck = NewNetworkCheck(g.gameID, g.gameCode, messageSender, g.crashHandler)
 
-	playerConfig := make(map[uint64]PlayerConfigUpdate)
-	g.playerConfig.Store(playerConfig)
-
 	if g.isScriptTest {
 		g.initTestGameState()
 	}
@@ -170,9 +166,6 @@ func NewTestPokerGame(
 	g.actionTimer = timer.NewActionTimer(g.gameCode, g.queueActionTimeoutMsg, g.crashHandler)
 	g.actionTimer2 = timer.NewActionTimer(g.gameCode, g.queueActionTimeoutMsg, g.crashHandler)
 	g.networkCheck = NewNetworkCheck(g.gameID, g.gameCode, messageSender, g.crashHandler)
-
-	playerConfig := make(map[uint64]PlayerConfigUpdate)
-	g.playerConfig.Store(playerConfig)
 
 	if g.isScriptTest {
 		g.initTestGameState()
@@ -396,10 +389,6 @@ func (g *Game) startGame() (bool, error) {
 
 	g.running = true
 
-	// gameMessage := GameMessage{MessageType: GameCurrentStatus, GameId: g.config.GameId, PlayerId: 0}
-	// gameMessage.GameMessage = &GameMessage_Status{Status: &GameStatusMessage{Status: g.Status, TableStatus: g.TableStatus}}
-	// g.broadcastGameMessage(&gameMessage)
-
 	if !g.isScriptTest {
 		err := g.moveAPIServerToNextHand(0)
 		for err != nil {
@@ -531,24 +520,6 @@ func (g *Game) dealNewHand() error {
 		gameType = newHandInfo.GameType
 		newHandNum = newHandInfo.HandNum
 
-		var playerUpdateConfig map[uint64]PlayerConfigUpdate
-		playerUpdateConfig = g.playerConfig.Load().(map[uint64]PlayerConfigUpdate)
-		if playerUpdateConfig == nil {
-			playerUpdateConfig = make(map[uint64]PlayerConfigUpdate)
-			g.playerConfig.Store(playerUpdateConfig)
-		}
-		for _, seat := range newHandInfo.PlayersInSeats {
-			if seat.PlayerID == 0 {
-				continue
-			}
-			// g.PlayersInSeats[seatNo] = SeatPlayer{}
-			playerUpdateConfig[seat.PlayerID] = PlayerConfigUpdate{
-				PlayerId:         seat.PlayerID,
-				MuckLosingHand:   seat.MuckLosingHand,
-				RunItTwicePrompt: seat.RunItTwicePrompt,
-			}
-		}
-
 		if newHandInfo.AnnounceGameType {
 			params := []string{
 				newHandInfo.GameType.String(),
@@ -595,11 +566,6 @@ func (g *Game) dealNewHand() error {
 				g.PlayersInSeats[playerInSeat.SeatNo] = playerInSeat
 			}
 			if playerInSeat.PlayerID != 0 {
-				playerUpdateConfig[playerInSeat.PlayerID] = PlayerConfigUpdate{
-					PlayerId:         playerInSeat.PlayerID,
-					MuckLosingHand:   playerInSeat.MuckLosingHand,
-					RunItTwicePrompt: playerInSeat.RunItTwicePrompt,
-				}
 				playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
 					Status:       playerInSeat.Status,
 					Stack:        playerInSeat.Stack,
@@ -608,6 +574,7 @@ func (g *Game) dealNewHand() error {
 					BuyInExpTime: playerInSeat.BuyInTimeExpAt,
 					BreakExpTime: playerInSeat.BreakTimeExpAt,
 					Inhand:       playerInSeat.Inhand,
+					RunItTwice:   playerInSeat.RunItTwice,
 				}
 			} else {
 				playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
@@ -632,19 +599,6 @@ func (g *Game) dealNewHand() error {
 			if player.PlayerID != 0 {
 				buttonPos = player.SeatNo
 				break
-			}
-		}
-		var playerUpdateConfig map[uint64]PlayerConfigUpdate
-		playerUpdateConfig = g.playerConfig.Load().(map[uint64]PlayerConfigUpdate)
-		if playerUpdateConfig == nil {
-			playerUpdateConfig = make(map[uint64]PlayerConfigUpdate)
-			g.playerConfig.Store(playerUpdateConfig)
-		}
-		for _, player := range g.PlayersInSeats {
-			playerUpdateConfig[player.PlayerID] = PlayerConfigUpdate{
-				PlayerId:         player.PlayerID,
-				MuckLosingHand:   player.MuckLosingHand,
-				RunItTwicePrompt: player.RunItTwicePrompt,
 			}
 		}
 
@@ -929,10 +883,6 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 			MessageType: HandQueryCurrentHand,
 			Content:     &HandMessageItem_CurrentHandState{CurrentHandState: &currentHandState},
 		}
-		// msgID := g.GenerateMsgID("CURRENT_HAND", 0, HandStatus_DEAL, playerID, messageID, 0)
-		// if handState != nil {
-		// 	msgID = g.GenerateMsgID("CURRENT_HAND", handState.HandNum, handState.CurrentState, playerID, messageID, handState.CurrentActionNum)
-		// }
 		serverMsg := &HandMessage{
 			PlayerId:  playerID,
 			HandNum:   0,
@@ -1076,16 +1026,16 @@ func (g *Game) addScriptTestPlayer(player *Player, buyIn float32, postBlind bool
 	}
 	// add the player to playerSeatInfos
 	g.PlayersInSeats[int(player.SeatNo)] = SeatPlayer{
-		Name:             player.PlayerName,
-		PlayerID:         player.PlayerID,
-		PlayerUUID:       fmt.Sprintf("%d", player.PlayerID),
-		Status:           PlayerStatus_PLAYING,
-		Stack:            buyIn,
-		OpenSeat:         false,
-		Inhand:           inHand,
-		SeatNo:           player.SeatNo,
-		PostedBlind:      postBlind,
-		RunItTwicePrompt: player.RunItTwice,
+		Name:        player.PlayerName,
+		PlayerID:    player.PlayerID,
+		PlayerUUID:  fmt.Sprintf("%d", player.PlayerID),
+		Status:      PlayerStatus_PLAYING,
+		Stack:       buyIn,
+		OpenSeat:    false,
+		Inhand:      inHand,
+		SeatNo:      player.SeatNo,
+		PostedBlind: postBlind,
+		RunItTwice:  player.RunItTwice,
 	}
 	return nil
 }

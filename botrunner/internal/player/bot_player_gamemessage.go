@@ -183,6 +183,8 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 		break
 	case "TABLE_UPDATE":
 		bp.onTableUpdate(message)
+	case "WAITLIST_SEATING":
+		bp.seatWaitList(message)
 	}
 }
 
@@ -226,7 +228,61 @@ func (bp *BotPlayer) onTableUpdate(message *gamescript.NonProtoMessage) {
 // 	}
 // }
 
-func (bp *BotPlayer) seatWaitList(tableUpdate *game.TableUpdate) {
+func (bp *BotPlayer) seatWaitList(message *gamescript.NonProtoMessage) {
+	if !bp.inWaitList {
+		return
+	}
+	// waitlist seating
+	if bp.PlayerID != message.WaitlistPlayerId {
+		// not my turn
+		return
+	}
+
+	if !bp.confirmWaitlist {
+		// decline wait list
+		bp.logger.Info().Msgf("%s: declining to take the open seat.", bp.logPrefix)
+		confirmed, err := bp.gqlHelper.DeclineWaitListSeat(bp.gameCode)
+		if err != nil {
+			panic(fmt.Sprintf("%s: Error while declining waitlist seat", bp.logPrefix))
+		}
+		if !confirmed {
+			panic(fmt.Sprintf("%s: Response from DeclineWaitListSeat has confirmed = false", bp.logPrefix))
+		}
+		return
+	}
+
+	bp.logger.Info().Msgf("%s: Accepting to take the open seat.", bp.logPrefix)
+	// get open seats
+	gi, err := bp.GetGameInfo(bp.gameCode)
+	if err != nil {
+		bp.logger.Error().Msgf("%s: Unable to get game info %s", bp.logPrefix, bp.gameCode)
+	}
+	openSeat := uint32(0)
+	for _, seatNo := range gi.SeatInfo.AvailableSeats {
+		openSeat = seatNo
+		break
+	}
+	if openSeat == 0 {
+		bp.logger.Error().Msgf("%s: No open seat available %s", bp.logPrefix, bp.gameCode)
+		return
+	}
+	bp.event(BotEvent__REQUEST_SIT)
+	// confirm join game
+	err = bp.SitIn(bp.gameCode, openSeat)
+	if err != nil {
+		panic(fmt.Sprintf("%s: [%s] Player could not take seat %d: %s", bp.logPrefix, bp.gameCode, openSeat, err))
+	} else {
+		// buyin
+		if bp.buyInAmount != 0 {
+			bp.BuyIn(bp.gameCode, float32(bp.buyInAmount))
+			bp.logger.Info().Msgf("%s: [%s] Player bought in for: %d. Current hand num: %d",
+				bp.logPrefix, bp.gameCode, bp.buyInAmount, bp.game.handNum)
+			bp.event(BotEvent__SUCCEED_BUYIN)
+		}
+	}
+}
+
+func (bp *BotPlayer) seatWaitListOld(tableUpdate *game.TableUpdate) {
 	if !bp.inWaitList {
 		return
 	}

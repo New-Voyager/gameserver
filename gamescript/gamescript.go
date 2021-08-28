@@ -92,6 +92,7 @@ type StartingSeat struct {
 	MuckLosingHand bool    `yaml:"muck-losing-hand"`
 	PostBlind      bool    `yaml:"post-blind"`
 	Reload         *bool   `yaml:"reload"`
+	RunItTwice     *bool   `yaml:"run-it-twice"`
 }
 
 // SwitchSeat contains an entry in the SwitchSeats array in the game script.
@@ -488,6 +489,7 @@ type NonProtoMessage struct {
 	SeatChangeHostId int64            `yaml:"seatChangeHostId" json:"seatChangeHostId"`
 	SeatUpdates      []SeatUpdate     `yaml:"seatUpdates" json:"seatUpdates"`
 	SeatMoves        []SeatUpdate     `yaml:"seatMoves" json:"seatMoves"`
+	WaitlistPlayerId uint64           `yaml:"waitlistPlayerId" json:"waitlistPlayerId"`
 	Verified         bool
 }
 

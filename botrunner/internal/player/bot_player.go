@@ -2060,7 +2060,7 @@ func (bp *BotPlayer) JoinGame(gameCode string) error {
 			// update player config
 			scriptSeatConfig := bp.config.Script.GetSeatConfigByPlayerName(bp.config.Name)
 			if scriptSeatConfig != nil {
-				bp.UpdatePlayerGameConfig(gameCode, nil, &scriptSeatConfig.MuckLosingHand)
+				bp.UpdatePlayerGameConfig(gameCode, scriptSeatConfig.RunItTwice, &scriptSeatConfig.MuckLosingHand)
 			}
 		}
 		bp.buyInAmount = uint32(scriptBuyInAmount)

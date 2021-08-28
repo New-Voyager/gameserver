@@ -27,22 +27,16 @@ func (g *Game) runItTwice(h *HandState, lastPlayerAction *PlayerActRound) bool {
 
 	// we run it twice only for headsup and one of the players went all in
 	allInPlayers := h.allinCount()
-	playerConfig := g.playerConfig.Load().(map[uint64]PlayerConfigUpdate)
 
 	if allInPlayers != 0 && allInPlayers <= 2 && h.activeSeatsCount() == 2 {
 		// if both players opted for run-it-twice, then we will prompt
 		prompt := true
-		for _, playerID := range h.ActiveSeats {
+		for seatNo, playerID := range h.ActiveSeats {
 			if playerID == 0 {
 				continue
 			}
-
-			if config, ok := playerConfig[playerID]; ok {
-				if !config.RunItTwicePrompt {
-					prompt = false
-					break
-				}
-			} else {
+			playerSeatState := h.PlayersInSeats[seatNo]
+			if !playerSeatState.RunItTwice {
 				prompt = false
 				break
 			}
