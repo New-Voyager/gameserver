@@ -118,8 +118,9 @@ func setupCrash(c *gin.Context) {
 func newGame(c *gin.Context) {
 	restLogger.Debug().Msgf("New game is received")
 	type payload struct {
-		GameID   uint64 `json:"gameId"`
-		GameCode string `json:"gameCode"`
+		GameID    uint64 `json:"gameId"`
+		GameCode  string `json:"gameCode"`
+		IsRestart bool   `json:"isRestart"`
 	}
 	var gameConfig payload
 	var err error
@@ -137,13 +138,21 @@ func newGame(c *gin.Context) {
 	restLogger.Debug().Msgf("new-game payload: %+v", gameConfig)
 
 	// initialize nats game
-	_, e := natsGameManager.NewGame(gameConfig.GameID, gameConfig.GameCode)
-	if e != nil {
-		msg := fmt.Sprintf("Unable to initialize nats game: %v", e)
+	_, err = natsGameManager.NewGame(gameConfig.GameID, gameConfig.GameCode)
+	if err != nil {
+		msg := fmt.Sprintf("Unable to initialize nats game: %v", err)
 		restLogger.Error().Msg(msg)
 		panic(msg)
 	}
 
+	if gameConfig.IsRestart {
+		// This game is being restarted due to game server crash, etc.
+		// Need to resume from where it left off.
+		restLogger.Debug().Msgf("Resuming game %d/%s", gameConfig.GameID, gameConfig.GameCode)
+		natsGameManager.ResumeGame(gameConfig.GameID)
+	}
+
+	// TODO: Returning table status probably doesn't make sense.
 	c.JSON(http.StatusOK, tableStatus{
 		GameID:      gameConfig.GameID,
 		TableStatus: uint32(game.TableStatus_WAITING_TO_BE_STARTED),

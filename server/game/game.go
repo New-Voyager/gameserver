@@ -228,7 +228,7 @@ func (g *Game) runGame(handState *HandState) {
 	ended := false
 	for !ended {
 		if g.isScriptTest && !g.running {
-			started, err := g.startGame()
+			started, err := g.startTestGame()
 			if err != nil {
 				channelGameLogger.Error().
 					Str("game", g.gameCode).
@@ -238,18 +238,6 @@ func (g *Game) runGame(handState *HandState) {
 					g.running = true
 				}
 			}
-		}
-
-		if handState != nil {
-			// There's an existing hand state. We're restarting after crash.
-			err := g.resumeGame(handState)
-			if err != nil {
-				channelGameLogger.Error().
-					Str("game", g.gameCode).
-					Msgf("Error while resuming game. Error: %s", err.Error())
-				panic(fmt.Sprintf("Could not resume game: %s", err))
-			}
-			handState = nil
 		}
 
 		select {
@@ -307,126 +295,31 @@ func (g *Game) countActivePlayers() int {
 	return count
 }
 
-func (g *Game) startGame() (bool, error) {
-	fmt.Println("BREAK 1")
-	var numActivePlayers int
-	if !g.isScriptTest {
-		fmt.Println("BREAK 1.1")
-		// Get game config.
-		// gameConfig, err := g.getGameInfo(g.apiServerURL, g.config.GameCode, g.retryDelayMillis)
-		// if err != nil {
-		// 	return false, err
-		// }
-
-		// g.config = gameConfig
-		// g.Status = gameConfig.Status
-		// g.TableStatus = gameConfig.TableStatus
-		// channelGameLogger.Info().Msgf("New Game Config: %+v\n", g.config)
-
-		// Initialize stateful information in the game object.
-		// g.initTestGameState()
-
-		if g.running {
-			// Get seat info.
-			handInfo, err := g.getNewHandInfo()
-			if err != nil {
-				return false, err
-			}
-			numActivePlayers = len(handInfo.PlayersInSeats)
-		}
-	} else {
-		numActivePlayers = g.countActivePlayers()
+func (g *Game) startTestGame() (bool, error) {
+	if !g.testGameConfig.AutoStart && g.Status != GameStatus_ACTIVE {
+		return false, nil
 	}
 
-	if !g.isScriptTest {
-		handState, err := g.loadHandState()
-		if err == nil {
-			// There is an existing hand state. The game must've crashed and is now restarting.
-			// Continue where we left off.
-			err := g.resumeGame(handState)
-			if err != nil {
-				channelGameLogger.Error().
-					Str("game", g.gameCode).
-					Msgf("Error while resuming game. Error: %s", err.Error())
-			}
-			return true, nil
+	numActivePlayers := g.countActivePlayers()
+	if numActivePlayers < g.testGameConfig.MinPlayers {
+		lastTableState := g.TableStatus
+		g.TableStatus = TableStatus_NOT_ENOUGH_PLAYERS
+
+		if lastTableState != g.TableStatus {
+			g.broadcastTableState()
 		}
+		return false, nil
 	}
-
-	fmt.Println("BREAK 2")
-	if g.isScriptTest {
-		if !g.testGameConfig.AutoStart && g.Status != GameStatus_ACTIVE {
-			fmt.Println("BREAK 2.1")
-			return false, nil
-		}
-	}
-
-	if g.isScriptTest {
-		if numActivePlayers < g.testGameConfig.MinPlayers {
-			lastTableState := g.TableStatus
-			// not enough players
-			// set table status as not enough players
-			g.TableStatus = TableStatus_NOT_ENOUGH_PLAYERS
-
-			// TODO:
-			// broadcast this message to the players
-			// update this message in API server
-			if lastTableState != g.TableStatus {
-				g.broadcastTableState()
-			}
-			fmt.Println("BREAK 2.2")
-			return false, nil
-		}
-	}
-
-	fmt.Println("BREAK 3")
-	g.TableStatus = TableStatus_GAME_RUNNING
 
 	channelGameLogger.Info().
 		Str("game", g.gameCode).
-		Msgf("Game started. %d players are in the table.", numActivePlayers)
+		Msgf("Test game starting")
 
 	g.Status = GameStatus_ACTIVE
-
+	g.TableStatus = TableStatus_GAME_RUNNING
 	g.running = true
-
-	if !g.isScriptTest {
-		err := g.moveAPIServerToNextHand(0)
-		for err != nil {
-			channelGameLogger.Error().Msg(err.Error())
-			time.Sleep(5 * time.Second)
-			err = g.moveAPIServerToNextHand(0)
-		}
-
-		err = g.dealNewHand()
-		if err != nil {
-			return false, errors.Wrap(err, "Error while dealing new hand")
-		}
-	}
 
 	return true, nil
-}
-
-func (g *Game) resumeGame(handState *HandState) error {
-	channelGameLogger.Info().
-		Str("game", g.gameCode).
-		Msgf("Resuming game. Restarting hand at flow state [%s].", handState.FlowState)
-
-	g.running = true
-	var err error
-	switch handState.FlowState {
-	case FlowState_DEAL_HAND:
-		err = g.dealNewHand()
-	case FlowState_WAIT_FOR_NEXT_ACTION:
-		err = g.onPlayerActed(nil, handState)
-	case FlowState_PREPARE_NEXT_ACTION:
-		err = g.prepareNextAction(handState, 0)
-	case FlowState_MOVE_TO_NEXT_HAND:
-		err = g.moveToNextHand(handState)
-	default:
-		err = fmt.Errorf("unhandled flow state in resumeGame: %s", handState.FlowState)
-	}
-	return err
 }
 
 func (g *Game) MaskCards(playerCards []byte, gameToken uint64) ([]uint32, uint64) {

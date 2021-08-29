@@ -45,25 +45,46 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 }
 
 func (g *Game) onResume(message *GameMessage) error {
-	g.inProcessPendingUpdates = false
+	var err error
 
-	// deal next hand
 	handState, err := g.loadHandState()
 	if err != nil {
-		// No existing hand state means new game (first hand)
-		err := g.moveAPIServerToNextHand(0)
-		if err != nil {
-			return errors.Wrap(err, "Could not move the api server to the first hand")
+		if handState == nil {
+			// There is no existing hand state. We get here during the initial game start sequence.
+			// We could also get here if the game server crashed before the first hand
+			// or before the hand state of the first hand was persisted.
+			// Go ahead and start the first hand.
+			err = g.moveAPIServerToNextHandAndScheduleDealHand(nil)
+			if err != nil {
+				return errors.Wrap(err, "Error while starting game")
+			}
+			return nil
 		}
 
-		err = g.dealNewHand()
-		if err != nil {
-			return errors.Wrap(err, "Error while dealing new hand")
-		}
-		return nil
+		return errors.Wrap(err, "Could not load hand state while resuming game")
 	}
 
-	return g.moveAPIServerToNextHandAndScheduleDealHand(handState)
+	channelGameLogger.Info().
+		Str("game", g.gameCode).
+		Msgf("Resuming game. Restarting hand at flow state [%s].", handState.FlowState)
+
+	switch handState.FlowState {
+	case FlowState_DEAL_HAND:
+		err = g.dealNewHand()
+	case FlowState_WAIT_FOR_NEXT_ACTION:
+		err = g.onPlayerActed(nil, handState)
+	case FlowState_PREPARE_NEXT_ACTION:
+		err = g.prepareNextAction(handState, 0)
+	case FlowState_MOVE_TO_NEXT_HAND:
+		err = g.moveToNextHand(handState)
+	case FlowState_WAIT_FOR_PENDING_UPDATE:
+		// TODO: Do we need this?
+		g.inProcessPendingUpdates = false
+		err = g.moveAPIServerToNextHandAndScheduleDealHand(handState)
+	default:
+		err = fmt.Errorf("unhandled flow state in resumeGame: %s", handState.FlowState)
+	}
+	return err
 }
 
 func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCode string) {
@@ -155,6 +176,8 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 	if pendingUpdates {
 		g.inProcessPendingUpdates = true
 		go g.processPendingUpdates(g.apiServerURL, g.gameID, g.gameCode)
+		handState.FlowState = FlowState_WAIT_FOR_PENDING_UPDATE
+		g.saveHandState(handState)
 	} else {
 		err := g.moveAPIServerToNextHandAndScheduleDealHand(handState)
 		if err != nil {
@@ -166,15 +189,21 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 }
 
 func (g *Game) moveAPIServerToNextHandAndScheduleDealHand(handState *HandState) error {
-	err := g.moveAPIServerToNextHand(handState.HandNum)
-	for err != nil {
-		channelGameLogger.Error().Msg(err.Error())
-		time.Sleep(5 * time.Second)
-		err = g.moveAPIServerToNextHand(handState.HandNum)
+	var handNum uint32
+	if handState == nil {
+		handNum = 0
+	} else {
+		handNum = handState.HandNum
+	}
+	err := g.moveAPIServerToNextHand(handNum)
+	if err != nil {
+		return errors.Wrap(err, "Could not move api server to next hand")
 	}
 
-	handState.FlowState = FlowState_DEAL_HAND
-	g.saveHandState(handState)
+	if handState != nil {
+		handState.FlowState = FlowState_DEAL_HAND
+		g.saveHandState(handState)
+	}
 
 	gameMessage := &GameMessage{
 		GameId:      g.gameID,

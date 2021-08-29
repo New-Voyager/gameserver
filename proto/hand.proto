@@ -236,6 +236,7 @@ enum FlowState {
   MOVE_TO_NEXT_HAND           = 9;
 	RUNITTWICE_UP_PROMPT        = 10;
 	RUNITTWICE_PROMPT_RESPONSE  = 11;
+  WAIT_FOR_PENDING_UPDATE     = 12;
 }
 
 
