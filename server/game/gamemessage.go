@@ -14,23 +14,33 @@ import (
 func (g *Game) handleGameMessage(message *GameMessage) {
 	channelGameLogger.Trace().
 		Str("game", g.gameCode).
-		Msg(fmt.Sprintf("Game message: %s. %v", message.MessageType, message))
+		Msgf("Game message: %s. %v", message.MessageType, message)
 
+	var err error
 	switch message.MessageType {
 	case GameSetupNextHand:
-		g.onNextHandSetup(message)
+		err = g.onNextHandSetup(message)
 
 	case GameDealHand:
-		g.onDealHand(message)
+		err = g.onDealHand(message)
 
 	case GameMoveToNextHand:
-		g.onMoveToNextHand(message)
+		err = g.onMoveToNextHand(message)
 
 	case GameResume:
-		g.onResume(message)
+		err = g.onResume(message)
 
 	case GetHandLog:
-		g.onGetHandLog(message)
+		err = g.onGetHandLog(message)
+	}
+
+	if err != nil {
+		err = errors.Wrapf(err, "Error while handling %s", message.MessageType)
+
+		// TODO: Just logging for now but should do more in some of these cases.
+		channelGameLogger.Error().
+			Str("game", g.gameCode).
+			Msg(err.Error())
 	}
 }
 
