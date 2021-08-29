@@ -93,6 +93,9 @@ func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) error {
 
 	url := fmt.Sprintf("%s/internal/move-to-next-hand/game_num/%s/hand_num/%d", g.apiServerURL, g.gameCode, gameServerHandNum)
 
+	channelGameLogger.Debug().
+		Str("game", g.gameCode).
+		Msgf("Calling /move-to-next-hand with current hand number %d", gameServerHandNum)
 	retries := 0
 	resp, err := http.Post(url, "text/plain", bytes.NewBuffer([]byte{}))
 	for err != nil && retries < int(g.maxRetries) {
@@ -106,23 +109,24 @@ func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) error {
 
 	// if the api server returns nil, do nothing
 	if resp == nil {
-		return fmt.Errorf("[%s] Cannot move API server to next hand", g.gameCode)
+		return fmt.Errorf("Nil response received from api server /move-to-next-hand")
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		msg := "Cannot read response from /move-to-next-hand"
 		channelGameLogger.Error().
 			Str("game", g.gameCode).
-			Msgf("[%s] Cannot read response from /move-to-next-hand", g.gameCode)
-		return err
+			Msgf(msg)
+		return errors.Wrap(err, msg)
 	}
 	channelGameLogger.Debug().
 		Str("game", g.gameCode).
-		Msgf("[%s] Response from /move-to-next-hand: %s", g.gameCode, bodyBytes)
+		Msgf("Response from /move-to-next-hand: %s", bodyBytes)
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("[%s] /move-to-next-hand returned %d", g.gameCode, resp.StatusCode)
+		return fmt.Errorf("/move-to-next-hand returned HTTP status %d", resp.StatusCode)
 	}
 	return nil
 }
