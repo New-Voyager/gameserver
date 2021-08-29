@@ -27,11 +27,6 @@ func (r *RedisHandStateTracker) Load(gameCode string) (*HandState, error) {
 	return r.load(gameCode)
 }
 
-func (r *RedisHandStateTracker) LoadClone(gameCode string) (*HandState, error) {
-	key := fmt.Sprintf("%s|clone", gameCode)
-	return r.load(key)
-}
-
 func (r *RedisHandStateTracker) load(key string) (*HandState, error) {
 	handStateBytes, err := r.rdclient.Get(context.Background(), key).Result()
 	if err == redis.Nil {
@@ -51,11 +46,6 @@ func (r *RedisHandStateTracker) Save(gameCode string, state *HandState) error {
 	return r.save(gameCode, state)
 }
 
-func (r *RedisHandStateTracker) SaveClone(gameCode string, state *HandState) error {
-	key := fmt.Sprintf("%s|clone", gameCode)
-	return r.save(key, state)
-}
-
 func (r *RedisHandStateTracker) save(key string, state *HandState) error {
 	stateInBytes, err := proto.Marshal(state)
 	if err != nil {
@@ -67,11 +57,6 @@ func (r *RedisHandStateTracker) save(key string, state *HandState) error {
 
 func (r *RedisHandStateTracker) Remove(gameCode string) error {
 	return r.remove(gameCode)
-}
-
-func (r *RedisHandStateTracker) RemoveClone(gameCode string) error {
-	key := fmt.Sprintf("%s|clone", gameCode)
-	return r.remove(key)
 }
 
 func (r *RedisHandStateTracker) remove(key string) error {
