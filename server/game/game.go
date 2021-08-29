@@ -664,7 +664,6 @@ func (g *Game) dealNewHand() error {
 		}
 	}
 
-	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 	msgItems, err := g.moveToNextAction(handState)
 	if err != nil {
 		return err

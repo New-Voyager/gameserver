@@ -499,23 +499,16 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	allMsgItems = append(allMsgItems, actionMsg)
 
 	if handState.NoActiveSeats == 1 {
-		handState.FlowState = FlowState_ONE_PLAYER_REMAINING
 		msgItems, err = g.onePlayerRemaining(handState)
 	} else if g.runItTwice(handState, playerAction) {
-		// run it twice prompt
-		handState.FlowState = FlowState_RUNITTWICE_UP_PROMPT
 		msgItems, err = g.runItTwicePrompt(handState)
 	} else if handState.isAllActivePlayersAllIn() || handState.allActionComplete() {
-		handState.FlowState = FlowState_ALL_PLAYERS_ALL_IN
 		msgItems, err = g.allPlayersAllIn(handState)
 	} else if handState.CurrentState == HandStatus_SHOW_DOWN {
-		handState.FlowState = FlowState_SHOWDOWN
 		msgItems, err = g.showdown(handState)
 	} else if handState.LastState != handState.CurrentState {
-		handState.FlowState = FlowState_MOVE_TO_NEXT_ROUND
 		msgItems, err = g.moveToNextRound(handState)
 	} else {
-		handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 		msgItems, err = g.moveToNextAction(handState)
 	}
 
@@ -898,11 +891,6 @@ func (g *Game) encryptPlayerCardRanks(playerCardRanks map[uint32]string, players
 }
 
 func (g *Game) handEnded(handState *HandState) ([]*HandMessageItem, error) {
-	expectedState := FlowState_HAND_ENDED
-	if handState.FlowState != expectedState {
-		return nil, fmt.Errorf("handEnded called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
-	}
-
 	handEnded := &HandMessageItem{
 		MessageType: HandEnded,
 	}
@@ -1032,11 +1020,6 @@ func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([
 }
 
 func (g *Game) moveToNextRound(handState *HandState) ([]*HandMessageItem, error) {
-	expectedState := FlowState_MOVE_TO_NEXT_ROUND
-	if handState.FlowState != expectedState {
-		return nil, fmt.Errorf("moveToNextRound called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
-	}
-
 	if handState.LastState == HandStatus_DEAL {
 		// How do we get here?
 		channelGameLogger.Warn().
@@ -1064,7 +1047,6 @@ func (g *Game) moveToNextRound(handState *HandState) ([]*HandMessageItem, error)
 	}
 	allMsgItems = append(allMsgItems, msgItems...)
 
-	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 	msgItems, err = g.moveToNextAction(handState)
 	if err != nil {
 		return nil, err
@@ -1075,11 +1057,6 @@ func (g *Game) moveToNextRound(handState *HandState) ([]*HandMessageItem, error)
 }
 
 func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error) {
-	expectedState := FlowState_MOVE_TO_NEXT_ACTION
-	if handState.FlowState != expectedState {
-		return nil, fmt.Errorf("moveToNextAction called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
-	}
-
 	if handState.NextSeatAction == nil {
 		return nil, fmt.Errorf("moveToNextAct called when handState.NextSeatAction == nil")
 	}
@@ -1144,11 +1121,6 @@ func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error
 }
 
 func (g *Game) allPlayersAllIn(handState *HandState) ([]*HandMessageItem, error) {
-	expectedState := FlowState_ALL_PLAYERS_ALL_IN
-	if handState.FlowState != expectedState {
-		return nil, fmt.Errorf("allPlayersAllIn called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
-	}
-
 	var allMsgItems []*HandMessageItem
 	var msgItems []*HandMessageItem
 	var err error
@@ -1184,7 +1156,6 @@ func (g *Game) allPlayersAllIn(handState *HandState) ([]*HandMessageItem, error)
 		allMsgItems = append(allMsgItems, msgItems...)
 	}
 
-	handState.FlowState = FlowState_SHOWDOWN
 	msgItems, err = g.showdown(handState)
 	if err != nil {
 		return nil, err
@@ -1194,10 +1165,6 @@ func (g *Game) allPlayersAllIn(handState *HandState) ([]*HandMessageItem, error)
 }
 
 func (g *Game) showdown(handState *HandState) ([]*HandMessageItem, error) {
-	expectedState := FlowState_SHOWDOWN
-	if handState.FlowState != expectedState {
-		return nil, fmt.Errorf("showdown called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
-	}
 	// update hand stats
 	handState.HandStats.EndedAtShowdown = true
 	// update player stats
@@ -1211,7 +1178,6 @@ func (g *Game) showdown(handState *HandState) ([]*HandMessageItem, error) {
 	handState.removeFoldedPlayersFromPots()
 	handState.removeEmptyPots()
 	handState.HandCompletedAt = HandStatus_SHOW_DOWN
-	handState.FlowState = FlowState_HAND_ENDED
 
 	// track whether the player is active in this round or not
 	for seatNo, playerID := range handState.ActiveSeats {
@@ -1243,10 +1209,6 @@ func (g *Game) showdown(handState *HandState) ([]*HandMessageItem, error) {
 }
 
 func (g *Game) onePlayerRemaining(handState *HandState) ([]*HandMessageItem, error) {
-	expectedState := FlowState_ONE_PLAYER_REMAINING
-	if handState.FlowState != expectedState {
-		return nil, fmt.Errorf("onePlayerRemaining called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
-	}
 	switch handState.CurrentState {
 	case HandStatus_DEAL:
 		handState.HandStats.EndedAtPreflop = true
@@ -1270,7 +1232,6 @@ func (g *Game) onePlayerRemaining(handState *HandState) ([]*HandMessageItem, err
 	}
 	allMsgItems = append(allMsgItems, msgItems...)
 
-	handState.FlowState = FlowState_HAND_ENDED
 	msgItems, err = g.handEnded(handState)
 	if err != nil {
 		return nil, err

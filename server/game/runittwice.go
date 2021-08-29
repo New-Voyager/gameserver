@@ -309,7 +309,6 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 		}
 		allMsgItems = append(allMsgItems, msgItem)
 
-		h.FlowState = FlowState_SHOWDOWN
 		msgItems, err := g.showdown(h)
 		if err != nil {
 			return nil, err
@@ -326,7 +325,6 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 		h.RunItTwiceConfirmed = false
 
 		// run a single board
-		h.FlowState = FlowState_ALL_PLAYERS_ALL_IN
 		msgItems, err := g.allPlayersAllIn(h)
 		if err != nil {
 			return nil, err
