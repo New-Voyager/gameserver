@@ -61,6 +61,7 @@ func (n *NetworkCheck) loop() {
 		err := recover()
 		if err != nil {
 			// Panic occurred.
+			debug.PrintStack()
 			networkCheckLogger.Error().
 				Str("game", n.gameCode).
 				Msgf("network check loop returning due to panic: %s\nStack Trace:\n%s", err, string(debug.Stack()))

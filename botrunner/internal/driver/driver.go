@@ -506,8 +506,13 @@ func (br *BotRunner) processAfterGameAssertions() error {
 	for _, verifyGameMessage := range br.script.AfterGame.Verify.GameMessages {
 		// verify message exists
 		found := false
-
+		var gameMessageVerified *gamescript.NonProtoMessage
 		for _, gameMessage := range br.observerBot.GameMessages {
+			gameMessageVerified = gameMessage
+			if gameMessage.Verified {
+				continue
+			}
+
 			if verifyGameMessage.Type == "NEW_HIGHHAND_WINNER" {
 				// compare the winners
 				if cmp.Equal(verifyGameMessage.Winners, gameMessage.Winners) {
@@ -527,6 +532,38 @@ func (br *BotRunner) processAfterGameAssertions() error {
 			// message is not found
 			errMsgs = append(errMsgs, fmt.Sprintf("Message type: %s subType: %s is not found in the private messages",
 				verifyGameMessage.Type, verifyGameMessage.SubType))
+		} else {
+			if verifyGameMessage.Type == "TABLE_UPDATE" &&
+				verifyGameMessage.SubType == "HostSeatChangeMove" {
+				error := false
+				if len(verifyGameMessage.SeatMoves) != len(gameMessageVerified.SeatMoves) {
+					errMsgs = append(errMsgs, fmt.Sprintf("Incorrect number of seat moves "))
+					error = true
+				}
+				if !error {
+					for idx, expectedMove := range verifyGameMessage.SeatMoves {
+						actualMove := gameMessageVerified.SeatMoves[idx]
+						if expectedMove.Name != actualMove.Name ||
+							expectedMove.OldSeatNo != actualMove.OldSeatNo ||
+							expectedMove.NewSeatNo != actualMove.NewSeatNo ||
+							expectedMove.OpenSeat != actualMove.OpenSeat {
+							errMsgs = append(errMsgs, fmt.Sprintf("Incorrect data in seat moves"))
+						}
+					}
+				}
+				gameMessageVerified.Verified = true
+			} else if verifyGameMessage.Type == "PLAYER_SEAT_CHANGE_PROMPT" {
+				if verifyGameMessage.PlayerName != gameMessageVerified.PlayerName ||
+					verifyGameMessage.OpenedSeat != gameMessageVerified.OpenedSeat {
+					errMsgs = append(errMsgs, fmt.Sprintf("Invalid data in PLAYER_SEAT_CHANGE_PROMPT"))
+				}
+			} else if verifyGameMessage.Type == "PLAYER_SEAT_MOVE" {
+				if verifyGameMessage.PlayerName != gameMessageVerified.PlayerName ||
+					uint32(verifyGameMessage.OldSeatNo) != uint32(gameMessageVerified.OldSeatNo) ||
+					verifyGameMessage.NewSeatNo != gameMessageVerified.NewSeatNo {
+					errMsgs = append(errMsgs, fmt.Sprintf("Invalid data in PLAYER_SEAT_MOVE"))
+				}
+			}
 		}
 	}
 	if len(errMsgs) > 0 {
@@ -567,8 +604,8 @@ func (br *BotRunner) verifyGameServerCrashLog() error {
 	}
 
 	if len(expectedCrashPoints) > 0 {
-		br.logger.Info().Msgf("Expected Crash Points: %v\n", expectedCrashPoints)
-		br.logger.Info().Msgf("Actual Crash Points  : %v\n", crashPoints)
+		br.logger.Info().Msgf("Expected Crash Points: %v", expectedCrashPoints)
+		br.logger.Info().Msgf("Actual Crash Points  : %v", crashPoints)
 	}
 	if !cmp.Equal(crashPoints, expectedCrashPoints) {
 		return fmt.Errorf("Game server crash log does not match the expected. Crashed: %v, Expected: %v", crashPoints, expectedCrashPoints)

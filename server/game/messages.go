@@ -12,15 +12,15 @@ const (
 // Game messages
 // These messages can be sent to game only from api server or test driver
 const (
-	GameCurrentStatus     string = "GAME_STATUS"
-	GameStatusChanged     string = "STATUS_CHANGED"
-	GameCurrentState      string = "GAME_STATE"
-	GameQueryTableState   string = "QUERY_TABLE_STATE"
-	GameTableState        string = "TABLE_STATE"
-	PlayerUpdate          string = "PLAYER_UPDATE"
-	GameTableUpdate       string = "TABLE_UPDATE"
-	GetHandLog            string = "GET_HAND_LOG"
-	PlayerConfigUpdateMsg string = "PLAYER_CONFIG_UPDATE"
+	GameCurrentStatus string = "GAME_STATUS"
+	// GameStatusChanged     string = "STATUS_CHANGED"
+	GameCurrentState    string = "GAME_STATE"
+	GameQueryTableState string = "QUERY_TABLE_STATE"
+	GameTableState      string = "TABLE_STATE"
+	PlayerUpdate        string = "PLAYER_UPDATE"
+	GameTableUpdate     string = "TABLE_UPDATE"
+	GetHandLog          string = "GET_HAND_LOG"
+	//PlayerConfigUpdateMsg string = "PLAYER_CONFIG_UPDATE"
 
 	// These messages are used by the test driver
 	GameSetupNextHand string = "SETUP_NEXT_HAND"
@@ -31,8 +31,9 @@ const (
 	GameDealHand       string = "DEAL_NEW_HAND"
 
 	// API Server
-	GamePendingUpdatesStarted string = "GamePendingUpdatesStarted"
-	GamePendingUpdatesDone    string = "GamePendingUpdatesDone"
+	//GamePendingUpdatesStarted string = "GamePendingUpdatesStarted"
+	//GamePendingUpdatesDone    string = "GamePendingUpdatesDone"
+	GameResume string = "RESUME_GAME"
 
 	// announcements
 	HighHandMsg string = "HIGH_HAND"

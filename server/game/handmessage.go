@@ -17,8 +17,7 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 	err := g.validateClientMsg(message)
 	if err != nil {
 		channelGameLogger.Error().
-			Uint32("club", g.config.ClubId).
-			Str("game", g.config.GameCode).
+			Str("game", g.gameCode).
 			Uint32("player", message.SeatNo).
 			Msgf(err.Error())
 		return
@@ -26,8 +25,7 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 
 	msgItem := g.getClientMsgItem(message)
 	channelGameLogger.Debug().
-		Uint32("club", g.config.ClubId).
-		Str("game", g.config.GameCode).
+		Str("game", g.gameCode).
 		Uint32("player", message.SeatNo).
 		Str("message", msgItem.MessageType).
 		Msg(fmt.Sprintf("%v", message))
@@ -151,7 +149,7 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 		BigBlindPos:   handState.BigBlindPos,
 		SmallBlind:    handState.SmallBlind,
 		BigBlind:      handState.BigBlind,
-		NoCards:       g.NumCards(g.config.GameType),
+		NoCards:       g.NumCards(handState.GameType),
 	}
 	currentHandState.PlayersActed = make(map[uint32]*PlayerActRound)
 
@@ -220,8 +218,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 				actionExpiresAt = now.Add(time.Duration(retryWindowSec) * time.Second)
 			}
 			channelGameLogger.Info().
-				Uint32("club", g.config.ClubId).
-				Str("game", g.config.GameCode).
+				Str("game", g.gameCode).
 				Msgf("Game server restarted with no saved action message. Relying on the client to resend the action. Restarting the action timer. Current time: %s. Action expires at: %s (%f seconds from now).", now, actionExpiresAt, actionExpiresAt.Sub(now).Seconds())
 
 			var canCheck bool
@@ -238,8 +235,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 			return nil
 		}
 		channelGameLogger.Info().
-			Uint32("club", g.config.ClubId).
-			Str("game", g.config.GameCode).
+			Str("game", g.gameCode).
 			Msg("Restoring action message from hand state.")
 		playerMsg = handState.ActionMsgInProgress
 	}
@@ -247,19 +243,17 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	actionMsg := g.getClientMsgItem(playerMsg)
 	messageSeatNo := actionMsg.GetPlayerActed().GetSeatNo()
 	channelGameLogger.Debug().
-		Uint32("club", g.config.ClubId).
-		Str("game", g.config.GameCode).
+		Str("game", g.gameCode).
 		Uint32("player", messageSeatNo).
 		Str("messageType", actionMsg.MessageType).
 		Msg(fmt.Sprintf("%v", playerMsg))
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_1, playerMsg.PlayerId)
+	crashtest.Hit(g.gameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_1, playerMsg.PlayerId)
 
 	if messageSeatNo == 0 && !g.isScriptTest {
 		errMsg := fmt.Sprintf("Invalid seat number [%d] for player ID %d. Ignoring the action message.", messageSeatNo, playerMsg.PlayerId)
 		channelGameLogger.Error().
-			Uint32("club", g.config.ClubId).
-			Str("game", g.config.GameCode).
+			Str("game", g.gameCode).
 			Msgf(errMsg)
 		return fmt.Errorf(errMsg)
 	}
@@ -273,7 +267,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		errMsg := fmt.Sprintf("Invalid seat %d made action. Ignored. The next valid action seat is: %d",
 			actionMsg.GetPlayerActed().GetSeatNo(), handState.NextSeatAction.SeatNo)
 		channelGameLogger.Error().
-			Str("game", g.config.GameCode).
+			Str("game", g.gameCode).
 			Uint32("hand", handState.GetHandNum()).
 			Msg(errMsg)
 		if !actionMsg.GetPlayerActed().GetTimedOut() {
@@ -287,8 +281,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		if playerMsg.MessageId == "" && !g.isScriptTest {
 			errMsg := fmt.Sprintf("Missing message ID for player ID %d Seat %d. Ignoring the action message.", playerMsg.PlayerId, messageSeatNo)
 			channelGameLogger.Error().
-				Uint32("club", g.config.ClubId).
-				Str("game", g.config.GameCode).
+				Str("game", g.gameCode).
 				Msgf(errMsg)
 			return fmt.Errorf(errMsg)
 		}
@@ -298,8 +291,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	if playerMsg.HandNum != handState.HandNum {
 		errMsg := fmt.Sprintf("Invalid hand number: %d current hand number: %d", playerMsg.HandNum, handState.HandNum)
 		channelGameLogger.Error().
-			Uint32("club", g.config.ClubId).
-			Str("game", g.config.GameCode).
+			Str("game", g.gameCode).
 			Uint32("player", messageSeatNo).
 			Str("messageType", actionMsg.MessageType).
 			Msg(errMsg)
@@ -315,8 +307,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		// Ignore the action message.
 		errMsg := fmt.Sprintf("Invalid player action: %s", err)
 		channelGameLogger.Error().
-			Uint32("club", g.config.ClubId).
-			Str("game", g.config.GameCode).
+			Str("game", g.gameCode).
 			Uint32("player", messageSeatNo).
 			Str("messageType", actionMsg.MessageType).
 			Msg(errMsg)
@@ -336,8 +327,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		if (seatNo == runItTwiceState.Seat1 && runItTwiceState.Seat1Responded) ||
 			(seatNo == runItTwiceState.Seat2 && runItTwiceState.Seat2Responded) {
 			channelGameLogger.Info().
-				Uint32("club", g.config.ClubId).
-				Str("game", g.config.GameCode).
+				Str("game", g.gameCode).
 				Msgf("Received duplicate run-it-twice response for seat %d. This can happen if the player acted too late and the timeout was triggered at the same time.", seatNo)
 			return nil
 		}
@@ -367,7 +357,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 		g.broadcastHandMessage(&msg)
 		g.saveHandState(handState)
-		g.handleHandEnded(handState.TotalResultPauseTime, msgItems)
+		g.handleHandEnded(handState, handState.TotalResultPauseTime, msgItems)
 
 		return nil
 	}
@@ -375,8 +365,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	if handState.NextSeatAction == nil {
 		errMsg := "Invalid action. There is no next action"
 		channelGameLogger.Error().
-			Uint32("club", g.config.ClubId).
-			Str("game", g.config.GameCode).
+			Str("game", g.gameCode).
 			Uint32("player", messageSeatNo).
 			Str("messageType", actionMsg.MessageType).
 			Str("action", actionMsg.GetPlayerActed().Action.String()).
@@ -392,8 +381,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	if handState.CurrentState == HandStatus_SHOW_DOWN {
 		errMsg := "Invalid action. Hand is in show-down state"
 		channelGameLogger.Error().
-			Uint32("club", g.config.ClubId).
-			Str("game", g.config.GameCode).
+			Str("game", g.gameCode).
 			Uint32("player", messageSeatNo).
 			Str("messageType", actionMsg.MessageType).
 			Msg(errMsg)
@@ -409,8 +397,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	if handState.FlowState != expectedState {
 		errMsg := fmt.Sprintf("onPlayerActed called in wrong flow state. Ignoring message. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 		channelGameLogger.Error().
-			Uint32("club", g.config.ClubId).
-			Str("game", g.config.GameCode).
+			Str("game", g.gameCode).
 			Uint32("player", messageSeatNo).
 			Str("messageType", actionMsg.MessageType).
 			Msg(errMsg)
@@ -427,7 +414,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	g.saveHandState(handState)
 	g.sendActionAck(playerMsg, handState.CurrentActionNum)
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_2, playerMsg.PlayerId)
+	crashtest.Hit(g.gameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_2, playerMsg.PlayerId)
 
 	handState.FlowState = FlowState_PREPARE_NEXT_ACTION
 	g.saveHandState(handState)
@@ -466,8 +453,7 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	if playerMsg == nil {
 		errMsg := "Unable to get action message in progress. handState.ActionMsgInProgress is nil"
 		channelGameLogger.Error().
-			Uint32("club", g.config.ClubId).
-			Str("game", g.config.GameCode).
+			Str("game", g.gameCode).
 			Msg(errMsg)
 		return fmt.Errorf(errMsg)
 	}
@@ -513,23 +499,16 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	allMsgItems = append(allMsgItems, actionMsg)
 
 	if handState.NoActiveSeats == 1 {
-		handState.FlowState = FlowState_ONE_PLAYER_REMAINING
 		msgItems, err = g.onePlayerRemaining(handState)
 	} else if g.runItTwice(handState, playerAction) {
-		// run it twice prompt
-		handState.FlowState = FlowState_RUNITTWICE_UP_PROMPT
 		msgItems, err = g.runItTwicePrompt(handState)
 	} else if handState.isAllActivePlayersAllIn() || handState.allActionComplete() {
-		handState.FlowState = FlowState_ALL_PLAYERS_ALL_IN
 		msgItems, err = g.allPlayersAllIn(handState)
 	} else if handState.CurrentState == HandStatus_SHOW_DOWN {
-		handState.FlowState = FlowState_SHOWDOWN
 		msgItems, err = g.showdown(handState)
 	} else if handState.LastState != handState.CurrentState {
-		handState.FlowState = FlowState_MOVE_TO_NEXT_ROUND
 		msgItems, err = g.moveToNextRound(handState)
 	} else {
-		handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 		msgItems, err = g.moveToNextAction(handState)
 	}
 
@@ -546,19 +525,19 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 		Messages:   allMsgItems,
 	}
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_1, playerMsg.PlayerId)
+	crashtest.Hit(g.gameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_1, playerMsg.PlayerId)
 	g.broadcastHandMessage(&serverMsg)
 	handState.ActionMsgInProgress = nil
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_2, playerMsg.PlayerId)
+	crashtest.Hit(g.gameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_2, playerMsg.PlayerId)
 	g.saveHandState(handState)
 
-	crashtest.Hit(g.config.GameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3, playerMsg.PlayerId)
-	g.handleHandEnded(handState.TotalResultPauseTime, allMsgItems)
+	crashtest.Hit(g.gameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3, playerMsg.PlayerId)
+	g.handleHandEnded(handState, handState.TotalResultPauseTime, allMsgItems)
 	return nil
 }
 
-func (g *Game) handleHandEnded(totalPauseTime uint32, allMsgItems []*HandMessageItem) {
+func (g *Game) handleHandEnded(handState *HandState, totalPauseTime uint32, allMsgItems []*HandMessageItem) {
 	// if the last message is hand ended (pause for the result animation)
 	handEnded := false
 	for _, message := range allMsgItems {
@@ -571,13 +550,16 @@ func (g *Game) handleHandEnded(totalPauseTime uint32, allMsgItems []*HandMessage
 		if totalPauseTime > 0 {
 			if !util.Env.ShouldDisableDelays() {
 				channelGameLogger.Debug().
-					Str("game", g.config.GameCode).
+					Str("game", g.gameCode).
 					Msgf("Sleeping %d milliseconds for result animation", totalPauseTime)
 				time.Sleep(time.Duration(totalPauseTime) * time.Millisecond)
 			}
 		}
+
+		handState.CurrentState = HandStatus_HAND_CLOSED
+
 		gameMessage := &GameMessage{
-			GameId:      g.config.GameId,
+			GameId:      g.gameID,
 			MessageType: GameMoveToNextHand,
 		}
 		g.QueueGameMessage(gameMessage)
@@ -611,7 +593,7 @@ func (g *Game) sendActionAck(playerMsg *HandMessage, currentActionNum uint32) {
 	}
 	g.sendHandMessageToPlayer(serverMsg, playerMsg.GetPlayerId())
 	channelGameLogger.Debug().
-		Str("game", g.config.GameCode).
+		Str("game", g.gameCode).
 		Msg(fmt.Sprintf("Acknowledgment sent to %d. Message Id: %s", playerMsg.GetPlayerId(), playerMsg.GetMessageId()))
 }
 
@@ -679,8 +661,7 @@ func (g *Game) getPlayerCardRank(handState *HandState, boardCards []uint32) map[
 
 func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 	channelGameLogger.Debug().
-		Uint32("club", g.config.ClubId).
-		Str("game", g.config.GameCode).
+		Str("game", g.gameCode).
 		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	flopCards := make([]uint32, 3)
@@ -748,8 +729,7 @@ func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 
 func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 	channelGameLogger.Debug().
-		Uint32("club", g.config.ClubId).
-		Str("game", g.config.GameCode).
+		Str("game", g.gameCode).
 		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	err := handState.setupTurn()
@@ -823,8 +803,7 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 
 func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
 	channelGameLogger.Debug().
-		Uint32("club", g.config.ClubId).
-		Str("game", g.config.GameCode).
+		Str("game", g.gameCode).
 		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	err := handState.setupRiver()
@@ -912,11 +891,6 @@ func (g *Game) encryptPlayerCardRanks(playerCardRanks map[uint32]string, players
 }
 
 func (g *Game) handEnded(handState *HandState) ([]*HandMessageItem, error) {
-	expectedState := FlowState_HAND_ENDED
-	if handState.FlowState != expectedState {
-		return nil, fmt.Errorf("handEnded called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
-	}
-
 	handEnded := &HandMessageItem{
 		MessageType: HandEnded,
 	}
@@ -1046,16 +1020,10 @@ func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([
 }
 
 func (g *Game) moveToNextRound(handState *HandState) ([]*HandMessageItem, error) {
-	expectedState := FlowState_MOVE_TO_NEXT_ROUND
-	if handState.FlowState != expectedState {
-		return nil, fmt.Errorf("moveToNextRound called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
-	}
-
 	if handState.LastState == HandStatus_DEAL {
 		// How do we get here?
 		channelGameLogger.Warn().
-			Uint32("club", g.config.ClubId).
-			Str("game", g.config.GameCode).
+			Str("game", g.gameCode).
 			Msg("handState.LastState == HandStatus_DEAL in moveToNextRound")
 		return []*HandMessageItem{}, nil
 	}
@@ -1079,7 +1047,6 @@ func (g *Game) moveToNextRound(handState *HandState) ([]*HandMessageItem, error)
 	}
 	allMsgItems = append(allMsgItems, msgItems...)
 
-	handState.FlowState = FlowState_MOVE_TO_NEXT_ACTION
 	msgItems, err = g.moveToNextAction(handState)
 	if err != nil {
 		return nil, err
@@ -1090,11 +1057,6 @@ func (g *Game) moveToNextRound(handState *HandState) ([]*HandMessageItem, error)
 }
 
 func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error) {
-	expectedState := FlowState_MOVE_TO_NEXT_ACTION
-	if handState.FlowState != expectedState {
-		return nil, fmt.Errorf("moveToNextAction called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
-	}
-
 	if handState.NextSeatAction == nil {
 		return nil, fmt.Errorf("moveToNextAct called when handState.NextSeatAction == nil")
 	}
@@ -1114,7 +1076,7 @@ func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error
 		Content:     &HandMessageItem_SeatAction{SeatAction: handState.NextSeatAction},
 	}
 	player := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
-	actionTimesoutAt := time.Now().Add(time.Duration(g.config.ActionTime) * time.Second)
+	actionTimesoutAt := time.Now().Add(time.Duration(handState.ActionTime) * time.Second)
 	handState.NextSeatAction.ActionTimesoutAt = actionTimesoutAt.Unix()
 	g.resetTimer(handState.NextSeatAction.SeatNo, player.PlayerId, canCheck, actionTimesoutAt)
 	allMsgItems = append(allMsgItems, yourActionMsg)
@@ -1159,11 +1121,6 @@ func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error
 }
 
 func (g *Game) allPlayersAllIn(handState *HandState) ([]*HandMessageItem, error) {
-	expectedState := FlowState_ALL_PLAYERS_ALL_IN
-	if handState.FlowState != expectedState {
-		return nil, fmt.Errorf("allPlayersAllIn called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
-	}
-
 	var allMsgItems []*HandMessageItem
 	var msgItems []*HandMessageItem
 	var err error
@@ -1199,7 +1156,6 @@ func (g *Game) allPlayersAllIn(handState *HandState) ([]*HandMessageItem, error)
 		allMsgItems = append(allMsgItems, msgItems...)
 	}
 
-	handState.FlowState = FlowState_SHOWDOWN
 	msgItems, err = g.showdown(handState)
 	if err != nil {
 		return nil, err
@@ -1209,10 +1165,6 @@ func (g *Game) allPlayersAllIn(handState *HandState) ([]*HandMessageItem, error)
 }
 
 func (g *Game) showdown(handState *HandState) ([]*HandMessageItem, error) {
-	expectedState := FlowState_SHOWDOWN
-	if handState.FlowState != expectedState {
-		return nil, fmt.Errorf("showdown called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
-	}
 	// update hand stats
 	handState.HandStats.EndedAtShowdown = true
 	// update player stats
@@ -1226,7 +1178,6 @@ func (g *Game) showdown(handState *HandState) ([]*HandMessageItem, error) {
 	handState.removeFoldedPlayersFromPots()
 	handState.removeEmptyPots()
 	handState.HandCompletedAt = HandStatus_SHOW_DOWN
-	handState.FlowState = FlowState_HAND_ENDED
 
 	// track whether the player is active in this round or not
 	for seatNo, playerID := range handState.ActiveSeats {
@@ -1258,10 +1209,6 @@ func (g *Game) showdown(handState *HandState) ([]*HandMessageItem, error) {
 }
 
 func (g *Game) onePlayerRemaining(handState *HandState) ([]*HandMessageItem, error) {
-	expectedState := FlowState_ONE_PLAYER_REMAINING
-	if handState.FlowState != expectedState {
-		return nil, fmt.Errorf("onePlayerRemaining called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
-	}
 	switch handState.CurrentState {
 	case HandStatus_DEAL:
 		handState.HandStats.EndedAtPreflop = true
@@ -1285,7 +1232,6 @@ func (g *Game) onePlayerRemaining(handState *HandState) ([]*HandMessageItem, err
 	}
 	allMsgItems = append(allMsgItems, msgItems...)
 
-	handState.FlowState = FlowState_HAND_ENDED
 	msgItems, err = g.handEnded(handState)
 	if err != nil {
 		return nil, err
@@ -1313,7 +1259,7 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 		}
 	}
 
-	handResultProcessor := NewHandResultProcessor(handState, uint32(g.config.MaxPlayers), g.config.RewardTrackingIds)
+	handResultProcessor := NewHandResultProcessor(handState, uint32(handState.MaxSeats), nil)
 
 	handResult2Client := handResultProcessor.determineWinners()
 	allMsgItems := make([]*HandMessageItem, 0)

@@ -1348,7 +1348,7 @@ const HostSeatChangeSwapGQL = `mutation seatChangeSwapSeats($gameCode: String!, 
 }`
 
 const UpdatePlayerGameConfigGQL = `
-	mutation update_player_game_config($gameCode:String! $config:GameConfigChangeInput!) {
+	mutation update_player_game_config($gameCode:String! $config:PlayerGameConfigChangeInput!) {
 		ret: updatePlayerGameConfig(gameCode:$gameCode, config:$config)
   	}`
 

@@ -96,6 +96,10 @@ func waitForAPIServer(apiServerURL string) {
 }
 
 func runWithNats(gameManager *game.Manager) {
+	if util.Env.IsSystemTest() {
+		mainLogger.Warn().Msg("Running in system test mode.")
+	}
+
 	mainLogger.Info().Msg("Running the server with NATS")
 	natsURL := util.Env.GetNatsURL()
 	mainLogger.Info().Msgf("NATS URL: %s", natsURL)
@@ -141,8 +145,7 @@ func runWithNats(gameManager *game.Manager) {
 
 	if util.Env.IsSystemTest() {
 		// System test needs a way to return from main to collect the code coverage.
-		// We shouldn't be exiting the process in production.
-		mainLogger.Warn().Msg("Running in system test mode.")
+		// This is only for testing. We shouldn't be exiting the server in production.
 		for !exit {
 			time.Sleep(500 * time.Millisecond)
 		}

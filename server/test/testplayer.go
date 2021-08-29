@@ -45,7 +45,7 @@ type TestPlayer struct {
 
 	observer *TestPlayer
 	// preserve last received table state
-	lastTableState *game.GameTableStateMessage
+	lastTableState *game.TestGameTableStateMessage
 }
 
 func NewTestPlayer(playerInfo game.GamePlayer, observer *TestPlayer) *TestPlayer {

@@ -61,6 +61,7 @@ func (a *ActionTimer) loop() {
 		err := recover()
 		if err != nil {
 			// Panic occurred.
+			debug.PrintStack()
 			actionTimerLogger.Error().
 				Str("game", a.gameCode).
 				Msgf("Action timer loop returning due to panic: %s\nStack Trace:\n%s", err, string(debug.Stack()))

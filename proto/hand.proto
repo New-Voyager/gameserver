@@ -72,6 +72,7 @@ message PlayerInSeatState {
   bool open_seat = 10;
   bool posted_blind = 11;
   uint32 seat_no = 12;
+  bool run_it_twice = 13;
 }
 
 message PlayerBalance {
@@ -226,15 +227,8 @@ enum FlowState {
 	DEAL_HAND                   = 0;
 	WAIT_FOR_NEXT_ACTION        = 1;
 	PREPARE_NEXT_ACTION         = 2;
-	MOVE_TO_NEXT_ACTION         = 3;
-	MOVE_TO_NEXT_ROUND          = 4;
-	ALL_PLAYERS_ALL_IN          = 5;
-	ONE_PLAYER_REMAINING        = 6;
-	SHOWDOWN                    = 7;
-	HAND_ENDED                  = 8;
-  MOVE_TO_NEXT_HAND           = 9;
-	RUNITTWICE_UP_PROMPT        = 10;
-	RUNITTWICE_PROMPT_RESPONSE  = 11;
+  MOVE_TO_NEXT_HAND           = 3;
+  WAIT_FOR_PENDING_UPDATE     = 4;
 }
 
 

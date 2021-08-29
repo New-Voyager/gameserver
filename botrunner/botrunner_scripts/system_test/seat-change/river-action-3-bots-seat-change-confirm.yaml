@@ -148,3 +148,17 @@ hands:
         - seat: 5
           balance:
             after: 0
+after-game:
+  verify:
+
+    # verify game messages
+    game-messages:
+      - type: PLAYER_SEAT_CHANGE_PROMPT
+        playerName: tom
+        openedSeat: 5
+        promptSecs: 30
+      - type: PLAYER_SEAT_MOVE
+        playerName: tom
+        oldSeatNo: 8
+        newSeatNo: 5
+      - type: PLAYER_SEAT_CHANGE_DONE

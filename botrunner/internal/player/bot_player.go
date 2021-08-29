@@ -100,9 +100,9 @@ type BotPlayer struct {
 	endPing chan bool
 
 	// Points to the most recent messages from the game server.
-	lastGameMessage    *game.GameMessage
-	lastHandMessage    *game.HandMessage
-	playerStateMessage *game.GameTableStateMessage
+	lastGameMessage *game.GameMessage
+	lastHandMessage *game.HandMessage
+	//playerStateMessage *game.GameTableStateMessage
 
 	// GameInfo received from the api server.
 	gameInfo *game.GameInfo
@@ -365,7 +365,12 @@ func (bp *BotPlayer) messageLoop() {
 			return
 		case chItem := <-bp.chGame:
 			if chItem.ProtoGameMsg != nil {
-				bp.processGameMessage(chItem.ProtoGameMsg)
+				if chItem.ProtoGameMsg.MessageType == "PLAYER_CONNECTIVITY_LOST" ||
+					chItem.ProtoGameMsg.MessageType == "PLAYER_CONNECTIVITY_RESTORED" {
+
+				} else {
+					panic("We should not get any messages from game server")
+				}
 			} else if chItem.NonProtoGameMsg != nil {
 				bp.processNonProtoGameMessage(chItem.NonProtoGameMsg)
 			}
@@ -2055,7 +2060,7 @@ func (bp *BotPlayer) JoinGame(gameCode string) error {
 			// update player config
 			scriptSeatConfig := bp.config.Script.GetSeatConfigByPlayerName(bp.config.Name)
 			if scriptSeatConfig != nil {
-				bp.UpdatePlayerGameConfig(gameCode, nil, &scriptSeatConfig.MuckLosingHand)
+				bp.UpdatePlayerGameConfig(gameCode, scriptSeatConfig.RunItTwice, &scriptSeatConfig.MuckLosingHand)
 			}
 		}
 		bp.buyInAmount = uint32(scriptBuyInAmount)

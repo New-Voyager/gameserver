@@ -436,7 +436,6 @@ func (p *Player) SetupNextHand(num uint32, handSetup HandSetup) error {
 		nextHand.DoubleBoard = handSetup.DoubleBoard
 	}
 
-	message.ClubId = p.ClubID
 	message.GameId = p.GameID
 	message.MessageType = GameSetupNextHand
 	message.GameMessage = &GameMessage_NextHand{NextHand: nextHand}
@@ -449,7 +448,6 @@ func (p *Player) SetupNextHand(num uint32, handSetup HandSetup) error {
 func (p *Player) GetTableState() error {
 	queryTableState := &GameQueryTableStateMessage{PlayerId: p.PlayerID}
 	var gameMessage GameMessage
-	gameMessage.ClubId = p.ClubID
 	gameMessage.GameId = p.GameID
 	gameMessage.PlayerId = p.PlayerID
 	gameMessage.MessageType = GameQueryTableState
@@ -479,7 +477,6 @@ func (p *Player) DealHand() error {
 
 	dealHandMessage := &GameDealHandMessage{}
 
-	gameMessage.ClubId = p.ClubID
 	gameMessage.GameId = p.GameID
 	gameMessage.MessageType = GameDealHand
 	gameMessage.GameMessage = &GameMessage_DealHand{DealHand: dealHandMessage}

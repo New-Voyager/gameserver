@@ -92,3 +92,52 @@ hands:
             player: bill
           - seat: 9
             player: yong
+
+after-game:
+  verify:
+    num-hands-played:
+      lte: 2
+
+    # verify game messages
+    game-messages:
+      - type: TABLE_UPDATE
+        subType: HostSeatChangeMove
+        seatMoves:
+          - oldSeatNo: 4
+            newSeatNo: 1
+            openSeat: true
+          - name: yong
+            oldSeatNo: 1
+            newSeatNo: 4
+            openSeat: false
+      - type: TABLE_UPDATE
+        subType: HostSeatChangeMove
+        seatMoves:
+          - oldSeatNo: 7
+            newSeatNo: 4
+            openSeat: true
+          - name: yong
+            oldSeatNo: 4
+            newSeatNo: 7
+            openSeat: false
+      - type: TABLE_UPDATE
+        subType: HostSeatChangeMove
+        seatMoves:
+          - oldSeatNo: 1
+            newSeatNo: 7
+            openSeat: true
+          - name: yong
+            oldSeatNo: 7
+            newSeatNo: 1
+            openSeat: false
+      - type: TABLE_UPDATE
+        subType: HostSeatChangeMove
+        seatMoves:
+          - name: yong
+            oldSeatNo: 1
+            newSeatNo: 9
+            openSeat: false
+          - name: david
+            oldSeatNo: 9
+            newSeatNo: 1
+            openSeat: false

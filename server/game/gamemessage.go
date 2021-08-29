@@ -7,40 +7,84 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"voyager.com/server/crashtest"
 )
 
 func (g *Game) handleGameMessage(message *GameMessage) {
 	channelGameLogger.Trace().
-		Uint32("club", g.config.ClubId).
-		Str("game", g.config.GameCode).
-		Msg(fmt.Sprintf("Game message: %s. %v", message.MessageType, message))
+		Str("game", g.gameCode).
+		Msgf("Game message: %s. %v", message.MessageType, message)
 
+	var err error
 	switch message.MessageType {
-	case GameStatusChanged:
-		g.onStatusChanged(message)
-
 	case GameSetupNextHand:
-		g.onNextHandSetup(message)
+		err = g.onNextHandSetup(message)
 
 	case GameDealHand:
-		g.onDealHand(message)
+		err = g.onDealHand(message)
 
 	case GameMoveToNextHand:
-		g.onMoveToNextHand(message)
+		err = g.onMoveToNextHand(message)
 
-	case GamePendingUpdatesDone:
-		g.onPendingUpdatesDone(message)
+	case GameResume:
+		err = g.onResume(message)
 
 	case GetHandLog:
-		g.onGetHandLog(message)
-
-	case GameCurrentStatus:
-		g.onStatusUpdate(message)
-
-	case PlayerConfigUpdateMsg:
-		g.onPlayerConfigUpdate(message)
+		err = g.onGetHandLog(message)
 	}
+
+	if err != nil {
+		err = errors.Wrapf(err, "Error while handling %s", message.MessageType)
+
+		// TODO: Just logging for now but should do more in some of these cases.
+		channelGameLogger.Error().
+			Str("game", g.gameCode).
+			Msg(err.Error())
+	}
+}
+
+func (g *Game) onResume(message *GameMessage) error {
+	var err error
+
+	handState, err := g.loadHandState()
+	if err != nil {
+		if handState == nil {
+			// There is no existing hand state. We get here during the initial game start sequence.
+			// We could also get here if the game server crashed before the first hand
+			// or before the hand state of the first hand was persisted.
+			// Go ahead and start the first hand.
+			err = g.moveAPIServerToNextHandAndScheduleDealHand(nil)
+			if err != nil {
+				return errors.Wrap(err, "Error while starting game")
+			}
+			return nil
+		}
+
+		return errors.Wrap(err, "Could not load hand state while resuming game")
+	}
+
+	channelGameLogger.Info().
+		Str("game", g.gameCode).
+		Msgf("Resuming game. Restarting hand at flow state [%s].", handState.FlowState)
+
+	switch handState.FlowState {
+	case FlowState_DEAL_HAND:
+		err = g.dealNewHand()
+	case FlowState_WAIT_FOR_NEXT_ACTION:
+		err = g.onPlayerActed(nil, handState)
+	case FlowState_PREPARE_NEXT_ACTION:
+		err = g.prepareNextAction(handState, 0)
+	case FlowState_MOVE_TO_NEXT_HAND:
+		err = g.moveToNextHand(handState)
+	case FlowState_WAIT_FOR_PENDING_UPDATE:
+		// TODO: Do we need this?
+		g.inProcessPendingUpdates = false
+		err = g.moveAPIServerToNextHandAndScheduleDealHand(handState)
+	default:
+		err = fmt.Errorf("unhandled flow state in resumeGame: %s", handState.FlowState)
+	}
+	return err
 }
 
 func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCode string) {
@@ -76,7 +120,7 @@ func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCod
 
 func (g *Game) onGetHandLog(message *GameMessage) error {
 	gameMessage := &GameMessage{
-		GameId:      g.config.GameId,
+		GameId:      g.gameID,
 		MessageType: GetHandLog,
 		PlayerId:    message.PlayerId,
 	}
@@ -96,21 +140,6 @@ func (g *Game) onGetHandLog(message *GameMessage) error {
 	gameMessage.GameMessage = &GameMessage_HandLog{HandLog: logData}
 	go g.sendGameMessageToPlayer(gameMessage)
 	return nil
-}
-
-func (g *Game) onPendingUpdatesDone(message *GameMessage) error {
-	g.inProcessPendingUpdates = false
-	if g.Status != GameStatus_ACTIVE || g.TableStatus != TableStatus_GAME_RUNNING {
-		return nil
-	}
-
-	// deal next hand
-	handState, err := g.loadHandState()
-	if err != nil {
-		return err
-	}
-
-	return g.moveAPIServerToNextHandAndScheduleDealHand(handState)
 }
 
 func (g *Game) onMoveToNextHand(message *GameMessage) error {
@@ -140,10 +169,12 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 	// if there are no pending updates, deal next hand
 
 	// check any pending updates
-	pendingUpdates, _ := anyPendingUpdates(g.apiServerURL, g.config.GameId, g.delays.PendingUpdatesRetry)
+	pendingUpdates, _ := anyPendingUpdates(g.apiServerURL, g.gameID, g.delays.PendingUpdatesRetry)
 	if pendingUpdates {
 		g.inProcessPendingUpdates = true
-		go g.processPendingUpdates(g.apiServerURL, g.config.GameId, g.config.GameCode)
+		go g.processPendingUpdates(g.apiServerURL, g.gameID, g.gameCode)
+		handState.FlowState = FlowState_WAIT_FOR_PENDING_UPDATE
+		g.saveHandState(handState)
 	} else {
 		err := g.moveAPIServerToNextHandAndScheduleDealHand(handState)
 		if err != nil {
@@ -155,34 +186,27 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 }
 
 func (g *Game) moveAPIServerToNextHandAndScheduleDealHand(handState *HandState) error {
-	err := g.moveAPIServerToNextHand(handState.HandNum)
-	for err != nil {
-		channelGameLogger.Error().Msg(err.Error())
-		time.Sleep(5 * time.Second)
-		err = g.moveAPIServerToNextHand(handState.HandNum)
+	var handNum uint32
+	if handState == nil {
+		handNum = 0
+	} else {
+		handNum = handState.HandNum
+	}
+	err := g.moveAPIServerToNextHand(handNum)
+	if err != nil {
+		return errors.Wrap(err, "Could not move api server to next hand")
 	}
 
-	handState.FlowState = FlowState_DEAL_HAND
-	g.saveHandState(handState)
+	if handState != nil {
+		handState.FlowState = FlowState_DEAL_HAND
+		g.saveHandState(handState)
+	}
 
 	gameMessage := &GameMessage{
-		GameId:      g.config.GameId,
+		GameId:      g.gameID,
 		MessageType: GameDealHand,
 	}
 	g.QueueGameMessage(gameMessage)
-	return nil
-}
-
-func (g *Game) onStatusChanged(message *GameMessage) error {
-	gameStatusChanged := message.GetStatusChange()
-	g.Status = gameStatusChanged.NewStatus
-	return nil
-}
-
-func (g *Game) onStatusUpdate(message *GameMessage) error {
-	gameStatusChanged := message.GetStatus()
-	g.Status = gameStatusChanged.Status
-	g.TableStatus = gameStatusChanged.TableStatus
 	return nil
 }
 
@@ -191,7 +215,7 @@ func (g *Game) onNextHandSetup(message *GameMessage) error {
 
 	// Hand setup is persisted in Redis instead of stored in memory
 	// so that we can continue with the same setup after crash during crash testing.
-	g.handSetupPersist.Save(g.config.GameCode, nextHandSetup)
+	g.handSetupPersist.Save(g.gameCode, nextHandSetup)
 	return nil
 }
 
@@ -207,27 +231,14 @@ func (g *Game) broadcastTableState() error {
 		return err
 	}
 
-	gameTableState := &GameTableStateMessage{PlayersState: playersAtTable, Status: g.Status, TableStatus: g.TableStatus}
+	gameTableState := &TestGameTableStateMessage{PlayersState: playersAtTable}
 	var gameMessage GameMessage
-	gameMessage.ClubId = g.config.ClubId
-	gameMessage.GameId = g.config.GameId
+	gameMessage.GameId = g.gameID
 	gameMessage.MessageType = GameTableState
 	gameMessage.GameMessage = &GameMessage_TableState{TableState: gameTableState}
 
 	if *g.messageSender != nil {
 		(*g.messageSender).BroadcastGameMessage(&gameMessage)
 	}
-	return nil
-}
-
-func (g *Game) onPlayerConfigUpdate(message *GameMessage) error {
-	updateMessage := message.GetPlayerConfigUpdate()
-	playerConfig := g.playerConfig.Load().(map[uint64]PlayerConfigUpdate)
-	playerConfig[updateMessage.PlayerId] = PlayerConfigUpdate{
-		PlayerId:         updateMessage.PlayerId,
-		MuckLosingHand:   updateMessage.MuckLosingHand,
-		RunItTwicePrompt: updateMessage.RunItTwicePrompt,
-	}
-	g.playerConfig.Store(playerConfig)
 	return nil
 }

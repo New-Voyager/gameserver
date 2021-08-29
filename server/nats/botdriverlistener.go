@@ -16,9 +16,8 @@ const botPlayerID = 0xFFFFFFFF
 
 // bot driver messages to game
 const (
-	BotDriverInitializeGame = "B2GInitializeGame"
-	BotDriverStartGame      = "B2GStartGame"
-	BotDriverSetupDeck      = "B2GSetupDeck"
+	BotDriverStartGame = "B2GStartGame"
+	BotDriverSetupDeck = "B2GSetupDeck"
 )
 
 type PlayerCard struct {
@@ -69,12 +68,12 @@ const (
 )
 
 type DriverBotMessage struct {
-	BotId       string           `json:"bot-id"`
-	MessageType string           `json:"message-type"`
-	GameConfig  *game.GameConfig `json:"game-config"`
-	ClubId      uint32           `json:"club-id"`
-	GameId      uint64           `json:"game-id"`
-	GameCode    string           `json:"game-code"`
+	BotId       string               `json:"bot-id"`
+	MessageType string               `json:"message-type"`
+	GameConfig  *game.TestGameConfig `json:"game-config"`
+	ClubId      uint32               `json:"club-id"`
+	GameId      uint64               `json:"game-id"`
+	GameCode    string               `json:"game-code"`
 }
 
 var natsTestDriverLogger = log.With().Str("logger_name", "nats::game").Logger()
@@ -104,17 +103,6 @@ func (n *NatsDriverBotListener) listenForMessages(msg *natsgo.Msg) {
 	log.Debug().Msgf("Message type: %s Game code:- %s", messageType, gameCode)
 
 	switch messageType {
-	case BotDriverInitializeGame:
-		// unmarshal message
-		var botDriverMessage DriverBotMessage
-		err := jsoniter.Unmarshal(msg.Data, &botDriverMessage)
-		if err != nil {
-			// log the error
-			natsTestDriverLogger.Error().Msgf("Invalid driver bot message: %s", string(msg.Data))
-			return
-		}
-
-		n.initializeGame(&botDriverMessage)
 	case BotDriverSetupDeck:
 		var handSetup HandSetup
 		fmt.Printf("Received setup deck message: %s", string(msg.Data))
@@ -128,32 +116,4 @@ func (n *NatsDriverBotListener) listenForMessages(msg *natsgo.Msg) {
 		natsTestDriverLogger.Warn().Msgf("Unhandled bot driver message: %s", string(msg.Data))
 	}
 
-}
-
-func (n *NatsDriverBotListener) initializeGame(botDriverMessage *DriverBotMessage) {
-	gameConfig := botDriverMessage.GameConfig
-	clubID := uint32(1)
-	gameID := uint64(1)
-
-	// initialize nats game
-	_, err := n.gameManager.NewGame(clubID, gameID, gameConfig)
-	if err != nil {
-		msg := fmt.Sprintf("Unable to initialize nats game: %v", err)
-		natsTestDriverLogger.Error().Msg(msg)
-		panic(msg)
-	}
-
-	// respond to the driver bot with the game num
-	response := &DriverBotMessage{
-		ClubId:      clubID,
-		BotId:       botDriverMessage.BotId,
-		GameId:      gameID,
-		MessageType: GameInitialized,
-	}
-	data, _ := jsoniter.Marshal(response)
-	err = n.nc.Publish(GameToBotDriver, data)
-	if err != nil {
-		natsTestDriverLogger.Error().Msgf("Failed to deliver message to driver bot")
-		return
-	}
 }

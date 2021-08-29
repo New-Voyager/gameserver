@@ -121,3 +121,8 @@ hands:
         - seat: 8
           balance:
             after: 96
+  - setup:
+      auto: true
+
+  - setup:
+      auto: true

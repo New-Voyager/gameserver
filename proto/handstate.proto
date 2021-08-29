@@ -18,8 +18,6 @@ message RunItTwice {
 }
 
 message HandState {
-  uint32 club_id = 1;
-
   uint64 game_id = 2;
 
   uint32 hand_num = 3;
@@ -126,4 +124,5 @@ message HandState {
   bool include_stats_in_result = 68;
   uint32 result_pause_time = 69;
   uint32 total_result_pause_time = 70;
+  uint32 action_time = 71;
 }
