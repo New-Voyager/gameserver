@@ -357,7 +357,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 		g.broadcastHandMessage(&msg)
 		g.saveHandState(handState)
-		g.handleHandEnded(handState.TotalResultPauseTime, msgItems)
+		g.handleHandEnded(handState, handState.TotalResultPauseTime, msgItems)
 
 		return nil
 	}
@@ -540,11 +540,11 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	g.saveHandState(handState)
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3, playerMsg.PlayerId)
-	g.handleHandEnded(handState.TotalResultPauseTime, allMsgItems)
+	g.handleHandEnded(handState, handState.TotalResultPauseTime, allMsgItems)
 	return nil
 }
 
-func (g *Game) handleHandEnded(totalPauseTime uint32, allMsgItems []*HandMessageItem) {
+func (g *Game) handleHandEnded(handState *HandState, totalPauseTime uint32, allMsgItems []*HandMessageItem) {
 	// if the last message is hand ended (pause for the result animation)
 	handEnded := false
 	for _, message := range allMsgItems {
@@ -562,6 +562,9 @@ func (g *Game) handleHandEnded(totalPauseTime uint32, allMsgItems []*HandMessage
 				time.Sleep(time.Duration(totalPauseTime) * time.Millisecond)
 			}
 		}
+
+		handState.CurrentState = HandStatus_HAND_CLOSED
+
 		gameMessage := &GameMessage{
 			GameId:      g.gameID,
 			MessageType: GameMoveToNextHand,
