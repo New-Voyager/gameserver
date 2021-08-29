@@ -216,6 +216,7 @@ func (g *Game) runGame(handState *HandState) {
 	defer func() {
 		if err := recover(); err != nil {
 			// Panic occurred.
+			debug.PrintStack()
 			channelGameLogger.Error().
 				Str("game", g.gameCode).
 				Msgf("runGame returning due to panic: %s\nStack Trace:\n%s", err, string(debug.Stack()))
