@@ -67,7 +67,7 @@ func (h *HandState) addChipsToPot(seatBets []float32, handEnded bool) {
 
 		// player has a bet here
 		// is he all in?
-		if h.PlayersActed[seatNo].GetState() == PlayerActState_PLAYER_ACT_ALL_IN {
+		if h.PlayersActed[seatNo].Action == ACTION_ALLIN {
 			allInPlayers = true
 		}
 

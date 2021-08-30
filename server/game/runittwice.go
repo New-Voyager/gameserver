@@ -21,7 +21,7 @@ func (g *Game) runItTwice(h *HandState, lastPlayerAction *PlayerActRound) bool {
 	}
 
 	// if last player folded his cards, then we won't trigger run it twice
-	if lastPlayerAction.State == PlayerActState_PLAYER_ACT_FOLDED {
+	if lastPlayerAction.Action == ACTION_FOLD {
 		return false
 	}
 
