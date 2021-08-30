@@ -352,9 +352,9 @@ func (h *TestHand) dealHand(t *TestDriver) error {
 	if verify.PostedBlinds != nil && len(verify.PostedBlinds) > 0 {
 		for _, blindSeat := range verify.PostedBlinds {
 			playerAct := actual.PlayersActed[blindSeat]
-			if playerAct.State != game.PlayerActState_PLAYER_ACT_POST_BLIND {
+			if playerAct.Action != game.ACTION_POST_BLIND {
 				h.addError(fmt.Errorf("Post blind did not match for seat %d. Expected: %d actual: %d",
-					blindSeat, game.PlayerActState_PLAYER_ACT_POST_BLIND, playerAct.State))
+					blindSeat, game.ACTION_POST_BLIND, playerAct.Action))
 				passed = false
 			}
 		}

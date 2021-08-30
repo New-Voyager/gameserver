@@ -5,20 +5,22 @@ import "enums.proto";
 
 enum ACTION {
   ACTION_UNKNOWN=0;
-  SB = 1;
-  BB = 2;
-  STRADDLE = 3;
-  CHECK = 4;
-  CALL = 5;
-  FOLD = 6;
-  BET = 7;
-  RAISE = 8;
-  ALLIN = 9;
-  RUN_IT_TWICE_YES = 10;
-  RUN_IT_TWICE_NO = 11;
-  RUN_IT_TWICE_PROMPT = 12;
-  POST_BLIND = 13;
-  BOMB_POT_BET = 14;
+  EMPTY_SEAT = 1;
+  NOT_ACTED = 2;
+  SB = 3;
+  BB = 4;
+  STRADDLE = 5;
+  CHECK = 6;
+  CALL = 7;
+  FOLD = 8;
+  BET = 9;
+  RAISE = 10;
+  ALLIN = 11;
+  RUN_IT_TWICE_YES = 12;
+  RUN_IT_TWICE_NO = 13;
+  RUN_IT_TWICE_PROMPT = 14;
+  POST_BLIND = 15;
+  BOMB_POT_BET = 16;
 }
 
 message HandAction {
@@ -99,21 +101,26 @@ enum HandStatus {
 // As soon as a player raises the bet, all the previously acted players
 // will have to act again.
 // All in will be treated as acted
-enum PlayerActState {
-  PLAYER_ACT_UNKNOWN = 0;
-  PLAYER_ACT_EMPTY_SEAT = 1;
-  PLAYER_ACT_NOT_ACTED = 2;
-  PLAYER_ACT_FOLDED = 3;
-  PLAYER_ACT_ALL_IN = 4;     // all in
-  PLAYER_ACT_BB = 5;
-  PLAYER_ACT_STRADDLE = 6;
-  PLAYER_ACT_BET = 7;
-  PLAYER_ACT_CALL = 8;
-  PLAYER_ACT_RAISE = 9;
-  PLAYER_ACT_CHECK = 10;
-  PLAYER_ACT_POST_BLIND = 11;
-  PLAYER_ACT_BOMB_POT = 12;
-}
+// enum PlayerActState {
+//   PLAYER_ACT_UNKNOWN = 0;
+//   PLAYER_ACT_EMPTY_SEAT = 1;
+//   PLAYER_ACT_NOT_ACTED = 2;
+//   PLAYER_ACT_FOLDED = 3;
+//   PLAYER_ACT_ALL_IN = 4;     // all in
+//   PLAYER_ACT_BB = 5;
+//   PLAYER_ACT_STRADDLE = 6;
+//   PLAYER_ACT_BET = 7;
+//   PLAYER_ACT_CALL = 8;
+//   PLAYER_ACT_RAISE = 9;
+//   PLAYER_ACT_CHECK = 10;
+//   PLAYER_ACT_POST_BLIND = 11;
+//   PLAYER_ACT_BOMB_POT = 12;
+//   PLAYER_ACT_SB = 13;
+
+//   PLAYER_ACT_RUN_IT_TWICE_YES = 10;
+//   PLAYER_ACT_RUN_IT_TWICE_NO = 11;
+//   PLAYER_ACT_RUN_IT_TWICE_PROMPT = 12;
+// }
 
 message HighHandWinner {
   uint64 player_id = 1;
@@ -131,7 +138,7 @@ message HighHand {
 }
 
 message PlayerActRound {
-  PlayerActState  state = 1;
+  ACTION  action = 1;
   float amount = 2;
   float raiseAmount = 3;
 

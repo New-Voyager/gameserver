@@ -162,7 +162,7 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 	}
 
 	for seatNo, action := range handState.GetPlayersActed() {
-		if action.State == PlayerActState_PLAYER_ACT_EMPTY_SEAT {
+		if action.Action == ACTION_EMPTY_SEAT {
 			continue
 		}
 		currentHandState.PlayersActed[uint32(seatNo)] = action
@@ -488,7 +488,7 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 
 	// Send player's current stack to be updated in the UI
 	playerAction := handState.PlayersActed[seatNo]
-	if playerAction.State != PlayerActState_PLAYER_ACT_FOLDED {
+	if playerAction.Action != ACTION_FOLD {
 		actionMsg.GetPlayerActed().Amount = playerAction.Amount
 	} else {
 		// the game folded this guy's hand

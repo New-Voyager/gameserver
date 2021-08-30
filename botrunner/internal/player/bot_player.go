@@ -2542,7 +2542,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 				player := players[0]
 				// human player action
 				action := bp.game.table.playersActed[player.seatNo]
-				if action != nil && action.State == game.PlayerActState_PLAYER_ACT_ALL_IN {
+				if action != nil && action.Action == game.ACTION_ALLIN {
 					activePlayers := bp.activePlayers()
 					if len(activePlayers) == 2 {
 						// last remaining bot
@@ -2714,13 +2714,9 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 
 func (bp *BotPlayer) rememberPlayerAction(seatNo uint32, action game.ACTION, amount float32, timedOut bool, handStatus game.HandStatus) {
 	bp.game.table.actionTracker.RecordAction(seatNo, action, amount, timedOut, handStatus)
-
-	state, err := game.ActionToActionState(action)
-	if err != nil {
-		bp.game.table.playersActed[seatNo] = &game.PlayerActRound{
-			State:  state,
-			Amount: amount,
-		}
+	bp.game.table.playersActed[seatNo] = &game.PlayerActRound{
+		Action: action,
+		Amount: amount,
 	}
 }
 
@@ -2735,7 +2731,7 @@ func (bp *BotPlayer) getLastActedSeatFromTracker() uint32 {
 func (bp *BotPlayer) activePlayers() []uint32 {
 	activePlayers := make([]uint32, 0)
 	for seatNo, act := range bp.game.table.playersActed {
-		if act.State != game.PlayerActState_PLAYER_ACT_FOLDED {
+		if act.Action != game.ACTION_FOLD {
 			activePlayers = append(activePlayers, seatNo)
 		}
 	}
