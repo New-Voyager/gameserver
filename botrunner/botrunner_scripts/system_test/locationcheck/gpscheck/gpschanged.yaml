@@ -1,3 +1,5 @@
+# SYSTEM_TEST_TIMEOUT_SEC:120
+
 # allow only one player to the game when two players
 # have the same ip address
 # JoinGame verification

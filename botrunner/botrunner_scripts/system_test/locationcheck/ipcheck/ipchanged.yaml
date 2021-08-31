@@ -1,3 +1,5 @@
+# SYSTEM_TEST_TIMEOUT_SEC:120
+
 # allow only one player to the game when two players
 # have the same ip address
 # Periodically update verification
@@ -12,8 +14,8 @@ server-settings:
 # Here we intentionally make the bots act slow (1 second delay per action)
 # so that each hand takes 12-13 seconds.
 bot-config:
-  min-action-pause-time: 1000
-  max-action-pause-time: 1000
+  min-action-pause-time: 500
+  max-action-pause-time: 500
 
 club:
   name: Manchester Club
