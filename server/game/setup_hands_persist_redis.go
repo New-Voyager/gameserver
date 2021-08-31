@@ -12,9 +12,10 @@ type RedisHandsSetupTracker struct {
 	rdclient *redis.Client
 }
 
-func NewRedisHandsSetupTracker(redisURL string, redisPW string, redisDB int) *RedisHandsSetupTracker {
+func NewRedisHandsSetupTracker(redisURL string, redisUser string, redisPW string, redisDB int) *RedisHandsSetupTracker {
 	rdclient := redis.NewClient(&redis.Options{
 		Addr:     redisURL,
+		Username: redisUser,
 		Password: redisPW,
 		DB:       redisDB,
 	})

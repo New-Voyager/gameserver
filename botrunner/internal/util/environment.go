@@ -23,6 +23,7 @@ var natsUrl string
 type environment struct {
 	RedisHost        string
 	RedisPort        string
+	RedisUser        string
 	RedisPW          string
 	RedisDB          string
 	PostgresHost     string
@@ -43,7 +44,8 @@ type environment struct {
 var Env = &environment{
 	RedisHost:        "REDIS_HOST",
 	RedisPort:        "REDIS_PORT",
-	RedisPW:          "REDIS_PW",
+	RedisUser:        "REDIS_USER",
+	RedisPW:          "REDIS_PASSWORD",
 	RedisDB:          "REDIS_DB",
 	PostgresHost:     "POSTGRES_HOST",
 	PostgresPort:     "POSTGRES_PORT",
@@ -111,6 +113,11 @@ func (e *environment) GetRedisPort() int {
 		panic(msg)
 	}
 	return portNum
+}
+
+func (e *environment) GetRedisUser() string {
+	v := os.Getenv(e.RedisUser)
+	return v
 }
 
 func (e *environment) GetRedisPW() string {
