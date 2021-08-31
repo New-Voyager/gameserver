@@ -623,6 +623,10 @@ func (br *BotRunner) verifyGameServerCrashLog() error {
 		}
 	}
 
+	if len(expectedCrashPoints) == 0 {
+		return nil
+	}
+
 	db := sqlx.MustConnect("postgres", util.Env.GetPostgresConnStr())
 	defer db.Close()
 	var crashPoints []string
@@ -632,10 +636,8 @@ func (br *BotRunner) verifyGameServerCrashLog() error {
 		return errors.Wrapf(err, "Error from sqlx. Query: [%s]", query)
 	}
 
-	if len(expectedCrashPoints) > 0 {
-		br.logger.Info().Msgf("Expected Crash Points: %v", expectedCrashPoints)
-		br.logger.Info().Msgf("Actual Crash Points  : %v", crashPoints)
-	}
+	br.logger.Info().Msgf("Expected Crash Points: %v", expectedCrashPoints)
+	br.logger.Info().Msgf("Actual Crash Points  : %v", crashPoints)
 	if !cmp.Equal(crashPoints, expectedCrashPoints) {
 		return fmt.Errorf("Game server crash log does not match the expected. Crashed: %v, Expected: %v", crashPoints, expectedCrashPoints)
 	}

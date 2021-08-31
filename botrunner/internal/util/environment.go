@@ -69,16 +69,16 @@ func (e *environment) GetNatsURL() string {
 		url := fmt.Sprintf("%s/nats-urls", e.GetAPIServerURL())
 		response, err := http.Get(url)
 		if err != nil {
-			panic("Failed to get NATS urls")
+			panic(fmt.Sprintf("Unable to get NATS urls. Error from http get: %s", err))
 		}
 		defer response.Body.Close()
 		data, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			panic("Failed to get NATS urls")
+			panic(fmt.Sprintf("Unable to get NATS urls. Error while reading http response: %s", err))
 		}
 		body := string(data)
 		if strings.Contains(body, "errors") {
-			panic("Failed to get NATS urls")
+			panic(fmt.Sprintf("Unable to get NATS urls. Response from %s contains errors. Response: %s", url, body))
 		}
 		var urls Url
 		json.Unmarshal(data, &urls)

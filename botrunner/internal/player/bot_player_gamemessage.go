@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"voyager.com/botrunner/internal/game"
+	"voyager.com/botrunner/internal/util"
 	"voyager.com/gamescript"
 )
 
@@ -96,7 +97,9 @@ import (
 // }
 
 func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMessage) {
-	fmt.Printf("[%s] HANDLING NON-PROTO GAME MESSAGE: %+v\n", bp.logPrefix, message)
+	if util.Env.ShouldPrintGameMsg() {
+		fmt.Printf("[%s] HANDLING NON-PROTO GAME MESSAGE: %+v\n", bp.logPrefix, message)
+	}
 	bp.GameMessages = append(bp.GameMessages, message)
 	switch message.Type {
 	case "GAME_STATUS":

@@ -79,8 +79,8 @@ Open a separate shell and try launching Botrunner instances using curl.
 The script path is relative to the Botrunner's working directory.
 ```
 # Launch 2 Botrunner instances with 3-second interval.
-curl -i -X POST http://localhost:8081/apply -H 'content-type: application/json' -d'{"script": "botrunner_scripts/play-many-hands.yaml", "numGames": 1, "launchInterval": 3.0}'
-curl -i -X POST http://localhost:8081/apply -H 'content-type: application/json' -d'{"script": "botrunner_scripts/plo-many-hands.yaml", "numGames": 1, "launchInterval": 3.0}'
+curl -i -X POST http://localhost:8081/apply -H 'content-type: application/json' -d'{"script": "botrunner_scripts/many_hands/play-many-hands.yaml", "numGames": 1, "launchInterval": 3.0}'
+curl -i -X POST http://localhost:8081/apply -H 'content-type: application/json' -d'{"script": "botrunner_scripts/many_hands/plo-many-hands.yaml", "numGames": 1, "launchInterval": 3.0}'
 
 # Each Botrunner logs to its own file. Tail the logs.
 tail -f log/default_group/botrunner_*.log
@@ -107,7 +107,7 @@ Start a separate batch of Botrunners using a different script. Botrunner batches
 ```
 curl -i -X POST http://localhost:8081/apply -H 'content-type: application/json' -d'{"batchId": "batch_2", "script": "botrunner_scripts/some-other-script.yaml", "numGames": 2, "launchInterval": 3.0}'
 
-curl -i -X POST http://localhost:8081/apply -H 'content-type: application/json' -d'{"batchId": "holdem", "script": "botrunner_scripts/play-many-hands.yaml", "numGames": 1, "launchInterval": 3.0}'
+curl -i -X POST http://localhost:8081/apply -H 'content-type: application/json' -d'{"batchId": "holdem", "script": "botrunner_scripts/many_hands/play-many-hands.yaml", "numGames": 1, "launchInterval": 3.0}'
 
 # Monitor the new batch of Botrunners.
 tail -f log/batch_2/botrunner_*.log
