@@ -1,0 +1,149 @@
+# SYSTEM_TEST_TIMEOUT_SEC:120
+
+# allow only one player to the game when two players
+# have the same ip address
+# Periodically update verification
+server-settings:
+  game-block-time: 30
+  notify-host-time-window: 10
+  game-coins-per-block: 3
+  free-time: 35
+  new-user-free-coins: 0
+  ip-gps-check-interval: 5
+
+# Here we intentionally make the bots act slow (1 second delay per action)
+# so that each hand takes 12-13 seconds.
+bot-config:
+  min-action-pause-time: 500
+  max-action-pause-time: 500
+
+club:
+  name: Manchester Club
+  description: Club used for testing with the bot runner
+
+game:
+  create: true
+  title: "NLH Testing Game"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 9
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 100
+  buy-in-max: 300
+  action-time: 100
+  ip-check: true
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 100
+    ip-address: 10.1.1.1
+  - seat: 5
+    player: brian
+    buy-in: 100
+    ip-address: 10.1.1.2
+  - seat: 8
+    player: tom
+    buy-in: 100
+    ip-address: 10.1.1.4
+
+tester:
+auto-play: false
+
+hands:
+  - setup:
+      button-pos: 1
+      auto: true
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+          - seat: 5
+            player: brian
+          - seat: 8
+            player: tom
+
+  - setup:
+      auto: true
+      players-config:
+        - player: brian
+          ip-address: 10.1.1.1
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+            inhand: true
+          - seat: 5
+            player: brian
+            inhand: true
+          - seat: 8
+            player: tom
+            inhand: true
+
+  - setup:
+      auto: true
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+            inhand: true
+          - seat: 5
+            player: brian
+            inhand: false
+          - seat: 8
+            player: tom
+            inhand: true
+
+  - setup:
+      auto: true
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+            inhand: true
+          - seat: 5
+            player: brian
+            inhand: false
+          - seat: 8
+            player: tom
+            inhand: true
+
+  - setup:
+      auto: true
+      sit-back:
+        - seat: 5
+      players-config:
+        - player: brian
+          ip-address: 10.1.1.2
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+            inhand: true
+          - seat: 5
+            player: brian
+            inhand: false
+          - seat: 8
+            player: tom
+            inhand: true
+
+  - setup:
+      auto: true
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+            inhand: true
+          - seat: 5
+            player: brian
+            inhand: false       # the player missed blind. needs to post blind
+          - seat: 8
+            player: tom
+            inhand: true

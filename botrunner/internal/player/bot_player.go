@@ -56,8 +56,11 @@ type GameMessageChannelItem struct {
 
 // BotPlayer represents a bot user.
 type BotPlayer struct {
-	logger          *zerolog.Logger
-	config          Config
+	logger    *zerolog.Logger
+	config    Config
+	IpAddress string
+	Gps       *gamescript.GpsLocation
+
 	gqlHelper       *gql.GQLHelper
 	restHelper      *rest.RestClient
 	natsConn        *natsgo.Conn
@@ -281,6 +284,14 @@ func (bp *BotPlayer) updateLogPrefix() {
 	} else {
 		bp.logPrefix = fmt.Sprintf("Bot [%s:%d:%d]", bp.config.Name, bp.PlayerID, bp.seatNo)
 	}
+}
+
+func (bp *BotPlayer) SetIPAddress(ipAddress string) {
+	bp.gqlHelper.IpAddress = ipAddress
+}
+
+func (bp *BotPlayer) SetGpsLocation(gps *gamescript.GpsLocation) {
+	bp.Gps = gps
 }
 
 func (bp *BotPlayer) handleGameMsg(msg *natsgo.Msg) {
@@ -510,6 +521,8 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 				break
 			}
 		}
+		// update player config
+		bp.updatePlayersConfig()
 
 		// setup seat change requests
 		bp.setupSeatChange()
@@ -897,6 +910,11 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 	currentHand := bp.config.Script.GetHand(handNum)
 	verify := currentHand.Setup.Verify
 	if len(verify.Seats) > 0 {
+		// if len(verify.Seats) != len(newHand.PlayersInSeats) {
+		// 	errMsg := fmt.Sprintf("Number of players in the table is not matching. Expected: %v Actual: %v", verify.Seats, newHand.PlayersInSeats)
+		// 	bp.logger.Error().Msg(errMsg)
+		// 	panic(errMsg)
+		// }
 		for _, seat := range currentHand.Setup.Verify.Seats {
 			seatPlayer := newHand.PlayersInSeats[seat.Seat]
 			if seat.Player != "" && seatPlayer.Name != seat.Player {
@@ -1995,7 +2013,7 @@ func (bp *BotPlayer) ObserveGame(gameCode string) error {
 
 // JoinGame enters a game and takes a seat in the game table as a player.
 // Every player must call either JoinGame or ObserveGame in order to participate in a game.
-func (bp *BotPlayer) JoinGame(gameCode string) error {
+func (bp *BotPlayer) JoinGame(gameCode string, gps *gamescript.GpsLocation) error {
 	scriptSeatNo := bp.config.Script.GetSeatNoByPlayerName(bp.config.Name)
 	if scriptSeatNo == 0 {
 		return fmt.Errorf("%s: Unable to get the scripted seat number", bp.logPrefix)
@@ -2048,7 +2066,7 @@ func (bp *BotPlayer) JoinGame(gameCode string) error {
 
 		bp.event(BotEvent__REQUEST_SIT)
 
-		err := bp.SitIn(gameCode, scriptSeatNo)
+		err := bp.SitIn(gameCode, scriptSeatNo, gps)
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("%s: Unable to sit in", bp.logPrefix))
 		}
@@ -2133,8 +2151,11 @@ func (bp *BotPlayer) NewPlayer(gameCode string, startingSeat *gamescript.Startin
 		}
 
 		bp.event(BotEvent__REQUEST_SIT)
-
-		err := bp.SitIn(gameCode, scriptSeatNo)
+		// set ip address if found
+		if startingSeat.IpAddress != nil {
+			bp.gqlHelper.IpAddress = *startingSeat.IpAddress
+		}
+		err := bp.SitIn(gameCode, scriptSeatNo, startingSeat.Gps)
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("%s: Unable to sit in", bp.logPrefix))
 		}
@@ -2208,7 +2229,7 @@ func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
 
 	bp.event(BotEvent__REQUEST_SIT)
 
-	err = bp.SitIn(gameCode, seatNo)
+	err = bp.SitIn(gameCode, seatNo, nil)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to sit in", bp.logPrefix))
 	}
@@ -2231,9 +2252,9 @@ func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
 }
 
 // SitIn takes a seat in a game as a player.
-func (bp *BotPlayer) SitIn(gameCode string, seatNo uint32) error {
+func (bp *BotPlayer) SitIn(gameCode string, seatNo uint32, gps *gamescript.GpsLocation) error {
 	bp.logger.Info().Msgf("%s: Grabbing seat [%d] in game [%s].", bp.logPrefix, seatNo, gameCode)
-	status, err := bp.gqlHelper.SitIn(gameCode, seatNo)
+	status, err := bp.gqlHelper.SitIn(gameCode, seatNo, gps)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to sit in game [%s]", bp.logPrefix, gameCode))
 	}

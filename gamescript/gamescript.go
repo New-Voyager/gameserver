@@ -51,6 +51,7 @@ type ServerSettings struct {
 	GameCoinsPerBlock    int `yaml:"game-coins-per-block" json:"game-coins-per-block"`
 	FreeTime             int `yaml:"free-time" json:"free-time"`
 	NewUserFreeCoins     int `yaml:"new-user-free-coins" json:"new-user-free-coins"`
+	IpGpsCheckInterval   int `yaml:"ip-gps-check-interval" json:"ip-gps-check-interval"`
 }
 
 // Game contains game configuration in the game script.
@@ -82,17 +83,38 @@ type Game struct {
 	DoubleBoard        bool     `yaml:"double-board"`
 	BombPot            bool     `yaml:"bomb-pot"`
 	BombPotBet         bool     `yaml:"bomb-pot-bet"`
+	IpCheck            bool     `yaml:"ip-check"`
+	GpsCheck           bool     `yaml:"gps-check"`
+}
+
+type GpsLocation struct {
+	Lat  float32 `yaml:"lat"`
+	Long float32 `yaml:"long"`
 }
 
 // StartingSeat contains an entry in the StartingSeats array in the game script.
 type StartingSeat struct {
-	Seat           uint32  `yaml:"seat"`
-	Player         string  `yaml:"player"`
-	BuyIn          float32 `yaml:"buy-in"`
-	MuckLosingHand bool    `yaml:"muck-losing-hand"`
-	PostBlind      bool    `yaml:"post-blind"`
-	Reload         *bool   `yaml:"reload"`
-	RunItTwice     *bool   `yaml:"run-it-twice"`
+	Seat           uint32       `yaml:"seat"`
+	Player         string       `yaml:"player"`
+	BuyIn          float32      `yaml:"buy-in"`
+	MuckLosingHand bool         `yaml:"muck-losing-hand"`
+	PostBlind      bool         `yaml:"post-blind"`
+	Reload         *bool        `yaml:"reload"`
+	RunItTwice     *bool        `yaml:"run-it-twice"`
+	IpAddress      *string      `yaml:"ip-address"`
+	Gps            *GpsLocation `yaml:"gps"`
+	IgnoreError    *bool        `yaml:"ignore-error"`
+}
+
+type PlayerConfig struct {
+	Seat           uint32       `yaml:"seat"`
+	Player         string       `yaml:"player"`
+	MuckLosingHand bool         `yaml:"muck-losing-hand"`
+	PostBlind      bool         `yaml:"post-blind"`
+	Reload         *bool        `yaml:"reload"`
+	RunItTwice     *bool        `yaml:"run-it-twice"`
+	IpAddress      *string      `yaml:"ip-address"`
+	Gps            *GpsLocation `yaml:"gps"`
 }
 
 // SwitchSeat contains an entry in the SwitchSeats array in the game script.
@@ -186,6 +208,7 @@ type HandSetup struct {
 	BombPotBet      float32              `yaml:"bomb-pot-bet"`
 	DoubleBoard     bool                 `yaml:"double-board"`
 	ResultPauseTime uint32               `yaml:"result-pause-time"`
+	PlayersConfig   []PlayerConfig       `yaml:"players-config"`
 }
 
 type PreDealSetup struct {

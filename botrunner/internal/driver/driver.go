@@ -280,6 +280,8 @@ func (br *BotRunner) Run() error {
 			DealerChoiceGames:  br.script.Game.DealerChoiceGames,
 			HighHandTracked:    br.script.Game.HighHandTracked,
 			AppCoinsNeeded:     br.script.Game.AppCoinsNeeded,
+			IpCheck:            br.script.Game.IpCheck,
+			GpsCheck:           br.script.Game.GpsCheck,
 		})
 		if err != nil {
 			return err
@@ -291,6 +293,8 @@ func (br *BotRunner) Run() error {
 	// Let the observer bot start watching the game.
 	br.observerBot.ObserveGame(br.gameCode)
 	br.logger.Info().Msgf("Starting the game")
+	allJoinedGame := false
+	skipPlayers := make([]string, 0)
 	if br.botIsGameHost {
 		if br.script.ServerSettings != nil {
 			br.observerBot.SetupServerSettings(br.script.ServerSettings)
@@ -307,11 +311,24 @@ func (br *BotRunner) Run() error {
 					// Let the tester join himself.
 					continue
 				}
-				err = b.JoinGame(br.gameCode)
-				if err != nil {
-					return err
+
+				// set location if specified
+				if startingSeat.IpAddress != nil {
+					b.SetIPAddress(*startingSeat.IpAddress)
 				}
 
+				err = b.JoinGame(br.gameCode, startingSeat.Gps)
+				if err != nil {
+					if startingSeat.IgnoreError != nil {
+						if !*startingSeat.IgnoreError {
+							return err
+						}
+						skipPlayers = append(skipPlayers, startingSeat.Player)
+						allJoinedGame = true
+					} else {
+						return err
+					}
+				}
 			} else {
 				// observers
 			}
@@ -326,22 +343,24 @@ func (br *BotRunner) Run() error {
 
 		// Check if all players are seated in. Wait if necessary.
 		var playersJoined bool
-		for waitAttempts := 0; !playersJoined; waitAttempts++ {
-			playersJoined = true
-			playersInSeat, err := br.bots[0].GetPlayersInSeat(br.gameCode)
-			if err != nil {
-				return err
-			}
-			for _, startingSeat := range br.script.StartingSeats {
-				if !br.isSitIn(startingSeat.Seat, startingSeat.Player, playersInSeat) {
-					playersJoined = false
-					if waitAttempts%3 == 0 {
-						br.logger.Info().Msgf("Waiting for player [%s] to join. Game Code: *** %s ***", startingSeat.Player, br.gameCode)
+		if !allJoinedGame {
+			for waitAttempts := 0; !playersJoined; waitAttempts++ {
+				playersJoined = true
+				playersInSeat, err := br.bots[0].GetPlayersInSeat(br.gameCode)
+				if err != nil {
+					return err
+				}
+				for _, startingSeat := range br.script.StartingSeats {
+					if !br.isSitIn(startingSeat.Seat, startingSeat.Player, playersInSeat) {
+						playersJoined = false
+						if waitAttempts%3 == 0 {
+							br.logger.Info().Msgf("Waiting for player [%s] to join. Game Code: *** %s ***", startingSeat.Player, br.gameCode)
+						}
 					}
 				}
-			}
-			if !playersJoined {
-				time.Sleep(500 * time.Millisecond)
+				if !playersJoined {
+					time.Sleep(500 * time.Millisecond)
+				}
 			}
 		}
 
@@ -354,7 +373,17 @@ func (br *BotRunner) Run() error {
 				return err
 			}
 			for _, startingSeat := range br.script.StartingSeats {
-				if !br.isBoughtIn(startingSeat.Seat, startingSeat.BuyIn, playersInSeat) {
+				skipPlayer := false
+				// skip players if the player didn't join the game
+				if len(skipPlayers) > 0 {
+					for _, player := range skipPlayers {
+						if player == startingSeat.Player {
+							skipPlayer = true
+						}
+					}
+				}
+
+				if !skipPlayer && !br.isBoughtIn(startingSeat.Seat, startingSeat.BuyIn, playersInSeat) {
 					playersBoughtIn = false
 					if waitAttempts%3 == 0 {
 						br.logger.Info().Msgf("Waiting for seat [%d] to buy in.", startingSeat.Seat)
