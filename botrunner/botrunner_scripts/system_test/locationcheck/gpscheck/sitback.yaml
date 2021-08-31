@@ -1,0 +1,200 @@
+# allow only one player to the game when two players
+# have the same ip address
+# JoinGame verification
+# SitBack verification
+# Periodicate update verification
+
+club:
+  name: Manchester Club
+  description: Club used for testing with the bot runner
+
+game:
+  create: true
+  title: "NLH Testing Game"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 9
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 100
+  buy-in-max: 300
+  action-time: 100
+  gps-check: true
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 100
+    gps:
+      lat: 40.730610
+      long: -73.935242
+  - seat: 2
+    player: rich
+    buy-in: 100
+    gps:
+      lat: 41.361145
+      long: -72.057083
+    ignore-error: true
+  - seat: 3
+    player: chris
+    buy-in: 100
+    gps:
+      lat: 43.361145
+      long: -71.057083
+    ignore-error: true
+  - seat: 4
+    player: josh
+    buy-in: 100
+    gps:
+      lat: 42.361145
+      long: -72.124083
+    ignore-error: true
+
+  - seat: 5
+    player: brian
+    buy-in: 100
+    gps:
+      lat: 42.361145
+      long: -71.057083
+    ignore-error: true
+  - seat: 6
+    player: david
+    buy-in: 100
+    gps:
+      lat: 40.361145
+      long: -73.057083
+    ignore-error: true
+
+  - seat: 8
+    player: tom
+    buy-in: 100
+    gps:
+      lat: 51.509865
+      long: -0.118092
+
+tester:
+auto-play: false
+
+hands:
+  - setup:
+      button-pos: 1
+      auto: true
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+          - seat: 2
+            player: rich
+          - seat: 3
+            player: chris
+          - seat: 4
+            player: josh
+          - seat: 5
+            player: brian
+          - seat: 6
+            player: david
+          - seat: 8
+            player: tom
+      take-break:
+        - seat: 8
+
+  - setup:
+      auto: true
+      sit-back:
+        - seat: 8
+      players-config:
+        - player: tom
+          gps:
+            lat: 40.361145
+            long: -73.057083
+
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+            inhand: true
+          - seat: 2
+            player: rich
+            inhand: true
+          - seat: 3
+            player: chris
+            inhand: true
+          - seat: 4
+            player: josh
+            inhand: true
+          - seat: 5
+            player: brian
+            inhand: true
+          - seat: 6
+            inhand: true
+            player: david
+          - seat: 8
+            player: tom
+            inhand: false
+
+  - setup:
+      auto: true
+      sit-back:
+        - seat: 8
+      players-config:
+        - player: tom
+          gps:
+            lat: 44.361145
+            long: -73.456083
+
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+            inhand: true
+          - seat: 2
+            player: rich
+            inhand: true
+          - seat: 3
+            player: chris
+            inhand: true
+          - seat: 4
+            player: josh
+            inhand: true
+          - seat: 5
+            player: brian
+            inhand: true
+          - seat: 6
+            inhand: true
+            player: david
+          - seat: 8
+            player: tom
+            inhand: false
+
+  - setup:
+      auto: true
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+            inhand: true
+          - seat: 2
+            player: rich
+            inhand: true
+          - seat: 3
+            player: chris
+            inhand: true
+          - seat: 4
+            player: josh
+            inhand: true
+          - seat: 5
+            player: brian
+            inhand: true
+          - seat: 6
+            inhand: true
+            player: david
+          - seat: 8
+            player: tom
+            inhand: true
+

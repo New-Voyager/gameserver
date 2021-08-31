@@ -317,7 +317,7 @@ func (br *BotRunner) Run() error {
 					b.SetIPAddress(*startingSeat.IpAddress)
 				}
 
-				err = b.JoinGame(br.gameCode)
+				err = b.JoinGame(br.gameCode, startingSeat.Gps)
 				if err != nil {
 					if startingSeat.IgnoreError != nil {
 						if !*startingSeat.IgnoreError {

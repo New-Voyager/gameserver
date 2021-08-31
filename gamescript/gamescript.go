@@ -87,27 +87,34 @@ type Game struct {
 	GpsCheck           bool     `yaml:"gps-check"`
 }
 
+type GpsLocation struct {
+	Lat  float32 `yaml:"lat"`
+	Long float32 `yaml:"long"`
+}
+
 // StartingSeat contains an entry in the StartingSeats array in the game script.
 type StartingSeat struct {
-	Seat           uint32  `yaml:"seat"`
-	Player         string  `yaml:"player"`
-	BuyIn          float32 `yaml:"buy-in"`
-	MuckLosingHand bool    `yaml:"muck-losing-hand"`
-	PostBlind      bool    `yaml:"post-blind"`
-	Reload         *bool   `yaml:"reload"`
-	RunItTwice     *bool   `yaml:"run-it-twice"`
-	IpAddress      *string `yaml:"ip-address"`
-	IgnoreError    *bool   `yaml:"ignore-error"`
+	Seat           uint32       `yaml:"seat"`
+	Player         string       `yaml:"player"`
+	BuyIn          float32      `yaml:"buy-in"`
+	MuckLosingHand bool         `yaml:"muck-losing-hand"`
+	PostBlind      bool         `yaml:"post-blind"`
+	Reload         *bool        `yaml:"reload"`
+	RunItTwice     *bool        `yaml:"run-it-twice"`
+	IpAddress      *string      `yaml:"ip-address"`
+	Gps            *GpsLocation `yaml:"gps"`
+	IgnoreError    *bool        `yaml:"ignore-error"`
 }
 
 type PlayerConfig struct {
-	Seat           uint32  `yaml:"seat"`
-	Player         string  `yaml:"player"`
-	MuckLosingHand bool    `yaml:"muck-losing-hand"`
-	PostBlind      bool    `yaml:"post-blind"`
-	Reload         *bool   `yaml:"reload"`
-	RunItTwice     *bool   `yaml:"run-it-twice"`
-	IpAddress      *string `yaml:"ip-address"`
+	Seat           uint32       `yaml:"seat"`
+	Player         string       `yaml:"player"`
+	MuckLosingHand bool         `yaml:"muck-losing-hand"`
+	PostBlind      bool         `yaml:"post-blind"`
+	Reload         *bool        `yaml:"reload"`
+	RunItTwice     *bool        `yaml:"run-it-twice"`
+	IpAddress      *string      `yaml:"ip-address"`
+	Gps            *GpsLocation `yaml:"gps"`
 }
 
 // SwitchSeat contains an entry in the SwitchSeats array in the game script.

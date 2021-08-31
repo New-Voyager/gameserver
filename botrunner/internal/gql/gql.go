@@ -7,6 +7,7 @@ import (
 
 	"github.com/machinebox/graphql"
 	"voyager.com/botrunner/internal/game"
+	"voyager.com/gamescript"
 )
 
 func NewGQLHelper(client *graphql.Client, timeoutSec uint32, authToken string) *GQLHelper {
@@ -273,11 +274,18 @@ func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (string,
 }
 
 // SitIn takes a seat in a game.
-func (g *GQLHelper) SitIn(gameCode string, seatNo uint32) (string, error) {
+func (g *GQLHelper) SitIn(gameCode string, seatNo uint32, gps *gamescript.GpsLocation) (string, error) {
 	req := graphql.NewRequest(JoinGameGQL)
 
 	req.Var("gameCode", gameCode)
 	req.Var("seatNo", seatNo)
+	if gps != nil {
+		gpsLoc := make(map[string]interface{})
+		gpsLoc["lat"] = gps.Lat
+		gpsLoc["long"] = gps.Long
+		req.Var("gps", gpsLoc)
+	}
+
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Authorization", g.authToken)
 	if g.IpAddress != "" {
@@ -557,7 +565,7 @@ func (g *GQLHelper) RequestTakeBreak(gameCode string) (bool, error) {
 }
 
 // RequestSitBack returning from break
-func (g *GQLHelper) RequestSitBack(gameCode string) (bool, error) {
+func (g *GQLHelper) RequestSitBack(gameCode string, gps *gamescript.GpsLocation) (bool, error) {
 	req := graphql.NewRequest(SitBackRequestGQL)
 
 	//var respData EndGameResp
@@ -568,7 +576,12 @@ func (g *GQLHelper) RequestSitBack(gameCode string) (bool, error) {
 	if g.IpAddress != "" {
 		req.Header.Set("X-RealIP", g.IpAddress)
 	}
-
+	if gps != nil {
+		gpsLoc := make(map[string]interface{})
+		gpsLoc["lat"] = gps.Lat
+		gpsLoc["long"] = gps.Long
+		req.Var("location", gpsLoc)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
 	defer cancel()
 
@@ -849,6 +862,34 @@ func (g *GQLHelper) UpdateIpAddress(ipAddress string) error {
 	return nil
 }
 
+func (g *GQLHelper) UpdateGpsLocation(gps *gamescript.GpsLocation) error {
+	req := graphql.NewRequest(GpsChangedGQL)
+
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", g.authToken)
+	if gps != nil {
+		gpsLoc := make(map[string]interface{})
+		gpsLoc["lat"] = gps.Lat
+		gpsLoc["long"] = gps.Long
+		req.Var("gps", gpsLoc)
+	}
+
+	var resp struct {
+		Ret bool `json:"ret"`
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+
+	err := g.client.Run(ctx, req, &resp)
+	if err != nil {
+		fmt.Printf("err: %v", err)
+		return err
+	}
+
+	return nil
+}
+
 // PostBlind posts blind in the game
 func (g *GQLHelper) PostBlind(gameCode string) (bool, error) {
 	req := graphql.NewRequest(PostBlindGQL)
@@ -1107,10 +1148,11 @@ type ConfigureGameResp struct {
 	}
 }
 
-const JoinGameGQL = `mutation join_game($gameCode: String!, $seatNo: Int!) {
+const JoinGameGQL = `mutation join_game($gameCode: String!, $seatNo: Int!, $gps: LocationInput) {
 	status: joinGame(
 		gameCode: $gameCode
 		seatNo: $seatNo
+		location: $gps
 	)
 }`
 
@@ -1296,9 +1338,10 @@ type TakeBreakRequestResp struct {
 	Status bool
 }
 
-const SitBackRequestGQL = `mutation sitBack($gameCode: String!) {
+const SitBackRequestGQL = `mutation sitBack($gameCode: String!, $location: LocationInput) {
 	status: sitBack(
 		gameCode: $gameCode
+		location: $location
 	)
 }`
 
@@ -1393,6 +1436,11 @@ const UpdatePlayerGameConfigGQL = `
 const IpChangedGQL = `
 	mutation ipChanged {
 		ret: ipChanged
+  	}`
+
+const GpsChangedGQL = `
+	mutation updateLocation($gps: LocationInput!) {
+		ret: updateLocation(location: $gps)
   	}`
 
 const DealerChoiceGQL = `mutation dealerChoice($gameCode: String!, $gameType: GameType!) {
