@@ -64,7 +64,7 @@ func (g *Game) onResume(message *GameMessage) error {
 		return errors.Wrap(err, "Could not load hand state while resuming game")
 	}
 
-	channelGameLogger.Info().
+	channelGameLogger.Debug().
 		Str("game", g.gameCode).
 		Msgf("Resuming game. Restarting hand at flow state [%s].", handState.FlowState)
 
