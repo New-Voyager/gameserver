@@ -31,6 +31,11 @@ import (
 	"voyager.com/gamescript"
 )
 
+type GpsLocation struct {
+	lat  float32
+	lang float32
+}
+
 // Config holds the configuration for a bot object.
 type Config struct {
 	Name               string
@@ -56,8 +61,11 @@ type GameMessageChannelItem struct {
 
 // BotPlayer represents a bot user.
 type BotPlayer struct {
-	logger          *zerolog.Logger
-	config          Config
+	logger    *zerolog.Logger
+	config    Config
+	IpAddress string
+	Location  *GpsLocation
+
 	gqlHelper       *gql.GQLHelper
 	restHelper      *rest.RestClient
 	natsConn        *natsgo.Conn
@@ -282,7 +290,9 @@ func (bp *BotPlayer) updateLogPrefix() {
 		bp.logPrefix = fmt.Sprintf("Bot [%s:%d:%d]", bp.config.Name, bp.PlayerID, bp.seatNo)
 	}
 }
-
+func (bp *BotPlayer) SetIPAddress(ipAddress string) {
+	bp.gqlHelper.IpAddress = ipAddress
+}
 func (bp *BotPlayer) handleGameMsg(msg *natsgo.Msg) {
 	if bp.printGameMsg {
 		bp.logger.Info().Msgf("%s: Received game message %s", bp.logPrefix, string(msg.Data))
@@ -510,6 +520,8 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 				break
 			}
 		}
+		// update player config
+		bp.updatePlayersConfig()
 
 		// setup seat change requests
 		bp.setupSeatChange()
@@ -897,6 +909,11 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 	currentHand := bp.config.Script.GetHand(handNum)
 	verify := currentHand.Setup.Verify
 	if len(verify.Seats) > 0 {
+		// if len(verify.Seats) != len(newHand.PlayersInSeats) {
+		// 	errMsg := fmt.Sprintf("Number of players in the table is not matching. Expected: %v Actual: %v", verify.Seats, newHand.PlayersInSeats)
+		// 	bp.logger.Error().Msg(errMsg)
+		// 	panic(errMsg)
+		// }
 		for _, seat := range currentHand.Setup.Verify.Seats {
 			seatPlayer := newHand.PlayersInSeats[seat.Seat]
 			if seat.Player != "" && seatPlayer.Name != seat.Player {
@@ -2133,7 +2150,10 @@ func (bp *BotPlayer) NewPlayer(gameCode string, startingSeat *gamescript.Startin
 		}
 
 		bp.event(BotEvent__REQUEST_SIT)
-
+		// set ip address if found
+		if startingSeat.IpAddress != nil {
+			bp.gqlHelper.IpAddress = *startingSeat.IpAddress
+		}
 		err := bp.SitIn(gameCode, scriptSeatNo)
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("%s: Unable to sit in", bp.logPrefix))

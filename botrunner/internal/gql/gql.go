@@ -21,6 +21,7 @@ type GQLHelper struct {
 	client     *graphql.Client
 	timeoutSec uint32
 	authToken  string
+	IpAddress  string
 }
 
 func (g *GQLHelper) SetAuthToken(authToken string) {
@@ -254,6 +255,8 @@ func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (string,
 	req.Var("dealerChoiceGames", opt.DealerChoiceGames)
 	req.Var("highHandTracked", opt.HighHandTracked)
 	req.Var("appCoinsNeeded", opt.AppCoinsNeeded)
+	req.Var("ipCheck", opt.IpCheck)
+	req.Var("gpsCheck", opt.GpsCheck)
 
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Authorization", g.authToken)
@@ -277,6 +280,9 @@ func (g *GQLHelper) SitIn(gameCode string, seatNo uint32) (string, error) {
 	req.Var("seatNo", seatNo)
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Authorization", g.authToken)
+	if g.IpAddress != "" {
+		req.Header.Set("X-RealIP", g.IpAddress)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
 	defer cancel()
@@ -559,6 +565,9 @@ func (g *GQLHelper) RequestSitBack(gameCode string) (bool, error) {
 	req.Var("gameCode", gameCode)
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Authorization", g.authToken)
+	if g.IpAddress != "" {
+		req.Header.Set("X-RealIP", g.IpAddress)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
 	defer cancel()
@@ -815,6 +824,31 @@ func (g *GQLHelper) UpdatePlayerGameConfig(gameCode string, runItTwiceAllowed *b
 	return nil
 }
 
+func (g *GQLHelper) UpdateIpAddress(ipAddress string) error {
+	req := graphql.NewRequest(IpChangedGQL)
+
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", g.authToken)
+	if g.IpAddress != "" {
+		req.Header.Set("X-RealIP", g.IpAddress)
+	}
+
+	var resp struct {
+		Ret bool `json:"ret"`
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+
+	err := g.client.Run(ctx, req, &resp)
+	if err != nil {
+		fmt.Printf("err: %v", err)
+		return err
+	}
+
+	return nil
+}
+
 // PostBlind posts blind in the game
 func (g *GQLHelper) PostBlind(gameCode string) (bool, error) {
 	req := graphql.NewRequest(PostBlindGQL)
@@ -1031,6 +1065,8 @@ const ConfigureGameGQL = `mutation configure_game(
 	$dealerChoiceGames: [GameType!]
 	$highHandTracked: Boolean
 	$appCoinsNeeded: Boolean
+	$ipCheck: Boolean
+	$gpsCheck: Boolean
 ) {
 	configuredGame: configureGame(
 		clubCode: $clubCode
@@ -1057,6 +1093,8 @@ const ConfigureGameGQL = `mutation configure_game(
 			dealerChoiceGames: $dealerChoiceGames
 			highHandTracked: $highHandTracked
 			appCoinsNeeded: $appCoinsNeeded
+			ipCheck: $ipCheck
+			gpsCheck: $gpsCheck
 		}
 	) {
 		gameCode
@@ -1350,6 +1388,11 @@ const HostSeatChangeSwapGQL = `mutation seatChangeSwapSeats($gameCode: String!, 
 const UpdatePlayerGameConfigGQL = `
 	mutation update_player_game_config($gameCode:String! $config:PlayerGameConfigChangeInput!) {
 		ret: updatePlayerGameConfig(gameCode:$gameCode, config:$config)
+  	}`
+
+const IpChangedGQL = `
+	mutation ipChanged {
+		ret: ipChanged
   	}`
 
 const DealerChoiceGQL = `mutation dealerChoice($gameCode: String!, $gameType: GameType!) {

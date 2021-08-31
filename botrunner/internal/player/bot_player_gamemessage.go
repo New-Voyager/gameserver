@@ -630,3 +630,24 @@ func (bp *BotPlayer) JoinWaitlist(observer *gamescript.Observer) error {
 	}
 	return err
 }
+
+func (bp *BotPlayer) updatePlayersConfig() error {
+	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
+		return nil
+	}
+
+	currentHand := bp.config.Script.GetHand(bp.game.handNum)
+	playersConfig := currentHand.Setup.PlayersConfig
+	// using seat no, get the bot player and make seat change request
+	for _, playerConfig := range playersConfig {
+		if playerConfig.Player == bp.config.Name {
+			// update player config
+			// ip address, location, run-it-twice, muck-losing-hand
+			if playerConfig.IpAddress != nil {
+				bp.SetIPAddress(*playerConfig.IpAddress)
+				bp.gqlHelper.UpdateIpAddress(*playerConfig.IpAddress)
+			}
+		}
+	}
+	return nil
+}

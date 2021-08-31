@@ -87,4 +87,6 @@ type GameCreateOpt struct {
 	DealerChoiceGames  []string
 	HighHandTracked    bool
 	AppCoinsNeeded     bool
+	IpCheck            bool
+	GpsCheck           bool
 }
