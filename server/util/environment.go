@@ -20,6 +20,7 @@ type gameServerEnvironment struct {
 	PersistMethod          string
 	RedisHost              string
 	RedisPort              string
+	RedisUser              string
 	RedisPW                string
 	RedisDB                string
 	APIServerUrl           string
@@ -42,7 +43,8 @@ var Env = &gameServerEnvironment{
 	PersistMethod:          "PERSIST_METHOD",
 	RedisHost:              "REDIS_HOST",
 	RedisPort:              "REDIS_PORT",
-	RedisPW:                "REDIS_PW",
+	RedisUser:              "REDIS_USER",
+	RedisPW:                "REDIS_PASSWORD",
 	RedisDB:                "REDIS_DB",
 	APIServerUrl:           "API_SERVER_URL",
 	PlayTimeout:            "PLAY_TIMEOUT",
@@ -121,6 +123,11 @@ func (g *gameServerEnvironment) GetRedisPort() int {
 		panic(msg)
 	}
 	return portNum
+}
+
+func (e *gameServerEnvironment) GetRedisUser() string {
+	v := os.Getenv(e.RedisUser)
+	return v
 }
 
 func (g *gameServerEnvironment) GetRedisPW() string {
