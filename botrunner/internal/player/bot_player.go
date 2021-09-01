@@ -2450,7 +2450,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 	runItTwiceActionPrompt := false
 	timeout := false
 	if autoPlay {
-		bp.logger.Info().Msgf("%s: Seat %d Available actions: %+v", bp.logPrefix, bp.seatNo, seatAction.AvailableActions)
+		bp.logger.Debug().Msgf("%s: Seat %d Available actions: %+v", bp.logPrefix, bp.seatNo, seatAction.AvailableActions)
 		canBet := false
 		canRaise := false
 		checkAvailable := false
@@ -2664,7 +2664,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 			time.Sleep(2 * time.Second)
 		}()
 	} else {
-		bp.logger.Info().Msgf("%s: Seat %d (%s) is about to act [%s %f]. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, handAction.Action, handAction.Amount, bp.game.handStatus)
+		bp.logger.Debug().Msgf("%s: Seat %d (%s) is about to act [%s %f]. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, handAction.Action, handAction.Amount, bp.game.handStatus)
 		go bp.publishAndWaitForAck(bp.meToHand, &actionMsg)
 	}
 }
