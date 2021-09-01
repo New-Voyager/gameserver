@@ -552,7 +552,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.flopCards = msgItem.GetFlop().GetBoard()
 		if bp.IsHuman() || bp.IsObserver() {
-			bp.logger.Info().Msgf("%s: Flop cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetFlop().GetCardsStr(), msgItem.GetFlop().PlayerCardRanks)
+			bp.logger.Debug().Msgf("%s: Flop cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetFlop().GetCardsStr(), msgItem.GetFlop().PlayerCardRanks)
 		}
 		if bp.IsHost() {
 			bp.verifyBoard()
@@ -572,7 +572,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.turnCards = msgItem.GetTurn().GetBoard()
 		if bp.IsHuman() || bp.IsObserver() {
-			bp.logger.Info().Msgf("%s: Turn cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetTurn().GetCardsStr(), msgItem.GetTurn().PlayerCardRanks)
+			bp.logger.Debug().Msgf("%s: Turn cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetTurn().GetCardsStr(), msgItem.GetTurn().PlayerCardRanks)
 		}
 		bp.verifyBoard()
 		bp.verifyCardRank(msgItem.GetTurn().GetPlayerCardRanks())
@@ -585,7 +585,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.riverCards = msgItem.GetRiver().GetBoard()
 		if bp.IsHuman() || bp.IsObserver() {
-			bp.logger.Info().Msgf("%s: River cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetRiver().GetCardsStr(), msgItem.GetRiver().PlayerCardRanks)
+			bp.logger.Debug().Msgf("%s: River cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetRiver().GetCardsStr(), msgItem.GetRiver().PlayerCardRanks)
 		}
 		bp.verifyBoard()
 		bp.verifyCardRank(msgItem.GetRiver().GetPlayerCardRanks())
@@ -645,11 +645,11 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			if bp.config.Script.IsSeatHuman(seatNo) {
 				actedPlayerType = "human"
 			}
-			bp.logger.Info().Msgf("%s: Seat %d (%s/%s) acted%s [%s %f] Stage:%s.", bp.logPrefix, seatNo, actedPlayerName, actedPlayerType, timedout, action, amount, bp.game.handStatus)
+			bp.logger.Debug().Msgf("%s: Seat %d (%s/%s) acted%s [%s %f] Stage:%s.", bp.logPrefix, seatNo, actedPlayerName, actedPlayerType, timedout, action, amount, bp.game.handStatus)
 		}
 		if bp.IsHuman() && seatNo != bp.seatNo {
 			// I'm a human and I see another player acted.
-			bp.logger.Info().Msgf("%s: Seat %d: %s %f%s", bp.logPrefix, seatNo, action, amount, timedout)
+			bp.logger.Debug().Msgf("%s: Seat %d: %s %f%s", bp.logPrefix, seatNo, action, amount, timedout)
 		}
 		if seatNo == bp.seatNo && isTimedOut {
 			bp.event(BotEvent__ACTION_TIMEDOUT)
@@ -2808,34 +2808,42 @@ func (bp *BotPlayer) GetHandResult2() *game.HandResultClient {
 
 // PrintHandResult prints the hand winners to console.
 func (bp *BotPlayer) PrintHandResult() {
-	result := bp.GetHandResult()
-	data, _ := json.Marshal(result)
-	bp.logger.Info().Msg(string(data))
-	pots := bp.GetHandResult().GetHandLog().GetPotWinners()
+	result := bp.game.handResult2
+	//data, _ := json.Marshal(result)
+	// bp.logger.Info().Msg(string(data))
+
+	// player winning cards
+
+	pots := result.PotWinners
 	for potNum, potWinners := range pots {
-		for i, winner := range potWinners.HiWinners {
-			seatNo := winner.GetSeatNo()
-			playerName := bp.getPlayerNameBySeatNo(seatNo)
-			amount := winner.GetAmount()
-			cardsStr := winner.GetWinningCardsStr()
-			rankStr := winner.GetRankStr()
-			winningCards := ""
-			if cardsStr != "" {
-				winningCards = fmt.Sprintf(" Winning Cards: %s (%s)", cardsStr, rankStr)
+		for _, board := range potWinners.BoardWinners {
+			for i, winner := range board.HiWinners {
+				seatNo := winner.GetSeatNo()
+				playerName := bp.getPlayerNameBySeatNo(seatNo)
+				amount := winner.GetAmount()
+				cardsStr := "N/A"
+				rankStr := "N/A"
+				//cardsStr := winner.GetWinningCardsStr()
+				//rankStr := winner.GetRankStr()
+				winningCards := ""
+				if cardsStr != "" {
+					winningCards = fmt.Sprintf(" Winning Cards: %s (%s)", cardsStr, rankStr)
+				}
+				bp.logger.Info().Msgf("%s: Pot %d Hi-Winner %d: Seat %d (%s) Amount: %f%s", bp.logPrefix, potNum+1, i+1, seatNo, playerName, amount, winningCards)
 			}
-			bp.logger.Info().Msgf("%s: Pot %d Hi-Winner %d: Seat %d (%s) Amount: %f%s", bp.logPrefix, potNum+1, i+1, seatNo, playerName, amount, winningCards)
-		}
-		for i, winner := range potWinners.LowWinners {
-			seatNo := winner.GetSeatNo()
-			playerName := bp.getPlayerNameBySeatNo(seatNo)
-			amount := winner.GetAmount()
-			cardsStr := winner.GetWinningCardsStr()
-			rankStr := winner.GetRankStr()
-			winningCards := ""
-			if cardsStr != "" {
-				winningCards = fmt.Sprintf(" Winning Cards: %s (%s)", cardsStr, rankStr)
+			for i, winner := range board.LowWinners {
+				seatNo := winner.GetSeatNo()
+				playerName := bp.getPlayerNameBySeatNo(seatNo)
+				amount := winner.GetAmount()
+				cardsStr := "N/A"
+				//cardsStr := winner.GetWinningCardsStr()
+				//rankStr := winner.GetRankStr()
+				winningCards := ""
+				if cardsStr != "" {
+					winningCards = fmt.Sprintf(" Lo Winning Cards: %s", cardsStr)
+				}
+				bp.logger.Info().Msgf("%s: Pot %d Low-Winner %d: Seat %d (%s) Amount: %f%s", bp.logPrefix, potNum+1, i+1, seatNo, playerName, amount, winningCards)
 			}
-			bp.logger.Info().Msgf("%s: Pot %d Low-Winner %d: Seat %d (%s) Amount: %f%s", bp.logPrefix, potNum+1, i+1, seatNo, playerName, amount, winningCards)
 		}
 	}
 }
