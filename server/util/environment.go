@@ -32,6 +32,7 @@ type gameServerEnvironment struct {
 	PostgresDB             string
 	PostgresUser           string
 	PostgresPW             string
+	PostgresSSLMode        string
 	EnableEncryption       string
 	DebugConnectivityCheck string
 	SystemTest             string
@@ -55,6 +56,7 @@ var Env = &gameServerEnvironment{
 	PostgresDB:             "POSTGRES_DB",
 	PostgresUser:           "POSTGRES_USER",
 	PostgresPW:             "POSTGRES_PASSWORD",
+	PostgresSSLMode:        "POSTGRES_SSL_MODE",
 	EnableEncryption:       "ENABLE_ENCRYPTION",
 	DebugConnectivityCheck: "DEBUG_CONNECTIVITY_CHECK",
 	SystemTest:             "SYSTEM_TEST",
@@ -193,6 +195,17 @@ func (g *gameServerEnvironment) GetPostgresPW() string {
 		msg := fmt.Sprintf("%s is not defined", g.PostgresPW)
 		environmentLogger.Error().Msg(msg)
 		panic(msg)
+	}
+	return v
+}
+
+func (g *gameServerEnvironment) GetPostgresSSLMode() string {
+	v := os.Getenv(g.PostgresSSLMode)
+	if v == "" {
+		defaultVal := "disable"
+		msg := fmt.Sprintf("%s is not defined. Using default '%s'", g.PostgresSSLMode, defaultVal)
+		environmentLogger.Warn().Msg(msg)
+		return defaultVal
 	}
 	return v
 }
