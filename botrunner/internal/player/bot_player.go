@@ -466,7 +466,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 				}
 			}
 		}
-		bp.logger.Info().Msgf("%s: Received cards: %s (%+v)", bp.logPrefix, poker.CardsToString(cards), cards)
+		bp.logger.Debug().Msgf("%s: Received cards: %s (%+v)", bp.logPrefix, poker.CardsToString(cards), cards)
 
 	case game.HandDealerChoice:
 		dealerChoice := msgItem.GetDealerChoice()
@@ -492,7 +492,8 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 
 		if bp.IsHost() {
 			data, _ := proto.Marshal(message)
-			bp.logger.Info().Msgf("A new hand is started. Hand Num: %d, message: %s", message.HandNum, string(data))
+			bp.logger.Debug().Msgf("A new hand is started. Hand Num: %d, message: %s", message.HandNum, string(data))
+			bp.logger.Info().Msgf("New Hand. Hand Num: %d", message.HandNum)
 			if !bp.config.Script.AutoPlay {
 				if int(message.HandNum) == len(bp.config.Script.Hands) {
 					bp.logger.Info().Msgf("%s: Last hand: %d Game will be ended in next hand", bp.logPrefix, message.HandNum)
@@ -701,29 +702,17 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			bp.verifyResult2()
 		}
 
-		//result := bp.game.handResult2
-		// for seatNo, player := range result.PlayerInfo {
-		// 	if seatNo == 0 {
-		// 		continue
-		// 	}
-		// 	if seatNo == bp.seatNo {
-		// 		if player.Balance.After == 0.0 {
-		// 			// reload chips
-		// 			bp.reload()
-		// 		}
-		// 		break
-		// 	}
-		// }
-
 	case game.HandEnded:
-		bp.logger.Info().Msgf("%s: IsHost: %v handNum: %d ended", bp.logPrefix, bp.IsHost(), message.HandNum)
 		if bp.IsHost() {
+			bp.logger.Info().Msgf("Hand Num: %d ended", message.HandNum)
+
 			// process post hand steps if specified
 			bp.processPostHandSteps()
 		}
 		if bp.hasSentLeaveGameRequest {
 			bp.LeaveGameImmediately()
 		}
+		bp.logger.Debug().Msgf("%s: IsHost: %v handNum: %d ended", bp.logPrefix, bp.IsHost(), message.HandNum)
 
 	case game.HandQueryCurrentHand:
 		currentState := msgItem.GetCurrentHandState()
