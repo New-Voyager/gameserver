@@ -2,6 +2,7 @@ package game
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"time"
 
@@ -14,11 +15,17 @@ type RedisHandStateTracker struct {
 	rdclient *redis.Client
 }
 
-func NewRedisHandStateTracker(redisURL string, redisPW string, redisDB int) (*RedisHandStateTracker, error) {
+func NewRedisHandStateTracker(redisURL string, redisUser string, redisPW string, redisDB int, useSSL bool) (*RedisHandStateTracker, error) {
+	var tlsConfig *tls.Config
+	if useSSL {
+		tlsConfig = &tls.Config{}
+	}
 	rdclient := redis.NewClient(&redis.Options{
-		Addr:     redisURL,
-		Password: redisPW,
-		DB:       redisDB,
+		Addr:      redisURL,
+		Username:  redisUser,
+		Password:  redisPW,
+		DB:        redisDB,
+		TLSConfig: tlsConfig,
 	})
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

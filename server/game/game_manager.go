@@ -47,12 +47,13 @@ func CreateGameManager(isScriptTest bool, delays Delays) (*Manager, error) {
 	var redisUser = util.Env.GetRedisUser()
 	var redisPW = util.Env.GetRedisPW()
 	var redisDB = util.Env.GetRedisDB()
-	handSetupPersist := NewRedisHandsSetupTracker(fmt.Sprintf("%s:%d", redisHost, redisPort), redisUser, redisPW, redisDB)
+	var useSSL = util.Env.IsRedisSSL()
+	handSetupPersist := NewRedisHandsSetupTracker(fmt.Sprintf("%s:%d", redisHost, redisPort), redisUser, redisPW, redisDB, useSSL)
 
 	var handPersist PersistHandState
 	var persistMethod = util.Env.GetPersistMethod()
 	if persistMethod == "redis" {
-		handPersist, err = NewRedisHandStateTracker(fmt.Sprintf("%s:%d", redisHost, redisPort), redisPW, redisDB)
+		handPersist, err = NewRedisHandStateTracker(fmt.Sprintf("%s:%d", redisHost, redisPort), redisUser, redisPW, redisDB, useSSL)
 	} else {
 		handPersist, err = NewMemoryHandStateTracker()
 	}

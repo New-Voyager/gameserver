@@ -23,6 +23,7 @@ type gameServerEnvironment struct {
 	RedisUser              string
 	RedisPW                string
 	RedisDB                string
+	RedisSSL               string
 	APIServerUrl           string
 	PlayTimeout            string
 	PingTimeout            string
@@ -47,6 +48,7 @@ var Env = &gameServerEnvironment{
 	RedisUser:              "REDIS_USER",
 	RedisPW:                "REDIS_PASSWORD",
 	RedisDB:                "REDIS_DB",
+	RedisSSL:               "REDIS_SSL",
 	APIServerUrl:           "API_SERVER_URL",
 	PlayTimeout:            "PLAY_TIMEOUT",
 	PingTimeout:            "PING_TIMEOUT",
@@ -151,6 +153,18 @@ func (g *gameServerEnvironment) GetRedisDB() int {
 		panic(msg)
 	}
 	return dbNum
+}
+
+func (g *gameServerEnvironment) GetRedisSSL() string {
+	v := os.Getenv(g.RedisSSL)
+	if v == "" {
+		return "false"
+	}
+	return v
+}
+
+func (g *gameServerEnvironment) IsRedisSSL() bool {
+	return g.GetRedisSSL() == "1" || strings.ToLower(g.GetRedisSSL()) == "true"
 }
 
 func (g *gameServerEnvironment) GetPostgresHost() string {
