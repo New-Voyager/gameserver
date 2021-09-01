@@ -3,24 +3,32 @@ package game
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 type RedisHandStateTracker struct {
 	rdclient *redis.Client
 }
 
-func NewRedisHandStateTracker(redisURL string, redisPW string, redisDB int) *RedisHandStateTracker {
+func NewRedisHandStateTracker(redisURL string, redisPW string, redisDB int) (*RedisHandStateTracker, error) {
 	rdclient := redis.NewClient(&redis.Options{
 		Addr:     redisURL,
 		Password: redisPW,
 		DB:       redisDB,
 	})
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_, err := rdclient.Ping(ctx).Result()
+	if err != nil {
+		return nil, errors.Wrapf(err, "Unable to verify connection to Redis. Addr: %s", redisURL)
+	}
 	return &RedisHandStateTracker{
 		rdclient: rdclient,
-	}
+	}, nil
 }
 
 func (r *RedisHandStateTracker) Load(gameCode string) (*HandState, error) {

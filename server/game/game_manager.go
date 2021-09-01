@@ -52,9 +52,12 @@ func CreateGameManager(isScriptTest bool, delays Delays) (*Manager, error) {
 	var handPersist PersistHandState
 	var persistMethod = util.Env.GetPersistMethod()
 	if persistMethod == "redis" {
-		handPersist = NewRedisHandStateTracker(fmt.Sprintf("%s:%d", redisHost, redisPort), redisPW, redisDB)
+		handPersist, err = NewRedisHandStateTracker(fmt.Sprintf("%s:%d", redisHost, redisPort), redisPW, redisDB)
 	} else {
-		handPersist = NewMemoryHandStateTracker()
+		handPersist, err = NewMemoryHandStateTracker()
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to create hand state tracker")
 	}
 
 	gm, err := NewGameManager(isScriptTest, apiServerURL, handPersist, handSetupPersist, usersdb, crashdb, delays)
