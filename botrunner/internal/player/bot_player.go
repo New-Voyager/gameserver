@@ -701,19 +701,19 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			bp.verifyResult2()
 		}
 
-		result := bp.game.handResult2
-		for seatNo, player := range result.PlayerInfo {
-			if seatNo == 0 {
-				continue
-			}
-			if seatNo == bp.seatNo {
-				if player.Balance.After == 0.0 {
-					// reload chips
-					bp.reload()
-				}
-				break
-			}
-		}
+		//result := bp.game.handResult2
+		// for seatNo, player := range result.PlayerInfo {
+		// 	if seatNo == 0 {
+		// 		continue
+		// 	}
+		// 	if seatNo == bp.seatNo {
+		// 		if player.Balance.After == 0.0 {
+		// 			// reload chips
+		// 			bp.reload()
+		// 		}
+		// 		break
+		// 	}
+		// }
 
 	case game.HandEnded:
 		bp.logger.Info().Msgf("%s: IsHost: %v handNum: %d ended", bp.logPrefix, bp.IsHost(), message.HandNum)
