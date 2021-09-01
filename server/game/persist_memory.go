@@ -10,10 +10,10 @@ type MemoryHandStateTracker struct {
 	activeHands map[string][]byte
 }
 
-func NewMemoryHandStateTracker() *MemoryHandStateTracker {
+func NewMemoryHandStateTracker() (*MemoryHandStateTracker, error) {
 	return &MemoryHandStateTracker{
 		activeHands: make(map[string][]byte),
-	}
+	}, nil
 }
 
 func (m *MemoryHandStateTracker) Load(gameCode string) (*HandState, error) {

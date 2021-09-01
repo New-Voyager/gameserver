@@ -23,6 +23,7 @@ type gameServerEnvironment struct {
 	RedisUser              string
 	RedisPW                string
 	RedisDB                string
+	RedisSSL               string
 	APIServerUrl           string
 	PlayTimeout            string
 	PingTimeout            string
@@ -32,6 +33,7 @@ type gameServerEnvironment struct {
 	PostgresDB             string
 	PostgresUser           string
 	PostgresPW             string
+	PostgresSSLMode        string
 	EnableEncryption       string
 	DebugConnectivityCheck string
 	SystemTest             string
@@ -46,6 +48,7 @@ var Env = &gameServerEnvironment{
 	RedisUser:              "REDIS_USER",
 	RedisPW:                "REDIS_PASSWORD",
 	RedisDB:                "REDIS_DB",
+	RedisSSL:               "REDIS_SSL",
 	APIServerUrl:           "API_SERVER_URL",
 	PlayTimeout:            "PLAY_TIMEOUT",
 	PingTimeout:            "PING_TIMEOUT",
@@ -55,6 +58,7 @@ var Env = &gameServerEnvironment{
 	PostgresDB:             "POSTGRES_DB",
 	PostgresUser:           "POSTGRES_USER",
 	PostgresPW:             "POSTGRES_PASSWORD",
+	PostgresSSLMode:        "POSTGRES_SSL_MODE",
 	EnableEncryption:       "ENABLE_ENCRYPTION",
 	DebugConnectivityCheck: "DEBUG_CONNECTIVITY_CHECK",
 	SystemTest:             "SYSTEM_TEST",
@@ -151,6 +155,18 @@ func (g *gameServerEnvironment) GetRedisDB() int {
 	return dbNum
 }
 
+func (g *gameServerEnvironment) GetRedisSSL() string {
+	v := os.Getenv(g.RedisSSL)
+	if v == "" {
+		return "false"
+	}
+	return v
+}
+
+func (g *gameServerEnvironment) IsRedisSSL() bool {
+	return g.GetRedisSSL() == "1" || strings.ToLower(g.GetRedisSSL()) == "true"
+}
+
 func (g *gameServerEnvironment) GetPostgresHost() string {
 	host := os.Getenv(g.PostgresHost)
 	if host == "" {
@@ -193,6 +209,17 @@ func (g *gameServerEnvironment) GetPostgresPW() string {
 		msg := fmt.Sprintf("%s is not defined", g.PostgresPW)
 		environmentLogger.Error().Msg(msg)
 		panic(msg)
+	}
+	return v
+}
+
+func (g *gameServerEnvironment) GetPostgresSSLMode() string {
+	v := os.Getenv(g.PostgresSSLMode)
+	if v == "" {
+		defaultVal := "disable"
+		msg := fmt.Sprintf("%s is not defined. Using default '%s'", g.PostgresSSLMode, defaultVal)
+		environmentLogger.Warn().Msg(msg)
+		return defaultVal
 	}
 	return v
 }

@@ -2,25 +2,40 @@ package game
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 type RedisHandStateTracker struct {
 	rdclient *redis.Client
 }
 
-func NewRedisHandStateTracker(redisURL string, redisPW string, redisDB int) *RedisHandStateTracker {
+func NewRedisHandStateTracker(redisURL string, redisUser string, redisPW string, redisDB int, useSSL bool) (*RedisHandStateTracker, error) {
+	var tlsConfig *tls.Config
+	if useSSL {
+		tlsConfig = &tls.Config{}
+	}
 	rdclient := redis.NewClient(&redis.Options{
-		Addr:     redisURL,
-		Password: redisPW,
-		DB:       redisDB,
+		Addr:      redisURL,
+		Username:  redisUser,
+		Password:  redisPW,
+		DB:        redisDB,
+		TLSConfig: tlsConfig,
 	})
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_, err := rdclient.Ping(ctx).Result()
+	if err != nil {
+		return nil, errors.Wrapf(err, "Unable to verify connection to Redis. Addr: %s", redisURL)
+	}
 	return &RedisHandStateTracker{
 		rdclient: rdclient,
-	}
+	}, nil
 }
 
 func (r *RedisHandStateTracker) Load(gameCode string) (*HandState, error) {
