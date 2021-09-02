@@ -2992,11 +2992,13 @@ func (bp *BotPlayer) getPlayerCardsFromConfig(seatCards []gamescript.SeatCards) 
 
 func (bp *BotPlayer) reloadBotFromGameInfo(newHand *game.NewHand) error {
 	bp.game.table.playersBySeat = make(map[uint32]*player)
-	// gameInfo, err := bp.GetGameInfo(bp.gameCode)
-	// if err != nil {
-	// 	return errors.Wrap(err, fmt.Sprintf("%s: Unable to get game info %s", bp.logPrefix, bp.gameCode))
-	// }
-	// bp.gameInfo = &gameInfo
+	if newHand.HandNum == 1 {
+		gameInfo, err := bp.GetGameInfo(bp.gameCode)
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("%s: Unable to get game info %s", bp.logPrefix, bp.gameCode))
+		}
+		bp.gameInfo = &gameInfo
+	}
 	var seatNo uint32
 	var isSeated bool
 	var isPlaying bool
