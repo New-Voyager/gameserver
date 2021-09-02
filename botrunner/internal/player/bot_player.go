@@ -514,7 +514,10 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		// update seat number
 		for seatNo, player := range newHand.PlayersInSeats {
 			if player.PlayerId == bp.PlayerID {
-				if bp.seatNo != seatNo {
+				if bp.seatNo == 0 {
+					bp.seatNo = seatNo
+					bp.updateLogPrefix()
+				} else if bp.seatNo != seatNo {
 					bp.logger.Info().Msgf("%s: Player: %s changed seat from %d to %d", bp.logPrefix, player.Name, bp.seatNo, seatNo)
 					bp.seatNo = seatNo
 					bp.updateLogPrefix()
