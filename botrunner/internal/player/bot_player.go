@@ -166,6 +166,7 @@ type BotPlayer struct {
 
 // NewBotPlayer creates an instance of BotPlayer.
 func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, error) {
+	logger.Info().Msgf("Bot player connecting to NATS URL: %s", playerConfig.NatsURL)
 	nc, err := natsgo.Connect(playerConfig.NatsURL)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Error connecting to NATS server [%s]", playerConfig.NatsURL))
