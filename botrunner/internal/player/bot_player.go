@@ -478,10 +478,10 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 	case game.HandNewHand:
 		/* MessageType: NEW_HAND */
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
-		bp.reloadBotFromGameInfo()
 		bp.game.handNum = message.HandNum
 		bp.game.handStatus = message.GetHandStatus()
 		newHand := msgItem.GetNewHand()
+		bp.reloadBotFromGameInfo(newHand)
 		bp.game.table.buttonPos = newHand.GetButtonPos()
 		bp.game.table.sbPos = newHand.GetSbPos()
 		bp.game.table.bbPos = newHand.GetBbPos()
@@ -2987,27 +2987,30 @@ func (bp *BotPlayer) getPlayerCardsFromConfig(seatCards []gamescript.SeatCards) 
 	return playerCards
 }
 
-func (bp *BotPlayer) reloadBotFromGameInfo() error {
+func (bp *BotPlayer) reloadBotFromGameInfo(newHand *game.NewHand) error {
 	bp.game.table.playersBySeat = make(map[uint32]*player)
-	gameInfo, err := bp.GetGameInfo(bp.gameCode)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get game info %s", bp.logPrefix, bp.gameCode))
-	}
-	bp.gameInfo = &gameInfo
+	// gameInfo, err := bp.GetGameInfo(bp.gameCode)
+	// if err != nil {
+	// 	return errors.Wrap(err, fmt.Sprintf("%s: Unable to get game info %s", bp.logPrefix, bp.gameCode))
+	// }
+	// bp.gameInfo = &gameInfo
 	var seatNo uint32
 	var isSeated bool
 	var isPlaying bool
-	for _, p := range gameInfo.SeatInfo.PlayersInSeats {
+	for _, p := range newHand.PlayersInSeats { //gameInfo.SeatInfo.PlayersInSeats {
+		if p.OpenSeat {
+			continue
+		}
 		pl := &player{
 			playerID: p.PlayerId,
 			seatNo:   p.SeatNo,
-			status:   game.PlayerStatus(game.PlayerStatus_value[p.Status]),
+			status:   game.PlayerStatus(game.PlayerStatus_value[p.Status.String()]),
 			stack:    p.Stack,
-			buyIn:    p.BuyIn,
-			isBot:    p.IsBot,
+			//buyIn:    p.BuyIn,
+			isBot: true, //p.IsBot,
 		}
 		bp.game.table.playersBySeat[p.SeatNo] = pl
-		if p.PlayerUUID == bp.PlayerUUID {
+		if p.PlayerId == bp.PlayerID {
 			isSeated = true
 			seatNo = p.SeatNo
 			if pl.status == game.PlayerStatus_PLAYING {
