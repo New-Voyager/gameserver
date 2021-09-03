@@ -64,6 +64,17 @@ func (g *Game) onResume(message *GameMessage) error {
 		return errors.Wrap(err, "Could not load hand state while resuming game")
 	}
 
+	if g.isHandInProgress {
+		// Hand is already in progress. Don't try to restart.
+		// We shouldn't really get here, but this is just to
+		// handle potential error situation from api server.
+		channelGameLogger.Warn().
+			Str("game", g.gameCode).
+			Msgf("onResume called when hand is already in progress. Doing nothing.")
+		return nil
+	}
+	g.isHandInProgress = true
+
 	channelGameLogger.Debug().
 		Str("game", g.gameCode).
 		Msgf("Resuming game. Restarting hand at flow state [%s].", handState.FlowState)
@@ -170,6 +181,7 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 
 	// check any pending updates
 	pendingUpdates, _ := anyPendingUpdates(g.apiServerURL, g.gameID, g.delays.PendingUpdatesRetry)
+	g.isHandInProgress = false
 	if pendingUpdates {
 		g.inProcessPendingUpdates = true
 		go g.processPendingUpdates(g.apiServerURL, g.gameID, g.gameCode)

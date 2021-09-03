@@ -55,6 +55,7 @@ type Game struct {
 	handSetupPersist *RedisHandsSetupTracker
 
 	inProcessPendingUpdates bool
+	isHandInProgress        bool
 	testGameConfig          *TestGameConfig
 	delays                  Delays
 	lock                    sync.Mutex
@@ -372,6 +373,8 @@ func (g *Game) dealNewHand() error {
 	var gameType GameType
 	var newHandInfo *NewHandInfo
 	var err error
+
+	g.isHandInProgress = true
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_1, 0)
 
