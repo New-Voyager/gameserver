@@ -2,6 +2,7 @@ package rest
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -17,9 +18,17 @@ var (
 func RunServer(portNo uint) {
 	r := gin.Default()
 
+	r.GET("/ready", checkReady)
 	r.POST("/start-timer", startTimer)
 	r.POST("/cancel-timer", cancelTimer)
 	r.Run(fmt.Sprintf(":%d", portNo))
+}
+
+func checkReady(c *gin.Context) {
+	type resp struct {
+		Status string `json:"status"`
+	}
+	c.JSON(http.StatusOK, resp{Status: "OK"})
 }
 
 func startTimer(c *gin.Context) {

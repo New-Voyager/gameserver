@@ -70,6 +70,7 @@ func RunRestServer(gameManager *nats.GameManager, endSystemTestCallback func()) 
 	r := gin.Default()
 	//r.Use(JSONAppErrorReporter())
 
+	r.GET("/ready", checkReady)
 	r.POST("/new-game", newGame)
 	r.POST("/resume-game", resumeGame)
 	r.POST("/end-game", endGame)
@@ -82,6 +83,13 @@ func RunRestServer(gameManager *nats.GameManager, endSystemTestCallback func()) 
 	// Intentionally crash the process for testing
 	r.POST("/setup-crash", setupCrash)
 	r.Run(":8080")
+}
+
+func checkReady(c *gin.Context) {
+	type resp struct {
+		Status string `json:"status"`
+	}
+	c.JSON(http.StatusOK, resp{Status: "OK"})
 }
 
 func setupCrash(c *gin.Context) {
