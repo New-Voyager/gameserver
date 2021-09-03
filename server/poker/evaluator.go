@@ -132,10 +132,10 @@ func EvaluateOmaha(playerCards []Card, boardCards []Card) OmahaResult {
 			cards := make([]Card, 0)
 			cards = append(cards, playerPair...)
 			cards = append(cards, boardPair...)
-			str := CardsToString(cards)
+			// str := CardsToString(cards)
 			score, _ := five(cards...)
-			rankText := RankString(score)
-			fmt.Printf("%s score: %d rank: %s\n", str, score, rankText)
+			// rankText := RankString(score)
+			// fmt.Printf("%s score: %d rank: %s\n", str, score, rankText)
 			if score < minimum {
 				minimum = score
 				copy(bestCards, cards)
