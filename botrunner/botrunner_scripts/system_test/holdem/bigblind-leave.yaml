@@ -25,11 +25,11 @@ starting-seats:
   - seat: 1
     player: yong
     buy-in: 300
-    reload: false
+    auto-reload: false
   - seat: 2
     player: brian
     buy-in: 300
-    reload: false
+    auto-reload: false
   - seat: 3
     player: tom
     buy-in: 300

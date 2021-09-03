@@ -99,7 +99,7 @@ type StartingSeat struct {
 	BuyIn          float32      `yaml:"buy-in"`
 	MuckLosingHand bool         `yaml:"muck-losing-hand"`
 	PostBlind      bool         `yaml:"post-blind"`
-	Reload         *bool        `yaml:"reload"`
+	AutoReload     *bool        `yaml:"auto-reload"`
 	RunItTwice     *bool        `yaml:"run-it-twice"`
 	IpAddress      *string      `yaml:"ip-address"`
 	Gps            *GpsLocation `yaml:"gps"`

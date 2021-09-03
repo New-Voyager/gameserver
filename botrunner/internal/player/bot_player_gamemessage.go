@@ -126,30 +126,19 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 		if message == nil {
 			return
 		}
-		seatNo := message.SeatNo
 		playerID := message.PlayerID
 		playerStatus := game.PlayerStatus(game.PlayerStatus_value[message.Status])
-		buyIn := message.Stack
-		stack := message.Stack
-		p := &player{
-			seatNo:   seatNo,
-			playerID: playerID,
-			status:   playerStatus,
-			buyIn:    buyIn,
-			stack:    stack,
-		}
+
 		// SOMA: Don't update table view here
 		// table view is updated for every hand
 		//bp.game.table.playersBySeat[seatNo] = p
 		if playerID == bp.PlayerID {
 			// me
-			bp.seatNo = p.seatNo
+			bp.seatNo = message.SeatNo
+			bp.balance = message.Stack
 			newUpdate := message.NewUpdate
 			if newUpdate == "WAIT_FOR_BUYIN" {
-				bp.logger.Info().Msgf("Bot [%s] ran out of stack. Initiate new buyin %f",
-					message.PlayerName, float32(bp.gameInfo.BuyInMax))
-				bp.reload()
-				//bp.BuyIn(bp.gameCode, float32(bp.buyInAmount))
+				bp.logger.Info().Msgf("Bot [%s] ran out of stack. Player status: %s", message.PlayerName, newUpdate)
 			}
 			if playerStatus == game.PlayerStatus_PLAYING &&
 				message.Stack > 0.0 {

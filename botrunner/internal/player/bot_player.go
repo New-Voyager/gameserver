@@ -492,7 +492,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.hasNextHandBeenSetup = false // Not this hand, but the next one.
 
 		if bp.IsHost() {
-			data, _ := proto.Marshal(message)
+			data, _ := protojson.Marshal(message)
 			bp.logger.Debug().Msgf("A new hand is started. Hand Num: %d, message: %s", message.HandNum, string(data))
 			bp.logger.Info().Msgf("New Hand. Hand Num: %d", message.HandNum)
 			if !bp.config.Script.AutoPlay {
@@ -550,6 +550,10 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 
 		// setup reload chips
 		bp.setupReloadChips()
+
+		if bp.balance == 0 {
+			bp.autoBuyIn()
+		}
 
 	case game.HandFlop:
 		/* MessageType: FLOP */
@@ -2185,12 +2189,12 @@ func (bp *BotPlayer) NewPlayer(gameCode string, startingSeat *gamescript.Startin
 	return nil
 }
 
-func (bp *BotPlayer) reload() error {
+func (bp *BotPlayer) autoBuyIn() error {
 	seatConfig := bp.config.Script.GetSeatConfigByPlayerName(bp.config.Name)
 	if seatConfig == nil {
 		return nil
 	}
-	if seatConfig.Reload != nil && *seatConfig.Reload == false {
+	if seatConfig.AutoReload != nil && *seatConfig.AutoReload == false {
 		// This player is explicitly set to not reload.
 		return nil
 	}
