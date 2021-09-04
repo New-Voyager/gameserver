@@ -759,11 +759,11 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 
 	if action.Action == ACTION_FOLD || action.Action == ACTION_CHECK {
 		if action.Amount > 0 {
-			handLogger.Error().
+			handLogger.Warn().
 				Uint64("game", h.GetGameId()).
 				Uint32("hand", h.GetHandNum()).
 				Uint32("seat", action.SeatNo).
-				Msgf("Invalid amount %f passed for the fold action", action.Amount)
+				Msgf("Invalid amount %f passed for the fold action. Setting the amount to 0", action.Amount)
 		}
 		action.Amount = 0
 	}
