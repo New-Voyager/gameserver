@@ -2581,11 +2581,18 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 
 		if !checkAvailable {
 			if !callAvailable && allInAvailable {
+				// TODO: Bring all-in back after the load test.
 				// go all in
-				nextAction = game.ACTION_ALLIN
-				nextAmt = allInAmount
+				// nextAction = game.ACTION_ALLIN
+				nextAction = game.ACTION_FOLD
+				nextAmt = 0
+
+				// TODO: Bring all-in back after the load test.
+				// nextAmt = allInAmount
 			} else {
-				if nextAmt > bp.balance/2 {
+				// TODO: Bring back after the load test.
+				// if nextAmt > bp.balance/2 {
+				if nextAmt > bp.balance/5 {
 					// more than half of the balance, fold this hand
 					nextAction = game.ACTION_FOLD
 				} else if callAvailable {
