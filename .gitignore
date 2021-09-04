@@ -9,3 +9,4 @@ game/handstate.pb.go
 docker/nats/nats-server
 botrunner/cmd/botrunner/__debug_bin
 jenkins_logs/
+*.log
