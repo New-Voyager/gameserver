@@ -552,7 +552,11 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.setupReloadChips()
 
 		if bp.balance == 0 {
-			bp.autoBuyIn()
+			err := bp.autoReloadBalance()
+			if err != nil {
+				errMsg := fmt.Sprintf("%s: Could not reload chips when balance is 0. Current hand num: %d. Error: %v", bp.logPrefix, bp.game.handNum, err)
+				bp.logger.Error().Msg(errMsg)
+			}
 		}
 
 	case game.HandFlop:
@@ -627,7 +631,14 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if bp.IsHost() && !bp.config.Script.AutoPlay && !bp.hasNextHandBeenSetup {
 			// We're just using this message as a signal that the betting
 			// round is in progress and we are now ready to setup the next hand.
-			bp.setupNextHand()
+			err := bp.setupNextHand()
+			if err != nil {
+				errMsg := fmt.Sprintf("%s: Could not setup next hand. Current hand num: %d. Error: %v", bp.logPrefix, bp.game.handNum, err)
+				bp.logger.Error().Msg(errMsg)
+				bp.errorStateMsg = errMsg
+				bp.sm.SetState(BotState__ERROR)
+				return
+			}
 			bp.hasNextHandBeenSetup = true
 		}
 
@@ -2189,7 +2200,7 @@ func (bp *BotPlayer) NewPlayer(gameCode string, startingSeat *gamescript.Startin
 	return nil
 }
 
-func (bp *BotPlayer) autoBuyIn() error {
+func (bp *BotPlayer) autoReloadBalance() error {
 	seatConfig := bp.config.Script.GetSeatConfigByPlayerName(bp.config.Name)
 	if seatConfig == nil {
 		return nil
@@ -2271,7 +2282,7 @@ func (bp *BotPlayer) BuyIn(gameCode string, amount float32) error {
 
 	resp, err := bp.gqlHelper.BuyIn(gameCode, amount)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to buy in", bp.logPrefix))
+		return errors.Wrapf(err, "%s: Error from GQL helper while trying to buy in %f chips", bp.logPrefix, amount)
 	}
 
 	if resp.Status.Approved {
@@ -2932,7 +2943,10 @@ func (bp *BotPlayer) setupNextHand() error {
 
 	nextHand := bp.config.Script.GetHand(nextHandNum)
 
-	bp.AddNewPlayers(&nextHand.Setup)
+	err := bp.AddNewPlayers(&nextHand.Setup)
+	if err != nil {
+		return errors.Wrap(err, "Unable to add new players.")
+	}
 
 	bp.processPreDealItems(nextHand.Setup.PreDeal)
 

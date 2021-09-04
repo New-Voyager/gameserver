@@ -272,10 +272,14 @@ func (bp *BotPlayer) seatWaitList(message *gamescript.NonProtoMessage) {
 	} else {
 		// buyin
 		if bp.buyInAmount != 0 {
-			bp.BuyIn(bp.gameCode, float32(bp.buyInAmount))
-			bp.logger.Info().Msgf("%s: [%s] Player bought in for: %d. Current hand num: %d",
-				bp.logPrefix, bp.gameCode, bp.buyInAmount, bp.game.handNum)
-			bp.event(BotEvent__SUCCEED_BUYIN)
+			err := bp.BuyIn(bp.gameCode, float32(bp.buyInAmount))
+			if err != nil {
+				bp.logger.Error().Msgf("%s: Unable to buy in %d chips while sitting from waitlist: %s", bp.logPrefix, bp.buyInAmount, err.Error())
+			} else {
+				bp.logger.Info().Msgf("%s: [%s] Player bought in for: %d. Current hand num: %d",
+					bp.logPrefix, bp.gameCode, bp.buyInAmount, bp.game.handNum)
+				bp.event(BotEvent__SUCCEED_BUYIN)
+			}
 		}
 	}
 }
