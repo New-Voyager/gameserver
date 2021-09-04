@@ -495,7 +495,7 @@ type NonProtoMessage struct {
 	SubType          string           `yaml:"subType" json:"subType"`
 	GameCode         string           `yaml:"gameCode" json:"gameCode"`
 	OpenedSeat       uint32           `yaml:"openedSeat" json:"openedSeat"`
-	PlayerName       string           `yaml:"playerName" json:"name"`
+	PlayerName       string           `yaml:"playerName" json:"playerName"`
 	PlayerID         uint64           `yaml:"playerId" json:"playerId"`
 	PlayerUUID       string           `yaml:"playerUuid" json:"playerUuid"`
 	ExpTime          string           `yaml:"expTime" json:"expTime"`

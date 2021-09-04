@@ -125,16 +125,18 @@ type BotPlayer struct {
 	gameToAll       string
 	handToAll       string
 	handToMe        string
+	handToMeText    string
 	meToHand        string
 	pingSubjectName string
 	pongSubjectName string
 
 	// Nats subscription objects
-	gameMsgSubscription         *natsgo.Subscription
-	handMsgAllSubscription      *natsgo.Subscription
-	handMsgPlayerSubscription   *natsgo.Subscription
-	playerMsgPlayerSubscription *natsgo.Subscription
-	pingSubscription            *natsgo.Subscription
+	gameMsgSubscription           *natsgo.Subscription
+	handMsgAllSubscription        *natsgo.Subscription
+	handMsgPlayerSubscription     *natsgo.Subscription
+	handMsgPlayerTextSubscription *natsgo.Subscription
+	playerMsgPlayerSubscription   *natsgo.Subscription
+	pingSubscription              *natsgo.Subscription
 
 	game      *gameView
 	seatNo    uint32
@@ -337,6 +339,11 @@ func (bp *BotPlayer) handlePrivateHandMsg(msg *natsgo.Msg) {
 		data = decryptedMsg
 	}
 
+	bp.unmarshalAndQueueHandMsg(data)
+}
+
+func (bp *BotPlayer) handlePrivateHandTextMsg(msg *natsgo.Msg) {
+	data := msg.Data
 	bp.unmarshalAndQueueHandMsg(data)
 }
 
@@ -1893,7 +1900,13 @@ func (bp *BotPlayer) CreateGame(gameOpt game.GameCreateOpt) (string, error) {
 }
 
 // Subscribe makes the bot subscribe to the game's nats subjects.
-func (bp *BotPlayer) Subscribe(gameToAllSubjectName string, handToAllSubjectName string, handToPlayerSubjectName string, playerChannelName string, pingSubjectName string) error {
+func (bp *BotPlayer) Subscribe(gameToAllSubjectName string,
+	handToAllSubjectName string,
+	handToPlayerSubjectName string,
+	handToPlayerTextSubjectName string,
+	playerChannelName string,
+	pingSubjectName string) error {
+
 	if bp.gameMsgSubscription == nil || !bp.gameMsgSubscription.IsValid() {
 		bp.logger.Info().Msgf("%s: Subscribing to %s to receive game messages sent to players/observers", bp.logPrefix, gameToAllSubjectName)
 		gameToAllSub, err := bp.natsConn.Subscribe(gameToAllSubjectName, bp.handleGameMsg)
@@ -1922,6 +1935,16 @@ func (bp *BotPlayer) Subscribe(gameToAllSubjectName string, handToAllSubjectName
 		}
 		bp.handMsgPlayerSubscription = handToPlayerSub
 		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, handToPlayerSubjectName)
+	}
+
+	if bp.handMsgPlayerTextSubscription == nil || !bp.handMsgPlayerTextSubscription.IsValid() {
+		bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand text messages sent to player: %s", bp.logPrefix, handToPlayerTextSubjectName, bp.config.Name)
+		handToPlayerTextSub, err := bp.natsConn.Subscribe(handToPlayerTextSubjectName, bp.handlePrivateHandTextMsg)
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the hand (text channel) message subject [%s]", bp.logPrefix, handToPlayerTextSubjectName))
+		}
+		bp.handMsgPlayerTextSubscription = handToPlayerTextSub
+		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, handToPlayerTextSubjectName)
 	}
 
 	if bp.playerMsgPlayerSubscription == nil || !bp.playerMsgPlayerSubscription.IsValid() {
@@ -1994,7 +2017,7 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 		},
 	}
 	playerChannelName := fmt.Sprintf("player.%d", bp.PlayerID)
-	err = bp.Subscribe(gi.GameToPlayerChannel, gi.HandToAllChannel, gi.HandToPlayerChannel, playerChannelName, gi.PingChannel)
+	err = bp.Subscribe(gi.GameToPlayerChannel, gi.HandToAllChannel, gi.HandToPlayerChannel, gi.HandToPlayerTextChannel, playerChannelName, gi.PingChannel)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to game %s channels", bp.logPrefix, gameCode))
 	}
@@ -2002,6 +2025,7 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 	bp.gameToAll = gi.GameToPlayerChannel
 	bp.handToAll = gi.HandToAllChannel
 	bp.handToMe = gi.HandToPlayerChannel
+	bp.handToMeText = gi.HandToPlayerTextChannel
 	bp.meToHand = gi.PlayerToHandChannel
 	bp.pingSubjectName = gi.PingChannel
 	bp.pongSubjectName = gi.PongChannel
