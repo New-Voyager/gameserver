@@ -1,0 +1,63 @@
+club:
+  name: Bad Robots
+  description: Club used for testing with the bot runner
+  rewards:
+    - name: High Hand
+      type: HIGH_HAND
+      amount: 100
+      schedule: ENTIRE_GAME
+
+game:
+  create: true
+  title: "Bot Testing Game"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 9
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 500
+  buy-in-max: 2000
+  action-time: 100
+  rewards: High Hand
+
+bot-config:
+  min-action-pause-time: 1000
+  max-action-pause-time: 2000
+  auto-post-blind: true
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 1000
+  - seat: 2
+    player: brian
+    buy-in: 1000
+  - seat: 3
+    player: tom
+    buy-in: 1000
+  - seat: 4
+    player: jim
+    buy-in: 1000
+  - seat: 5
+    player: rob
+    buy-in: 1000
+  - seat: 6
+    player: rich
+    buy-in: 1000
+  - seat: 7
+    player: josh
+    buy-in: 1000
+  - seat: 8
+    player: chris
+    buy-in: 1000
+  - seat: 9
+    player: michael
+    buy-in: 1000
+
+auto-play: true
