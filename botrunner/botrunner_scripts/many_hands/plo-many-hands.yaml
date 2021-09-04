@@ -30,6 +30,7 @@ game:
 bot-config:
   min-action-pause-time: 1000
   max-action-pause-time: 2000
+  auto-post-blind: true
 
 starting-seats:
   - seat: 1
