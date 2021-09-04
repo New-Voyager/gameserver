@@ -632,7 +632,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if bp.IsObserver() && bp.config.Script.IsSeatHuman(seatNo) {
 			bp.logger.Info().Msgf("%s: Waiting on seat %d (%s/human) to act.", bp.logPrefix, seatNo, bp.getPlayerNameBySeatNo(seatNo))
 		}
-		bp.act(seatAction)
+		bp.act(seatAction, message.GetHandStatus())
 
 	case game.HandPlayerActed:
 		/* MessageType: PLAYER_ACTED */
@@ -771,7 +771,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			// When you are rejoining the game you were playing, and the timer is on you,
 			// you need to act based on the current hand state message instead of the
 			// YOUR_ACTION message you already missed while you were out.
-			bp.act(nextSeatAction)
+			bp.act(nextSeatAction, handStatus)
 		}
 	}
 }
@@ -2493,7 +2493,7 @@ func (bp *BotPlayer) doesScriptActionExists(scriptHand gamescript.Hand, handStat
 	return scriptActions != nil && len(scriptActions) > 0
 }
 
-func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
+func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandStatus) {
 	availableActions := seatAction.AvailableActions
 	nextAction := game.ACTION_CHECK
 	nextAmt := float32(0)
@@ -2702,11 +2702,12 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 	}
 	msgID := strconv.Itoa(lastMsgIDInt + 1)
 	actionMsg := game.HandMessage{
-		GameCode:  bp.gameCode,
-		HandNum:   bp.game.handNum,
-		PlayerId:  bp.PlayerID,
-		SeatNo:    bp.seatNo,
-		MessageId: msgID,
+		GameCode:   bp.gameCode,
+		HandNum:    bp.game.handNum,
+		PlayerId:   bp.PlayerID,
+		SeatNo:     bp.seatNo,
+		MessageId:  msgID,
+		HandStatus: handStatus,
 		Messages: []*game.HandMessageItem{
 			{
 				MessageType: msgType,
