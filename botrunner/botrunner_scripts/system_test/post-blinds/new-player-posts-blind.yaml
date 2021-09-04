@@ -61,7 +61,6 @@ hands:
 
   - setup:
       auto: true
-      button-pos: 2
       new-players:
         - seat: 3
           player: olivia
