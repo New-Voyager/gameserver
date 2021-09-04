@@ -103,8 +103,8 @@ func (b *BotRunnerBatch) mainLoop() {
 			time.Sleep(2 * time.Second)
 			continue
 		}
-		botRunnerLogger := zerolog.New(f).With().Str("logger_name", loggerName).Logger()
-		botPlayerLogger := zerolog.New(f).With().Str("logger_name", "BotPlayer").Logger()
+		botRunnerLogger := zerolog.New(f).With().Timestamp().Str("logger_name", loggerName).Logger()
+		botPlayerLogger := zerolog.New(f).With().Timestamp().Str("logger_name", "BotPlayer").Logger()
 
 		b.logger.Info().Msgf("Launching bot runner instance [%d]. Logging to %s.", nextInstanceNo, logFileName)
 		botRunner, err := driver.NewBotRunner("", "", b.script, b.players, &botRunnerLogger, &botPlayerLogger, false, false)
