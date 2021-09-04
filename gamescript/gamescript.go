@@ -99,7 +99,7 @@ type StartingSeat struct {
 	BuyIn          float32      `yaml:"buy-in"`
 	MuckLosingHand bool         `yaml:"muck-losing-hand"`
 	PostBlind      bool         `yaml:"post-blind"`
-	Reload         *bool        `yaml:"reload"`
+	AutoReload     *bool        `yaml:"auto-reload"`
 	RunItTwice     *bool        `yaml:"run-it-twice"`
 	IpAddress      *string      `yaml:"ip-address"`
 	Gps            *GpsLocation `yaml:"gps"`
@@ -139,19 +139,21 @@ type Observer struct {
 
 // VerifySeat verifies seat position in a new hand
 type VerifySeat struct {
-	Seat   uint32 `yaml:"seat"`
-	Player string `yaml:"player"`
-	Status string `yaml:"status"`
-	InHand *bool  `yaml:"inhand"`
-	Button *bool  `yaml:"button"`
-	Sb     *bool  `yaml:"sb"`
-	Bb     *bool  `yaml:"bb"`
+	Seat        uint32 `yaml:"seat"`
+	Player      string `yaml:"player"`
+	Status      string `yaml:"status"`
+	InHand      *bool  `yaml:"inhand"`
+	MissedBlind *bool  `yaml:"missed-blind"`
+	Button      *bool  `yaml:"button"`
+	Sb          *bool  `yaml:"sb"`
+	Bb          *bool  `yaml:"bb"`
 }
 
 // BotConfig contains botConfig content in the game script.
 type BotConfig struct {
 	MinActionPauseTime uint32 `yaml:"min-action-pause-time"`
 	MaxActionPauseTime uint32 `yaml:"max-action-pause-time"`
+	AutoPostBlind      bool   `yaml:"auto-post-blind"`
 }
 
 type SeatChange struct {
@@ -493,7 +495,7 @@ type NonProtoMessage struct {
 	SubType          string           `yaml:"subType" json:"subType"`
 	GameCode         string           `yaml:"gameCode" json:"gameCode"`
 	OpenedSeat       uint32           `yaml:"openedSeat" json:"openedSeat"`
-	PlayerName       string           `yaml:"playerName" json:"name"`
+	PlayerName       string           `yaml:"playerName" json:"playerName"`
 	PlayerID         uint64           `yaml:"playerId" json:"playerId"`
 	PlayerUUID       string           `yaml:"playerUuid" json:"playerUuid"`
 	ExpTime          string           `yaml:"expTime" json:"expTime"`

@@ -82,6 +82,7 @@ hands:
           - seat: 4
             bb: true
             inhand: true
+            missed-blind: false
             status: PLAYING
 
   - setup:
@@ -102,4 +103,5 @@ hands:
           - seat: 4
             sb: true
             inhand: true
+            missed-blind: false
             status: PLAYING

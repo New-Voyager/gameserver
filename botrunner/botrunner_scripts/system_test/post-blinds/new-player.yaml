@@ -78,7 +78,8 @@ hands:
             status: PLAYING
           - seat: 3
             inhand: false
-            status: NEED_TO_POST_BLIND
+            missed-blind: true
+            status: PLAYING
           - seat: 4
             sb: true
             inhand: true
@@ -98,7 +99,8 @@ hands:
             status: PLAYING
           - seat: 3
             inhand: false
-            status: NEED_TO_POST_BLIND
+            missed-blind: true
+            status: PLAYING
           - seat: 4
             button: true
             inhand: true
@@ -119,6 +121,7 @@ hands:
           - seat: 3
             inhand: true
             bb: true
+            missed-blind: false
             status: PLAYING
           - seat: 4
             inhand: true

@@ -21,8 +21,8 @@ game:
   buy-in-approval: true
   rake-percentage: 5.0
   rake-cap: 5.0
-  buy-in-min: 100
-  buy-in-max: 300
+  buy-in-min: 1000000
+  buy-in-max: 3000000
   action-time: 100
   rewards: High Hand
   highhand-tracked: true
@@ -35,12 +35,21 @@ bot-config:
 starting-seats:
   - seat: 1
     player: yong
-    buy-in: 100
+    buy-in: 2000000
   - seat: 2
     player: brian
-    buy-in: 100
+    buy-in: 2000000
   - seat: 3
     player: tom
-    buy-in: 100
+    buy-in: 2000000
+  - seat: 4
+    player: jim
+    buy-in: 2000000
+  - seat: 5
+    player: rob
+    buy-in: 2000000
+  - seat: 6
+    player: rich
+    buy-in: 2000000
 
 auto-play: true

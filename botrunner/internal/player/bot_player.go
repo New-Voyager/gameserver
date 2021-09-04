@@ -125,16 +125,18 @@ type BotPlayer struct {
 	gameToAll       string
 	handToAll       string
 	handToMe        string
+	handToMeText    string
 	meToHand        string
 	pingSubjectName string
 	pongSubjectName string
 
 	// Nats subscription objects
-	gameMsgSubscription         *natsgo.Subscription
-	handMsgAllSubscription      *natsgo.Subscription
-	handMsgPlayerSubscription   *natsgo.Subscription
-	playerMsgPlayerSubscription *natsgo.Subscription
-	pingSubscription            *natsgo.Subscription
+	gameMsgSubscription           *natsgo.Subscription
+	handMsgAllSubscription        *natsgo.Subscription
+	handMsgPlayerSubscription     *natsgo.Subscription
+	handMsgPlayerTextSubscription *natsgo.Subscription
+	playerMsgPlayerSubscription   *natsgo.Subscription
+	pingSubscription              *natsgo.Subscription
 
 	game      *gameView
 	seatNo    uint32
@@ -340,6 +342,11 @@ func (bp *BotPlayer) handlePrivateHandMsg(msg *natsgo.Msg) {
 	bp.unmarshalAndQueueHandMsg(data)
 }
 
+func (bp *BotPlayer) handlePrivateHandTextMsg(msg *natsgo.Msg) {
+	data := msg.Data
+	bp.unmarshalAndQueueHandMsg(data)
+}
+
 func (bp *BotPlayer) handlePlayerPrivateMsg(msg *natsgo.Msg) {
 	var jsonMessage map[string]interface{}
 	err := json.Unmarshal(msg.Data, &jsonMessage)
@@ -492,7 +499,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.hasNextHandBeenSetup = false // Not this hand, but the next one.
 
 		if bp.IsHost() {
-			data, _ := proto.Marshal(message)
+			data, _ := protojson.Marshal(message)
 			bp.logger.Debug().Msgf("A new hand is started. Hand Num: %d, message: %s", message.HandNum, string(data))
 			bp.logger.Info().Msgf("New Hand. Hand Num: %d", message.HandNum)
 			if !bp.config.Script.AutoPlay {
@@ -515,6 +522,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		// update seat number
 		for seatNo, player := range newHand.PlayersInSeats {
 			if player.PlayerId == bp.PlayerID {
+				bp.balance = player.Stack
 				if bp.seatNo == 0 {
 					bp.seatNo = seatNo
 					bp.updateLogPrefix()
@@ -550,6 +558,14 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 
 		// setup reload chips
 		bp.setupReloadChips()
+
+		if bp.balance == 0 {
+			err := bp.autoReloadBalance()
+			if err != nil {
+				errMsg := fmt.Sprintf("%s: Could not reload chips when balance is 0. Current hand num: %d. Error: %v", bp.logPrefix, bp.game.handNum, err)
+				bp.logger.Error().Msg(errMsg)
+			}
+		}
 
 	case game.HandFlop:
 		/* MessageType: FLOP */
@@ -616,14 +632,21 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if bp.IsObserver() && bp.config.Script.IsSeatHuman(seatNo) {
 			bp.logger.Info().Msgf("%s: Waiting on seat %d (%s/human) to act.", bp.logPrefix, seatNo, bp.getPlayerNameBySeatNo(seatNo))
 		}
-		bp.act(seatAction)
+		bp.act(seatAction, message.GetHandStatus())
 
 	case game.HandPlayerActed:
 		/* MessageType: PLAYER_ACTED */
 		if bp.IsHost() && !bp.config.Script.AutoPlay && !bp.hasNextHandBeenSetup {
 			// We're just using this message as a signal that the betting
 			// round is in progress and we are now ready to setup the next hand.
-			bp.setupNextHand()
+			err := bp.setupNextHand()
+			if err != nil {
+				errMsg := fmt.Sprintf("%s: Could not setup next hand. Current hand num: %d. Error: %v", bp.logPrefix, bp.game.handNum, err)
+				bp.logger.Error().Msg(errMsg)
+				bp.errorStateMsg = errMsg
+				bp.sm.SetState(BotState__ERROR)
+				return
+			}
 			bp.hasNextHandBeenSetup = true
 		}
 
@@ -748,7 +771,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			// When you are rejoining the game you were playing, and the timer is on you,
 			// you need to act based on the current hand state message instead of the
 			// YOUR_ACTION message you already missed while you were out.
-			bp.act(nextSeatAction)
+			bp.act(nextSeatAction, handStatus)
 		}
 	}
 }
@@ -953,6 +976,14 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 				if seat.Seat != newHand.BbPos {
 					errMsg := fmt.Sprintf("Player [%s] big blind position is not matching: Expected: %d Actual: %d",
 						seat.Player, seat.Seat, newHand.BbPos)
+					bp.logger.Error().Msg(errMsg)
+					panic(errMsg)
+				}
+			}
+			if seat.MissedBlind != nil {
+				if seatPlayer.MissedBlind != *seat.MissedBlind {
+					errMsg := fmt.Sprintf("Player [%s] missed blind is not matching: Expected: %t Actual: %t",
+						seat.Player, *seat.MissedBlind, seatPlayer.MissedBlind)
 					bp.logger.Error().Msg(errMsg)
 					panic(errMsg)
 				}
@@ -1869,7 +1900,13 @@ func (bp *BotPlayer) CreateGame(gameOpt game.GameCreateOpt) (string, error) {
 }
 
 // Subscribe makes the bot subscribe to the game's nats subjects.
-func (bp *BotPlayer) Subscribe(gameToAllSubjectName string, handToAllSubjectName string, handToPlayerSubjectName string, playerChannelName string, pingSubjectName string) error {
+func (bp *BotPlayer) Subscribe(gameToAllSubjectName string,
+	handToAllSubjectName string,
+	handToPlayerSubjectName string,
+	handToPlayerTextSubjectName string,
+	playerChannelName string,
+	pingSubjectName string) error {
+
 	if bp.gameMsgSubscription == nil || !bp.gameMsgSubscription.IsValid() {
 		bp.logger.Info().Msgf("%s: Subscribing to %s to receive game messages sent to players/observers", bp.logPrefix, gameToAllSubjectName)
 		gameToAllSub, err := bp.natsConn.Subscribe(gameToAllSubjectName, bp.handleGameMsg)
@@ -1899,6 +1936,16 @@ func (bp *BotPlayer) Subscribe(gameToAllSubjectName string, handToAllSubjectName
 		bp.handMsgPlayerSubscription = handToPlayerSub
 		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, handToPlayerSubjectName)
 	}
+
+	// if bp.handMsgPlayerTextSubscription == nil || !bp.handMsgPlayerTextSubscription.IsValid() {
+	// 	bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand text messages sent to player: %s", bp.logPrefix, handToPlayerTextSubjectName, bp.config.Name)
+	// 	handToPlayerTextSub, err := bp.natsConn.Subscribe(handToPlayerTextSubjectName, bp.handlePrivateHandTextMsg)
+	// 	if err != nil {
+	// 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the hand (text channel) message subject [%s]", bp.logPrefix, handToPlayerTextSubjectName))
+	// 	}
+	// 	bp.handMsgPlayerTextSubscription = handToPlayerTextSub
+	// 	bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, handToPlayerTextSubjectName)
+	// }
 
 	if bp.playerMsgPlayerSubscription == nil || !bp.playerMsgPlayerSubscription.IsValid() {
 		bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand messages sent to player: %s", bp.logPrefix, handToPlayerSubjectName, bp.config.Name)
@@ -1970,7 +2017,7 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 		},
 	}
 	playerChannelName := fmt.Sprintf("player.%d", bp.PlayerID)
-	err = bp.Subscribe(gi.GameToPlayerChannel, gi.HandToAllChannel, gi.HandToPlayerChannel, playerChannelName, gi.PingChannel)
+	err = bp.Subscribe(gi.GameToPlayerChannel, gi.HandToAllChannel, gi.HandToPlayerChannel, gi.HandToPlayerTextChannel, playerChannelName, gi.PingChannel)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to game %s channels", bp.logPrefix, gameCode))
 	}
@@ -1978,6 +2025,7 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 	bp.gameToAll = gi.GameToPlayerChannel
 	bp.handToAll = gi.HandToAllChannel
 	bp.handToMe = gi.HandToPlayerChannel
+	bp.handToMeText = gi.HandToPlayerTextChannel
 	bp.meToHand = gi.PlayerToHandChannel
 	bp.pingSubjectName = gi.PingChannel
 	bp.pongSubjectName = gi.PongChannel
@@ -2185,21 +2233,29 @@ func (bp *BotPlayer) NewPlayer(gameCode string, startingSeat *gamescript.Startin
 	return nil
 }
 
-func (bp *BotPlayer) reload() error {
+func (bp *BotPlayer) autoReloadBalance() error {
 	seatConfig := bp.config.Script.GetSeatConfigByPlayerName(bp.config.Name)
 	if seatConfig == nil {
 		return nil
 	}
-	if seatConfig.Reload != nil && *seatConfig.Reload == false {
+	if seatConfig.AutoReload != nil && *seatConfig.AutoReload == false {
 		// This player is explicitly set to not reload.
 		return nil
 	}
-
+	bp.logger.Info().Msgf("%s: [%s] Buyin %f.", bp.logPrefix, bp.gameCode, bp.gameInfo.BuyInMax)
 	err := bp.BuyIn(bp.gameCode, bp.gameInfo.BuyInMax)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to buy in", bp.logPrefix))
 	}
-	bp.balance = bp.gameInfo.BuyInMin
+
+	// automaticaly post blind
+	if bp.config.Script.BotConfig.AutoPostBlind {
+		_, err = bp.gqlHelper.PostBlind(bp.gameCode)
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("%s: Unable to post blind", bp.logPrefix))
+		}
+	}
+	bp.balance = bp.gameInfo.BuyInMax
 	return err
 }
 
@@ -2267,7 +2323,7 @@ func (bp *BotPlayer) BuyIn(gameCode string, amount float32) error {
 
 	resp, err := bp.gqlHelper.BuyIn(gameCode, amount)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to buy in", bp.logPrefix))
+		return errors.Wrapf(err, "%s: Error from GQL helper while trying to buy in %f chips", bp.logPrefix, amount)
 	}
 
 	if resp.Status.Approved {
@@ -2437,7 +2493,7 @@ func (bp *BotPlayer) doesScriptActionExists(scriptHand gamescript.Hand, handStat
 	return scriptActions != nil && len(scriptActions) > 0
 }
 
-func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
+func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandStatus) {
 	availableActions := seatAction.AvailableActions
 	nextAction := game.ACTION_CHECK
 	nextAmt := float32(0)
@@ -2525,11 +2581,18 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 
 		if !checkAvailable {
 			if !callAvailable && allInAvailable {
+				// TODO: Bring all-in back after the load test.
 				// go all in
-				nextAction = game.ACTION_ALLIN
-				nextAmt = allInAmount
+				// nextAction = game.ACTION_ALLIN
+				nextAction = game.ACTION_FOLD
+				nextAmt = 0
+
+				// TODO: Bring all-in back after the load test.
+				// nextAmt = allInAmount
 			} else {
-				if nextAmt > bp.balance/2 {
+				// TODO: Bring back after the load test.
+				// if nextAmt > bp.balance/2 {
+				if nextAmt > bp.balance/5 {
 					// more than half of the balance, fold this hand
 					nextAction = game.ACTION_FOLD
 				} else if callAvailable {
@@ -2575,6 +2638,10 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 					runItTwiceActionPrompt = true
 				}
 			}
+		}
+
+		if nextAction == game.ACTION_FOLD {
+			nextAmt = 0
 		}
 	} else {
 
@@ -2642,11 +2709,12 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 	}
 	msgID := strconv.Itoa(lastMsgIDInt + 1)
 	actionMsg := game.HandMessage{
-		GameCode:  bp.gameCode,
-		HandNum:   bp.game.handNum,
-		PlayerId:  bp.PlayerID,
-		SeatNo:    bp.seatNo,
-		MessageId: msgID,
+		GameCode:   bp.gameCode,
+		HandNum:    bp.game.handNum,
+		PlayerId:   bp.PlayerID,
+		SeatNo:     bp.seatNo,
+		MessageId:  msgID,
+		HandStatus: handStatus,
 		Messages: []*game.HandMessageItem{
 			{
 				MessageType: msgType,
@@ -2924,7 +2992,10 @@ func (bp *BotPlayer) setupNextHand() error {
 
 	nextHand := bp.config.Script.GetHand(nextHandNum)
 
-	bp.AddNewPlayers(&nextHand.Setup)
+	err := bp.AddNewPlayers(&nextHand.Setup)
+	if err != nil {
+		return errors.Wrap(err, "Unable to add new players.")
+	}
 
 	bp.processPreDealItems(nextHand.Setup.PreDeal)
 

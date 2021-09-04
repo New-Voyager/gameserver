@@ -18,6 +18,7 @@ DEV_POSTGRES_DB ?= game
 PRINT_GAME_MSG ?= false
 PRINT_HAND_MSG ?= false
 ENABLE_ENCRYPTION ?= 1
+DEV_LOG_LEVEL ?= debug
 
 # Script used to join the human-created game.
 HUMAN_GAME_SCRIPT := botrunner_scripts/human_game/human-game.yaml
@@ -83,6 +84,7 @@ run:
 	POSTGRES_PASSWORD=$(DEV_POSTGRES_PASSWORD) \
 	POSTGRES_DB=$(DEV_POSTGRES_DB) \
 	ENABLE_ENCRYPTION=$(ENABLE_ENCRYPTION) \
+	LOG_LEVEL=$(DEV_LOG_LEVEL) \
 	go run ./cmd/botrunner/main.go --script $(BOTRUNNER_SCRIPT)
 
 .PHONY: tester
@@ -115,6 +117,7 @@ botrunner-server:
 	PRINT_GAME_MSG=$(PRINT_GAME_MSG) \
 	PRINT_HAND_MSG=$(PRINT_HAND_MSG) \
 	ENABLE_ENCRYPTION=$(ENABLE_ENCRYPTION) \
+	LOG_LEVEL=$(DEV_LOG_LEVEL) \
 	go run ./cmd/server/main.go
 
 .PHONY: publish
@@ -157,7 +160,7 @@ gcp-login:
 #################
 
 # These images are downloaded.
-API_SERVER_IMAGE := $(REGISTRY)/api-server:0.7.1
+API_SERVER_IMAGE := $(REGISTRY)/api-server:0.7.7
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
 REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
 POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5

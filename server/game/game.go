@@ -55,6 +55,7 @@ type Game struct {
 	handSetupPersist *RedisHandsSetupTracker
 
 	inProcessPendingUpdates bool
+	isHandInProgress        bool
 	testGameConfig          *TestGameConfig
 	delays                  Delays
 	lock                    sync.Mutex
@@ -373,6 +374,8 @@ func (g *Game) dealNewHand() error {
 	var newHandInfo *NewHandInfo
 	var err error
 
+	g.isHandInProgress = true
+
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_1, 0)
 
 	playersInSeats := make(map[uint32]*PlayerInSeatState)
@@ -469,10 +472,11 @@ func (g *Game) dealNewHand() error {
 					BreakExpTime: playerInSeat.BreakTimeExpAt,
 					Inhand:       playerInSeat.Inhand,
 					RunItTwice:   playerInSeat.RunItTwice,
+					MissedBlind:  playerInSeat.MissedBlind,
 				}
 			} else {
 				playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
-					OpenSeat: false,
+					OpenSeat: true,
 					Inhand:   false,
 				}
 			}

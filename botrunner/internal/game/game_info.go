@@ -40,15 +40,16 @@ type GameInfo struct {
 		AvailableSeats []uint32   `json:"availableSeats"`
 		PlayersInSeats []SeatInfo `json:"playersInSeats"`
 	} `json:"seatInfo"`
-	GameToken           string
-	PlayerGameStatus    string
-	GameToPlayerChannel string
-	HandToAllChannel    string
-	PlayerToHandChannel string
-	HandToPlayerChannel string
-	PingChannel         string
-	PongChannel         string
-	Start               bool
+	GameToken               string
+	PlayerGameStatus        string
+	GameToPlayerChannel     string
+	HandToAllChannel        string
+	PlayerToHandChannel     string
+	HandToPlayerChannel     string
+	HandToPlayerTextChannel string
+	PingChannel             string
+	PongChannel             string
+	Start                   bool
 }
 
 // SeatInfo is the info about a player sitting in a game.

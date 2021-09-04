@@ -37,13 +37,13 @@ func (g *Game) saveHandResult2ToAPIServer(result2 *HandResultServer) (*SaveHandR
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Received HTTP status %d from %s", resp.StatusCode, url)
-	}
-
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Unable to read response body from %s", url)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Received HTTP status %d from %s. Response body: %s", resp.StatusCode, url, string(bodyBytes))
 	}
 
 	var saveResult SaveHandResult
