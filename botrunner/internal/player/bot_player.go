@@ -2580,6 +2580,10 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction) {
 				}
 			}
 		}
+
+		if nextAction == game.ACTION_FOLD {
+			nextAmt = 0
+		}
 	} else {
 
 		for _, action := range availableActions {
