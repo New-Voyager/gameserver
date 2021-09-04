@@ -1937,15 +1937,15 @@ func (bp *BotPlayer) Subscribe(gameToAllSubjectName string,
 		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, handToPlayerSubjectName)
 	}
 
-	if bp.handMsgPlayerTextSubscription == nil || !bp.handMsgPlayerTextSubscription.IsValid() {
-		bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand text messages sent to player: %s", bp.logPrefix, handToPlayerTextSubjectName, bp.config.Name)
-		handToPlayerTextSub, err := bp.natsConn.Subscribe(handToPlayerTextSubjectName, bp.handlePrivateHandTextMsg)
-		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the hand (text channel) message subject [%s]", bp.logPrefix, handToPlayerTextSubjectName))
-		}
-		bp.handMsgPlayerTextSubscription = handToPlayerTextSub
-		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, handToPlayerTextSubjectName)
-	}
+	// if bp.handMsgPlayerTextSubscription == nil || !bp.handMsgPlayerTextSubscription.IsValid() {
+	// 	bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand text messages sent to player: %s", bp.logPrefix, handToPlayerTextSubjectName, bp.config.Name)
+	// 	handToPlayerTextSub, err := bp.natsConn.Subscribe(handToPlayerTextSubjectName, bp.handlePrivateHandTextMsg)
+	// 	if err != nil {
+	// 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the hand (text channel) message subject [%s]", bp.logPrefix, handToPlayerTextSubjectName))
+	// 	}
+	// 	bp.handMsgPlayerTextSubscription = handToPlayerTextSub
+	// 	bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, handToPlayerTextSubjectName)
+	// }
 
 	if bp.playerMsgPlayerSubscription == nil || !bp.playerMsgPlayerSubscription.IsValid() {
 		bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand messages sent to player: %s", bp.logPrefix, handToPlayerSubjectName, bp.config.Name)
