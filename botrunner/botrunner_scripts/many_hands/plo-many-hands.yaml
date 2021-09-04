@@ -25,6 +25,7 @@ game:
   buy-in-max: 300
   action-time: 100
   rewards: High Hand
+  highhand-tracked: true
 
 bot-config:
   min-action-pause-time: 1000
