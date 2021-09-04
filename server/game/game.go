@@ -472,10 +472,11 @@ func (g *Game) dealNewHand() error {
 					BreakExpTime: playerInSeat.BreakTimeExpAt,
 					Inhand:       playerInSeat.Inhand,
 					RunItTwice:   playerInSeat.RunItTwice,
+					MissedBlind:  playerInSeat.MissedBlind,
 				}
 			} else {
 				playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
-					OpenSeat: false,
+					OpenSeat: true,
 					Inhand:   false,
 				}
 			}

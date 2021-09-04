@@ -972,6 +972,14 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 					panic(errMsg)
 				}
 			}
+			if seat.MissedBlind != nil {
+				if seatPlayer.MissedBlind != *seat.MissedBlind {
+					errMsg := fmt.Sprintf("Player [%s] missed blind is not matching: Expected: %t Actual: %t",
+						seat.Player, *seat.MissedBlind, seatPlayer.MissedBlind)
+					bp.logger.Error().Msg(errMsg)
+					panic(errMsg)
+				}
+			}
 		}
 	}
 
@@ -2209,12 +2217,20 @@ func (bp *BotPlayer) autoReloadBalance() error {
 		// This player is explicitly set to not reload.
 		return nil
 	}
-
+	bp.logger.Info().Msgf("%s: [%s] Buyin %f.", bp.logPrefix, bp.gameCode, bp.gameInfo.BuyInMax)
 	err := bp.BuyIn(bp.gameCode, bp.gameInfo.BuyInMax)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to buy in", bp.logPrefix))
 	}
-	bp.balance = bp.gameInfo.BuyInMin
+
+	// automaticaly post blind
+	if bp.config.Script.BotConfig.AutoPostBlind {
+		_, err = bp.gqlHelper.PostBlind(bp.gameCode)
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("%s: Unable to post blind", bp.logPrefix))
+		}
+	}
+	bp.balance = bp.gameInfo.BuyInMax
 	return err
 }
 

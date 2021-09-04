@@ -30,6 +30,7 @@ game:
 bot-config:
   min-action-pause-time: 300
   max-action-pause-time: 300
+  auto-post-blind: true
 
 starting-seats:
   - seat: 1
@@ -72,6 +73,22 @@ hands:
         - action: 3, FOLD
 
   - setup:
+      verify:
+        seats:
+          - seat: 1
+            inhand: true
+            missed-blind: false
+            status: PLAYING
+          - seat: 2
+            inhand: true
+            sb: true
+            status: PLAYING
+          - seat: 3
+            inhand: true
+            button: true
+            bb: true
+            status: PLAYING
+
       board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-cards:
         - seat: 1
@@ -82,6 +99,6 @@ hands:
           cards: ["3s", "7s", "9d", "8h"]
     preflop:
       seat-actions:
-        - action: 3, FOLD
         - action: 1, ALLIN
-        - action: 2, ALLIN
+        - action: 2, FOLD
+        - action: 3, ALLIN

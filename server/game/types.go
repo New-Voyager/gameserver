@@ -317,6 +317,7 @@ type SeatPlayer struct {
 	PostedBlind    bool
 	Inhand         bool
 	RunItTwice     bool
+	MissedBlind    bool
 }
 
 /*

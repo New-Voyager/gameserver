@@ -70,6 +70,7 @@ hands:
       verify:
         seats:
           - seat: 1
+            bb: true
             inhand: true
             status: PLAYING
           - seat: 2
@@ -78,11 +79,11 @@ hands:
             status: PLAYING
           - seat: 3
             inhand: true
-            sb: true
             status: PLAYING
           - seat: 4
-            bb: true
+            sb: true
             inhand: true
+            missed-blind: false
             status: PLAYING
 
   - setup:
@@ -90,17 +91,17 @@ hands:
       verify:
         seats:
           - seat: 1
-            bb: true
+            sb: true
             inhand: true
             status: PLAYING
           - seat: 2
             inhand: true
+            bb: true
             status: PLAYING
           - seat: 3
             inhand: true
-            button: true
             status: PLAYING
           - seat: 4
-            sb: true
+            button: true
             inhand: true
             status: PLAYING

@@ -68,6 +68,7 @@ hands:
             status: PLAYING
           - seat: 4
             inhand: true
+            missed-blind: false
             status: PLAYING
   - setup:
       auto: true
@@ -89,6 +90,7 @@ hands:
             status: PLAYING
           - seat: 4
             inhand: false
+            missed-blind: false
             status: IN_BREAK
 
   - setup:
@@ -109,7 +111,8 @@ hands:
             status: PLAYING
           - seat: 4
             inhand: false
-            status: NEED_TO_POST_BLIND
+            missed-blind: true
+            status: PLAYING
 
   # seat 4 misses another hand
   - setup:
@@ -130,7 +133,8 @@ hands:
             status: PLAYING
           - seat: 4
             inhand: false
-            status: NEED_TO_POST_BLIND
+            missed-blind: true
+            status: PLAYING
 
   # seat 4 is natural big blind
   - setup:
@@ -151,4 +155,5 @@ hands:
           - seat: 4
             bb: true
             inhand: true
+            missed-blind: false
             status: PLAYING

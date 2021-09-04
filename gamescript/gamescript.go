@@ -139,19 +139,21 @@ type Observer struct {
 
 // VerifySeat verifies seat position in a new hand
 type VerifySeat struct {
-	Seat   uint32 `yaml:"seat"`
-	Player string `yaml:"player"`
-	Status string `yaml:"status"`
-	InHand *bool  `yaml:"inhand"`
-	Button *bool  `yaml:"button"`
-	Sb     *bool  `yaml:"sb"`
-	Bb     *bool  `yaml:"bb"`
+	Seat        uint32 `yaml:"seat"`
+	Player      string `yaml:"player"`
+	Status      string `yaml:"status"`
+	InHand      *bool  `yaml:"inhand"`
+	MissedBlind *bool  `yaml:"missed-blind"`
+	Button      *bool  `yaml:"button"`
+	Sb          *bool  `yaml:"sb"`
+	Bb          *bool  `yaml:"bb"`
 }
 
 // BotConfig contains botConfig content in the game script.
 type BotConfig struct {
 	MinActionPauseTime uint32 `yaml:"min-action-pause-time"`
 	MaxActionPauseTime uint32 `yaml:"max-action-pause-time"`
+	AutoPostBlind      bool   `yaml:"auto-post-blind"`
 }
 
 type SeatChange struct {
