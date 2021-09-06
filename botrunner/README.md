@@ -141,3 +141,9 @@ Get the code coverage report after the system test is run.
 ```
 make system-test-coverage
 ```
+
+To run a bot game.
+```
+POKER_LOCAL_IP=192.168.0.106 BOTRUNNER_SCRIPT=botrunner_scripts/system_test/river-action-3-bots.yaml make botrunner
+```
+

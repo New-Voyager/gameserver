@@ -318,6 +318,10 @@ type SeatPlayer struct {
 	Inhand         bool
 	RunItTwice     bool
 	MissedBlind    bool
+	MuckLosingHand bool
+	ActiveSeat     bool
+	AutoStraddle   bool
+	ButtonStraddle bool
 }
 
 /*
