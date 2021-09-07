@@ -274,7 +274,7 @@ func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (string,
 }
 
 // SitIn takes a seat in a game.
-func (g *GQLHelper) SitIn(gameCode string, seatNo uint32, gps *gamescript.GpsLocation) (string, error) {
+func (g *GQLHelper) SitIn(gameCode string, seatNo uint32, gps *gamescript.GpsLocation) (*JoinGameResp, error) {
 	req := graphql.NewRequest(JoinGameGQL)
 
 	req.Var("gameCode", gameCode)
@@ -298,14 +298,14 @@ func (g *GQLHelper) SitIn(gameCode string, seatNo uint32, gps *gamescript.GpsLoc
 	var respData JoinGameResp
 	err := g.client.Run(ctx, req, &respData)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return respData.Status, nil
+	return &respData, nil
 }
 
 // BuyIn buys chips once seated in a game.
-func (g *GQLHelper) BuyIn(gameCode string, amount float32) (BuyInResp, error) {
+func (g *GQLHelper) BuyIn(gameCode string, amount float32) (*BuyInResp, error) {
 	req := graphql.NewRequest(BuyInGQL)
 
 	req.Var("gameCode", gameCode)
@@ -319,10 +319,10 @@ func (g *GQLHelper) BuyIn(gameCode string, amount float32) (BuyInResp, error) {
 	var respData BuyInResp
 	err := g.client.Run(ctx, req, &respData)
 	if err != nil {
-		return respData, err
+		return nil, err
 	}
 
-	return respData, nil
+	return &respData, nil
 }
 
 // LeaveGame leaves the game.
@@ -565,7 +565,7 @@ func (g *GQLHelper) RequestTakeBreak(gameCode string) (bool, error) {
 }
 
 // RequestSitBack returning from break
-func (g *GQLHelper) RequestSitBack(gameCode string, gps *gamescript.GpsLocation) (bool, error) {
+func (g *GQLHelper) RequestSitBack(gameCode string, gps *gamescript.GpsLocation) (*SitBackRequestResp, error) {
 	req := graphql.NewRequest(SitBackRequestGQL)
 
 	//var respData EndGameResp
@@ -587,10 +587,10 @@ func (g *GQLHelper) RequestSitBack(gameCode string, gps *gamescript.GpsLocation)
 
 	err := g.client.Run(ctx, req, &resp)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	return resp.Status, nil
+	return &resp, nil
 }
 
 // ConfirmSeatChange confirms to make a seat change to a open seat
@@ -1153,11 +1153,17 @@ const JoinGameGQL = `mutation join_game($gameCode: String!, $seatNo: Int!, $gps:
 		gameCode: $gameCode
 		seatNo: $seatNo
 		location: $gps
-	)
+	) {
+		status
+		missedBlind
+	}
 }`
 
 type JoinGameResp struct {
-	Status string
+	Status struct {
+		Status      string
+		MissedBlind bool
+	}
 }
 
 const GameByIdGQL = `query get_game_id($gameCode: String!) {
@@ -1212,6 +1218,8 @@ type BuyInResp struct {
 	Status struct {
 		Approved      bool
 		ExpireSeconds uint32
+		MissedBlind   bool
+		Status        string
 	}
 }
 
@@ -1342,11 +1350,17 @@ const SitBackRequestGQL = `mutation sitBack($gameCode: String!, $location: Locat
 	status: sitBack(
 		gameCode: $gameCode
 		location: $location
-	)
+	) {
+		status
+		missedBlind
+	}
 }`
 
 type SitBackRequestResp struct {
-	Status bool
+	Status struct {
+		Status      string
+		MissedBlind bool
+	}
 }
 
 const JoinWaitListGQL = `mutation joinWaitList($gameCode: String!) {
