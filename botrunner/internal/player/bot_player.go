@@ -2119,7 +2119,7 @@ func (bp *BotPlayer) JoinGame(gameCode string, gps *gamescript.GpsLocation) erro
 			// update player config
 			scriptSeatConfig := bp.config.Script.GetSeatConfigByPlayerName(bp.config.Name)
 			if scriptSeatConfig != nil {
-				bp.UpdatePlayerGameConfig(gameCode, scriptSeatConfig.RunItTwice, &scriptSeatConfig.MuckLosingHand)
+				bp.UpdateGamePlayerSettings(gameCode, nil, nil, nil, nil, scriptSeatConfig.RunItTwice, &scriptSeatConfig.MuckLosingHand)
 			}
 		}
 		bp.buyInAmount = uint32(scriptBuyInAmount)
@@ -2208,7 +2208,7 @@ func (bp *BotPlayer) NewPlayer(gameCode string, startingSeat *gamescript.Startin
 			// update player config
 			scriptSeatConfig := bp.config.Script.GetSeatConfigByPlayerName(bp.config.Name)
 			if scriptSeatConfig != nil {
-				bp.UpdatePlayerGameConfig(gameCode, nil, &scriptSeatConfig.MuckLosingHand)
+				bp.UpdateGamePlayerSettings(gameCode, nil, nil, nil, nil, nil, &scriptSeatConfig.MuckLosingHand)
 			}
 		}
 		bp.buyInAmount = uint32(scriptBuyInAmount)
@@ -2292,7 +2292,7 @@ func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
 	// unscripted game, bots will run it twice
 	if bp.gameInfo.RunItTwiceAllowed {
 		t := true
-		bp.UpdatePlayerGameConfig(gameCode, &t, &t)
+		bp.UpdateGamePlayerSettings(gameCode, nil, nil, nil, nil, &t, &t)
 	}
 
 	bp.event(BotEvent__SUCCEED_BUYIN)
@@ -2462,11 +2462,27 @@ func (bp *BotPlayer) queryCurrentHandState() error {
 	return nil
 }
 
-// UpdatePlayerGameConfig updates player's configuration for this game.
-func (bp *BotPlayer) UpdatePlayerGameConfig(gameCode string, runItTwiceAllowed *bool, muckLosingHand *bool) error {
+// UpdateGamePlayerSettings updates player's configuration for this game.
+func (bp *BotPlayer) UpdateGamePlayerSettings(
+	gameCode string,
+	autoStraddle *bool,
+	straddle *bool,
+	buttonStraddle *bool,
+	bombPotEnabled *bool,
+	runItTwiceAllowed *bool,
+	muckLosingHand *bool,
+) error {
 	bp.logger.Info().Msgf("%s: Updating player configuration [runItTwiceAllowed: %v, muckLosingHand: %v] game [%s].",
 		bp.logPrefix, runItTwiceAllowed, muckLosingHand, gameCode)
-	err := bp.gqlHelper.UpdatePlayerGameConfig(gameCode, runItTwiceAllowed, muckLosingHand)
+	settings := gql.GamePlayerSettingsUpdateInput{
+		AutoStraddle:      autoStraddle,
+		Straddle:          straddle,
+		ButtonStraddle:    buttonStraddle,
+		BombPotEnabled:    bombPotEnabled,
+		MuckLosingHand:    muckLosingHand,
+		RunItTwiceAllowed: runItTwiceAllowed,
+	}
+	err := bp.gqlHelper.UpdateGamePlayerSettings(gameCode, settings)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to update game config [%s]", bp.logPrefix, gameCode))
 	}

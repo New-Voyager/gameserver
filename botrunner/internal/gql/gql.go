@@ -805,19 +805,12 @@ func (g *GQLHelper) HostRequestSeatChangeSwap(gameCode string, seat1 uint32, sea
 	return resp.SeatChange, nil
 }
 
-func (g *GQLHelper) UpdatePlayerGameConfig(gameCode string, runItTwiceAllowed *bool, muckLosingHand *bool) error {
-	req := graphql.NewRequest(UpdatePlayerGameConfigGQL)
-	type GameConfigChangeInput struct {
-		RunItTwiceAllowed *bool `json:"runItTwicePrompt,omitempty"`
-		MuckLosingHand    *bool `json:"muckLosingHand,omitempty"`
-	}
-	config := GameConfigChangeInput{
-		RunItTwiceAllowed: runItTwiceAllowed,
-		MuckLosingHand:    muckLosingHand,
-	}
+func (g *GQLHelper) UpdateGamePlayerSettings(gameCode string, settings GamePlayerSettingsUpdateInput) error {
+	req := graphql.NewRequest(UpdateGamePlayerSettingsGQL)
+
 	//var respData EndGameResp
 	req.Var("gameCode", gameCode)
-	req.Var("config", config)
+	req.Var("settings", settings)
 
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Authorization", g.authToken)
@@ -1442,10 +1435,19 @@ const HostSeatChangeSwapGQL = `mutation seatChangeSwapSeats($gameCode: String!, 
 	)
 }`
 
-const UpdatePlayerGameConfigGQL = `
-	mutation update_player_game_config($gameCode:String! $config:PlayerGameConfigChangeInput!) {
-		ret: updatePlayerGameConfig(gameCode:$gameCode, config:$config)
+const UpdateGamePlayerSettingsGQL = `
+	mutation update_game_player_settings($gameCode:String! $settings:GamePlayerSettingsUpdateInput!) {
+		ret: updateGamePlayerSettings(gameCode:$gameCode, settings:$settings)
   	}`
+
+type GamePlayerSettingsUpdateInput struct {
+	AutoStraddle      *bool `json:"autoStraddle,omitempty"`
+	Straddle          *bool `json:"straddle,omitempty"`
+	ButtonStraddle    *bool `json:"buttonStraddle,omitempty"`
+	BombPotEnabled    *bool `json:"bombPotEnabled,omitempty"`
+	RunItTwiceAllowed *bool `json:"runItTwicePrompt,omitempty"`
+	MuckLosingHand    *bool `json:"muckLosingHand,omitempty"`
+}
 
 const IpChangedGQL = `
 	mutation ipChanged {
