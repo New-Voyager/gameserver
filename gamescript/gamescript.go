@@ -184,6 +184,11 @@ type Hand struct {
 	PostHandSteps []PostHandStep `yaml:"post-hand"`
 }
 
+type DealerChoiceSetup struct {
+	Choice string `yaml:"choice"`
+	Seat   uint32 `yaml:"seat"`
+}
+
 // HandSetup contains the setup content in the hand config.
 type HandSetup struct {
 	PreDeal         []PreDealSetup       `yaml:"pre-deal"`
@@ -211,6 +216,7 @@ type HandSetup struct {
 	DoubleBoard     bool                 `yaml:"double-board"`
 	ResultPauseTime uint32               `yaml:"result-pause-time"`
 	PlayersConfig   []PlayerConfig       `yaml:"players-config"`
+	DealerChoice    *DealerChoiceSetup   `yaml:"dealer-choice"`
 }
 
 type PreDealSetup struct {
@@ -516,6 +522,16 @@ type NonProtoMessage struct {
 	SeatMoves        []SeatUpdate     `yaml:"seatMoves" json:"seatMoves"`
 	WaitlistPlayerId uint64           `yaml:"waitlistPlayerId" json:"waitlistPlayerId"`
 	Verified         bool
+}
+
+type HandTextMessage struct {
+	MessageType       string   `yaml:"type" json:"messageType"`
+	MessageId         string   `yaml:"messageId" json:"messageId"`
+	GameCode          string   `yaml:"gameCode" json:"gameCode"`
+	HandNum           uint32   `yaml:"handNum" json:"handNum"`
+	PlayerId          uint64   `yaml:"playerId" json:"playerId"`
+	DealerChoiceGames []uint32 `yaml:"dealerChoiceGames" json:"dealerChoiceGames"`
+	Timeout           uint32   `yaml:"timeout" json:"timeout"`
 }
 
 type AfterGameVerification struct {

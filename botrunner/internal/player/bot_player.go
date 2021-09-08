@@ -96,11 +96,12 @@ type BotPlayer struct {
 	serverLastMsgIDs *util.Queue
 
 	// Message channels
-	chGame  chan *GameMessageChannelItem
-	chHand  chan *game.HandMessage
-	chPing  chan *game.PingPongMessage
-	end     chan bool
-	endPing chan bool
+	chGame     chan *GameMessageChannelItem
+	chHand     chan *game.HandMessage
+	chHandText chan *gamescript.HandTextMessage
+	chPing     chan *game.PingPongMessage
+	end        chan bool
+	endPing    chan bool
 
 	// Points to the most recent messages from the game server.
 	lastGameMessage *game.GameMessage
@@ -162,8 +163,9 @@ type BotPlayer struct {
 	errorStateMsg string
 
 	// messages received in the player/private channel
-	PrivateMessages []map[string]interface{}
-	GameMessages    []*gamescript.NonProtoMessage
+	PrivateMessages     []map[string]interface{}
+	PrivateTextMessages []*gamescript.HandTextMessage
+	GameMessages        []*gamescript.NonProtoMessage
 }
 
 // NewBotPlayer creates an instance of BotPlayer.
@@ -186,28 +188,30 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 	restHelper := rest.NewRestClient(util.GetInternalRestURL(playerConfig.APIServerURL), uint32(playerConfig.GQLTimeoutSec), "")
 
 	bp := BotPlayer{
-		logger:           logger,
-		config:           playerConfig,
-		PlayerUUID:       playerConfig.DeviceID,
-		gqlHelper:        gqlHelper,
-		restHelper:       restHelper,
-		natsConn:         nc,
-		chGame:           make(chan *GameMessageChannelItem, 10),
-		chHand:           make(chan *game.HandMessage, 10),
-		chPing:           make(chan *game.PingPongMessage, 10),
-		end:              make(chan bool),
-		endPing:          make(chan bool),
-		logPrefix:        logPrefix,
-		printGameMsg:     util.Env.ShouldPrintGameMsg(),
-		printHandMsg:     util.Env.ShouldPrintHandMsg(),
-		printStateMsg:    util.Env.ShouldPrintStateMsg(),
-		RewardsNameToID:  make(map[string]uint32),
-		clientLastMsgID:  "0",
-		serverLastMsgIDs: util.NewQueue(10),
-		maxRetry:         300,
-		scriptedGame:     true,
-		PrivateMessages:  make([]map[string]interface{}, 0),
-		GameMessages:     make([]*gamescript.NonProtoMessage, 0),
+		logger:              logger,
+		config:              playerConfig,
+		PlayerUUID:          playerConfig.DeviceID,
+		gqlHelper:           gqlHelper,
+		restHelper:          restHelper,
+		natsConn:            nc,
+		chGame:              make(chan *GameMessageChannelItem, 10),
+		chHand:              make(chan *game.HandMessage, 10),
+		chPing:              make(chan *game.PingPongMessage, 10),
+		chHandText:          make(chan *gamescript.HandTextMessage, 10),
+		end:                 make(chan bool),
+		endPing:             make(chan bool),
+		logPrefix:           logPrefix,
+		printGameMsg:        util.Env.ShouldPrintGameMsg(),
+		printHandMsg:        util.Env.ShouldPrintHandMsg(),
+		printStateMsg:       util.Env.ShouldPrintStateMsg(),
+		RewardsNameToID:     make(map[string]uint32),
+		clientLastMsgID:     "0",
+		serverLastMsgIDs:    util.NewQueue(10),
+		maxRetry:            300,
+		scriptedGame:        true,
+		PrivateMessages:     make([]map[string]interface{}, 0),
+		GameMessages:        make([]*gamescript.NonProtoMessage, 0),
+		PrivateTextMessages: make([]*gamescript.HandTextMessage, 0),
 	}
 
 	bp.sm = fsm.NewFSM(
@@ -344,7 +348,13 @@ func (bp *BotPlayer) handlePrivateHandMsg(msg *natsgo.Msg) {
 
 func (bp *BotPlayer) handlePrivateHandTextMsg(msg *natsgo.Msg) {
 	data := msg.Data
-	bp.unmarshalAndQueueHandMsg(data)
+	var message gamescript.HandTextMessage
+	fmt.Printf("%s\n", string(data))
+	err := json.Unmarshal(msg.Data, &message)
+	if err == nil {
+		bp.PrivateTextMessages = append(bp.PrivateTextMessages, &message)
+	}
+	bp.chHandText <- &message
 }
 
 func (bp *BotPlayer) handlePlayerPrivateMsg(msg *natsgo.Msg) {
@@ -395,6 +405,8 @@ func (bp *BotPlayer) messageLoop() {
 			}
 		case message := <-bp.chHand:
 			bp.processHandMessage(message)
+		case message := <-bp.chHandText:
+			bp.processHandTextMessage(message)
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
@@ -409,6 +421,43 @@ func (bp *BotPlayer) pingMessageLoop() {
 			bp.respondToPing(message)
 		}
 		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func (bp *BotPlayer) processHandTextMessage(message *gamescript.HandTextMessage) {
+	if bp.IsErrorState() {
+		bp.logger.Info().Msgf("%s: Bot is in error state. Ignoring hand message.", bp.logPrefix)
+		return
+	}
+
+	if message.MessageId == "" {
+		bp.logger.Panic().Msgf("%s: Hand message from server is missing message ID. Message: %s", bp.logPrefix, message.MessageType)
+	}
+
+	currentHand := bp.config.Script.GetHand(message.HandNum)
+	if message.MessageType == game.HandDealerChoice {
+		if currentHand.Setup.DealerChoice != nil {
+			// choose a game from the list
+			if bp.seatNo != currentHand.Setup.DealerChoice.Seat {
+				errMsg := fmt.Sprintf("Seat No[%d] should be choosing dealer choice, but found another seat: [%d]", currentHand.Setup.DealerChoice.Seat, bp.seatNo)
+				bp.logger.Error().Msg(errMsg)
+				panic(errMsg)
+			}
+			gameType := game.GameType_UNKNOWN
+			switch currentHand.Setup.DealerChoice.Choice {
+			case "HOLDEM":
+				gameType = game.GameType_HOLDEM
+			case "PLO":
+				gameType = game.GameType_PLO
+			case "PLO_HILO":
+				gameType = game.GameType_PLO_HILO
+			case "FIVE_CARD_PLO":
+				gameType = game.GameType_FIVE_CARD_PLO
+			case "FIVE_CARD_PLO_HILO":
+				gameType = game.GameType_FIVE_CARD_PLO_HILO
+			}
+			bp.gqlHelper.DealerChoice(bp.gameCode, gameType)
+		}
 	}
 }
 
@@ -983,7 +1032,7 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 			if seat.MissedBlind != nil {
 				if seatPlayer.MissedBlind != *seat.MissedBlind {
 					errMsg := fmt.Sprintf("Player [%s] missed blind is not matching: Expected: %t Actual: %t",
-						seat.Player, *seat.MissedBlind, seatPlayer.MissedBlind)
+						seatPlayer.Name, *seat.MissedBlind, seatPlayer.MissedBlind)
 					bp.logger.Error().Msg(errMsg)
 					panic(errMsg)
 				}
@@ -1937,15 +1986,15 @@ func (bp *BotPlayer) Subscribe(gameToAllSubjectName string,
 		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, handToPlayerSubjectName)
 	}
 
-	// if bp.handMsgPlayerTextSubscription == nil || !bp.handMsgPlayerTextSubscription.IsValid() {
-	// 	bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand text messages sent to player: %s", bp.logPrefix, handToPlayerTextSubjectName, bp.config.Name)
-	// 	handToPlayerTextSub, err := bp.natsConn.Subscribe(handToPlayerTextSubjectName, bp.handlePrivateHandTextMsg)
-	// 	if err != nil {
-	// 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the hand (text channel) message subject [%s]", bp.logPrefix, handToPlayerTextSubjectName))
-	// 	}
-	// 	bp.handMsgPlayerTextSubscription = handToPlayerTextSub
-	// 	bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, handToPlayerTextSubjectName)
-	// }
+	if bp.handMsgPlayerTextSubscription == nil || !bp.handMsgPlayerTextSubscription.IsValid() {
+		bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand text messages sent to player: %s", bp.logPrefix, handToPlayerTextSubjectName, bp.config.Name)
+		handToPlayerTextSub, err := bp.natsConn.Subscribe(handToPlayerTextSubjectName, bp.handlePrivateHandTextMsg)
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the hand (text channel) message subject [%s]", bp.logPrefix, handToPlayerTextSubjectName))
+		}
+		bp.handMsgPlayerTextSubscription = handToPlayerTextSub
+		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, handToPlayerTextSubjectName)
+	}
 
 	if bp.playerMsgPlayerSubscription == nil || !bp.playerMsgPlayerSubscription.IsValid() {
 		bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand messages sent to player: %s", bp.logPrefix, handToPlayerSubjectName, bp.config.Name)

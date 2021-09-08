@@ -1,8 +1,12 @@
 # SYSTEM_TEST_TIMEOUT_SEC:60
 
-# a player goes on break and returns in next hand
-# the player does not post blind and waits for natural big blind
-# the player will not be in hand until the player in big blind position
+# players on seats: seat1: yong, seat2: brian, seat3: tom, seat4: jim 
+# hand1: seat 4 player goes on break and returns in next hand
+# hand2: the player does not post blind and waits for natural big blind
+#        player on seat 3 leaves the game 
+# hand3: 
+# hand4: new player sits in seat 3, seat 3 big blind, jim is not in the hand
+# hand5: jim is natural big blind
 description: Player goes on break and returns and does not post blind
 club:
   name: post blind testing
@@ -72,6 +76,8 @@ hands:
             status: PLAYING
   - setup:
       auto: true
+      leave-game:
+        - seat: 3
       sit-back:
         - seat: 4
       verify:
@@ -105,9 +111,32 @@ hands:
             inhand: true
             bb: true
             status: PLAYING
-          - seat: 3
-            button: true
+          - seat: 4
+            inhand: false
+            missed-blind: true
+            status: PLAYING
+
+  # seat 4 misses another hand
+  # another player joins in seat-3
+  - setup:
+      auto: true
+      new-players:
+        - seat: 3
+          player: olivia
+          buy-in: 2000      
+      verify:
+        seats:
+          - seat: 1
             inhand: true
+            button: true
+            status: PLAYING
+          - seat: 2
+            inhand: true
+            sb: true
+            status: PLAYING
+          - seat: 3
+            inhand: true
+            bb: true
             status: PLAYING
           - seat: 4
             inhand: false
@@ -117,28 +146,10 @@ hands:
   # seat 4 misses another hand
   - setup:
       auto: true
-      verify:
-        seats:
-          - seat: 1
-            inhand: true
-            button: true
-            status: PLAYING
-          - seat: 2
-            inhand: true
-            sb: true
-            status: PLAYING
-          - seat: 3
-            bb: true
-            inhand: true
-            status: PLAYING
-          - seat: 4
-            inhand: false
-            missed-blind: true
-            status: PLAYING
-
-  # seat 4 is natural big blind
-  - setup:
-      auto: true
+      new-players:
+        - seat: 3
+          player: olivia
+          buy-in: 2000      
       verify:
         seats:
           - seat: 1
@@ -149,11 +160,10 @@ hands:
             button: true
             status: PLAYING
           - seat: 3
-            sb: true
             inhand: true
+            sb: true
             status: PLAYING
           - seat: 4
             bb: true
             inhand: true
-            missed-blind: false
             status: PLAYING
