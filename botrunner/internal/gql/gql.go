@@ -1445,7 +1445,7 @@ type GamePlayerSettingsUpdateInput struct {
 	Straddle          *bool `json:"straddle,omitempty"`
 	ButtonStraddle    *bool `json:"buttonStraddle,omitempty"`
 	BombPotEnabled    *bool `json:"bombPotEnabled,omitempty"`
-	RunItTwiceAllowed *bool `json:"runItTwicePrompt,omitempty"`
+	RunItTwiceEnabled *bool `json:"runItTwiceEnabled,omitempty"`
 	MuckLosingHand    *bool `json:"muckLosingHand,omitempty"`
 }
 

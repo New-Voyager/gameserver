@@ -2480,7 +2480,7 @@ func (bp *BotPlayer) UpdateGamePlayerSettings(
 		ButtonStraddle:    buttonStraddle,
 		BombPotEnabled:    bombPotEnabled,
 		MuckLosingHand:    muckLosingHand,
-		RunItTwiceAllowed: runItTwiceAllowed,
+		RunItTwiceEnabled: runItTwiceAllowed,
 	}
 	err := bp.gqlHelper.UpdateGamePlayerSettings(gameCode, settings)
 	if err != nil {
