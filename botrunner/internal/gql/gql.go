@@ -960,6 +960,7 @@ const GameInfoGQL = `query game_info($gameCode: String!) {
 		handToAllChannel
 		playerToHandChannel
 		handToPlayerChannel
+		handToPlayerTextChannel
 		pingChannel
 		pongChannel
     }

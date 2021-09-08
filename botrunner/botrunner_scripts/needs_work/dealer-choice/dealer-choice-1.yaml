@@ -1,3 +1,6 @@
+# dealer's choice game
+# each player chooses a game, verify the game is run in the next hand
+
 club:
   name: Manchester Club
   description: Club used for testing with the bot runner
@@ -44,9 +47,33 @@ hands:
   - setup:
       button-pos: 1
       auto: true
+      verify:     # first choice is automatic
+        game-type: HOLDEM
   - setup:
       auto: true
+      dealer-choice:
+        seat: 2           # seat 2 has dealer choice
+        choice: PLO
+      verify:
+        game-type: PLO
   - setup:
       auto: true
+      dealer-choice:
+        seat: 3           # seat 3 has dealer choice
+        choice: FIVE_CARD_PLO
+      verify:
+        game-type: FIVE_CARD_PLO
   - setup:
       auto: true
+      dealer-choice:
+        seat: 1           # seat 3 has dealer choice
+        choice: PLO_HILO
+      verify:
+        game-type: PLO_HILO
+  - setup:
+      auto: true
+      dealer-choice:
+        seat: 2          # seat 2 has dealer choice
+        choice: HOLDEM
+      verify:
+        game-type: HOLDEM
