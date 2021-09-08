@@ -90,7 +90,7 @@ hands:
             status: PLAYING
           - seat: 4
             inhand: false
-            missed-blind: false
+            missed-blind: true
             status: IN_BREAK
 
   - setup:
