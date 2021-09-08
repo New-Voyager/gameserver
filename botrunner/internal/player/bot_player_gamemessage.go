@@ -362,7 +362,7 @@ func (bp *BotPlayer) setupRunItTwice() error {
 
 	for _, playerRITSetup := range runItTwiceConfigs {
 		if playerRITSetup.Seat == bp.seatNo {
-			bp.UpdatePlayerGameConfig(bp.gameCode, &playerRITSetup.AllowPrompt, nil)
+			bp.UpdateGamePlayerSettings(bp.gameCode, nil, nil, nil, nil, &playerRITSetup.AllowPrompt, nil)
 		}
 	}
 	return nil
