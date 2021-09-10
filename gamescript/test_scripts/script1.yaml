@@ -151,6 +151,9 @@ hands:
                   - All-In, 300
 
         - action: 5, CALL, 2
+          verify:
+            stack: 100
+            pot-updates: 10  
         - action: 8, CHECK
 
     flop:
