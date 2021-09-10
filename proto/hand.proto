@@ -30,6 +30,7 @@ message HandAction {
   bool timed_out = 4;
   uint32 action_time = 5;
   float stack = 6;        // player current stack (populated by game)
+  float pot_updates = 7;  // pot updated by the action
 }
 
 message HandActionLog {

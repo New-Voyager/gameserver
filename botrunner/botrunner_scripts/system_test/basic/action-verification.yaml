@@ -1,0 +1,111 @@
+club:
+  name: Manchester Club
+  description: Club used for testing with the bot runner
+
+game:
+  create: true
+  title: "NLH Testing Game"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 4
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 100
+  buy-in-max: 300
+  action-time: 100
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 100
+  - seat: 2
+    player: brian
+    buy-in: 100
+  - seat: 3
+    player: olivia
+    buy-in: 100
+
+tester:
+auto-play: false
+
+hands:
+  - setup:
+      button-pos: 1
+      flop: ["Ac", "Ad", "2c"]
+      turn: Td
+      river: 4s
+      seat-cards:
+        - seat: 1
+          cards: ["Kh", "Qd"]
+        - seat: 2
+          cards: ["3s", "7s"]
+        - seat: 3
+          cards: ["6s", "9s"]
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+            button: true
+            inhand: true
+            stack: 100
+          - seat: 2
+            player: brian
+            sb: true
+            inhand: true
+            stack: 99
+          - seat: 3
+            player: olivia
+            bb: true
+            inhand: true
+            stack: 98
+            
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 1, CALL, 2
+          verify:
+            stack: 98
+            pot-updates: 5
+        - action: 2, CALL, 2
+          verify:
+            stack: 98
+            pot-updates: 6
+        - action: 3, CHECK
+          verify:
+            stack: 98
+    
+    flop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 2, BET, 2
+          verify:
+            stack: 96
+            pot-updates: 2
+        - action: 3, CALL, 2
+          verify:
+            stack: 96
+            pot-updates: 4
+        - action: 1, CALL, 2
+          verify:
+            stack: 96
+
+    turn:
+      seat-actions:
+        # seat number/action/amount
+        - action: 2, CHECK
+        - action: 3, CHECK
+        - action: 1, CHECK
+
+    river:
+      seat-actions:
+        # seat number/action/amount
+        - action: 2, CHECK
+        - action: 3, CHECK
+        - action: 1, CHECK

@@ -246,6 +246,10 @@ func TestReadGameScript(t *testing.T) {
 								Action: "CALL",
 								Amount: 2,
 							},
+							Verify: &VerifyAction{
+								Stack:      100,
+								PotUpdates: 10,
+							},
 						},
 						{
 							Action: Action{

@@ -460,16 +460,39 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 
 	actionMsg := g.getClientMsgItem(playerMsg)
 
-	var allMsgItems []*HandMessageItem
+	allMsgItems := make([]*HandMessageItem, 0)
 	var msgItems []*HandMessageItem
 	var err error
+	seatNo := actionMsg.GetPlayerActed().GetSeatNo()
+	player := handState.PlayersInSeats[seatNo]
+
+	// Send player's current stack to be updated in the UI
+	handStage := handState.CurrentState
+
 	err = handState.actionReceived(actionMsg.GetPlayerActed(), actionResponseTime)
 	if err != nil {
 		return errors.Wrap(err, "Error while updating handstate from action")
 	}
 
-	seatNo := actionMsg.GetPlayerActed().GetSeatNo()
-	player := handState.PlayersInSeats[seatNo]
+	playerAction := handState.PlayersActed[seatNo]
+	bettingState := handState.RoundState[uint32(handStage)]
+	potUpdates := float32(0)
+	for _, bet := range bettingState.Betting.SeatBet {
+		potUpdates += bet
+	}
+	playerBalance := bettingState.PlayerBalance[seatNo]
+
+	actionMsg.GetPlayerActed().Stack = playerBalance
+	actionMsg.GetPlayerActed().PotUpdates = potUpdates
+	if playerAction.Action != ACTION_FOLD {
+		actionMsg.GetPlayerActed().Amount = playerAction.Amount
+	} else {
+		// the game folded this guy's hand
+		actionMsg.GetPlayerActed().Action = ACTION_FOLD
+		actionMsg.GetPlayerActed().Amount = 0
+	}
+	// broadcast this message to all the players (let everyone know this player acted)
+	allMsgItems = append(allMsgItems, actionMsg)
 
 	if actionMsg.GetPlayerActed().GetTimedOut() {
 		handState.TimeoutStats[player.PlayerId].ConsecutiveActionTimeouts++
@@ -485,18 +508,6 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 
 	// This number is used to generate hand message IDs uniquely and deterministically across the server crashes.
 	handState.CurrentActionNum++
-
-	// Send player's current stack to be updated in the UI
-	playerAction := handState.PlayersActed[seatNo]
-	if playerAction.Action != ACTION_FOLD {
-		actionMsg.GetPlayerActed().Amount = playerAction.Amount
-	} else {
-		// the game folded this guy's hand
-		actionMsg.GetPlayerActed().Action = ACTION_FOLD
-		actionMsg.GetPlayerActed().Amount = 0
-	}
-	// broadcast this message to all the players (let everyone know this player acted)
-	allMsgItems = append(allMsgItems, actionMsg)
 
 	if handState.NoActiveSeats == 1 {
 		msgItems, err = g.onePlayerRemaining(handState)

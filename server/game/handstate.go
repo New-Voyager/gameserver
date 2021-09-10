@@ -335,22 +335,7 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 
 	// setup hand for preflop
 	h.setupPreflop(postedBlinds)
-
 	return nil
-}
-
-func (h *HandState) copyPlayersState(maxSeats uint32, playersInSeats []SeatPlayer) map[uint64]*PlayerInSeatState {
-	handPlayerState := make(map[uint64]*PlayerInSeatState)
-	for seatNo := 1; seatNo <= int(maxSeats); seatNo++ {
-		player := playersInSeats[seatNo]
-		handPlayerState[player.PlayerID] = &PlayerInSeatState{
-			PlayerId: player.PlayerID,
-			Name:     player.Name,
-			Status:   player.Status,
-			Stack:    player.Stack,
-		}
-	}
-	return handPlayerState
 }
 
 func (h *HandState) setupRound(state HandStatus) {
@@ -438,6 +423,10 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 		h.setupRound(HandStatus_FLOP)
 	} else {
 		for _, seatNo := range postedBlinds {
+			// skip natural big blind position
+			if seatNo == h.BigBlindPos {
+				continue
+			}
 			h.actionReceived(&HandAction{
 				SeatNo: seatNo,
 				Action: ACTION_POST_BLIND,
@@ -811,13 +800,16 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		if amount > playerBalance {
 			amount = playerBalance
 		}
-		bettingState.PlayerBalance[action.SeatNo] = bettingState.PlayerBalance[action.SeatNo] - amount
+		playerBalance = playerBalance - amount
 		h.acted(action.SeatNo, ACTION_POST_BLIND, amount)
-		action.Stack = bettingState.PlayerBalance[action.SeatNo]
+		action.Stack = playerBalance
 		action.ActionTime = uint32(actionResponseTime)
 		bettingRound.SeatBet[int(action.SeatNo)] = amount
 		// add the action to the log
 		log.Actions = append(log.Actions, action)
+
+		bettingState.PlayerBalance[action.SeatNo] = playerBalance
+		player.Stack = bettingState.PlayerBalance[action.SeatNo]
 		return nil
 	}
 
@@ -827,7 +819,7 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		if amount > playerBalance {
 			amount = playerBalance
 		}
-		bettingState.PlayerBalance[action.SeatNo] = bettingState.PlayerBalance[action.SeatNo] - amount
+		playerBalance = playerBalance - amount
 		h.acted(action.SeatNo, ACTION_BOMB_POT_BET, amount)
 		action.Stack = bettingState.PlayerBalance[action.SeatNo]
 		action.ActionTime = uint32(actionResponseTime)
@@ -836,9 +828,7 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 
 	amount := action.Amount
 	if action.Action == ACTION_ALLIN {
-		amount = bettingState.PlayerBalance[action.SeatNo] + playerBetSoFar
-		action.Amount = amount
-		diff = action.Amount - playerBetSoFar
+		amount = playerBalance + playerBetSoFar
 	}
 
 	if amount > h.CurrentRaise {
@@ -854,9 +844,7 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		if playerBalance < action.Amount {
 			action.Action = ACTION_ALLIN
 			action.Amount = playerBalance
-			h.acted(action.SeatNo, ACTION_ALLIN, action.Amount)
 		}
-		bettingRound.SeatBet[int(action.SeatNo)] = action.Amount
 	}
 
 	// valid actions
@@ -881,15 +869,13 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 			h.acted(action.SeatNo, ACTION_CALL, action.Amount)
 		}
 		diff = (action.Amount - playerBetSoFar)
-		//bettingState.PlayerBalance[action.SeatNo] -= additionalBet
 		playerBetSoFar += diff
 		bettingRound.SeatBet[action.SeatNo] = playerBetSoFar
 	} else if action.Action == ACTION_ALLIN {
 		h.AllInPlayers[action.SeatNo] = 1
-		amount := bettingState.PlayerBalance[action.SeatNo] + playerBetSoFar
+		amount := playerBalance + playerBetSoFar
 		bettingRound.SeatBet[action.SeatNo] = amount
 		diff = playerBalance
-		//bettingState.PlayerBalance[action.SeatNo] = 0
 		action.Amount = amount
 		h.acted(action.SeatNo, ACTION_ALLIN, amount)
 	} else if action.Action == ACTION_RAISE ||
@@ -956,9 +942,9 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 			h.CurrentRaise = action.Amount
 			h.ActionCompleteAtSeat = action.SeatNo
 		}
-
-		bettingState.PlayerBalance[action.SeatNo] = bettingState.PlayerBalance[action.SeatNo] - diff
 	}
+	playerBalance = playerBalance - diff
+	bettingState.PlayerBalance[action.SeatNo] = playerBalance
 	action.Stack = bettingState.PlayerBalance[action.SeatNo]
 	action.ActionTime = uint32(actionResponseTime)
 	// add the action to the log
@@ -979,15 +965,6 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		}
 	}
 	return nil
-}
-
-func index(vs []uint32, t uint32) int {
-	for i, v := range vs {
-		if v == t {
-			return i
-		}
-	}
-	return -1
 }
 
 func (h *HandState) getPlayerFromSeat(seatNo uint32) *PlayerInSeatState {
@@ -1042,64 +1019,17 @@ func (h *HandState) allActionComplete() bool {
 
 	return false
 }
+
 func (h *HandState) settleRound() {
 	// before we go to next stage, settle pots
 	bettingState := h.RoundState[uint32(h.CurrentState)]
 	currentBettingRound := bettingState.Betting
-
-	// update player state
-	// for seatNo, bet := range currentBettingRound.SeatBet {
-	// 	playerID := h.PlayersInSeats[seatNo]
-	// 	if playerID == 0 {
-	// 		continue
-	// 	}
-	// 	h.PlayersState[playerID].Stack -= bet
-	// }
 
 	// if only one player is active, then this hand is concluded
 	handEnded := false
 	if h.NoActiveSeats == 1 {
 		handEnded = true
 	} else {
-		// we need to find the second largest bet
-		// subtract that money from the largest bet player
-		// and return the balance back to the player
-		// for example, if two players go all in a hand
-		// player 1 has 50 chips and player 2 has 100 chips
-		// then the action is over, we need to return 50 chips
-		// back to player 1
-
-		// maxBetPos := -1
-		// // we should have atleast two seats to play
-		// maxBet := float32(0)
-		// secondMaxBet := float32(0)
-		// seatBets := currentBettingRound.SeatBet
-		// if seatBets[1] < seatBets[2] {
-		// 	maxBet = seatBets[2]
-		// 	secondMaxBet = seatBets[1]
-		// 	maxBetPos = 2
-		// } else {
-		// 	maxBet = seatBets[1]
-		// 	secondMaxBet = seatBets[2]
-		// 	maxBetPos = 1
-		// }
-		// for seat := 3; seat < len(seatBets); seat++ {
-		// 	if h.ActiveSeats[seat] == 0 {
-		// 		continue
-		// 	}
-		// 	bet := seatBets[seat]
-		// 	if bet > maxBet {
-		// 		secondMaxBet = maxBet
-		// 		maxBet = bet
-		// 		maxBetPos = seat
-		// 	} else if bet < maxBet {
-		// 		secondMaxBet = bet
-		// 	}
-		// }
-		// if maxBet != 0 && secondMaxBet != 0 && maxBetPos > 0 {
-		// 	playerID := h.PlayersInSeats[maxBetPos]
-		// 	h.PlayersState[playerID].Stack += (maxBet - secondMaxBet)
-		// }
 	}
 
 	for _, playerActRound := range h.PlayersActed {

@@ -730,6 +730,24 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if seatNo == bp.seatNo && isTimedOut {
 			bp.event(BotEvent__ACTION_TIMEDOUT)
 		}
+		if seatNo == bp.seatNo && !bp.config.Script.AutoPlay {
+			// verify the player action
+			verify, err := bp.decision.GetPrevActionToVerify(bp)
+			if err == nil {
+				if verify != nil {
+					bp.logger.Info().Msg("Verify previous action")
+					if verify.Stack != playerActed.Stack {
+						bp.logger.Panic().Msgf("%s: Hand %d Seat No: %d verify seat action failed. Player stack: %f expected: %f",
+							bp.logPrefix, bp.game.handNum, bp.seatNo, playerActed.Stack, verify.Stack)
+					}
+
+					if verify.PotUpdates != playerActed.PotUpdates {
+						bp.logger.Panic().Msgf("%s: Hand %d Seat No: %d  verify seat action failed. Pot updates: %f expected: %f",
+							bp.logPrefix, bp.game.handNum, bp.seatNo, playerActed.PotUpdates, verify.PotUpdates)
+					}
+				}
+			}
+		}
 
 	case game.HandMsgAck:
 		/* MessageType: MSG_ACK */
