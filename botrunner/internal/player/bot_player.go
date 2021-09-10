@@ -730,7 +730,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if seatNo == bp.seatNo && isTimedOut {
 			bp.event(BotEvent__ACTION_TIMEDOUT)
 		}
-		if seatNo == bp.seatNo {
+		if seatNo == bp.seatNo && !bp.config.Script.AutoPlay {
 			// verify the player action
 			verify, err := bp.decision.GetPrevActionToVerify(bp)
 			if err == nil {
