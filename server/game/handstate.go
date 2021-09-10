@@ -829,9 +829,6 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 	amount := action.Amount
 	if action.Action == ACTION_ALLIN {
 		amount = playerBalance + playerBetSoFar
-		action.Amount = amount
-		diff = action.Amount - playerBetSoFar
-		playerBalance = 0
 	}
 
 	if amount > h.CurrentRaise {
@@ -1022,6 +1019,7 @@ func (h *HandState) allActionComplete() bool {
 
 	return false
 }
+
 func (h *HandState) settleRound() {
 	// before we go to next stage, settle pots
 	bettingState := h.RoundState[uint32(h.CurrentState)]
