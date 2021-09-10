@@ -566,7 +566,21 @@ func (g *Game) dealNewHand() error {
 
 	handPlayerInSeats := make(map[uint32]*PlayerInSeatState)
 	for _, playerInSeat := range handState.PlayersInSeats {
-		handPlayerInSeats[playerInSeat.SeatNo] = playerInSeat
+		copiedState := &PlayerInSeatState{
+			Status:         playerInSeat.Status,
+			Stack:          playerInSeat.Stack,
+			PlayerId:       playerInSeat.PlayerId,
+			Name:           playerInSeat.Name,
+			BuyInExpTime:   playerInSeat.BuyInExpTime,
+			BreakExpTime:   playerInSeat.BreakExpTime,
+			Inhand:         playerInSeat.Inhand,
+			RunItTwice:     playerInSeat.RunItTwice,
+			MissedBlind:    playerInSeat.MissedBlind,
+			ButtonStraddle: playerInSeat.ButtonStraddle,
+			MuckLosingHand: playerInSeat.MuckLosingHand,
+			AutoStraddle:   playerInSeat.AutoStraddle,
+		}
+		handPlayerInSeats[playerInSeat.SeatNo] = copiedState
 		handPlayerInSeats[playerInSeat.SeatNo].Stack = playerInSeat.Stack - currentBettingRound.SeatBet[playerInSeat.SeatNo]
 	}
 

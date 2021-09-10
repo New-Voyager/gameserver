@@ -38,3 +38,14 @@ func (s *ScriptBasedDecision) getNthActionFromScript(script *gamescript.Script, 
 	}
 	return scriptActions[n]
 }
+
+// GetPrevActionToVerify returns previous action of the bot for verification
+func (s *ScriptBasedDecision) GetPrevActionToVerify(bot *BotPlayer) (*gamescript.VerifyAction, error) {
+	script := bot.config.Script
+	handNum := bot.game.handNum
+	handStatus := bot.game.handStatus
+	actionHistory := bot.game.table.actionTracker.GetActions(handStatus)
+	prevActionIndex := len(actionHistory) - 1
+	seatAction := s.getNthActionFromScript(script, handNum, handStatus, prevActionIndex)
+	return seatAction.Verify, nil
+}

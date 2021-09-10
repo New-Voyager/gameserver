@@ -273,9 +273,10 @@ type BettingRound struct {
 }
 
 type SeatAction struct {
-	Action     Action      `yaml:"action"`
-	PreActions []PreAction `yaml:"pre-action"`
-	Timeout    bool        `yaml:"timeout"`
+	Action     Action        `yaml:"action"`
+	PreActions []PreAction   `yaml:"pre-action"`
+	Timeout    bool          `yaml:"timeout"`
+	Verify     *VerifyAction `yaml:"verify"`
 }
 
 type Action struct {
@@ -328,6 +329,11 @@ func (a *Action) UnmarshalYAML(unmarshal func(interface{}) error) error {
 type PreAction struct {
 	SetupServerCrash SetupServerCrash       `yaml:"setup-server-crash"`
 	Verify           YourActionVerification `yaml:"verify"`
+}
+
+type VerifyAction struct {
+	Stack      float32 `yaml:"stack"`
+	PotUpdates float32 `yaml:"pot-updates"`
 }
 
 type SetupServerCrash struct {

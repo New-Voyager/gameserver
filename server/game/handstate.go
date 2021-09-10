@@ -970,15 +970,6 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 	return nil
 }
 
-func index(vs []uint32, t uint32) int {
-	for i, v := range vs {
-		if v == t {
-			return i
-		}
-	}
-	return -1
-}
-
 func (h *HandState) getPlayerFromSeat(seatNo uint32) *PlayerInSeatState {
 	player := h.PlayersInSeats[seatNo]
 	if !player.Inhand {
