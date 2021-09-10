@@ -488,6 +488,9 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 
 	// Send player's current stack to be updated in the UI
 	playerAction := handState.PlayersActed[seatNo]
+	bettingState := handState.RoundState[uint32(handState.CurrentState)]
+	playerBalance := bettingState.PlayerBalance[seatNo]
+	actionMsg.GetPlayerActed().Stack = playerBalance
 	if playerAction.Action != ACTION_FOLD {
 		actionMsg.GetPlayerActed().Amount = playerAction.Amount
 	} else {

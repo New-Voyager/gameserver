@@ -561,6 +561,14 @@ func (g *Game) dealNewHand() error {
 		}
 		playersActed[uint32(seatNo)] = action
 	}
+	bettingState := handState.RoundState[uint32(handState.CurrentState)]
+	currentBettingRound := bettingState.Betting
+
+	handPlayerInSeats := make(map[uint32]*PlayerInSeatState)
+	for _, playerInSeat := range handState.PlayersInSeats {
+		handPlayerInSeats[playerInSeat.SeatNo] = playerInSeat
+		handPlayerInSeats[playerInSeat.SeatNo].Stack = playerInSeat.Stack - currentBettingRound.SeatBet[playerInSeat.SeatNo]
+	}
 
 	// send a new hand message to all players
 	newHand := NewHand{
@@ -575,7 +583,7 @@ func (g *Game) dealNewHand() error {
 		BigBlind:           handState.BigBlind,
 		BringIn:            handState.BringIn,
 		Straddle:           handState.Straddle,
-		PlayersInSeats:     playersInSeats,
+		PlayersInSeats:     handPlayerInSeats,
 		PlayersActed:       playersActed,
 		BombPot:            handState.BombPot,
 		BombPotBet:         handState.BombPotBet,

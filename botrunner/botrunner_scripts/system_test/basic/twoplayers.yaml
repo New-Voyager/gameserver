@@ -1,0 +1,75 @@
+club:
+  name: Manchester Club
+  description: Club used for testing with the bot runner
+
+game:
+  create: true
+  title: "NLH Testing Game"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 2
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 100
+  buy-in-max: 300
+  action-time: 100
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 100
+  - seat: 2
+    player: brian
+    buy-in: 100
+
+tester:
+auto-play: false
+
+hands:
+  - setup:
+      button-pos: 1
+      flop: ["Ac", "Ad", "2c"]
+      turn: Td
+      river: 4s
+      seat-cards:
+        - seat: 1
+          cards: ["Kh", "Qd"]
+        - seat: 2
+          cards: ["3s", "7s"]
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+          - seat: 2
+            player: brian
+      
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 2, CHECK
+        - action: 1, CHECK
+    
+    flop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 2, CHECK
+        - action: 1, CHECK
+
+    turn:
+      seat-actions:
+        # seat number/action/amount
+        - action: 2, CHECK
+        - action: 1, CHECK
+
+    river:
+      seat-actions:
+        # seat number/action/amount
+        - action: 2, CHECK
+        - action: 1, CHECK
