@@ -274,7 +274,7 @@ hands:
       players:
         - seat: 1
           balance:
-            after: 300
+            after: 299
         - seat: 2
           balance:
             after: 96
@@ -348,10 +348,10 @@ hands:
       players:
         - seat: 1
           balance:
-            after: 298
+            after: 297
         - seat: 2
           balance:
             after: 94
         - seat: 4
           balance:
-            after: 305
+            after: 304
