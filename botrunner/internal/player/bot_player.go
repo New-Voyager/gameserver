@@ -349,7 +349,10 @@ func (bp *BotPlayer) handlePrivateHandMsg(msg *natsgo.Msg) {
 func (bp *BotPlayer) handlePrivateHandTextMsg(msg *natsgo.Msg) {
 	data := msg.Data
 	var message gamescript.HandTextMessage
-	fmt.Printf("%s\n", string(data))
+	if util.Env.ShouldPrintHandMsg() {
+		fmt.Printf("%s: Received hand msg (text): %s\n", bp.logPrefix, string(data))
+	}
+
 	err := json.Unmarshal(msg.Data, &message)
 	if err == nil {
 		bp.PrivateTextMessages = append(bp.PrivateTextMessages, &message)
@@ -371,6 +374,10 @@ func (bp *BotPlayer) unmarshalAndQueueHandMsg(data []byte) {
 	if err != nil {
 		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf hand message [%s]", bp.logPrefix, err, string(data))
 		return
+	}
+
+	if util.Env.ShouldPrintHandMsg() {
+		fmt.Printf("%s: Received hand msg (proto): %s\n", bp.logPrefix, message.String())
 	}
 
 	bp.chHand <- &message
