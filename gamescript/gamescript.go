@@ -173,20 +173,16 @@ type PostHandStep struct {
 
 // Hand contains an entry in the hands array in the game script.
 type Hand struct {
-	Num           uint32         `yaml:"num"`
-	Setup         HandSetup      `yaml:"setup"`
-	Preflop       BettingRound   `yaml:"preflop"`
-	Flop          BettingRound   `yaml:"flop"`
-	Turn          BettingRound   `yaml:"turn"`
-	River         BettingRound   `yaml:"river"`
-	Result        HandResult     `yaml:"result"`
-	PauseGame     bool           `yaml:"pause-game"`
-	PostHandSteps []PostHandStep `yaml:"post-hand"`
-}
-
-type DealerChoiceSetup struct {
-	Choice string `yaml:"choice"`
-	Seat   uint32 `yaml:"seat"`
+	Num                  uint32               `yaml:"num"`
+	Setup                HandSetup            `yaml:"setup"`
+	WhenNotEnoughPlayers WhenNotEnoughPlayers `yaml:"when-not-enough-players"`
+	Preflop              BettingRound         `yaml:"preflop"`
+	Flop                 BettingRound         `yaml:"flop"`
+	Turn                 BettingRound         `yaml:"turn"`
+	River                BettingRound         `yaml:"river"`
+	Result               HandResult           `yaml:"result"`
+	PauseGame            bool                 `yaml:"pause-game"`
+	PostHandSteps        []PostHandStep       `yaml:"post-hand"`
 }
 
 // HandSetup contains the setup content in the hand config.
@@ -265,6 +261,16 @@ type WaitList struct {
 	Player  string  `yaml:"player"`
 	Confirm bool    `yaml:"confirm"`
 	BuyIn   float32 `yaml:"buy-in"`
+}
+
+type DealerChoiceSetup struct {
+	Choice string `yaml:"choice"`
+	Seat   uint32 `yaml:"seat"`
+}
+
+type WhenNotEnoughPlayers struct {
+	RequestEndGame bool           `yaml:"request-end-game"`
+	AddPlayers     []StartingSeat `yaml:"add-players"`
 }
 
 type BettingRound struct {

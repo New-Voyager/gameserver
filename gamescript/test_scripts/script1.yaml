@@ -156,6 +156,17 @@ hands:
             player: yong
             sb: true
 
+    # What to do if some players leave the game and
+    # there is not enough player to continue the game after this hand?
+    when-not-enough-players:
+      # Option 1: Have the host bot terminate the game.
+      request-end-game: true
+      # Option 2: Have more bots join the game.
+      add-players:
+        - seat: 2
+          player: jim
+          buy-in: 100
+
     preflop:
       seat-actions:
         # seat number/action/amount

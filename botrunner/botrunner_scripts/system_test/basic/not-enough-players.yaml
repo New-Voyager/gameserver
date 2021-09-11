@@ -1,0 +1,118 @@
+club:
+  name: Manchester Club
+  description: Club used for testing with the bot runner
+
+game:
+  create: true
+  title: "not enough players"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 9
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 100
+  buy-in-max: 300
+  action-time: 100
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 100
+  - seat: 5
+    player: brian
+    buy-in: 100
+
+auto-play: false
+
+hands:
+  - setup:
+      button-pos: 1
+      flop: ["Ac", "Ad", "2c"]
+      turn: Td
+      river: 4s
+      seat-cards:
+        - seat: 1
+          cards: ["Kh", "Qd"]
+        - seat: 5
+          cards: ["3s", "7s"]
+      leave-game:
+        - seat: 5
+
+    when-not-enough-players:
+      request-end-game: true
+
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 5, CALL, 2
+        - action: 1, CHECK
+
+    flop:
+      verify:
+        board: ["Ac", "Ad", "2c"]
+        ranks:
+          - seat: 1
+            rank: "Pair"
+          - seat: 5
+            rank: "Pair"
+      seat-actions:
+        - action: 5, CHECK
+        - action: 1, CHECK
+
+    turn:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td"]
+        ranks:
+          - seat: 1
+            rank: "Pair"
+          - seat: 5
+            rank: "Pair"
+      seat-actions:
+        - action: 5, CHECK
+        - action: 1, CHECK
+
+    river:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td", "4s"]
+        ranks:
+          - seat: 1
+            rank: "Pair"
+          - seat: 5
+            rank: "Pair"
+      seat-actions:
+        - action: 5, CHECK
+        - action: 1, CHECK
+
+    result:
+      winners:
+        - seat: 1
+          receive: 3.0
+          rank: Pair
+          rake-paid: 1.0
+      action-ended: SHOW_DOWN
+
+      players:
+        - seat: 1
+          balance:
+            after: 101
+        - seat: 5
+          balance:
+            after: 98
+
+  # This hand should not be played due to not enough players.
+  # We're verifying that in the after-game section.
+  - setup:
+      auto: true
+
+after-game:
+  verify:
+    num-hands-played:
+      gte: 1
+      lte: 1

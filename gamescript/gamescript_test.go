@@ -255,6 +255,16 @@ func TestReadGameScript(t *testing.T) {
 						},
 					},
 				},
+				WhenNotEnoughPlayers: WhenNotEnoughPlayers{
+					RequestEndGame: true,
+					AddPlayers: []StartingSeat{
+						{
+							Seat:   2,
+							Player: "jim",
+							BuyIn:  100,
+						},
+					},
+				},
 				Preflop: BettingRound{
 					SeatActions: []SeatAction{
 						{

@@ -121,6 +121,18 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 				bp.logger.Error().Msgf("%s: Error while leaving game: %s", bp.logPrefix, err)
 			}
 		}
+		if ts == game.TableStatus_NOT_ENOUGH_PLAYERS {
+			if bp.IsHost() {
+				err := bp.processNotEnoughPlayers()
+				if err != nil {
+					errMsg := fmt.Sprintf("%s: Error while processing not-enough-players: %s", bp.logPrefix, err)
+					bp.logger.Error().Msg(errMsg)
+					bp.errorStateMsg = errMsg
+					bp.sm.SetState(BotState__ERROR)
+					return
+				}
+			}
+		}
 
 	case "PLAYER_UPDATE":
 		if message == nil {
@@ -191,6 +203,18 @@ func (bp *BotPlayer) onTableUpdate(message *gamescript.NonProtoMessage) {
 		data, _ := json.Marshal(message)
 		fmt.Printf("%s", string(data))
 	}
+}
+
+func (bp *BotPlayer) processNotEnoughPlayers() error {
+	scriptHand := bp.config.Script.GetHand(bp.game.handNum)
+	if scriptHand.WhenNotEnoughPlayers.RequestEndGame {
+		bp.logger.Info().Msgf("%s: Requesting to end the game [%s] due to not enough players", bp.logPrefix, bp.gameCode)
+		return bp.RequestEndGame(bp.gameCode)
+	}
+	if len(scriptHand.WhenNotEnoughPlayers.AddPlayers) > 0 {
+
+	}
+	return nil
 }
 
 // func (bp *BotPlayer) onTableUpdate(message *game.GameMessage) {
