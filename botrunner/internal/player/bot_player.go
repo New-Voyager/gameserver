@@ -56,10 +56,8 @@ type GameMessageChannelItem struct {
 
 // BotPlayer represents a bot user.
 type BotPlayer struct {
-	logger    *zerolog.Logger
-	config    Config
-	IpAddress string
-	Gps       *gamescript.GpsLocation
+	logger *zerolog.Logger
+	config Config
 
 	gqlHelper       *gql.GQLHelper
 	restHelper      *rest.RestClient
@@ -116,6 +114,10 @@ type BotPlayer struct {
 
 	// other config
 	muckLosingHand bool
+
+	// For location check
+	IpAddress string
+	Gps       *gamescript.GpsLocation
 
 	// Nats subjects
 	gameToAll       string
@@ -2490,14 +2492,14 @@ func (bp *BotPlayer) StartGame(gameCode string) error {
 
 // RequestEndGame schedules to end the game after the current hand is finished.
 func (bp *BotPlayer) RequestEndGame(gameCode string) error {
-	bp.logger.Info().Msgf("%s: Requesting to end the game [%s] after the current hand.", bp.logPrefix, gameCode)
+	bp.logger.Info().Msgf("%s: Requesting to end the game [%s].", bp.logPrefix, gameCode)
 
 	status, err := bp.gqlHelper.EndGame(gameCode)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Error while requesting to end the game [%s]", bp.logPrefix, gameCode))
 	}
 
-	bp.logger.Info().Msgf("%s: Successfully requested to end the game [%s] after the current hand. Status: [%s]", bp.logPrefix, gameCode, status)
+	bp.logger.Info().Msgf("%s: Successfully requested to end the game [%s]. Status: [%s]", bp.logPrefix, gameCode, status)
 	return nil
 }
 
