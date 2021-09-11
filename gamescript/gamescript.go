@@ -468,10 +468,12 @@ type AfterGame struct {
 }
 
 type VerifyPrivateMessages struct {
-	Player   string `yaml:"player"`
-	Messages []struct {
-		Type string `yaml:"type"`
-	} `yaml:"messages"`
+	Player   string           `yaml:"player"`
+	Messages []PrivateMessage `yaml:"messages"`
+}
+
+type PrivateMessage struct {
+	Type string `yaml:"type"`
 }
 
 type HighHandWinner struct {

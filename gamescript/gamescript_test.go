@@ -92,6 +92,60 @@ func TestReadGameScript(t *testing.T) {
 					Gte: getUint32Pointer(2),
 					Lte: getUint32Pointer(3),
 				},
+				GameMessages: []NonProtoMessage{
+					{
+						Type:       "PLAYER_SEAT_CHANGE_PROMPT",
+						PlayerName: "tom",
+						OpenedSeat: 5,
+						PromptSecs: 30,
+					},
+					{
+						Type:    "TABLE_UPDATE",
+						SubType: "HostSeatChangeMove",
+						SeatMoves: []SeatUpdate{
+							{
+								OldSeatNo: 4,
+								NewSeatNo: 1,
+								OpenSeat:  true,
+							},
+							{
+								Name:      "yong",
+								OldSeatNo: 1,
+								NewSeatNo: 4,
+								OpenSeat:  false,
+							},
+						},
+					},
+					{
+						Type: "NEW_HIGHHAND_WINNER",
+						Winners: []HighHandWinner{
+							{
+								PlayerName:  "brian",
+								BoardCards:  []uint32{52, 49, 50, 17, 4},
+								PlayerCards: []uint32{56, 72},
+								HhCards:     []uint32{52, 49, 50, 56, 72},
+							},
+						},
+					},
+				},
+				PrivateMessages: []VerifyPrivateMessages{
+					{
+						Player: "yong",
+						Messages: []PrivateMessage{
+							{
+								Type: "APPCOIN_NEEDED",
+							},
+						},
+					},
+					{
+						Player: "tom",
+						Messages: []PrivateMessage{
+							{
+								Type: "YOUR_ACTION",
+							},
+						},
+					},
+				},
 			},
 		},
 		Hands: []Hand{
