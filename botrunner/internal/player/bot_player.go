@@ -103,11 +103,6 @@ type BotPlayer struct {
 	end        chan bool
 	endPing    chan bool
 
-	// Points to the most recent messages from the game server.
-	lastGameMessage *game.GameMessage
-	lastHandMessage *game.HandMessage
-	//playerStateMessage *game.GameTableStateMessage
-
 	// GameInfo received from the api server.
 	gameInfo *game.GameInfo
 
@@ -490,8 +485,6 @@ func (bp *BotPlayer) processHandMessage(message *game.HandMessage) {
 		// this message was targeted for another player
 		return
 	}
-
-	bp.lastHandMessage = message
 
 	for i, msgItem := range message.GetMessages() {
 		bp.processMsgItem(message, msgItem, i)
