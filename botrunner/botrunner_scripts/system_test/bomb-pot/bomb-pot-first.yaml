@@ -89,17 +89,17 @@ hands:
     result:
       winners:
         - seat: 1
-          receive: 54.0
+          receive: 38
           rank: Two Pair
       action-ended: SHOW_DOWN
 
       players:
         - seat: 1
           balance:
-            after: 128
+            after: 104
         - seat: 2
           balance:
-            after: 74
+            after: 104
         - seat: 3
           balance:
-            after: 96
+            after: 88
