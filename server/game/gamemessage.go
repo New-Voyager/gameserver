@@ -89,7 +89,7 @@ func (g *Game) onResume(message *GameMessage) error {
 	case FlowState_MOVE_TO_NEXT_HAND:
 		err = g.moveToNextHand(handState)
 	case FlowState_WAIT_FOR_PENDING_UPDATE:
-		// TODO: Do we need this?
+		// TODO: Do we need this boolean?
 		g.inProcessPendingUpdates = false
 		err = g.moveAPIServerToNextHandAndScheduleDealHand(handState)
 	default:

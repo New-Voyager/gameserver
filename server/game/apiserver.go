@@ -89,8 +89,6 @@ func (g *Game) getNewHandInfo() (*NewHandInfo, error) {
 }
 
 func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) error {
-	// TODO: Implement retry.
-
 	url := fmt.Sprintf("%s/internal/move-to-next-hand/game_num/%s/hand_num/%d", g.apiServerURL, g.gameCode, gameServerHandNum)
 
 	channelGameLogger.Debug().
