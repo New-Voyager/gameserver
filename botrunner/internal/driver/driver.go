@@ -30,7 +30,6 @@ type BotRunner struct {
 	botIsGameHost   bool
 	currentHandNum  uint32
 	bots            []*player.BotPlayer
-	hostBot         *player.BotPlayer
 	observerBot     *player.BotPlayer
 	botsByName      map[string]*player.BotPlayer
 	botsBySeat      map[uint32]*player.BotPlayer
@@ -141,11 +140,8 @@ func (br *BotRunner) Run() error {
 	}
 	// we need to set the server settings before the player is created
 	if br.botIsGameHost {
-		// First bot is the host/club owner. It is also responsible for
-		// starting the game once all players are ready.
-		br.hostBot = br.bots[0]
 		if br.script.ServerSettings != nil {
-			br.hostBot.SetupServerSettings(br.script.ServerSettings)
+			br.observerBot.SetupServerSettings(br.script.ServerSettings)
 		}
 	}
 
@@ -170,10 +166,11 @@ func (br *BotRunner) Run() error {
 			br.logger.Info().Msgf("Using an existing club [%s]", br.clubCode)
 		} else {
 			// if there is a club with the same name, just use the club-code
-			clubCode, err := br.hostBot.GetClubCode(br.script.Club.Name)
+			clubCode, err := br.bots[0].GetClubCode(br.script.Club.Name)
 			if clubCode == "" {
-				// Host bot creates the club.
-				clubCode, err = br.hostBot.CreateClub(br.script.Club.Name, br.script.Club.Description)
+				// First bot creates the club. First bot is always the club owner. It is also responsible for
+				// starting the game once all players are ready.
+				clubCode, err = br.bots[0].CreateClub(br.script.Club.Name, br.script.Club.Description)
 				if err != nil {
 					return err
 				}
@@ -182,7 +179,7 @@ func (br *BotRunner) Run() error {
 			// create rewards for the club
 			if len(br.script.Club.Rewards) > 0 {
 				for _, reward := range br.script.Club.Rewards {
-					_, err = br.hostBot.CreateClubReward(clubCode, reward.Name, reward.Type, reward.Schedule, reward.Amount)
+					_, err = br.bots[0].CreateClubReward(clubCode, reward.Name, reward.Type, reward.Schedule, reward.Amount)
 				}
 			}
 		}
@@ -190,7 +187,7 @@ func (br *BotRunner) Run() error {
 		// The bots apply for the club membership.
 		botsToApplyClub := br.bots
 		if br.botIsClubOwner {
-			br.hostBot.SetClubCode(br.clubCode)
+			br.bots[0].SetClubCode(br.clubCode)
 			// The owner bot does not need to apply to its own club.
 			botsToApplyClub = br.bots[1:]
 		}
@@ -213,7 +210,7 @@ func (br *BotRunner) Run() error {
 
 		if br.botIsClubOwner {
 			// The club owner bot approves the other bots to join the club.
-			err = br.hostBot.ApproveClubMembers()
+			err = br.bots[0].ApproveClubMembers()
 			if err != nil {
 				return err
 			}
@@ -246,8 +243,8 @@ func (br *BotRunner) Run() error {
 
 		if br.script.Game.Rewards != "" {
 			// rewards can be listed with comma delimited string
-			//rewardID := br.hostBot.RewardsNameToID[br.script.Game.Rewards]
-			rewardID, err := br.hostBot.GetRewardID(br.clubCode, br.script.Game.Rewards)
+			//rewardID := br.bots[0].RewardsNameToID[br.script.Game.Rewards]
+			rewardID, err := br.bots[0].GetRewardID(br.clubCode, br.script.Game.Rewards)
 			if err != nil {
 				br.logger.Error().Msgf("Could not get reward info for %s", br.script.Game.Rewards)
 			} else {
@@ -260,7 +257,7 @@ func (br *BotRunner) Run() error {
 	gameTitle := br.script.Game.Title
 	if br.gameCode == "" {
 		// First bot creates the game.
-		gameCode, err := br.hostBot.CreateGame(game.GameCreateOpt{
+		gameCode, err := br.bots[0].CreateGame(game.GameCreateOpt{
 			Title:              gameTitle,
 			GameType:           br.script.Game.GameType,
 			SmallBlind:         br.script.Game.SmallBlind,
@@ -300,7 +297,7 @@ func (br *BotRunner) Run() error {
 	skipPlayers := make([]string, 0)
 	if br.botIsGameHost {
 		if br.script.ServerSettings != nil {
-			br.hostBot.SetupServerSettings(br.script.ServerSettings)
+			br.observerBot.SetupServerSettings(br.script.ServerSettings)
 		}
 
 		// This is a bot-created game. Use the config script to sit the bots.
@@ -349,7 +346,7 @@ func (br *BotRunner) Run() error {
 		if !allJoinedGame {
 			for waitAttempts := 0; !playersJoined; waitAttempts++ {
 				playersJoined = true
-				playersInSeat, err := br.hostBot.GetPlayersInSeat(br.gameCode)
+				playersInSeat, err := br.bots[0].GetPlayersInSeat(br.gameCode)
 				if err != nil {
 					return err
 				}
@@ -371,7 +368,7 @@ func (br *BotRunner) Run() error {
 		var playersBoughtIn bool
 		for waitAttempts := 0; !playersBoughtIn; waitAttempts++ {
 			playersBoughtIn = true
-			playersInSeat, err := br.hostBot.GetPlayersInSeat(br.gameCode)
+			playersInSeat, err := br.bots[0].GetPlayersInSeat(br.gameCode)
 			if err != nil {
 				return err
 			}
@@ -403,7 +400,7 @@ func (br *BotRunner) Run() error {
 		// Have the owner bot start the game.
 		if !br.script.Game.DontStart {
 			// Have the owner bot start the game.
-			err = br.hostBot.StartGame(br.gameCode)
+			err = br.bots[0].StartGame(br.gameCode)
 			if err != nil {
 				return err
 			}
@@ -423,7 +420,7 @@ func (br *BotRunner) Run() error {
 		nextBotIdx := 0
 		var gameInfo *game.GameInfo
 		for nextBotIdx < len(br.bots) {
-			gi, err := br.hostBot.GetGameInfo(br.gameCode)
+			gi, err := br.bots[0].GetGameInfo(br.gameCode)
 			if err != nil {
 				br.logger.Error().Msgf("Unable to get game info: %s", err)
 				time.Sleep(1000 * time.Second)
@@ -461,7 +458,7 @@ func (br *BotRunner) Run() error {
 	requestedEndGame := false
 	for !br.areBotsFinished() && !br.anyBotError() {
 		if br.shouldTerminate && br.botIsGameHost && !requestedEndGame {
-			err := br.hostBot.RequestEndGame(br.gameCode)
+			err := br.bots[0].RequestEndGame(br.gameCode)
 			if err != nil {
 				br.logger.Error().Msgf("Error [%s] while requesting to end game [%s]", err, br.gameCode)
 			} else {
@@ -472,7 +469,7 @@ func (br *BotRunner) Run() error {
 	}
 
 	if br.botIsGameHost {
-		br.hostBot.ResetServerSettings()
+		br.observerBot.ResetServerSettings()
 	}
 
 	br.logger.Info().Msg("Processing after-game assertions")
