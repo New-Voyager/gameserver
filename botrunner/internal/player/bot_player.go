@@ -56,10 +56,8 @@ type GameMessageChannelItem struct {
 
 // BotPlayer represents a bot user.
 type BotPlayer struct {
-	logger    *zerolog.Logger
-	config    Config
-	IpAddress string
-	Gps       *gamescript.GpsLocation
+	logger *zerolog.Logger
+	config Config
 
 	gqlHelper       *gql.GQLHelper
 	restHelper      *rest.RestClient
@@ -103,11 +101,6 @@ type BotPlayer struct {
 	end        chan bool
 	endPing    chan bool
 
-	// Points to the most recent messages from the game server.
-	lastGameMessage *game.GameMessage
-	lastHandMessage *game.HandMessage
-	//playerStateMessage *game.GameTableStateMessage
-
 	// GameInfo received from the api server.
 	gameInfo *game.GameInfo
 
@@ -121,6 +114,10 @@ type BotPlayer struct {
 
 	// other config
 	muckLosingHand bool
+
+	// For location check
+	IpAddress string
+	Gps       *gamescript.GpsLocation
 
 	// Nats subjects
 	gameToAll       string
@@ -349,7 +346,10 @@ func (bp *BotPlayer) handlePrivateHandMsg(msg *natsgo.Msg) {
 func (bp *BotPlayer) handlePrivateHandTextMsg(msg *natsgo.Msg) {
 	data := msg.Data
 	var message gamescript.HandTextMessage
-	fmt.Printf("%s\n", string(data))
+	if util.Env.ShouldPrintHandMsg() {
+		fmt.Printf("%s: Received hand msg (text): %s\n", bp.logPrefix, string(data))
+	}
+
 	err := json.Unmarshal(msg.Data, &message)
 	if err == nil {
 		bp.PrivateTextMessages = append(bp.PrivateTextMessages, &message)
@@ -371,6 +371,10 @@ func (bp *BotPlayer) unmarshalAndQueueHandMsg(data []byte) {
 	if err != nil {
 		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf hand message [%s]", bp.logPrefix, err, string(data))
 		return
+	}
+
+	if util.Env.ShouldPrintHandMsg() {
+		fmt.Printf("%s: Received hand msg (proto): %s\n", bp.logPrefix, message.String())
 	}
 
 	bp.chHand <- &message
@@ -483,8 +487,6 @@ func (bp *BotPlayer) processHandMessage(message *game.HandMessage) {
 		// this message was targeted for another player
 		return
 	}
-
-	bp.lastHandMessage = message
 
 	for i, msgItem := range message.GetMessages() {
 		bp.processMsgItem(message, msgItem, i)
@@ -2490,14 +2492,14 @@ func (bp *BotPlayer) StartGame(gameCode string) error {
 
 // RequestEndGame schedules to end the game after the current hand is finished.
 func (bp *BotPlayer) RequestEndGame(gameCode string) error {
-	bp.logger.Info().Msgf("%s: Requesting to end the game [%s] after the current hand.", bp.logPrefix, gameCode)
+	bp.logger.Info().Msgf("%s: Requesting to end the game [%s].", bp.logPrefix, gameCode)
 
 	status, err := bp.gqlHelper.EndGame(gameCode)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Error while requesting to end the game [%s]", bp.logPrefix, gameCode))
 	}
 
-	bp.logger.Info().Msgf("%s: Successfully requested to end the game [%s] after the current hand. Status: [%s]", bp.logPrefix, gameCode, status)
+	bp.logger.Info().Msgf("%s: Successfully requested to end the game [%s]. Status: [%s]", bp.logPrefix, gameCode, status)
 	return nil
 }
 

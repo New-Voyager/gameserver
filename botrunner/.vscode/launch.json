@@ -18,10 +18,10 @@
         "POSTGRES_USER": "game",
         "POSTGRES_PASSWORD": "game",
         "POSTGRES_DB": "game",
-        "PRINT_GAME_MSG": "false",
-        "PRINT_HAND_MSG": "false",
+        "PRINT_GAME_MSG": "1",
+        "PRINT_HAND_MSG": "1",
         "ENABLE_ENCRYPTION": "1",
-        "LOG_LEVEL": "info",
+        "LOG_LEVEL": "debug",
       },
       "args": [
         "--script",
@@ -38,10 +38,10 @@
       "cwd": "${workspaceFolder}",
       "env": {
         "API_SERVER_URL": "http://localhost:9501",
-        "PRINT_GAME_MSG": "false",
-        "PRINT_HAND_MSG": "false",
+        "PRINT_GAME_MSG": "1",
+        "PRINT_HAND_MSG": "1",
         "ENABLE_ENCRYPTION": "1",
-        "LOG_LEVEL": "info",
+        "LOG_LEVEL": "debug",
       },
       "args": [
         "--config",
@@ -64,10 +64,10 @@
         "POSTGRES_USER": "game",
         "POSTGRES_PASSWORD": "game",
         "POSTGRES_DB": "game",
-        "PRINT_GAME_MSG": "false",
-        "PRINT_HAND_MSG": "false",
+        "PRINT_GAME_MSG": "1",
+        "PRINT_HAND_MSG": "1",
         "ENABLE_ENCRYPTION": "1",
-        "LOG_LEVEL": "info",
+        "LOG_LEVEL": "debug",
       },
       "args": []
     }

@@ -1,11 +1,12 @@
+app-game: Bomb Pot Simple
 club:
   name: Manchester Club
   description: Club used for testing with the bot runner
 
 game:
   create: true
-  title: "PLO HI LO Testing Game"
-  game-type: "PLO_HILO"
+  title: "NLH Testing Game"
+  game-type: "HOLDEM"
   small-blind: 1.0
   big-blind: 2.0
   utg-straddle-allowed: true
@@ -37,15 +38,19 @@ auto-play: false
 # deal the following hands in the table
 hands:
   - setup:
+      bomb-pot: true
+      bomb-pot-bet: 10
+      double-board: true
       button-pos: 1
       board: ["Ac", "Ad", "2c", "Td", "4s"]
+      board2: ["8c", "4d", "6c", "7d", "Ks"]
       seat-cards:
-        - seat: 2
-          cards: ["Kh", "Qd", "3h", "5s"]
-        - seat: 3
-          cards: ["As", "Ts", "9d", "8h"]
         - seat: 1
-          cards: ["Ah", "Tc", "5c", "3s"]
+          cards: ["9h", "2s"]
+        - seat: 2
+          cards: ["Kh", "Qd"]
+        - seat: 3
+          cards: ["3s", "7s"]
 
     # simulate pre-flop action
     preflop:
@@ -63,7 +68,7 @@ hands:
         - action: 3, BET, 2
         - action: 1, CALL, 2
         - action: 2, RAISE, 4
-        - action: 3, CALL, 4
+        - action: 3, FOLD
         - action: 1, CALL, 4
 
     turn:
@@ -71,45 +76,30 @@ hands:
         board: ["Ac", "Ad", "2c", "Td"]
       seat-actions:
         - action: 2, CHECK
-        - action: 3, CHECK
         - action: 1, BET, 10
         - action: 2, CALL, 10
-        - action: 3, CALL, 10
 
     river:
       verify:
         board: ["Ac", "Ad", "2c", "Td", "4s"]
       seat-actions:
         - action: 2, BET, 10
-        - action: 3, CALL, 10
         - action: 1, CALL, 10
 
     result:
       winners:
         - seat: 1
-          receive: 19.0
-          rank: Full House
-          rake-paid: 2.0
-        - seat: 3
-          receive: 18.0
-          rank: Full House
-          rake-paid: 1.0
-
-      lo-winners:
-        - seat: 1
-          receive: 19.0
-        - seat: 2
-          receive: 19.0
-
-          action-ended: SHOW_DOWN
+          receive: 38
+          rank: Two Pair
+      action-ended: SHOW_DOWN
 
       players:
         - seat: 1
           balance:
-            after: 112
+            after: 104
         - seat: 2
           balance:
-            after: 93
+            after: 104
         - seat: 3
           balance:
-            after: 92
+            after: 88

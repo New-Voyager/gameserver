@@ -49,25 +49,41 @@ func (g *Game) onResume(message *GameMessage) error {
 
 	handState, err := g.loadHandState()
 	if err != nil {
-		if handState == nil {
-			// There is no existing hand state. We get here during the initial game start sequence.
-			// We could also get here if the game server crashed before the first hand
-			// or before the hand state of the first hand was persisted.
-			// Go ahead and start the first hand.
-			err = g.moveAPIServerToNextHandAndScheduleDealHand(nil)
-			if err != nil {
-				return errors.Wrap(err, "Error while starting game")
-			}
-			return nil
+		if handState != nil {
+			return errors.Wrap(err, "Could not load hand state while resuming game")
 		}
 
-		return errors.Wrap(err, "Could not load hand state while resuming game")
+		// There is no existing hand state. We should only get here during the initial
+		// game start sequence (before the first hand was ever dealt).
+		// We could also get here if the game server crashed before the first hand
+		// or before the hand state of the first hand was persisted.
+		// Go ahead and start the first hand.
+
+		// Move the api server to the first hand (hand number 1).
+		err = g.moveAPIServerToNextHandAndScheduleDealHand(nil)
+		if err != nil {
+			ugse, ok := err.(*UnexpectedGameStatusError)
+			if ok {
+				// API server has a bug where it sometimes calls resumeGame when the game
+				// isn't ready. This is a guard against that. In this case we do nothing and
+				// wait for another resumeGame from the api server when the game is actually ready.
+				channelGameLogger.Warn().
+					Str("game", g.gameCode).
+					Msgf("Unable to start game due to invalid game/table status. Doing nothing. Msg: %s", ugse.Error())
+				return nil
+			}
+			return errors.Wrap(err, "Error while starting game")
+		}
+
+		g.isHandInProgress = true
+		return nil
 	}
 
 	if g.isHandInProgress {
 		// Hand is already in progress. Don't try to restart.
 		// We shouldn't really get here, but this is just to
-		// handle potential error situation from api server.
+		// handle potential error situation from api server
+		// where it calls resumeGame multiple times.
 		channelGameLogger.Warn().
 			Str("game", g.gameCode).
 			Msgf("onResume called when hand is already in progress. Doing nothing.")
@@ -89,9 +105,24 @@ func (g *Game) onResume(message *GameMessage) error {
 	case FlowState_MOVE_TO_NEXT_HAND:
 		err = g.moveToNextHand(handState)
 	case FlowState_WAIT_FOR_PENDING_UPDATE:
-		// TODO: Do we need this?
+		// TODO: Do we need this boolean?
 		g.inProcessPendingUpdates = false
-		err = g.moveAPIServerToNextHandAndScheduleDealHand(handState)
+		e := g.moveAPIServerToNextHandAndScheduleDealHand(handState)
+		if e != nil {
+			ugse, ok := e.(*UnexpectedGameStatusError)
+			if ok {
+				// API server has a bug where it calls resumeGame when one player is in break
+				// and the other player is the only remaining player (game can't continue).
+				// This is a guard against that. In this case we do nothing and wait for another
+				// resumeGame from the api server when the game is actually ready.
+				channelGameLogger.Warn().
+					Str("game", g.gameCode).
+					Msgf("Unable to resume game due to invalid game/table status. Doing nothing. Msg: %s", ugse.Error())
+				g.isHandInProgress = false
+			} else {
+				err = e
+			}
+		}
 	default:
 		err = fmt.Errorf("unhandled flow state in resumeGame: %s", handState.FlowState)
 	}
@@ -198,15 +229,22 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 }
 
 func (g *Game) moveAPIServerToNextHandAndScheduleDealHand(handState *HandState) error {
-	var handNum uint32
+	var currentHandNum uint32
 	if handState == nil {
-		handNum = 0
+		currentHandNum = 0
 	} else {
-		handNum = handState.HandNum
+		currentHandNum = handState.HandNum
 	}
-	err := g.moveAPIServerToNextHand(handNum)
+	resp, err := g.moveAPIServerToNextHand(currentHandNum)
 	if err != nil {
 		return errors.Wrap(err, "Could not move api server to next hand")
+	}
+
+	if resp.GameStatus != GameStatus_ACTIVE || resp.TableStatus != TableStatus_GAME_RUNNING {
+		return &UnexpectedGameStatusError{
+			GameStatus:  resp.GameStatus,
+			TableStatus: resp.TableStatus,
+		}
 	}
 
 	if handState != nil {

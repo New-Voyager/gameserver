@@ -67,7 +67,34 @@ after-game:
     num-hands-played:
       gte: 2
       lte: 3
-
+    game-messages:
+      - type: PLAYER_SEAT_CHANGE_PROMPT
+        playerName: tom
+        openedSeat: 5
+        promptSecs: 30
+      - type: TABLE_UPDATE
+        subType: HostSeatChangeMove
+        seatMoves:
+          - oldSeatNo: 4
+            newSeatNo: 1
+            openSeat: true
+          - name: yong
+            oldSeatNo: 1
+            newSeatNo: 4
+            openSeat: false
+      - type: NEW_HIGHHAND_WINNER
+        winners:
+          - playerName: brian
+            boardCards: [52, 49, 50, 17, 4]
+            playerCards: [56, 72]
+            hhCards: [52, 49, 50, 56, 72]
+    private-messages:
+      - player: yong
+        messages:
+          - type: APPCOIN_NEEDED
+      - player: tom
+        messages:
+          - type: YOUR_ACTION
 hands:
   - setup:
       pre-deal:
@@ -128,6 +155,17 @@ hands:
           - seat: 3
             player: yong
             sb: true
+
+    # What to do if some players leave the game and
+    # there is not enough player to continue the game after this hand?
+    when-not-enough-players:
+      # Option 1: Have the host bot terminate the game.
+      request-end-game: true
+      # Option 2: Have more bots join the game.
+      add-players:
+        - seat: 2
+          player: jim
+          buy-in: 100
 
     preflop:
       seat-actions:
