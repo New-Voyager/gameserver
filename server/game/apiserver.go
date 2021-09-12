@@ -12,6 +12,13 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
+type moveToNextHandResp struct {
+	GameCode    string
+	HandNum     int
+	GameStatus  GameStatus
+	TableStatus TableStatus
+}
+
 func (g *Game) saveHandResult2ToAPIServer(result2 *HandResultServer) (*SaveHandResult, error) {
 	// call the API server to save the hand result
 	var m protojson.MarshalOptions
@@ -88,7 +95,7 @@ func (g *Game) getNewHandInfo() (*NewHandInfo, error) {
 	return nil, fmt.Errorf("[%s] Cannot get new hand information", g.gameCode)
 }
 
-func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) error {
+func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) (moveToNextHandResp, error) {
 	url := fmt.Sprintf("%s/internal/move-to-next-hand/game_num/%s/hand_num/%d", g.apiServerURL, g.gameCode, gameServerHandNum)
 
 	channelGameLogger.Debug().
@@ -107,7 +114,7 @@ func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) error {
 
 	// if the api server returns nil, do nothing
 	if resp == nil {
-		return fmt.Errorf("Nil response received from api server /move-to-next-hand")
+		return moveToNextHandResp{}, fmt.Errorf("Nil response received from api server /move-to-next-hand")
 	}
 	defer resp.Body.Close()
 
@@ -117,14 +124,21 @@ func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) error {
 		channelGameLogger.Error().
 			Str("game", g.gameCode).
 			Msgf(msg)
-		return errors.Wrap(err, msg)
+		return moveToNextHandResp{}, errors.Wrap(err, msg)
 	}
 	channelGameLogger.Debug().
 		Str("game", g.gameCode).
 		Msgf("Response from /move-to-next-hand: %s", bodyBytes)
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("/move-to-next-hand returned HTTP status %d", resp.StatusCode)
+		return moveToNextHandResp{}, fmt.Errorf("/move-to-next-hand returned HTTP status %d", resp.StatusCode)
 	}
-	return nil
+
+	var body moveToNextHandResp
+	err = json.Unmarshal(bodyBytes, &body)
+	if err != nil {
+		return moveToNextHandResp{}, errors.Wrap(err, "Unable to unmarshal json body")
+	}
+
+	return body, nil
 }
