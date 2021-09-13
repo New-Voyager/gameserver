@@ -266,7 +266,7 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 		WonAt:         hs.getLog().GetWonAt(),
 		PotWinners:    potWinners,
 		Boards:        hs.Boards,
-		PauseTimeSecs: 5000,
+		PauseTimeSecs: hs.ResultPauseTime,
 		PlayerInfo:    playerInfo,
 		Scoop:         scoop,
 		HandNum:       hs.HandNum,
