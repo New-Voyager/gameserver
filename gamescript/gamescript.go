@@ -417,7 +417,6 @@ type HandResult struct {
 	Winners       []HandWinner   `yaml:"winners"`
 	LoWinners     []HandWinner   `yaml:"lo-winners"`
 	ActionEndedAt string         `yaml:"action-ended"`
-	HighHand      []HighHandSeat `yaml:"high-hand"`
 	Players       []ResultPlayer `yaml:"players"`
 	TimeoutStats  []TimeoutStats `yaml:"timeout-stats"`
 	RunItTwice    *bool          `yaml:"run-it-twice"`
@@ -442,21 +441,10 @@ type PlayerBalance struct {
 	After  *float32 `yaml:"after"`
 }
 
-type HighHandSeat struct {
-	Seat uint32 `yaml:"seat"`
-}
-
 type TimeoutStats struct {
 	Seat                      uint32 `yaml:"seat"`
 	ConsecutiveActionTimeouts uint32 `yaml:"consecutive-action-timeouts"`
 	ActedAtLeastOnce          bool   `yaml:"acted-at-least-once"`
-}
-
-type RunItTwiceResult struct {
-	ShouldBeNull  bool        `yaml:"should-be-null"`
-	StartedAt     string      `yaml:"started-at"`
-	Board1Winners []WinnerPot `yaml:"board1-winners"`
-	Board2Winners []WinnerPot `yaml:"board2-winners"`
 }
 
 type BoardWinner struct {

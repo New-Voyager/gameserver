@@ -476,11 +476,6 @@ func TestReadGameScript(t *testing.T) {
 							},
 						},
 					},
-					HighHand: []HighHandSeat{
-						{
-							Seat: 1,
-						},
-					},
 					TimeoutStats: []TimeoutStats{
 						{
 							Seat:                      1,

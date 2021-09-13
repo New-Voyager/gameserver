@@ -91,6 +91,3 @@ hands:
         - seat: 3
           balance:
             after: 128
-
-      high-hand:
-        - seat: 3

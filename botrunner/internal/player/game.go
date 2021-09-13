@@ -11,7 +11,6 @@ type gameView struct {
 	table       *tableView
 	handNum     uint32
 	handStatus  game.HandStatus
-	handResult  *game.HandResult
 	handResult2 *game.HandResultClient
 }
 
