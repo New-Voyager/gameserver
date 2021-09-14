@@ -77,6 +77,3 @@ hands:
         - action: 3, ALLIN
         - action: 4, FOLD
         - action: 2, ALLIN
-
-    result:
-      run-it-twice: false

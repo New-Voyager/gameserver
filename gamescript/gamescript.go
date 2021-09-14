@@ -183,6 +183,23 @@ type Hand struct {
 	Result               HandResult           `yaml:"result"`
 	PauseGame            bool                 `yaml:"pause-game"`
 	PostHandSteps        []PostHandStep       `yaml:"post-hand"`
+
+	// Run some API server API and verify the response after this hand is run.
+	APIVerification APIVerification `yaml:"api"`
+}
+
+type APIVerification struct {
+	// gameResultTable GraphQL
+	GameResultTable []GameResultTableRow `yaml:"game-result-table"`
+}
+
+type GameResultTableRow struct {
+	PlayerName  string  `yaml:"player-name"`
+	HandsPlayed uint32  `yaml:"hands-played"`
+	BuyIn       float32 `yaml:"buy-in"`
+	Profit      float32 `yaml:"profit"`
+	Stack       float32 `yaml:"stack"`
+	RakePaid    float32 `yaml:"rake-paid"`
 }
 
 // HandSetup contains the setup content in the hand config.
@@ -417,7 +434,6 @@ type HandResult struct {
 	Winners       []HandWinner   `yaml:"winners"`
 	LoWinners     []HandWinner   `yaml:"lo-winners"`
 	ActionEndedAt string         `yaml:"action-ended"`
-	HighHand      []HighHandSeat `yaml:"high-hand"`
 	Players       []ResultPlayer `yaml:"players"`
 	TimeoutStats  []TimeoutStats `yaml:"timeout-stats"`
 	RunItTwice    *bool          `yaml:"run-it-twice"`
@@ -442,21 +458,10 @@ type PlayerBalance struct {
 	After  *float32 `yaml:"after"`
 }
 
-type HighHandSeat struct {
-	Seat uint32 `yaml:"seat"`
-}
-
 type TimeoutStats struct {
 	Seat                      uint32 `yaml:"seat"`
 	ConsecutiveActionTimeouts uint32 `yaml:"consecutive-action-timeouts"`
 	ActedAtLeastOnce          bool   `yaml:"acted-at-least-once"`
-}
-
-type RunItTwiceResult struct {
-	ShouldBeNull  bool        `yaml:"should-be-null"`
-	StartedAt     string      `yaml:"started-at"`
-	Board1Winners []WinnerPot `yaml:"board1-winners"`
-	Board2Winners []WinnerPot `yaml:"board2-winners"`
 }
 
 type BoardWinner struct {
@@ -552,6 +557,9 @@ type AfterGameVerification struct {
 	NumHandsPlayed  NumHandsPlayedVerification `yaml:"num-hands-played"`
 	PrivateMessages []VerifyPrivateMessages    `yaml:"private-messages"`
 	GameMessages    []NonProtoMessage          `yaml:"game-messages"`
+
+	// Run some API server API and verify the response after this hand is run.
+	APIVerification APIVerification `yaml:"api"`
 }
 
 type NumHandsPlayedVerification struct {

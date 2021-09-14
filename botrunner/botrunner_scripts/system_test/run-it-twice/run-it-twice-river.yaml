@@ -83,6 +83,3 @@ hands:
       seat-actions:
         - action: 2, ALLIN
         - action: 3, ALLIN
-
-    result:
-      run-it-twice: false

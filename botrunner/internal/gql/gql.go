@@ -448,6 +448,24 @@ func (g *GQLHelper) GetGameInfo(gameCode string) (gameInfo game.GameInfo, err er
 	return
 }
 
+// GetGameResultTable queries the game result table from the api server.
+func (g *GQLHelper) GetGameResultTable(gameCode string) (rows []game.GameResultTableRow, err error) {
+	req := graphql.NewRequest(GameResultTableGQL)
+	req.Var("gameCode", gameCode)
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", fmt.Sprintf("%s", g.authToken))
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+
+	var respData GameResultTableResp
+	err = g.client.Run(ctx, req, &respData)
+	if err != nil {
+		return nil, err
+	}
+	return respData.GameResultTable, nil
+}
+
 // GetGameID queries for the numeric game ID using the game code.
 func (g *GQLHelper) GetGameID(gameCode string) (uint64, error) {
 	req := graphql.NewRequest(GameByIdGQL)
@@ -968,6 +986,26 @@ const GameInfoGQL = `query game_info($gameCode: String!) {
 
 type GameInfoResp struct {
 	GameInfo game.GameInfo `json:"gameInfo"`
+}
+
+// GameResultTableGQL is the gql query string for gameResultTable api.
+const GameResultTableGQL = `query game_result_table($gameCode: String!) {
+    gameResultTable(gameCode: $gameCode) {
+		playerId
+		playerUuid
+		playerName
+		sessionTime
+		sessionTimeStr
+		handsPlayed
+		buyIn
+		profit
+		stack
+		rakePaid
+    }
+}`
+
+type GameResultTableResp struct {
+	GameResultTable []game.GameResultTableRow `json:"gameResultTable"`
 }
 
 // CreatePlayerGQL is the mustation gql for registering a new user.

@@ -84,7 +84,6 @@ hands:
         - action: 2, ALLIN
 
     result:
-      run-it-twice: true
       boards:
         - board-no: 1
           winners:

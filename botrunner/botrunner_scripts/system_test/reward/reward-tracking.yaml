@@ -98,6 +98,4 @@ hands:
     #   winners:
     #     - seat: 3
     #       receive: 56.0
-    #   high-hand:
-    #     - seat: 1
     #   action-ended: SHOW_DOWN

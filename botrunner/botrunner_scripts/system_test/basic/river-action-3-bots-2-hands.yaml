@@ -101,6 +101,27 @@ hands:
           balance:
             after: 96
 
+    api:
+      game-result-table:
+        - player-name: yong
+          hands-played: 1
+          buy-in: 100
+          profit: 28
+          stack: 128
+          rake-paid: 2
+        - player-name: brian
+          hands-played: 1
+          buy-in: 100
+          profit: -26
+          stack: 74
+          rake-paid: 0
+        - player-name: tom
+          hands-played: 1
+          buy-in: 100
+          profit: -4
+          stack: 96
+          rake-paid: 0
+
   # button is 5, sb 8, bb 1
   - setup:
       flop: ["Ac", "Ad", "2c"]
@@ -166,3 +187,47 @@ hands:
         - seat: 8
           balance:
             after: 70
+
+    api:
+      game-result-table:
+        - player-name: yong
+          hands-played: 2
+          buy-in: 100
+          profit: 24
+          stack: 124
+          rake-paid: 2
+        - player-name: brian
+          hands-played: 2
+          buy-in: 100
+          profit: 2
+          stack: 102
+          rake-paid: 2
+        - player-name: tom
+          hands-played: 2
+          buy-in: 100
+          profit: -30
+          stack: 70
+          rake-paid: 0
+
+after-game:
+  verify:
+    api:
+      game-result-table:
+        - player-name: yong
+          hands-played: 2
+          buy-in: 100
+          profit: 24
+          stack: 124
+          rake-paid: 2
+        - player-name: brian
+          hands-played: 2
+          buy-in: 100
+          profit: 2
+          stack: 102
+          rake-paid: 2
+        - player-name: tom
+          hands-played: 2
+          buy-in: 100
+          profit: -30
+          stack: 70
+          rake-paid: 0

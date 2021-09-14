@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"time"
 
@@ -769,26 +770,6 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			bp.logger.Info().Msg(msg)
 		}
 
-	// case game.HandResultMessage:
-	// 	/* MessageType: RESULT */
-	// 	bp.game.handStatus = message.GetHandStatus()
-	// 	bp.game.handResult = msgItem.GetHandResult()
-	// 	if bp.IsObserver() {
-	// 		bp.PrintHandResult()
-	// 		bp.verifyResult()
-	// 	}
-
-	// 	result := bp.game.handResult
-	// 	for seatNo, player := range result.Players {
-	// 		if seatNo == bp.seatNo {
-	// 			if player.Balance.After == 0.0 {
-	// 				// reload chips
-	// 				bp.reload()
-	// 			}
-	// 			break
-	// 		}
-	// 	}
-
 	case game.HandResultMessage2:
 		/* MessageType: RESULT */
 		bp.game.handStatus = message.GetHandStatus()
@@ -796,6 +777,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if bp.IsObserver() {
 			bp.PrintHandResult()
 			bp.verifyResult2()
+			bp.verifyAPIRespForHand()
 		}
 
 	case game.HandEnded:
@@ -1098,237 +1080,6 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 	}
 }
 
-/*
-func (bp *BotPlayer) verifyResult() {
-	// don't verify result for auto play
-	if bp.config.Script.AutoPlay {
-		return
-	}
-
-	if bp.game.handNum == 0 {
-		return
-	}
-
-	bp.logger.Info().Msgf("%s: Verifying result for hand %d", bp.logPrefix, bp.game.handNum)
-	scriptResult := bp.config.Script.GetHand(bp.game.handNum).Result
-
-	actualResult := bp.GetHandResult()
-	if actualResult == nil {
-		panic(fmt.Sprintf("%s: Hand %d result verify failed. Unable to get the result", bp.logPrefix, bp.game.handNum))
-	}
-
-	passed := true
-
-	if scriptResult.ActionEndedAt != "" {
-		expectedWonAt := scriptResult.ActionEndedAt
-		wonAt := actualResult.GetHandLog().GetWonAt()
-		if wonAt.String() != expectedWonAt {
-			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Won at: %s. Expected won at: %s.", bp.logPrefix, bp.game.handNum, wonAt, expectedWonAt)
-		}
-	}
-
-	type winner struct {
-		SeatNo  uint32
-		Amount  float32
-		RankStr string
-	}
-
-	if len(scriptResult.Winners) > 0 {
-		expectedWinnersBySeat := make(map[uint32]winner)
-		for _, expectedWinner := range scriptResult.Winners {
-			expectedWinnersBySeat[expectedWinner.Seat] = winner{
-				SeatNo:  expectedWinner.Seat,
-				Amount:  expectedWinner.Receive,
-				RankStr: expectedWinner.RankStr,
-			}
-		}
-		actualWinnersBySeat := make(map[uint32]winner)
-		pots := actualResult.GetHandLog().GetPotWinners()
-		for _, w := range pots[0].HiWinners {
-			actualWinnersBySeat[w.GetSeatNo()] = winner{
-				SeatNo:  w.GetSeatNo(),
-				Amount:  w.GetAmount(),
-				RankStr: w.GetRankStr(),
-			}
-		}
-		if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
-			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
-			passed = false
-		}
-	}
-
-	if len(scriptResult.LoWinners) > 0 {
-		expectedLoWinnersBySeat := make(map[uint32]winner)
-		for _, expectedWinner := range scriptResult.LoWinners {
-			expectedLoWinnersBySeat[expectedWinner.Seat] = winner{
-				SeatNo:  expectedWinner.Seat,
-				Amount:  expectedWinner.Receive,
-				RankStr: expectedWinner.RankStr,
-			}
-		}
-		actualLoWinnersBySeat := make(map[uint32]winner)
-		pots := actualResult.GetHandLog().GetPotWinners()
-		for _, w := range pots[0].LowWinners {
-			actualLoWinnersBySeat[w.GetSeatNo()] = winner{
-				SeatNo:  w.GetSeatNo(),
-				Amount:  w.GetAmount(),
-				RankStr: w.GetRankStr(),
-			}
-		}
-
-		if !cmp.Equal(expectedLoWinnersBySeat, actualLoWinnersBySeat) {
-			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Low Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualLoWinnersBySeat, expectedLoWinnersBySeat)
-			passed = false
-		}
-	}
-
-	if len(scriptResult.Players) > 0 {
-		resultPlayers := actualResult.GetPlayers()
-		for _, scriptResultPlayer := range scriptResult.Players {
-			seatNo := scriptResultPlayer.Seat
-			if _, exists := resultPlayers[seatNo]; !exists {
-				bp.logger.Error().Msgf("%s: Hand %d result verify failed. Expected seat# %d to be found in the result, but the result does not contain that seat.", bp.logPrefix, bp.game.handNum, seatNo)
-				passed = false
-				continue
-			}
-
-			expectedBalanceBefore := scriptResultPlayer.Balance.Before
-			if expectedBalanceBefore != nil {
-				actualBalanceBefore := resultPlayers[seatNo].GetBalance().Before
-				if actualBalanceBefore != *expectedBalanceBefore {
-					bp.logger.Error().Msgf("%s: Hand %d result verify failed. Starting balance for seat# %d: %f. Expected: %f.", bp.logPrefix, bp.game.handNum, seatNo, actualBalanceBefore, *expectedBalanceBefore)
-					passed = false
-				}
-			}
-			expectedBalanceAfter := scriptResultPlayer.Balance.After
-			if expectedBalanceAfter != nil {
-				actualBalanceAfter := resultPlayers[seatNo].GetBalance().After
-				if actualBalanceAfter != *expectedBalanceAfter {
-					bp.logger.Error().Msgf("%s: Hand %d result verify failed. Remaining balance for seat# %d: %f. Expected: %f.", bp.logPrefix, bp.game.handNum, seatNo, actualBalanceAfter, *expectedBalanceAfter)
-					passed = false
-				}
-			}
-			expectedHhRank := scriptResultPlayer.HhRank
-			if expectedHhRank != nil {
-				actualHhRank := resultPlayers[seatNo].GetHhRank()
-				if actualHhRank != *expectedHhRank {
-					bp.logger.Error().Msgf("%s: Hand %d result verify failed. HhRank for seat# %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, actualHhRank, *expectedHhRank)
-					passed = false
-				}
-			}
-		}
-	}
-
-	if len(scriptResult.PlayerStats) > 0 {
-		actualPlayerStats := actualResult.GetPlayerStats()
-		for _, scriptStat := range scriptResult.PlayerStats {
-			seatNo := scriptStat.Seat
-			playerID := bp.getPlayerIDBySeatNo(seatNo)
-			actualTimeouts := actualPlayerStats[playerID].ConsecutiveActionTimeouts
-			expectedTimeouts := scriptStat.ConsecutiveActionTimeouts
-			if actualTimeouts != expectedTimeouts {
-				bp.logger.Error().Msgf("%s: Hand %d result verify failed. Consecutive Action Timeouts for seat# %d player ID %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actualTimeouts, expectedTimeouts)
-				passed = false
-			}
-			actualActedAtLeastOnce := actualPlayerStats[playerID].ActedAtLeastOnce
-			expectedActedAtLeastOnce := scriptStat.ActedAtLeastOnce
-			if actualActedAtLeastOnce != expectedActedAtLeastOnce {
-				bp.logger.Error().Msgf("%s: Hand %d result verify failed. ActedAtLeastOnce for seat# %d player ID %d: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actualActedAtLeastOnce, expectedActedAtLeastOnce)
-				passed = false
-			}
-		}
-	}
-
-	if len(scriptResult.HighHand) > 0 {
-		actualHighHand := actualResult.GetHighHand()
-		if actualHighHand == nil {
-			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Expected high-hand in result, but got null.")
-			passed = false
-		}
-		hhWinners := actualHighHand.GetWinners()
-		if len(hhWinners) != len(scriptResult.HighHand) {
-			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Number of high-hand winners: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, len(hhWinners), len(scriptResult.HighHand))
-			passed = false
-		}
-		for _, expectedWinner := range scriptResult.HighHand {
-			expectedSeatNo := expectedWinner.Seat
-			seatFound := false
-			for _, winner := range hhWinners {
-				if winner.SeatNo == expectedSeatNo {
-					seatFound = true
-					break
-				}
-			}
-			if !seatFound {
-				bp.logger.Error().Msgf("%s: Hand %d result verify failed. Expected high-hand winner seat# %d was not found in the result high-hand winners.", bp.logPrefix, bp.game.handNum, expectedSeatNo)
-				passed = false
-			}
-		}
-	}
-
-	if scriptResult.RunItTwice != nil {
-		resultShouldBeNull := scriptResult.RunItTwice.ShouldBeNull
-		expectedRunItTwice := !resultShouldBeNull
-
-		if actualResult.GetRunItTwice() != expectedRunItTwice {
-			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Run-it-twice in hand result is expected to to be %v, but is %v.", bp.logPrefix, bp.game.handNum, expectedRunItTwice, actualResult.GetRunItTwice())
-			passed = false
-		}
-		if actualResult.GetHandLog().GetRunItTwice() != expectedRunItTwice {
-			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Run-it-twice in result hand log is expected to be %v, but is %v.", bp.logPrefix, bp.game.handNum, expectedRunItTwice, actualResult.GetHandLog().GetRunItTwice())
-			passed = false
-		}
-		actualRunItTwiceResult := actualResult.GetHandLog().GetRunItTwiceResult()
-		if resultShouldBeNull {
-			if actualRunItTwiceResult != nil {
-				bp.logger.Error().Msgf("%s: Hand %d result verify failed. The result is not expected to containe run-it-twice result, but it contains not-null run-it-twice section.", bp.logPrefix, bp.game.handNum)
-				passed = false
-			}
-		} else {
-			if actualRunItTwiceResult == nil {
-				bp.logger.Error().Msgf("%s: Hand %d result verify failed. The result is expected to contain run-it-twice result, but it is null.", bp.logPrefix, bp.game.handNum)
-				passed = false
-			} else {
-				if actualRunItTwiceResult.GetRunItTwiceStartedAt().String() != scriptResult.RunItTwice.StartedAt {
-					bp.logger.Error().Msgf("%s: Hand %d result verify failed. runItTwiceStartedAt: %s, expected: %s.", bp.logPrefix, bp.game.handNum, actualRunItTwiceResult.GetRunItTwiceStartedAt().String(), scriptResult.RunItTwice.StartedAt)
-					passed = false
-				}
-
-				expectedBoard1Pots := scriptResult.RunItTwice.Board1Winners
-				actualBoard1Pots := actualRunItTwiceResult.GetBoard_1Winners()
-				for potNum, expectedPot := range expectedBoard1Pots {
-					actualPot := actualBoard1Pots[uint32(potNum)]
-					if actualPot.Amount != expectedPot.Amount {
-						bp.logger.Error().Msgf("%s: Hand %d result verify failed. RunItTwice board 1 pot %d amount: %f, expected: %f.", bp.logPrefix, bp.game.handNum, potNum, actualPot.Amount, expectedPot.Amount)
-						passed = false
-					}
-					if !bp.verifyPotWinners(actualPot, expectedPot, 1, potNum) {
-						passed = false
-					}
-				}
-
-				expectedBoard2Pots := scriptResult.RunItTwice.Board2Winners
-				actualBoard2Pots := actualRunItTwiceResult.GetBoard_2Winners()
-				for potNum, expectedPot := range expectedBoard2Pots {
-					actualPot := actualBoard2Pots[uint32(potNum)]
-					if actualPot.Amount != expectedPot.Amount {
-						bp.logger.Error().Msgf("%s: Hand %d result verify failed. RunItTwice board 2 pot %d amount: %f, expected: %f.", bp.logPrefix, bp.game.handNum, potNum, actualPot.Amount, expectedPot.Amount)
-						passed = false
-					}
-					if !bp.verifyPotWinners(actualPot, expectedPot, 2, potNum) {
-						passed = false
-					}
-				}
-			}
-		}
-	}
-
-	if !passed {
-		panic(fmt.Sprintf("Hand %d result verify failed. Please check the logs.", bp.game.handNum))
-	}
-}
-*/
-
 func (bp *BotPlayer) verifyBoardWinners(scriptBoard *gamescript.BoardWinner, actualResult *game.BoardWinner) bool {
 	type winner struct {
 		SeatNo  uint32
@@ -1579,90 +1330,6 @@ func (bp *BotPlayer) verifyResult2() {
 		}
 	}
 
-	// if len(scriptResult.HighHand) > 0 {
-	// 	actualHighHand := actualResult.GetHighHand()
-	// 	if actualHighHand == nil {
-	// 		bp.logger.Error().Msgf("%s: Hand %d result verify failed. Expected high-hand in result, but got null.")
-	// 		passed = false
-	// 	}
-	// 	hhWinners := actualHighHand.GetWinners()
-	// 	if len(hhWinners) != len(scriptResult.HighHand) {
-	// 		bp.logger.Error().Msgf("%s: Hand %d result verify failed. Number of high-hand winners: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, len(hhWinners), len(scriptResult.HighHand))
-	// 		passed = false
-	// 	}
-	// 	for _, expectedWinner := range scriptResult.HighHand {
-	// 		expectedSeatNo := expectedWinner.Seat
-	// 		seatFound := false
-	// 		for _, winner := range hhWinners {
-	// 			if winner.SeatNo == expectedSeatNo {
-	// 				seatFound = true
-	// 				break
-	// 			}
-	// 		}
-	// 		if !seatFound {
-	// 			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Expected high-hand winner seat# %d was not found in the result high-hand winners.", bp.logPrefix, bp.game.handNum, expectedSeatNo)
-	// 			passed = false
-	// 		}
-	// 	}
-	// }
-
-	// if scriptResult.RunItTwice != nil {
-	// 	resultShouldBeNull := scriptResult.RunItTwice.ShouldBeNull
-	// 	expectedRunItTwice := !resultShouldBeNull
-
-	// 	if actualResult.GetRunItTwice() != expectedRunItTwice {
-	// 		bp.logger.Error().Msgf("%s: Hand %d result verify failed. Run-it-twice in hand result is expected to to be %v, but is %v.", bp.logPrefix, bp.game.handNum, expectedRunItTwice, actualResult.GetRunItTwice())
-	// 		passed = false
-	// 	}
-	// 	if actualResult.GetHandLog().GetRunItTwice() != expectedRunItTwice {
-	// 		bp.logger.Error().Msgf("%s: Hand %d result verify failed. Run-it-twice in result hand log is expected to be %v, but is %v.", bp.logPrefix, bp.game.handNum, expectedRunItTwice, actualResult.GetHandLog().GetRunItTwice())
-	// 		passed = false
-	// 	}
-	// 	actualRunItTwiceResult := actualResult.GetHandLog().GetRunItTwiceResult()
-	// 	if resultShouldBeNull {
-	// 		if actualRunItTwiceResult != nil {
-	// 			bp.logger.Error().Msgf("%s: Hand %d result verify failed. The result is not expected to containe run-it-twice result, but it contains not-null run-it-twice section.", bp.logPrefix, bp.game.handNum)
-	// 			passed = false
-	// 		}
-	// 	} else {
-	// 		if actualRunItTwiceResult == nil {
-	// 			bp.logger.Error().Msgf("%s: Hand %d result verify failed. The result is expected to contain run-it-twice result, but it is null.", bp.logPrefix, bp.game.handNum)
-	// 			passed = false
-	// 		} else {
-	// 			if actualRunItTwiceResult.GetRunItTwiceStartedAt().String() != scriptResult.RunItTwice.StartedAt {
-	// 				bp.logger.Error().Msgf("%s: Hand %d result verify failed. runItTwiceStartedAt: %s, expected: %s.", bp.logPrefix, bp.game.handNum, actualRunItTwiceResult.GetRunItTwiceStartedAt().String(), scriptResult.RunItTwice.StartedAt)
-	// 				passed = false
-	// 			}
-
-	// 			expectedBoard1Pots := scriptResult.RunItTwice.Board1Winners
-	// 			actualBoard1Pots := actualRunItTwiceResult.GetBoard_1Winners()
-	// 			for potNum, expectedPot := range expectedBoard1Pots {
-	// 				actualPot := actualBoard1Pots[uint32(potNum)]
-	// 				if actualPot.Amount != expectedPot.Amount {
-	// 					bp.logger.Error().Msgf("%s: Hand %d result verify failed. RunItTwice board 1 pot %d amount: %f, expected: %f.", bp.logPrefix, bp.game.handNum, potNum, actualPot.Amount, expectedPot.Amount)
-	// 					passed = false
-	// 				}
-	// 				if !bp.verifyPotWinners(actualPot, expectedPot, 1, potNum) {
-	// 					passed = false
-	// 				}
-	// 			}
-
-	// 			expectedBoard2Pots := scriptResult.RunItTwice.Board2Winners
-	// 			actualBoard2Pots := actualRunItTwiceResult.GetBoard_2Winners()
-	// 			for potNum, expectedPot := range expectedBoard2Pots {
-	// 				actualPot := actualBoard2Pots[uint32(potNum)]
-	// 				if actualPot.Amount != expectedPot.Amount {
-	// 					bp.logger.Error().Msgf("%s: Hand %d result verify failed. RunItTwice board 2 pot %d amount: %f, expected: %f.", bp.logPrefix, bp.game.handNum, potNum, actualPot.Amount, expectedPot.Amount)
-	// 					passed = false
-	// 				}
-	// 				if !bp.verifyPotWinners(actualPot, expectedPot, 2, potNum) {
-	// 					passed = false
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
-
 	if !passed {
 		panic(fmt.Sprintf("Hand %d result verify failed. Please check the logs.", bp.game.handNum))
 	}
@@ -1722,6 +1389,88 @@ func (bp *BotPlayer) verifyPotWinners(actualPot *game.PotWinners, expectedPot ga
 	}
 
 	return passed
+}
+
+func (bp *BotPlayer) verifyAPIRespForHand() {
+	bp.logger.Info().Msgf("%s: Verifying api responses", bp.logPrefix)
+
+	passed := bp.VerifyAPIResponses(bp.gameCode, bp.config.Script.GetHand(bp.game.handNum).APIVerification)
+	if !passed {
+		panic(fmt.Sprintf("API response verify failed for hand %d. Please check the logs.", bp.game.handNum))
+	}
+}
+
+func (bp *BotPlayer) VerifyAPIResponses(gameCode string, apiVerification gamescript.APIVerification) bool {
+	passed := true
+	if apiVerification.GameResultTable != nil {
+		err := bp.verifyGameResultTable(gameCode, apiVerification.GameResultTable)
+		if err != nil {
+			bp.logger.Error().Msgf("%s: Failed to verify the response from game result table API: %s", bp.logPrefix, err)
+			passed = false
+		}
+	}
+
+	return passed
+}
+
+func (bp *BotPlayer) verifyGameResultTable(gameCode string, expectedRows []gamescript.GameResultTableRow) error {
+	rows, err := bp.GetGameResultTable(gameCode)
+	if err != nil {
+		return errors.Wrap(err, "Unable to get game result table")
+	}
+
+	if len(rows) != len(expectedRows) {
+		return fmt.Errorf("Number of rows (%d) is different from expected (%d)", len(rows), len(expectedRows))
+	}
+
+	sort.Slice(rows, func(i, j int) bool {
+		return rows[i].PlayerName < rows[j].PlayerName
+	})
+	sort.Slice(expectedRows, func(i, j int) bool {
+		return expectedRows[i].PlayerName < expectedRows[j].PlayerName
+	})
+
+	passed := true
+	for i := 0; i < len(rows); i++ {
+		if rows[i].PlayerName != expectedRows[i].PlayerName {
+			bp.logger.Error().Msgf("Game result table row %d player name: %s, expected: %s", i, rows[i].PlayerName, expectedRows[i].PlayerName)
+			passed = false
+		}
+	}
+
+	if !passed {
+		return fmt.Errorf("Player names do not match the expected")
+	}
+
+	for i := 0; i < len(rows); i++ {
+		if rows[i].HandsPlayed != expectedRows[i].HandsPlayed {
+			bp.logger.Error().Msgf("Game result table player %s hands played: %d, expected: %d", rows[i].PlayerName, rows[i].HandsPlayed, expectedRows[i].HandsPlayed)
+			passed = false
+		}
+		if rows[i].BuyIn != expectedRows[i].BuyIn {
+			bp.logger.Error().Msgf("Game result table player %s buy-in: %f, expected: %f", rows[i].PlayerName, rows[i].BuyIn, expectedRows[i].BuyIn)
+			passed = false
+		}
+		if rows[i].Stack != expectedRows[i].Stack {
+			bp.logger.Error().Msgf("Game result table player %s stack: %f, expected: %f", rows[i].PlayerName, rows[i].Stack, expectedRows[i].Stack)
+			passed = false
+		}
+		if rows[i].Profit != expectedRows[i].Profit {
+			bp.logger.Error().Msgf("Game result table player %s profit: %f, expected: %f", rows[i].PlayerName, rows[i].Profit, expectedRows[i].Profit)
+			passed = false
+		}
+		if rows[i].RakePaid != expectedRows[i].RakePaid {
+			bp.logger.Error().Msgf("Game result table player %s rake paid: %f, expected: %f", rows[i].PlayerName, rows[i].RakePaid, expectedRows[i].RakePaid)
+			passed = false
+		}
+	}
+
+	if !passed {
+		return fmt.Errorf("Row data does not match the expected")
+	}
+
+	bp.logger.Info().Msgf("%s: Successfully verified %d rows from game result table response", bp.logPrefix, len(rows))
+	return nil
 }
 
 func (bp *BotPlayer) SetClubCode(clubCode string) {
@@ -2431,6 +2180,11 @@ func (bp *BotPlayer) GetGameInfo(gameCode string) (gameInfo game.GameInfo, err e
 	return bp.gqlHelper.GetGameInfo(gameCode)
 }
 
+// GetGameResultTable queries the game info from the api server.
+func (bp *BotPlayer) GetGameResultTable(gameCode string) (gameInfo []game.GameResultTableRow, err error) {
+	return bp.gqlHelper.GetGameResultTable(gameCode)
+}
+
 // GetPlayersInSeat queries for the numeric game ID using the game code.
 func (bp *BotPlayer) GetPlayersInSeat(gameCode string) ([]game.SeatInfo, error) {
 	gameInfo, err := bp.GetGameInfo(gameCode)
@@ -2950,11 +2704,6 @@ func (bp *BotPlayer) IsErrorState() bool {
 // GetErrorMsg returns the cause of the error state (BotState__ERROR).
 func (bp *BotPlayer) GetErrorMsg() string {
 	return bp.errorStateMsg
-}
-
-// GetHandResult returns the hand result received from the server.
-func (bp *BotPlayer) GetHandResult() *game.HandResult {
-	return bp.game.handResult
 }
 
 // GetHandResult2 returns the hand result received from the server.
