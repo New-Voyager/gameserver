@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"time"
 
@@ -776,6 +777,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if bp.IsObserver() {
 			bp.PrintHandResult()
 			bp.verifyResult2()
+			bp.verifyAPIRespForHand()
 		}
 
 	case game.HandEnded:
@@ -1387,6 +1389,88 @@ func (bp *BotPlayer) verifyPotWinners(actualPot *game.PotWinners, expectedPot ga
 	}
 
 	return passed
+}
+
+func (bp *BotPlayer) verifyAPIRespForHand() {
+	bp.logger.Info().Msgf("%s: Verifying api responses", bp.logPrefix)
+
+	passed := bp.VerifyAPIResponses(bp.gameCode, bp.config.Script.GetHand(bp.game.handNum).APIVerification)
+	if !passed {
+		panic(fmt.Sprintf("API response verify failed for hand %d. Please check the logs.", bp.game.handNum))
+	}
+}
+
+func (bp *BotPlayer) VerifyAPIResponses(gameCode string, apiVerification gamescript.APIVerification) bool {
+	passed := true
+	if apiVerification.GameResultTable != nil {
+		err := bp.verifyGameResultTable(gameCode, apiVerification.GameResultTable)
+		if err != nil {
+			bp.logger.Error().Msgf("%s: Failed to verify the response from game result table API: %s", bp.logPrefix, err)
+			passed = false
+		}
+	}
+
+	return passed
+}
+
+func (bp *BotPlayer) verifyGameResultTable(gameCode string, expectedRows []gamescript.GameResultTableRow) error {
+	rows, err := bp.GetGameResultTable(gameCode)
+	if err != nil {
+		return errors.Wrap(err, "Unable to get game result table")
+	}
+
+	if len(rows) != len(expectedRows) {
+		return fmt.Errorf("Number of rows (%d) is different from expected (%d)", len(rows), len(expectedRows))
+	}
+
+	sort.Slice(rows, func(i, j int) bool {
+		return rows[i].PlayerName < rows[j].PlayerName
+	})
+	sort.Slice(expectedRows, func(i, j int) bool {
+		return expectedRows[i].PlayerName < expectedRows[j].PlayerName
+	})
+
+	passed := true
+	for i := 0; i < len(rows); i++ {
+		if rows[i].PlayerName != expectedRows[i].PlayerName {
+			bp.logger.Error().Msgf("Game result table row %d player name: %s, expected: %s", i, rows[i].PlayerName, expectedRows[i].PlayerName)
+			passed = false
+		}
+	}
+
+	if !passed {
+		return fmt.Errorf("Player names do not match the expected")
+	}
+
+	for i := 0; i < len(rows); i++ {
+		if rows[i].HandsPlayed != expectedRows[i].HandsPlayed {
+			bp.logger.Error().Msgf("Game result table player %s hands played: %d, expected: %d", rows[i].PlayerName, rows[i].HandsPlayed, expectedRows[i].HandsPlayed)
+			passed = false
+		}
+		if rows[i].BuyIn != expectedRows[i].BuyIn {
+			bp.logger.Error().Msgf("Game result table player %s buy-in: %f, expected: %f", rows[i].PlayerName, rows[i].BuyIn, expectedRows[i].BuyIn)
+			passed = false
+		}
+		if rows[i].Stack != expectedRows[i].Stack {
+			bp.logger.Error().Msgf("Game result table player %s stack: %f, expected: %f", rows[i].PlayerName, rows[i].Stack, expectedRows[i].Stack)
+			passed = false
+		}
+		if rows[i].Profit != expectedRows[i].Profit {
+			bp.logger.Error().Msgf("Game result table player %s profit: %f, expected: %f", rows[i].PlayerName, rows[i].Profit, expectedRows[i].Profit)
+			passed = false
+		}
+		if rows[i].RakePaid != expectedRows[i].RakePaid {
+			bp.logger.Error().Msgf("Game result table player %s rake paid: %f, expected: %f", rows[i].PlayerName, rows[i].RakePaid, expectedRows[i].RakePaid)
+			passed = false
+		}
+	}
+
+	if !passed {
+		return fmt.Errorf("Row data does not match the expected")
+	}
+
+	bp.logger.Info().Msgf("%s: Successfully verified %d rows from game result table response", bp.logPrefix, len(rows))
+	return nil
 }
 
 func (bp *BotPlayer) SetClubCode(clubCode string) {
@@ -2094,6 +2178,11 @@ func (bp *BotPlayer) LeaveGameImmediately() error {
 // GetGameInfo queries the game info from the api server.
 func (bp *BotPlayer) GetGameInfo(gameCode string) (gameInfo game.GameInfo, err error) {
 	return bp.gqlHelper.GetGameInfo(gameCode)
+}
+
+// GetGameResultTable queries the game info from the api server.
+func (bp *BotPlayer) GetGameResultTable(gameCode string) (gameInfo []game.GameResultTableRow, err error) {
+	return bp.gqlHelper.GetGameResultTable(gameCode)
 }
 
 // GetPlayersInSeat queries for the numeric game ID using the game code.

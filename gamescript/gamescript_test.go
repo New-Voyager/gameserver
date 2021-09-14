@@ -146,6 +146,26 @@ func TestReadGameScript(t *testing.T) {
 						},
 					},
 				},
+				APIVerification: APIVerification{
+					GameResultTable: []GameResultTableRow{
+						{
+							PlayerName:  "yong",
+							HandsPlayed: 2,
+							BuyIn:       100,
+							Profit:      -2,
+							Stack:       98,
+							RakePaid:    0,
+						},
+						{
+							PlayerName:  "tom",
+							HandsPlayed: 2,
+							BuyIn:       200,
+							Profit:      4,
+							Stack:       204,
+							RakePaid:    1,
+						},
+					},
+				},
 			},
 		},
 		Hands: []Hand{
@@ -491,6 +511,26 @@ func TestReadGameScript(t *testing.T) {
 							Seat:                      8,
 							ConsecutiveActionTimeouts: 1,
 							ActedAtLeastOnce:          false,
+						},
+					},
+				},
+				APIVerification: APIVerification{
+					GameResultTable: []GameResultTableRow{
+						{
+							PlayerName:  "yong",
+							HandsPlayed: 1,
+							BuyIn:       100,
+							Profit:      -2,
+							Stack:       98,
+							RakePaid:    0,
+						},
+						{
+							PlayerName:  "tom",
+							HandsPlayed: 1,
+							BuyIn:       100,
+							Profit:      2,
+							Stack:       102,
+							RakePaid:    1,
 						},
 					},
 				},

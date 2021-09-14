@@ -598,6 +598,12 @@ func (br *BotRunner) processAfterGameAssertions() error {
 	if len(errMsgs) > 0 {
 		return fmt.Errorf(strings.Join(errMsgs, "\n"))
 	}
+
+	br.logger.Info().Msg("Verifying api responses after game.")
+	passed := br.observerBot.VerifyAPIResponses(br.gameCode, br.script.AfterGame.Verify.APIVerification)
+	if !passed {
+		return fmt.Errorf("Failed to verify API responses after game. Please check the logs")
+	}
 	return nil
 }
 

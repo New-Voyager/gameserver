@@ -334,6 +334,7 @@ hands:
         - seat: 4
           receive: 5
           rank: Pair
+          rake-paid: 1
       action-ended: SHOW_DOWN
       timeout-stats:
         - seat: 1
@@ -355,3 +356,33 @@ hands:
         - seat: 4
           balance:
             after: 304
+
+after-game:
+  verify:
+    api:
+      game-result-table:
+        - player-name: yong
+          hands-played: 4
+          buy-in: 100
+          profit: 197
+          stack: 297
+          rake-paid: 6
+        - player-name: brian
+          hands-played: 4
+          buy-in: 200
+          profit: -106
+          stack: 94
+          rake-paid: 0
+        - player-name: tom
+          # Tom only played 3/4 hands due to consecutive timeouts and being put in break.
+          hands-played: 3
+          buy-in: 300
+          profit: -3
+          stack: 297
+          rake-paid: 0
+        - player-name: rich
+          hands-played: 4
+          buy-in: 400
+          profit: -96
+          stack: 304
+          rake-paid: 2

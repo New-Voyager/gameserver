@@ -95,6 +95,21 @@ after-game:
       - player: tom
         messages:
           - type: YOUR_ACTION
+    api:
+      game-result-table:
+        - player-name: yong
+          hands-played: 2
+          buy-in: 100
+          profit: -2
+          stack: 98
+          rake-paid: 0
+        - player-name: tom
+          hands-played: 2
+          buy-in: 200
+          profit: 4
+          stack: 204
+          rake-paid: 1
+
 hands:
   - setup:
       pre-deal:
@@ -266,3 +281,17 @@ hands:
           consecutive-action-timeouts: 1
           acted-at-least-once: false
 
+    api:
+      game-result-table:
+        - player-name: yong
+          hands-played: 1
+          buy-in: 100
+          profit: -2
+          stack: 98
+          rake-paid: 0
+        - player-name: tom
+          hands-played: 1
+          buy-in: 100
+          profit: 2
+          stack: 102
+          rake-paid: 1

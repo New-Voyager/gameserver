@@ -183,6 +183,23 @@ type Hand struct {
 	Result               HandResult           `yaml:"result"`
 	PauseGame            bool                 `yaml:"pause-game"`
 	PostHandSteps        []PostHandStep       `yaml:"post-hand"`
+
+	// Run some API server API and verify the response after this hand is run.
+	APIVerification APIVerification `yaml:"api"`
+}
+
+type APIVerification struct {
+	// gameResultTable GraphQL
+	GameResultTable []GameResultTableRow `yaml:"game-result-table"`
+}
+
+type GameResultTableRow struct {
+	PlayerName  string  `yaml:"player-name"`
+	HandsPlayed uint32  `yaml:"hands-played"`
+	BuyIn       float32 `yaml:"buy-in"`
+	Profit      float32 `yaml:"profit"`
+	Stack       float32 `yaml:"stack"`
+	RakePaid    float32 `yaml:"rake-paid"`
 }
 
 // HandSetup contains the setup content in the hand config.
@@ -540,6 +557,9 @@ type AfterGameVerification struct {
 	NumHandsPlayed  NumHandsPlayedVerification `yaml:"num-hands-played"`
 	PrivateMessages []VerifyPrivateMessages    `yaml:"private-messages"`
 	GameMessages    []NonProtoMessage          `yaml:"game-messages"`
+
+	// Run some API server API and verify the response after this hand is run.
+	APIVerification APIVerification `yaml:"api"`
 }
 
 type NumHandsPlayedVerification struct {
