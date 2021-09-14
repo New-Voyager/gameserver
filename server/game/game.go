@@ -586,22 +586,22 @@ func (g *Game) dealNewHand() error {
 
 	// send a new hand message to all players
 	newHand := NewHand{
-		HandNum:            handState.HandNum,
-		ButtonPos:          handState.ButtonPos,
-		SbPos:              handState.SmallBlindPos,
-		BbPos:              handState.BigBlindPos,
-		NextActionSeat:     handState.NextSeatAction.SeatNo,
-		NoCards:            g.NumCards(gameType),
-		GameType:           gameType,
-		SmallBlind:         handState.SmallBlind,
-		BigBlind:           handState.BigBlind,
-		BringIn:            handState.BringIn,
-		Straddle:           handState.Straddle,
-		PlayersInSeats:     handPlayerInSeats,
-		PlayersActed:       playersActed,
-		BombPot:            handState.BombPot,
-		BombPotBet:         handState.BombPotBet,
-		DoubleBoardBombPot: handState.DoubleBoard,
+		HandNum:        handState.HandNum,
+		ButtonPos:      handState.ButtonPos,
+		SbPos:          handState.SmallBlindPos,
+		BbPos:          handState.BigBlindPos,
+		NextActionSeat: handState.NextSeatAction.SeatNo,
+		NoCards:        g.NumCards(gameType),
+		GameType:       gameType,
+		SmallBlind:     handState.SmallBlind,
+		BigBlind:       handState.BigBlind,
+		BringIn:        handState.BringIn,
+		Straddle:       handState.Straddle,
+		PlayersInSeats: handPlayerInSeats,
+		PlayersActed:   playersActed,
+		BombPot:        handState.BombPot,
+		BombPotBet:     handState.BombPotBet,
+		DoubleBoard:    handState.DoubleBoard,
 	}
 
 	handMessage := HandMessage{

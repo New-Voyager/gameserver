@@ -217,7 +217,7 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	if newHandInfo != nil {
 		h.BombPot = newHandInfo.BombPot
 		h.BombPotBet = newHandInfo.BombPotBet
-		h.DoubleBoard = newHandInfo.DoubleBoardBombPot
+		h.DoubleBoard = newHandInfo.DoubleBoard
 	}
 
 	if testHandSetup != nil {
