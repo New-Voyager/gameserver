@@ -1291,6 +1291,15 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 		}
 	}
 	hs.TotalResultPauseTime = totalPauseTime
+
+	// don't pause too long if we didn't go to showdown
+	if handResult2Client.WonAt != HandStatus_SHOW_DOWN {
+		hs.TotalResultPauseTime = 2000
+		handResult2Client.PauseTimeSecs = 2000
+	} else {
+		handResult2Client.PauseTimeSecs = hs.ResultPauseTime
+	}
+
 	allMsgItems = append(allMsgItems, msgItems...)
 	// send the hand to the database to store first
 	// handResult := handResultProcessor.getResult(true /*db*/)
