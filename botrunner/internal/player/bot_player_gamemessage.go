@@ -157,7 +157,7 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 				bp.observing = false
 			}
 		}
-		bp.logger.Info().Msgf("%s: PlayerUpdate: ID: %d Seat No: %d Stack: %f Status: %d",
+		bp.logger.Info().Msgf("%s: PlayerUpdate: ID: %d Seat No: %d Stack: %f Status: %s",
 			bp.logPrefix, playerID, message.SeatNo, message.Stack, message.Status)
 	case "PLAYER_SEAT_CHANGE_PROMPT":
 		if message.PlayerID != bp.PlayerID {
