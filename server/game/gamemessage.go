@@ -70,6 +70,7 @@ func (g *Game) onResume(message *GameMessage) error {
 				channelGameLogger.Warn().
 					Str("game", g.gameCode).
 					Msgf("Unable to start game due to invalid game/table status. Doing nothing. Msg: %s", ugse.Error())
+				g.isHandInProgress = false
 				return nil
 			}
 			return errors.Wrap(err, "Error while starting game")
@@ -221,7 +222,17 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 	} else {
 		err := g.moveAPIServerToNextHandAndScheduleDealHand(handState)
 		if err != nil {
-			return err
+			ugse, ok := err.(*UnexpectedGameStatusError)
+			if ok {
+				// API server has a bug where it sometimes calls resumeGame when the game
+				// isn't ready. This is a guard against that. In this case we do nothing and
+				// wait for another resumeGame from the api server when the game is actually ready.
+				channelGameLogger.Warn().
+					Str("game", g.gameCode).
+					Msgf("Unable to start game due to invalid game/table status. Doing nothing. Msg: %s", ugse.Error())
+				g.isHandInProgress = false
+				return nil
+			}
 		}
 	}
 
