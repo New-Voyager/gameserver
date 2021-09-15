@@ -28,7 +28,6 @@ func LoadHandState(handStatePersist PersistHandState, gameCode string) (*HandSta
 func (h *HandState) initializeBettingRound() {
 	maxSeats := h.MaxSeats + 1 // dealer seat
 	h.RoundState = make(map[uint32]*RoundState)
-	//h.RoundBetting = make(map[uint32]*SeatBetting)
 	h.RoundState[uint32(HandStatus_PREFLOP)] = &RoundState{
 		PlayerBalance: make(map[uint32]float32),
 		Betting:       &SeatBetting{SeatBet: make([]float32, maxSeats)},
@@ -143,17 +142,18 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	for seatNo, playerInSeat := range playersInSeats {
 		if playerInSeat.PlayerID != 0 {
 			h.PlayersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
-				SeatNo:       playerInSeat.SeatNo,
-				Status:       playerInSeat.Status,
-				Stack:        playerInSeat.Stack,
-				PlayerId:     playerInSeat.PlayerID,
-				Name:         playerInSeat.Name,
-				BuyInExpTime: playerInSeat.BuyInTimeExpAt,
-				BreakExpTime: playerInSeat.BreakTimeExpAt,
-				Inhand:       playerInSeat.Inhand,
-				PostedBlind:  playerInSeat.PostedBlind,
-				RunItTwice:   playerInSeat.RunItTwice,
-				MissedBlind:  playerInSeat.MissedBlind,
+				SeatNo:         playerInSeat.SeatNo,
+				Status:         playerInSeat.Status,
+				Stack:          playerInSeat.Stack,
+				PlayerId:       playerInSeat.PlayerID,
+				Name:           playerInSeat.Name,
+				BuyInExpTime:   playerInSeat.BuyInTimeExpAt,
+				BreakExpTime:   playerInSeat.BreakTimeExpAt,
+				Inhand:         playerInSeat.Inhand,
+				PostedBlind:    playerInSeat.PostedBlind,
+				RunItTwice:     playerInSeat.RunItTwice,
+				MissedBlind:    playerInSeat.MissedBlind,
+				MuckLosingHand: playerInSeat.MuckLosingHand,
 			}
 			h.PlayerStats[playerInSeat.PlayerID] = &PlayerStats{InPreflop: true}
 			h.TimeoutStats[playerInSeat.PlayerID] = &TimeoutStats{
@@ -782,6 +782,8 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		log = h.RiverActions
 	}
 	h.LastState = h.CurrentState
+	fmt.Printf("***** handNum: %d Current State: %s RoundState: %+v\n",
+		h.HandNum, h.CurrentState.String(), h.RoundState)
 	bettingState := h.RoundState[uint32(h.CurrentState)]
 	bettingRound := bettingState.Betting
 	playerBalance := bettingState.PlayerBalance[action.SeatNo]
