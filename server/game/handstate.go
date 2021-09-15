@@ -213,6 +213,10 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	}
 	h.BurnCards = false
 	h.CurrentActionNum = 0
+	h.RunItTwiceTimeout = newHandInfo.RunItTwiceTimeout
+	if h.RunItTwiceTimeout == 0 {
+		h.RunItTwiceTimeout = 10
+	}
 
 	if newHandInfo != nil {
 		h.BombPot = newHandInfo.BombPot

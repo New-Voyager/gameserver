@@ -419,6 +419,7 @@ func (br *BotRunner) Run() error {
 		// This is not a bot-created game. Ignore the script and just fill in all the empty seats.
 		nextBotIdx := 0
 		var gameInfo *game.GameInfo
+
 		for nextBotIdx < len(br.bots) {
 			gi, err := br.bots[0].GetGameInfo(br.gameCode)
 			if err != nil {
@@ -442,10 +443,16 @@ func (br *BotRunner) Run() error {
 		}
 
 		if gameInfo != nil {
+			playersInSeats := make(map[uint32]game.SeatInfo)
+			for _, seatInfo := range gameInfo.SeatInfo.PlayersInSeats {
+				playersInSeats[seatInfo.SeatNo] = seatInfo
+			}
+
 			for _, seatInfo := range gameInfo.SeatInfo.PlayersInSeats {
 				for _, bot := range br.bots {
 					if seatInfo.SeatNo == bot.GetSeatNo() {
 						bot.SetBalance(seatInfo.Stack)
+						bot.SetSeatInfo(playersInSeats)
 					}
 				}
 			}
