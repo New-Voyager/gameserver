@@ -154,6 +154,7 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 				RunItTwice:     playerInSeat.RunItTwice,
 				MissedBlind:    playerInSeat.MissedBlind,
 				MuckLosingHand: playerInSeat.MuckLosingHand,
+				ButtonStraddle: playerInSeat.ButtonStraddle,
 			}
 			h.PlayerStats[playerInSeat.PlayerID] = &PlayerStats{InPreflop: true}
 			h.TimeoutStats[playerInSeat.PlayerID] = &TimeoutStats{
