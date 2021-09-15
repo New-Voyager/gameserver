@@ -154,6 +154,7 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 				RunItTwice:     playerInSeat.RunItTwice,
 				MissedBlind:    playerInSeat.MissedBlind,
 				MuckLosingHand: playerInSeat.MuckLosingHand,
+				ButtonStraddle: playerInSeat.ButtonStraddle,
 			}
 			h.PlayerStats[playerInSeat.PlayerID] = &PlayerStats{InPreflop: true}
 			h.TimeoutStats[playerInSeat.PlayerID] = &TimeoutStats{
@@ -210,9 +211,13 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 		h.ButtonPos = newHandInfo.ButtonPos
 		h.PlayersActed = make([]*PlayerActRound, h.MaxSeats+1)
 		h.BringIn = float32(newHandInfo.BringIn)
+		h.RunItTwiceTimeout = newHandInfo.RunItTwiceTimeout
 	}
 	h.BurnCards = false
 	h.CurrentActionNum = 0
+	if h.RunItTwiceTimeout == 0 {
+		h.RunItTwiceTimeout = 10
+	}
 
 	if newHandInfo != nil {
 		h.BombPot = newHandInfo.BombPot
@@ -422,9 +427,20 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 		h.settleRound()
 		h.setupRound(HandStatus_FLOP)
 	} else {
+		// button player
+		buttonPlayer := h.PlayersInSeats[h.ButtonPos]
+		h.ButtonStraddle = false
+		if buttonPlayer.ButtonStraddle && buttonPlayer.Stack > 2*h.BigBlind {
+			h.ButtonStraddle = true
+		}
+
 		for _, seatNo := range postedBlinds {
 			// skip natural big blind position
 			if seatNo == h.BigBlindPos {
+				continue
+			}
+			// button is straddling, no need to post blind
+			if h.ButtonStraddle && seatNo == h.ButtonPos {
 				continue
 			}
 			h.actionReceived(&HandAction{
@@ -444,6 +460,14 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 			Action: ACTION_BB,
 			Amount: h.BigBlind,
 		}, 0)
+
+		if h.ButtonStraddle {
+			h.actionReceived(&HandAction{
+				SeatNo: h.ButtonPos,
+				Action: ACTION_STRADDLE,
+				Amount: 2 * h.BigBlind,
+			}, 0)
+		}
 	}
 
 	h.ActionCompleteAtSeat = h.BigBlindPos
@@ -792,7 +816,7 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 
 	// the next player after big blind can straddle
 	straddleAvailable := false
-	if action.Action == ACTION_BB {
+	if action.Action == ACTION_BB && !h.ButtonStraddle {
 		straddleAvailable = true
 	}
 

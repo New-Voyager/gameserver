@@ -74,6 +74,9 @@ type BotPlayer struct {
 	RewardsNameToID map[string]uint32
 	scriptedGame    bool
 
+	// initial seat information (used for determining whether bot or human)
+	seatInfo map[uint32]game.SeatInfo // initial seat info (used in auto play games)
+
 	// state of the bot
 	sm *fsm.FSM
 
@@ -1394,6 +1397,9 @@ func (bp *BotPlayer) verifyPotWinners(actualPot *game.PotWinners, expectedPot ga
 func (bp *BotPlayer) verifyAPIRespForHand() {
 	bp.logger.Info().Msgf("%s: Verifying api responses", bp.logPrefix)
 
+	if bp.config.Script.AutoPlay {
+		return
+	}
 	passed := bp.VerifyAPIResponses(bp.gameCode, bp.config.Script.GetHand(bp.game.handNum).APIVerification)
 	if !passed {
 		panic(fmt.Sprintf("API response verify failed for hand %d. Please check the logs.", bp.game.handNum))
@@ -1483,6 +1489,10 @@ func (bp *BotPlayer) GetSeatNo() uint32 {
 
 func (bp *BotPlayer) SetBalance(balance float32) {
 	bp.balance = balance
+}
+
+func (bp *BotPlayer) SetSeatInfo(seatInfo map[uint32]game.SeatInfo) {
+	bp.seatInfo = seatInfo
 }
 
 func (bp *BotPlayer) SignUp() error {
@@ -1935,8 +1945,15 @@ func (bp *BotPlayer) JoinGame(gameCode string, gps *gamescript.GpsLocation) erro
 		} else {
 			// update player config
 			scriptSeatConfig := bp.config.Script.GetSeatConfigByPlayerName(bp.config.Name)
+			runItTwice := scriptSeatConfig.RunItTwice
 			if scriptSeatConfig != nil {
-				bp.UpdateGamePlayerSettings(gameCode, nil, nil, nil, nil, scriptSeatConfig.RunItTwice, &scriptSeatConfig.MuckLosingHand)
+				bp.UpdateGamePlayerSettings(gameCode, nil, nil, nil, nil, runItTwice, &scriptSeatConfig.MuckLosingHand)
+			}
+
+			if bp.config.Script.AutoPlay {
+				runItTwice := true
+				muckLosingHand := true
+				bp.UpdateGamePlayerSettings(gameCode, nil, nil, nil, nil, &runItTwice, &muckLosingHand)
 			}
 		}
 		bp.buyInAmount = uint32(scriptBuyInAmount)
@@ -2420,7 +2437,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		if !checkAvailable {
 			if !callAvailable && allInAvailable {
 				// TODO: Bring all-in back after the load test.
-				// go all in
+				// go all innextAmt
 				// nextAction = game.ACTION_ALLIN
 				nextAction = game.ACTION_FOLD
 				nextAmt = 0
@@ -2459,7 +2476,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 				action := bp.game.table.playersActed[player.seatNo]
 				if action != nil && action.Action == game.ACTION_ALLIN {
 					activePlayers := bp.activePlayers()
-					if len(activePlayers) == 2 {
+					if len(activePlayers) <= 2 {
 						// last remaining bot
 						nextAction = game.ACTION_ALLIN
 						nextAmt = allInAmount
@@ -2519,19 +2536,26 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 	runItTwiceTimeout := false
 	if runItTwiceActionPrompt {
 		runItTwiceConf := bp.getRunItTwiceConfig()
-		if runItTwiceConf.Confirm {
-			handAction = game.HandAction{
-				SeatNo: bp.seatNo,
-				Action: game.ACTION_RUN_IT_TWICE_YES,
+		if runItTwiceConf != nil {
+			if runItTwiceConf.Confirm {
+				handAction = game.HandAction{
+					SeatNo: bp.seatNo,
+					Action: game.ACTION_RUN_IT_TWICE_YES,
+				}
+			} else {
+				handAction = game.HandAction{
+					SeatNo: bp.seatNo,
+					Action: game.ACTION_RUN_IT_TWICE_NO,
+				}
+			}
+			if runItTwiceConf.Timeout {
+				runItTwiceTimeout = true
 			}
 		} else {
 			handAction = game.HandAction{
 				SeatNo: bp.seatNo,
-				Action: game.ACTION_RUN_IT_TWICE_NO,
+				Action: game.ACTION_RUN_IT_TWICE_YES,
 			}
-		}
-		if runItTwiceConf.Timeout {
-			runItTwiceTimeout = true
 		}
 	} else {
 		handAction = game.HandAction{
@@ -2907,17 +2931,20 @@ func (bp *BotPlayer) reloadBotFromGameInfo(newHand *game.NewHand) error {
 	var seatNo uint32
 	var isSeated bool
 	var isPlaying bool
-	for _, p := range newHand.PlayersInSeats { //gameInfo.SeatInfo.PlayersInSeats {
+	for seatNo, p := range newHand.PlayersInSeats { //gameInfo.SeatInfo.PlayersInSeats {
 		if p.OpenSeat {
 			continue
 		}
+		isBot := true
+		if playerInSeat, ok := bp.seatInfo[seatNo]; ok {
+			isBot = playerInSeat.IsBot
+		}
 		pl := &player{
 			playerID: p.PlayerId,
-			seatNo:   p.SeatNo,
+			seatNo:   seatNo,
 			status:   game.PlayerStatus(game.PlayerStatus_value[p.Status.String()]),
 			stack:    p.Stack,
-			//buyIn:    p.BuyIn,
-			isBot: true, //p.IsBot,
+			isBot:    isBot,
 		}
 		bp.game.table.playersBySeat[p.SeatNo] = pl
 		if p.PlayerId == bp.PlayerID {

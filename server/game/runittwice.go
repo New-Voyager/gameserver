@@ -90,7 +90,7 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 		AvailableActions:    []ACTION{ACTION_RUN_IT_TWICE_PROMPT},
 		SeatNo:              player1Seat,
 		ActionTimesoutAt:    timeoutAtUnix,
-		SecondsTillTimesout: uint32(h.ActionTime),
+		SecondsTillTimesout: uint32(h.RunItTwiceTimeout),
 	}
 	player1MsgItem := &HandMessageItem{
 		MessageType: HandPlayerAction,
@@ -103,7 +103,7 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 		AvailableActions:    []ACTION{ACTION_RUN_IT_TWICE_PROMPT},
 		SeatNo:              player2Seat,
 		ActionTimesoutAt:    timeoutAtUnix,
-		SecondsTillTimesout: uint32(h.ActionTime),
+		SecondsTillTimesout: uint32(h.RunItTwiceTimeout),
 	}
 	player2MsgItem := &HandMessageItem{
 		MessageType: HandPlayerAction,
