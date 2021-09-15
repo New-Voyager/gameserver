@@ -126,4 +126,5 @@ message HandState {
   uint32 total_result_pause_time = 70;
   uint32 action_time = 71;
   uint32 run_it_twice_timeout = 72;
+  bool button_straddle = 73;
 }
