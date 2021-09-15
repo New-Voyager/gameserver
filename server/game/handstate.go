@@ -210,10 +210,10 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 		h.ButtonPos = newHandInfo.ButtonPos
 		h.PlayersActed = make([]*PlayerActRound, h.MaxSeats+1)
 		h.BringIn = float32(newHandInfo.BringIn)
+		h.RunItTwiceTimeout = newHandInfo.RunItTwiceTimeout
 	}
 	h.BurnCards = false
 	h.CurrentActionNum = 0
-	h.RunItTwiceTimeout = newHandInfo.RunItTwiceTimeout
 	if h.RunItTwiceTimeout == 0 {
 		h.RunItTwiceTimeout = 10
 	}
