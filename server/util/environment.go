@@ -30,7 +30,7 @@ type gameServerEnvironment struct {
 	DisableDelays          string
 	PostgresHost           string
 	PostgresPort           string
-	PostgresDB             string
+	PostgresCrashDB        string
 	PostgresUser           string
 	PostgresPW             string
 	PostgresSSLMode        string
@@ -55,7 +55,7 @@ var Env = &gameServerEnvironment{
 	DisableDelays:          "DISABLE_DELAYS",
 	PostgresHost:           "POSTGRES_HOST",
 	PostgresPort:           "POSTGRES_PORT",
-	PostgresDB:             "POSTGRES_DB",
+	PostgresCrashDB:        "POSTGRES_CRASH_DB",
 	PostgresUser:           "POSTGRES_USER",
 	PostgresPW:             "POSTGRES_PASSWORD",
 	PostgresSSLMode:        "POSTGRES_SSL_MODE",
@@ -224,10 +224,10 @@ func (g *gameServerEnvironment) GetPostgresSSLMode() string {
 	return v
 }
 
-func (g *gameServerEnvironment) GetPostgresDB() string {
-	v := os.Getenv(g.PostgresDB)
+func (g *gameServerEnvironment) GetPostgresCrashDB() string {
+	v := os.Getenv(g.PostgresCrashDB)
 	if v == "" {
-		msg := fmt.Sprintf("%s is not defined", g.PostgresDB)
+		msg := fmt.Sprintf("%s is not defined", g.PostgresCrashDB)
 		environmentLogger.Error().Msg(msg)
 		panic(msg)
 	}

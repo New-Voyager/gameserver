@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/proto"
@@ -71,8 +70,6 @@ type Game struct {
 	actionTimer        *timer.ActionTimer
 	actionTimer2       *timer.ActionTimer
 	networkCheck       *NetworkCheck
-	crashdb            *sqlx.DB
-	userdb             *sqlx.DB
 	encryptionKeyCache *encryptionkey.Cache
 }
 
@@ -85,11 +82,9 @@ func NewPokerGame(
 	delays Delays,
 	handStatePersist PersistHandState,
 	handSetupPersist *RedisHandsSetupTracker,
-	apiServerURL string,
-	crashdb *sqlx.DB,
-	userdb *sqlx.DB) (*Game, error) {
+	apiServerURL string) (*Game, error) {
 
-	cache, err := encryptionkey.NewCache(32, userdb)
+	cache, err := encryptionkey.NewCache(32)
 	if err != nil || cache == nil {
 		return nil, errors.Wrap(err, "Unable to instantiate encryption key cache")
 	}
@@ -105,8 +100,6 @@ func NewPokerGame(
 		apiServerURL:       apiServerURL,
 		maxRetries:         10,
 		retryDelayMillis:   1500,
-		userdb:             userdb,
-		crashdb:            crashdb,
 		encryptionKeyCache: cache,
 	}
 	g.scriptTestPlayers = make(map[uint64]*Player)
@@ -134,11 +127,9 @@ func NewTestPokerGame(
 	delays Delays,
 	handStatePersist PersistHandState,
 	handSetupPersist *RedisHandsSetupTracker,
-	apiServerURL string,
-	crashdb *sqlx.DB,
-	userdb *sqlx.DB) (*Game, error) {
+	apiServerURL string) (*Game, error) {
 
-	cache, err := encryptionkey.NewCache(32, userdb)
+	cache, err := encryptionkey.NewCache(32)
 	if err != nil || cache == nil {
 		return nil, errors.Wrap(err, "Unable to instantiate encryption key cache")
 	}
@@ -155,8 +146,6 @@ func NewTestPokerGame(
 		apiServerURL:       apiServerURL,
 		maxRetries:         10,
 		retryDelayMillis:   1500,
-		userdb:             userdb,
-		crashdb:            crashdb,
 		encryptionKeyCache: cache,
 	}
 	g.scriptTestPlayers = make(map[uint64]*Player)
@@ -416,6 +405,10 @@ func (g *Game) dealNewHand() error {
 
 		gameType = newHandInfo.GameType
 		newHandNum = newHandInfo.HandNum
+
+		for _, p := range newHandInfo.PlayersInSeats {
+			g.encryptionKeyCache.Add(p.PlayerID, p.EncryptionKey)
+		}
 
 		if newHandInfo.AnnounceGameType {
 			params := []string{

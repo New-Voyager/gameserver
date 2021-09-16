@@ -117,7 +117,7 @@ func Hit(gameCode string, cp CrashPoint, playerID uint64) {
 }
 
 func saveToTracker(gameCode string, cp CrashPoint) error {
-	db := sqlx.MustConnect("postgres", internal.GetGamesConnStr())
+	db := sqlx.MustConnect("postgres", internal.GetCrashDBConnStr())
 	defer db.Close()
 	result := db.MustExec("INSERT INTO crash_test (game_code, crash_point) VALUES ($1, $2)", gameCode, string(cp))
 	numRows, err := result.RowsAffected()

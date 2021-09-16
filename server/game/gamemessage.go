@@ -96,6 +96,11 @@ func (g *Game) onResume(message *GameMessage) error {
 		Str("game", g.gameCode).
 		Msgf("Resuming game. Restarting hand at flow state [%s].", handState.FlowState)
 
+	// We could be crash-restarting. Restore the encryption keys from the hand state.
+	for playerID, encryptionKey := range handState.GetEncryptionKeys() {
+		g.encryptionKeyCache.Add(playerID, encryptionKey)
+	}
+
 	switch handState.FlowState {
 	case FlowState_DEAL_HAND:
 		err = g.dealNewHand()
