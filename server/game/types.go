@@ -336,27 +336,28 @@ export interface NewHandInfo {
   playersInSeats: Array<PlayerInSeat>;
 }*/
 type NewHandInfo struct {
-	GameID           uint64 `json:"gameId"`
-	GameCode         string
-	GameType         GameType
-	MaxPlayers       uint32
-	SmallBlind       float32
-	BigBlind         float32
-	ButtonPos        uint32
-	HandNum          uint32
-	ActionTime       uint32
-	StraddleBet      float32
-	RakePercentage   float32
-	RakeCap          float32
-	AnnounceGameType bool
-	PlayersInSeats   []SeatPlayer
-	GameStatus       GameStatus
-	TableStatus      TableStatus
-	SbPos            uint32
-	BbPos            uint32
-	ResultPauseTime  uint32
-	BombPot          bool
-	DoubleBoard      bool
-	BombPotBet       float32
-	BringIn          float32
+	GameID            uint64 `json:"gameId"`
+	GameCode          string
+	GameType          GameType
+	MaxPlayers        uint32
+	SmallBlind        float32
+	BigBlind          float32
+	ButtonPos         uint32
+	HandNum           uint32
+	ActionTime        uint32
+	StraddleBet       float32
+	RakePercentage    float32
+	RakeCap           float32
+	AnnounceGameType  bool
+	PlayersInSeats    []SeatPlayer
+	GameStatus        GameStatus
+	TableStatus       TableStatus
+	SbPos             uint32
+	BbPos             uint32
+	ResultPauseTime   uint32
+	BombPot           bool
+	DoubleBoard       bool
+	BombPotBet        float32
+	BringIn           float32
+	RunItTwiceTimeout uint32
 }

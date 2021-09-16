@@ -464,6 +464,7 @@ func (g *Game) dealNewHand() error {
 			}
 			if playerInSeat.PlayerID != 0 {
 				playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
+					SeatNo:         playerInSeat.SeatNo,
 					Status:         playerInSeat.Status,
 					Stack:          playerInSeat.Stack,
 					PlayerId:       playerInSeat.PlayerID,
@@ -567,6 +568,7 @@ func (g *Game) dealNewHand() error {
 	handPlayerInSeats := make(map[uint32]*PlayerInSeatState)
 	for _, playerInSeat := range handState.PlayersInSeats {
 		copiedState := &PlayerInSeatState{
+			SeatNo:         playerInSeat.SeatNo,
 			Status:         playerInSeat.Status,
 			Stack:          playerInSeat.Stack,
 			PlayerId:       playerInSeat.PlayerId,
