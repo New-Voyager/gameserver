@@ -30,7 +30,7 @@ type environment struct {
 	PostgresPort     string
 	PostgresUser     string
 	PostgresPW       string
-	PostgresDB       string
+	PostgresCrashDB  string
 	APIServerURL     string
 	PrintGameMsg     string
 	PrintHandMsg     string
@@ -51,7 +51,7 @@ var Env = &environment{
 	PostgresPort:     "POSTGRES_PORT",
 	PostgresUser:     "POSTGRES_USER",
 	PostgresPW:       "POSTGRES_PASSWORD",
-	PostgresDB:       "POSTGRES_DB",
+	PostgresCrashDB:  "POSTGRES_CRASH_DB",
 	APIServerURL:     "API_SERVER_URL",
 	PrintGameMsg:     "PRINT_GAME_MSG",
 	PrintHandMsg:     "PRINT_HAND_MSG",
@@ -182,10 +182,10 @@ func (e *environment) GetPostgresPW() string {
 	return v
 }
 
-func (e *environment) GetPostgresDB() string {
-	v := os.Getenv(e.PostgresDB)
+func (e *environment) GetPostgresCrashDB() string {
+	v := os.Getenv(e.PostgresCrashDB)
 	if v == "" {
-		msg := fmt.Sprintf("%s is not defined", e.PostgresDB)
+		msg := fmt.Sprintf("%s is not defined", e.PostgresCrashDB)
 		environmentLogger.Error().Msg(msg)
 		panic(msg)
 	}
@@ -194,11 +194,12 @@ func (e *environment) GetPostgresDB() string {
 
 func (e *environment) GetPostgresConnStr() string {
 	return fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=livegames sslmode=disable",
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		e.GetPostgresHost(),
 		e.GetPostgresPort(),
 		e.GetPostgresUser(),
 		e.GetPostgresPW(),
+		e.GetPostgresCrashDB(),
 	)
 }
 

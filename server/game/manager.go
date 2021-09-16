@@ -2,8 +2,6 @@ package game
 
 import (
 	"fmt"
-
-	"github.com/jmoiron/sqlx"
 )
 
 type Manager struct {
@@ -13,12 +11,10 @@ type Manager struct {
 	handStatePersist PersistHandState
 	handSetupPersist *RedisHandsSetupTracker
 	activeGames      map[string]*Game
-	crashdb          *sqlx.DB
-	userdb           *sqlx.DB
 	crashHandler     func(uint64)
 }
 
-func NewGameManager(isScriptTest bool, apiServerURL string, handPersist PersistHandState, handSetupPersist *RedisHandsSetupTracker, userdb *sqlx.DB, crashdb *sqlx.DB, delays Delays) (*Manager, error) {
+func NewGameManager(isScriptTest bool, apiServerURL string, handPersist PersistHandState, handSetupPersist *RedisHandsSetupTracker, delays Delays) (*Manager, error) {
 	return &Manager{
 		isScriptTest:     isScriptTest,
 		apiServerURL:     apiServerURL,
@@ -26,8 +22,6 @@ func NewGameManager(isScriptTest bool, apiServerURL string, handPersist PersistH
 		handStatePersist: handPersist,
 		handSetupPersist: handSetupPersist,
 		activeGames:      make(map[string]*Game),
-		userdb:           userdb,
-		crashdb:          crashdb,
 	}, nil
 }
 
@@ -42,9 +36,7 @@ func (gm *Manager) InitializeGame(messageSender MessageSender, gameID uint64, ga
 		gm.delays,
 		gm.handStatePersist,
 		gm.handSetupPersist,
-		gm.apiServerURL,
-		gm.crashdb,
-		gm.userdb)
+		gm.apiServerURL)
 	gm.activeGames[gameIDStr] = game
 
 	if err != nil {
@@ -65,9 +57,7 @@ func (gm *Manager) InitializeTestGame(messageSender MessageSender, gameID uint64
 		gm.delays,
 		gm.handStatePersist,
 		gm.handSetupPersist,
-		gm.apiServerURL,
-		gm.crashdb,
-		gm.userdb)
+		gm.apiServerURL)
 	gm.activeGames[gameIDStr] = game
 
 	if err != nil {

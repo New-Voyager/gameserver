@@ -307,6 +307,7 @@ type SeatPlayer struct {
 	PlayerID       uint64 `json:"playerId"`
 	PlayerUUID     string `json:"playerUuid"`
 	Name           string
+	EncryptionKey  string
 	BuyIn          float32
 	Stack          float32
 	Status         PlayerStatus
