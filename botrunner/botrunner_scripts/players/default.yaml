@@ -3,59 +3,119 @@ players:
     deviceId: c2dc2c3d-13da-46cc-8c66-caa0c77459de
     email: yong@gmail.com
     password: 340k7n0p
+    gps:
+      lat: 40.730610
+      long: -73.935242    
+    ip: 192.168.0.2
   - name: brian
     deviceId: 4b93e2be-7992-45c3-a2dd-593c2f708cb7
     email: brian@hotmail.com
     password: 0x44m89w
+    gps:
+      lat: 42.714992
+      long: -71.496454
+    ip: 192.168.0.3
   - name: tom
     deviceId: 371e8c15-39cb-4bd9-a932-ced7a9dd6aac
     email: tom@yahoo.com
     password: tom
+    gps:
+      lat: 42.361145
+      long: -71.057083
+    ip: 192.168.0.100
   - name: jim
     deviceId: 52f59bab-02eb-43d8-9dce-69e57aed7f7d
     email: jim@google.com
     password: v7xpzD7C
+    gps:
+      lat: 51.509865
+      long: -0.118092
+    ip: 192.168.0.5
   - name: rob
     deviceId: 5cd96779-c6b2-4dba-a814-f365b6b48aeb
     email: rob@yahoo.com
     password: j627fn8g
+    gps:
+      lat: 54.607868
+      long: -5.926437
+    ip: 192.168.0.6
   - name: john
     deviceId: d04d24d1-be90-4c02-b8fb-c2499d9b76ed
     email: john@google.com
     password: john
+    gps:
+      lat: 37.532600
+      long: 127.024612
+    ip: 192.168.0.7
   - name: michael
     deviceId: e9e2ee8b-2e2d-4659-a61d-4439fc274e1b
     email: michael@yahoo.com
     password: h26sx7Nw
+    gps:
+      lat: 41.881832
+      long: -87.623177
+    ip: 192.168.0.8
   - name: bill
     deviceId: 8a159f59-bd78-4bce-a39b-fc32d63200ec
     email: bill@google.com
     password: rqxBhYba
+    gps:
+      lat: 41.881832
+      long: -87.623177
+    ip: 192.168.0.9
   - name: david
     deviceId: e9d58c4b-6665-47fa-aa87-887baba79c0a
     email: david@yahoo.com
     password: VjGQLuZ8
+    gps:
+      lat: 13.067439
+      long: 80.237617
+    ip: 192.168.0.10
   - name: rich
     deviceId: 290bf492-9dde-448e-922d-40270e163649
     email: rich@google.com
     password: usZFgdsp
+    gps:
+      lat: 37.773972
+      long: -122.431297
+    ip: 192.168.0.11
   - name: josh
     deviceId: 0967b2c1-e630-49c5-a4ab-f987d9e4cacd
     email: josh@yahoo.com
     password: dPHM78PB
+    gps:
+      lat: 33.448376
+      long: -112.074036
+    ip: 192.168.0.12
   - name: chris
     deviceId: 0375d41b-a8db-4c35-b3ab-8480d4716fd3
     email: chris@google.com
     password: LWsvng5A
+    gps:
+      lat: 25.761681
+      long: -80.191788
+    ip: 192.168.0.13
   - name: olivia
     deviceId: dc379d9c-20b4-472f-b798-dd6b16ca7dbe
     email: olivia@protonmail.com
     password: NixHSmW3KCeB
+    gps:
+      lat: 33.753746
+      long: -84.386330
+    ip: 192.168.0.14
   - name: emma
     deviceId: 1852f882-860a-4511-8355-9062c3e4ca0d
     email: emma@aol.com
     password: jEmJ9A4jnwbF
+    gps:
+      lat: 44.475883
+      long: -73.212074
+    ip: 192.168.0.15
   - name: charlotte
     deviceId: f0a675ef-6158-4963-9a34-75a7d1735665
     email: charlotte@aol.com
     password: 5yC8zJbH42Yy
+    gps:
+      lat: 1.290270
+      long: 103.851959
+    ip: 192.168.0.16

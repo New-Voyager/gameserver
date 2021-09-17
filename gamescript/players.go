@@ -19,6 +19,8 @@ type Player struct {
 	DeviceID string `yaml:"deviceId"`
 	Email    string
 	Password string
+	Gps      GpsLocation
+	Ip       string
 }
 
 // ReadPlayersConfig reads players configuration yaml file.

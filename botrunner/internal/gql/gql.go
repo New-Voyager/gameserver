@@ -274,8 +274,8 @@ func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (string,
 }
 
 // SitIn takes a seat in a game.
-func (g *GQLHelper) SitIn(gameCode string, seatNo uint32, gps *gamescript.GpsLocation) (*JoinGameResp, error) {
-	req := graphql.NewRequest(JoinGameGQL)
+func (g *GQLHelper) SitIn(gameCode string, seatNo uint32, gps *gamescript.GpsLocation) (*TakeSeatResp, error) {
+	req := graphql.NewRequest(TakeSeatGQL)
 
 	req.Var("gameCode", gameCode)
 	req.Var("seatNo", seatNo)
@@ -295,7 +295,7 @@ func (g *GQLHelper) SitIn(gameCode string, seatNo uint32, gps *gamescript.GpsLoc
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
 	defer cancel()
 
-	var respData JoinGameResp
+	var respData TakeSeatResp
 	err := g.client.Run(ctx, req, &respData)
 	if err != nil {
 		return nil, err
@@ -1193,6 +1193,26 @@ const JoinGameGQL = `mutation join_game($gameCode: String!, $seatNo: Int!, $gps:
 
 type JoinGameResp struct {
 	Status struct {
+		Status      string
+		MissedBlind bool
+	}
+}
+
+const TakeSeatGQL = `mutation takeSeat($gameCode: String!, $seatNo: Int!, $gps: LocationInput) {
+	seat: takeSeat(
+		gameCode: $gameCode
+		seatNo: $seatNo
+		location: $gps
+	) {
+		seatNo
+		status
+		missedBlind
+	}
+}`
+
+type TakeSeatResp struct {
+	Seat struct {
+		SeatNo      uint32
 		Status      string
 		MissedBlind bool
 	}
