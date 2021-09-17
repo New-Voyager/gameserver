@@ -48,6 +48,7 @@ func (t *Tester) Run() error {
 		DeviceID:      playerConf.DeviceID,
 		Email:         playerConf.Email,
 		Password:      playerConf.Password,
+		Gps:           &playerConf.Gps,
 		IsHuman:       true,
 		APIServerURL:  util.Env.GetAPIServerURL(),
 		NatsURL:       util.Env.GetNatsURL(),

@@ -46,6 +46,8 @@ type Config struct {
 	APIServerURL       string
 	NatsURL            string
 	GQLTimeoutSec      int
+	Gps                *gamescript.GpsLocation
+	IpAddress          string
 	Players            *gamescript.Players
 	Script             *gamescript.Script
 }
@@ -118,10 +120,6 @@ type BotPlayer struct {
 
 	// other config
 	muckLosingHand bool
-
-	// For location check
-	IpAddress string
-	Gps       *gamescript.GpsLocation
 
 	// Nats subjects
 	gameToAll       string
@@ -295,11 +293,12 @@ func (bp *BotPlayer) updateLogPrefix() {
 }
 
 func (bp *BotPlayer) SetIPAddress(ipAddress string) {
+	bp.config.IpAddress = ipAddress
 	bp.gqlHelper.IpAddress = ipAddress
 }
 
 func (bp *BotPlayer) SetGpsLocation(gps *gamescript.GpsLocation) {
-	bp.Gps = gps
+	bp.config.Gps = gps
 }
 
 func (bp *BotPlayer) handleGameMsg(msg *natsgo.Msg) {
@@ -1933,7 +1932,9 @@ func (bp *BotPlayer) JoinGame(gameCode string, gps *gamescript.GpsLocation) erro
 		}
 
 		bp.event(BotEvent__REQUEST_SIT)
-
+		if gps == nil {
+			gps = bp.config.Gps
+		}
 		err := bp.SitIn(gameCode, scriptSeatNo, gps)
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("%s: Unable to sit in", bp.logPrefix))
@@ -2112,7 +2113,7 @@ func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
 
 	bp.event(BotEvent__REQUEST_SIT)
 
-	err = bp.SitIn(gameCode, seatNo, nil)
+	err = bp.SitIn(gameCode, seatNo, bp.config.Gps)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to sit in", bp.logPrefix))
 	}
@@ -2137,6 +2138,7 @@ func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
 // SitIn takes a seat in a game as a player.
 func (bp *BotPlayer) SitIn(gameCode string, seatNo uint32, gps *gamescript.GpsLocation) error {
 	bp.logger.Info().Msgf("%s: Grabbing seat [%d] in game [%s].", bp.logPrefix, seatNo, gameCode)
+	bp.gqlHelper.IpAddress = bp.config.IpAddress
 	status, err := bp.gqlHelper.SitIn(gameCode, seatNo, gps)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to sit in game [%s]", bp.logPrefix, gameCode))

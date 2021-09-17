@@ -82,6 +82,15 @@ func (br *BotRunner) Terminate() {
 func (br *BotRunner) Run() error {
 	br.logger.Debug().Msgf("Players: %+v, Script: %+v", br.players, br.script)
 
+	minActionPauseTime := br.script.BotConfig.MinActionPauseTime
+	maxActionPauseTime := br.script.BotConfig.MaxActionPauseTime
+
+	if !br.botIsGameHost {
+		// unscripted game, set action time for bots
+		minActionPauseTime = 3000
+		maxActionPauseTime = 7000
+	}
+
 	// Create the player bots based on the setup script.
 	for i, playerConfig := range br.players.Players {
 		bot, err := player.NewBotPlayer(player.Config{
@@ -89,10 +98,12 @@ func (br *BotRunner) Run() error {
 			DeviceID:           playerConfig.DeviceID,
 			Email:              playerConfig.Email,
 			Password:           playerConfig.Password,
+			Gps:                &playerConfig.Gps,
+			IpAddress:          playerConfig.Ip,
 			IsHost:             (i == 0) && br.botIsGameHost, // First bot is the game host.
 			IsHuman:            br.script.Tester == playerConfig.Name,
-			MinActionPauseTime: br.script.BotConfig.MinActionPauseTime,
-			MaxActionPauseTime: br.script.BotConfig.MaxActionPauseTime,
+			MinActionPauseTime: minActionPauseTime,
+			MaxActionPauseTime: maxActionPauseTime,
 			APIServerURL:       util.Env.GetAPIServerURL(),
 			NatsURL:            util.Env.GetNatsURL(),
 			GQLTimeoutSec:      10,

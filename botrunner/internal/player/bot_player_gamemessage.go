@@ -367,7 +367,7 @@ func (bp *BotPlayer) setupSitBack() error {
 	for _, sitbackConfig := range sitbackConfigs {
 		if sitbackConfig.Seat == bp.seatNo {
 			bp.logger.Info().Msgf("%s: Player [%s] sitting back.", bp.logPrefix, bp.config.Name)
-			bp.gqlHelper.RequestSitBack(bp.gameCode, bp.Gps)
+			bp.gqlHelper.RequestSitBack(bp.gameCode, bp.config.Gps)
 		}
 	}
 	return nil
