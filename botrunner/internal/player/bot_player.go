@@ -1394,6 +1394,10 @@ func (bp *BotPlayer) verifyPotWinners(actualPot *game.PotWinners, expectedPot ga
 }
 
 func (bp *BotPlayer) verifyAPIRespForHand() {
+	if bp.config.Script.AutoPlay {
+		return
+	}
+
 	bp.logger.Info().Msgf("%s: Verifying api responses", bp.logPrefix)
 
 	if bp.config.Script.AutoPlay {

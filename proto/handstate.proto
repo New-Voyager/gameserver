@@ -127,4 +127,6 @@ message HandState {
   uint32 action_time = 71;
   uint32 run_it_twice_timeout = 72;
   bool button_straddle = 73;
+
+  map<uint64, string> encryption_keys = 74;
 }

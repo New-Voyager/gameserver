@@ -75,24 +75,27 @@ func (g *Game) getNewHandInfo() (*NewHandInfo, error) {
 		resp, err = http.Get(url)
 	}
 
-	// if the api server returns nil, do nothing
-	if resp == nil {
-		return nil, fmt.Errorf("[%s] Cannot get new hand information", g.gameCode)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error from http get %s", url)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusOK {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			channelGameLogger.Error().
-				Str("game", g.gameCode).
-				Msgf("[%s] Cannot get new hand information", g.gameCode)
-		}
-		var newHandInfo NewHandInfo
-		json.Unmarshal(bodyBytes, &newHandInfo)
-		return &newHandInfo, nil
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("Error while reading response body from %s", url)
 	}
-	return nil, fmt.Errorf("[%s] Cannot get new hand information", g.gameCode)
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Received http status %d from %s. Response body: %s", resp.StatusCode, url, string(bodyBytes))
+	}
+
+	var newHandInfo NewHandInfo
+	err = json.Unmarshal(bodyBytes, &newHandInfo)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Could not unmarshal response body from %s", url)
+	}
+
+	return &newHandInfo, nil
 }
 
 func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) (moveToNextHandResp, error) {

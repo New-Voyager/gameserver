@@ -133,6 +133,12 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 		h.GameType = newHandInfo.GameType
 		h.ActiveSeats = make([]uint64, newHandInfo.MaxPlayers+1)
 		h.ActionTime = uint32(newHandInfo.ActionTime)
+
+		// Save encryption keys in case we crash mid hand.
+		h.EncryptionKeys = make(map[uint64]string)
+		for _, p := range newHandInfo.PlayersInSeats {
+			h.EncryptionKeys[p.PlayerID] = p.EncryptionKey
+		}
 	}
 	h.NoActiveSeats = 0
 	h.PlayerStats = make(map[uint64]*PlayerStats)

@@ -3,9 +3,7 @@ package game
 import (
 	"fmt"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"voyager.com/server/internal"
 	"voyager.com/server/util"
 )
 
@@ -17,29 +15,9 @@ func CreateGameManager(isScriptTest bool, delays Delays) (*Manager, error) {
 	}
 
 	var apiServerURL string
-	var usersdb *sqlx.DB
-	var crashdb *sqlx.DB
 	var err error
 	if !isScriptTest {
 		apiServerURL = util.Env.GetApiServerUrl()
-
-		crashdb, err = sqlx.Open("postgres", internal.GetGamesConnStr())
-		if err != nil {
-			return nil, errors.Wrap(err, "Unable to create sqlx handle to postgres")
-		}
-		err = crashdb.Ping()
-		if err != nil {
-			return nil, errors.Wrap(err, "Unable to verify postgres connection")
-		}
-
-		usersdb, err = sqlx.Open("postgres", internal.GetUsersConnStr())
-		if err != nil {
-			return nil, errors.Wrap(err, "Unable to create sqlx handle to postgres")
-		}
-		err = usersdb.Ping()
-		if err != nil {
-			return nil, errors.Wrap(err, "Unable to verify postgres connection")
-		}
 	}
 
 	var redisHost = util.Env.GetRedisHost()
@@ -61,7 +39,7 @@ func CreateGameManager(isScriptTest bool, delays Delays) (*Manager, error) {
 		return nil, errors.Wrap(err, "Unable to create hand state tracker")
 	}
 
-	gm, err := NewGameManager(isScriptTest, apiServerURL, handPersist, handSetupPersist, usersdb, crashdb, delays)
+	gm, err := NewGameManager(isScriptTest, apiServerURL, handPersist, handSetupPersist, delays)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error in NewGameManager")
 	}
