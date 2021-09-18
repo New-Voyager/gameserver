@@ -1,10 +1,7 @@
 package util
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -14,7 +11,6 @@ import (
 )
 
 var environmentLogger = log.With().Str("logger_name", "util::environment").Logger()
-var natsUrl string
 
 type gameServerEnvironment struct {
 	PersistMethod          string
@@ -25,6 +21,7 @@ type gameServerEnvironment struct {
 	RedisDB                string
 	RedisSSL               string
 	APIServerUrl           string
+	NatsUrl                string
 	PlayTimeout            string
 	PingTimeout            string
 	DisableDelays          string
@@ -50,6 +47,7 @@ var Env = &gameServerEnvironment{
 	RedisDB:                "REDIS_DB",
 	RedisSSL:               "REDIS_SSL",
 	APIServerUrl:           "API_SERVER_URL",
+	NatsUrl:                "NATS_URL",
 	PlayTimeout:            "PLAY_TIMEOUT",
 	PingTimeout:            "PING_TIMEOUT",
 	DisableDelays:          "DISABLE_DELAYS",
@@ -66,31 +64,13 @@ var Env = &gameServerEnvironment{
 }
 
 func (g *gameServerEnvironment) GetNatsURL() string {
-	if natsUrl == "" {
-		// get from the API server
-		type Url struct {
-			Urls string `json:"urls"`
-		}
-
-		url := fmt.Sprintf("%s/nats-urls", g.GetApiServerUrl())
-		response, err := http.Get(url)
-		if err != nil {
-			panic("Failed to get NATS urls")
-		}
-		defer response.Body.Close()
-		data, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			panic("Failed to get NATS urls")
-		}
-		body := string(data)
-		if strings.Contains(body, "errors") {
-			panic("Failed to get NATS urls")
-		}
-		var urls Url
-		json.Unmarshal(data, &urls)
-		natsUrl = urls.Urls
+	url := os.Getenv(g.NatsUrl)
+	if url == "" {
+		msg := fmt.Sprintf("%s is not defined", g.NatsUrl)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
 	}
-	return natsUrl
+	return url
 }
 
 func (g *gameServerEnvironment) GetPersistMethod() string {

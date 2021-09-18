@@ -16,6 +16,7 @@
         "REDIS_PORT": "6379",
         "REDIS_DB": "0",
         "API_SERVER_URL": "http://localhost:9501",
+        "NATS_URL": "nats://localhost:4222",
         "POSTGRES_HOST": "localhost",
         "POSTGRES_PORT": "5432",
         "POSTGRES_CRASH_DB": "livegames",
