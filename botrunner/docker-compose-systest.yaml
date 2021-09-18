@@ -52,6 +52,7 @@ services:
       REDIS_PORT: 6379
       REDIS_DB: 0
       API_SERVER_URL: http://api-server:9501
+      NATS_URL: nats://nats:4222
       POSTGRES_HOST: 'postgres'
       POSTGRES_PORT: '5432'
       POSTGRES_USER: 'game'
@@ -73,6 +74,7 @@ services:
     environment:
       API_SERVER_URL: http://api-server:9501
       GAME_SERVER_URL: http://game-server:8080
+      NATS_URL: nats://nats:4222
       POSTGRES_HOST: 'postgres'
       POSTGRES_PORT: '5432'
       POSTGRES_USER: 'game'

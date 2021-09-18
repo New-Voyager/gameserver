@@ -37,6 +37,7 @@ botrunner git:(master) make run
 You can override the api server and nats host, I.e., for Kubernetes.
 ```
 DEV_API_SERVER_URL=http://35.188.237.125:9501 \
+    DEV_NATS_URL=nats://35.188.237.125:4222 \
     make run
 ```
 
@@ -57,6 +58,7 @@ GAME_CODE=XXXXXX make tester
 Here is an example for a kubernetes run using a script containing a human.
 ```
 export DEV_API_SERVER_URL=http://35.188.237.125:9501
+export DEV_NATS_URL=nats://35.188.237.125:4222
 export BOTRUNNER_SCRIPT=botrunner_scripts/human_game/river-action-2-bots-1-human.yaml
 
 # Bots

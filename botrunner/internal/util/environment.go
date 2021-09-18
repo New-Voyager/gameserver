@@ -18,7 +18,6 @@ func init() {
 }
 
 var environmentLogger = log.With().Str("logger_name", "util::environment").Logger()
-var natsUrl string
 
 type environment struct {
 	RedisHost        string
@@ -32,6 +31,7 @@ type environment struct {
 	PostgresPW       string
 	PostgresCrashDB  string
 	APIServerURL     string
+	NatsURL          string
 	PrintGameMsg     string
 	PrintHandMsg     string
 	PrintStateMsg    string
@@ -53,6 +53,7 @@ var Env = &environment{
 	PostgresPW:       "POSTGRES_PASSWORD",
 	PostgresCrashDB:  "POSTGRES_CRASH_DB",
 	APIServerURL:     "API_SERVER_URL",
+	NatsURL:          "NATS_URL",
 	PrintGameMsg:     "PRINT_GAME_MSG",
 	PrintHandMsg:     "PRINT_HAND_MSG",
 	PrintStateMsg:    "PRINT_STATE_MSG",
@@ -62,31 +63,13 @@ var Env = &environment{
 }
 
 func (e *environment) GetNatsURL() string {
-	if natsUrl == "" {
-		// get from the API server
-		type Url struct {
-			Urls string `json:"urls"`
-		}
-
-		url := fmt.Sprintf("%s/nats-urls", e.GetAPIServerURL())
-		response, err := http.Get(url)
-		if err != nil {
-			panic(fmt.Sprintf("Unable to get NATS urls. Error from http get: %s", err))
-		}
-		defer response.Body.Close()
-		data, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			panic(fmt.Sprintf("Unable to get NATS urls. Error while reading http response: %s", err))
-		}
-		body := string(data)
-		if strings.Contains(body, "errors") {
-			panic(fmt.Sprintf("Unable to get NATS urls. Response from %s contains errors. Response: %s", url, body))
-		}
-		var urls Url
-		json.Unmarshal(data, &urls)
-		natsUrl = urls.Urls
+	url := os.Getenv(e.NatsURL)
+	if url == "" {
+		msg := fmt.Sprintf("%s is not defined", e.NatsURL)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
 	}
-	return natsUrl
+	return url
 }
 
 func (e *environment) GetRedisHost() string {
