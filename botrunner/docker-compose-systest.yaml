@@ -33,6 +33,7 @@ services:
       NATS_URL: nats://nats:4222
       BOTRUNNER_URL: http://botrunner:8081
       TIMER_URL: http://timer:8082
+      SCHEDULER_URL: http://scheduler:8083
       POSTGRES_HOST: 'postgres'
       POSTGRES_PORT: '5432'
       POSTGRES_USER: 'game'
@@ -90,6 +91,14 @@ services:
     environment:
       API_SERVER_URL: http://api-server:9501
       LOG_LEVEL: 'debug'
+
+  scheduler:
+    image: ${SCHEDULER_IMAGE}
+    tty: true
+    environment:
+      API_SERVER_URL: http://api-server:9501
+      LOG_LEVEL: 'debug'
+      POST_PROCESSING_TIMEOUT_SEC: 10
 
 networks:
   default:

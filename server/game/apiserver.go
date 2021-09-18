@@ -131,7 +131,7 @@ func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) (moveToNextHand
 	}
 	channelGameLogger.Debug().
 		Str("game", g.gameCode).
-		Msgf("Response from /move-to-next-hand: %s", bodyBytes)
+		Msgf("Response from /move-to-next-hand: %s", string(bodyBytes))
 
 	if resp.StatusCode != http.StatusOK {
 		return moveToNextHandResp{}, fmt.Errorf("/move-to-next-hand returned HTTP status %d", resp.StatusCode)

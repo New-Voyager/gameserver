@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"voyager.com/timer/internal/util"
 	"voyager.com/timer/rest"
@@ -26,6 +27,10 @@ func init() {
 	flag.Parse()
 }
 func main() {
+	logLevel := util.Env.GetZeroLogLogLevel()
+	fmt.Printf("Setting log level to %s\n", logLevel)
+	zerolog.SetGlobalLevel(logLevel)
+
 	mainLogger.Info().Msgf("Port: %d", cmdArgs.port)
 	go rest.RunServer(cmdArgs.port)
 
@@ -42,7 +47,7 @@ func waitForAPIServer(apiServerURL string) {
 	readyURL := fmt.Sprintf("%s/internal/ready", apiServerURL)
 	client := http.Client{Timeout: 2 * time.Second}
 	for {
-		mainLogger.Info().Msgf("Checking API server ready")
+		mainLogger.Info().Msgf("Checking API server ready (%s)", readyURL)
 		resp, err := client.Get(readyURL)
 		if err == nil && resp.StatusCode == 200 {
 			resp.Body.Close()
@@ -62,11 +67,11 @@ func requestRestartTimers(apiServerURL string) {
 	restartURL := fmt.Sprintf("%s/internal/restart-timers", apiServerURL)
 	resp, err := http.Post(restartURL, "application/json", bytes.NewBuffer([]byte{}))
 	if err != nil {
-		mainLogger.Fatal().Msg(fmt.Sprintf("Failed to restart timers. Error: %s", err.Error()))
+		mainLogger.Fatal().Msgf("Failed to restart timers. Error: %s", err.Error())
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		mainLogger.Fatal().Msg(fmt.Sprintf("Failed to restart timers. Error: %d", resp.StatusCode))
+		mainLogger.Fatal().Msgf("Failed to restart timers. Received http status %d from %s", resp.StatusCode, restartURL)
 	}
 }

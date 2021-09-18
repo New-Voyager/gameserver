@@ -5,7 +5,7 @@ BUILD_NO := $(shell cat build_number.txt)
 GCP_PROJECT_ID := voyager-01-285603
 DO_REGISTRY := registry.digitalocean.com/voyager
 GCP_REGISTRY := gcr.io/$(GCP_PROJECT_ID)
-REGISTRY := $(DO_REGISTRY)
+REGISTRY := $(GCP_REGISTRY)
 
 DEV_API_SERVER_URL ?= http://localhost:9501
 DEV_LOG_LEVEL ?= info
