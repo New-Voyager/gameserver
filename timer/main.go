@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"voyager.com/timer/internal/util"
 	"voyager.com/timer/rest"
@@ -26,6 +27,10 @@ func init() {
 	flag.Parse()
 }
 func main() {
+	logLevel := util.Env.GetZeroLogLogLevel()
+	fmt.Printf("Setting log level to %s\n", logLevel)
+	zerolog.SetGlobalLevel(logLevel)
+
 	mainLogger.Info().Msgf("Port: %d", cmdArgs.port)
 	go rest.RunServer(cmdArgs.port)
 
