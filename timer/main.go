@@ -67,11 +67,11 @@ func requestRestartTimers(apiServerURL string) {
 	restartURL := fmt.Sprintf("%s/internal/restart-timers", apiServerURL)
 	resp, err := http.Post(restartURL, "application/json", bytes.NewBuffer([]byte{}))
 	if err != nil {
-		mainLogger.Fatal().Msg(fmt.Sprintf("Failed to restart timers. Error: %s", err.Error()))
+		mainLogger.Fatal().Msgf("Failed to restart timers. Error: %s", err.Error())
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		mainLogger.Fatal().Msg(fmt.Sprintf("Failed to restart timers. Error: %d", resp.StatusCode))
+		mainLogger.Fatal().Msgf("Failed to restart timers. Received http status %d from %s", resp.StatusCode, restartURL)
 	}
 }
