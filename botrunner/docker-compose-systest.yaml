@@ -91,6 +91,13 @@ services:
       API_SERVER_URL: http://api-server:9501
       LOG_LEVEL: 'debug'
 
+  scheduler:
+    image: ${SCHEDULER_IMAGE}
+    tty: true
+    environment:
+      API_SERVER_URL: http://api-server:9501
+      LOG_LEVEL: 'debug'
+
 networks:
   default:
     external:
