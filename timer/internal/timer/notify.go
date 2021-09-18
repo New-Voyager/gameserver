@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	APIServerURL     = util.Env.GetAPIServerURL()
+	APIServerURL     = util.Env.GetAPIServerInternalURL()
 	maxRetries       = 3
 	retryDelayMillis = 2000
 )

@@ -13,6 +13,7 @@
       "cwd": "${workspaceFolder}",
       "env": {
         "API_SERVER_URL": "http://localhost:9501",
+        "API_SERVER_INTERNAL_URL": "http://localhost:9502",
         "NATS_URL": "nats://localhost:4222",
         "POSTGRES_HOST": "localhost",
         "POSTGRES_PORT": "5432",
@@ -39,6 +40,7 @@
       "cwd": "${workspaceFolder}",
       "env": {
         "API_SERVER_URL": "http://localhost:9501",
+        "API_SERVER_INTERNAL_URL": "http://localhost:9502",
         "NATS_URL": "nats://localhost:4222",
         "PRINT_GAME_MSG": "1",
         "PRINT_HAND_MSG": "1",
@@ -61,6 +63,7 @@
       "cwd": "${workspaceFolder}",
       "env": {
         "API_SERVER_URL": "http://localhost:9501",
+        "API_SERVER_INTERNAL_URL": "http://localhost:9502",
         "NATS_URL": "nats://localhost:4222",
         "POSTGRES_HOST": "localhost",
         "POSTGRES_PORT": "5432",

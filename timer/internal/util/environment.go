@@ -20,34 +20,34 @@ func init() {
 var envLogger = log.With().Str("logger_name", "util::environment").Logger()
 
 type environment struct {
-	RedisHost    string
-	RedisPort    string
-	RedisUser    string
-	RedisPW      string
-	RedisDB      string
-	PostgresHost string
-	PostgresPort string
-	PostgresUser string
-	PostgresPW   string
-	PostgresDB   string
-	APIServerURL string
-	LogLevel     string
+	RedisHost            string
+	RedisPort            string
+	RedisUser            string
+	RedisPW              string
+	RedisDB              string
+	PostgresHost         string
+	PostgresPort         string
+	PostgresUser         string
+	PostgresPW           string
+	PostgresDB           string
+	APIServerInternalURL string
+	LogLevel             string
 }
 
 // Env is a helper object for accessing environment variables.
 var Env = &environment{
-	RedisHost:    "REDIS_HOST",
-	RedisPort:    "REDIS_PORT",
-	RedisUser:    "REDIS_USER",
-	RedisPW:      "REDIS_PASSWORD",
-	RedisDB:      "REDIS_DB",
-	PostgresHost: "POSTGRES_HOST",
-	PostgresPort: "POSTGRES_PORT",
-	PostgresUser: "POSTGRES_USER",
-	PostgresPW:   "POSTGRES_PASSWORD",
-	PostgresDB:   "POSTGRES_DB",
-	APIServerURL: "API_SERVER_URL",
-	LogLevel:     "LOG_LEVEL",
+	RedisHost:            "REDIS_HOST",
+	RedisPort:            "REDIS_PORT",
+	RedisUser:            "REDIS_USER",
+	RedisPW:              "REDIS_PASSWORD",
+	RedisDB:              "REDIS_DB",
+	PostgresHost:         "POSTGRES_HOST",
+	PostgresPort:         "POSTGRES_PORT",
+	PostgresUser:         "POSTGRES_USER",
+	PostgresPW:           "POSTGRES_PASSWORD",
+	PostgresDB:           "POSTGRES_DB",
+	APIServerInternalURL: "API_SERVER_INTERNAL_URL",
+	LogLevel:             "LOG_LEVEL",
 }
 
 func (e *environment) GetRedisHost() string {
@@ -164,10 +164,10 @@ func (e *environment) GetPostgresConnStr() string {
 	)
 }
 
-func (e *environment) GetAPIServerURL() string {
-	url := os.Getenv(e.APIServerURL)
+func (e *environment) GetAPIServerInternalURL() string {
+	url := os.Getenv(e.APIServerInternalURL)
 	if url == "" {
-		msg := fmt.Sprintf("%s is not defined", e.APIServerURL)
+		msg := fmt.Sprintf("%s is not defined", e.APIServerInternalURL)
 		envLogger.Error().Msg(msg)
 		panic(msg)
 	}
@@ -182,7 +182,7 @@ func (e *environment) GetGameServerURL(gameCode string) string {
 		} `json:"server"`
 	}
 
-	url := fmt.Sprintf("%s/internal/get-game-server/game_num/%s", e.GetAPIServerURL(), gameCode)
+	url := fmt.Sprintf("%s/internal/get-game-server/game_num/%s", e.GetAPIServerInternalURL(), gameCode)
 	response, err := http.Get(url)
 	if err != nil {
 		panic(fmt.Sprintf("HTTP GET %s returned an error: %s", url, err))

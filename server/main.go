@@ -59,7 +59,7 @@ func run() error {
 	}
 
 	if !*runGameScriptTests {
-		apiServerURL := util.Env.GetApiServerUrl()
+		apiServerURL := util.Env.GetApiServerInternalURL()
 		waitForAPIServer(apiServerURL)
 	}
 
@@ -125,7 +125,7 @@ func runWithNats(gameManager *game.Manager) {
 	}
 	_ = listener
 
-	apiServerURL := util.Env.GetApiServerUrl()
+	apiServerURL := util.Env.GetApiServerInternalURL()
 
 	// subscribe to api server events
 	nats.RegisterGameServer(apiServerURL, natsGameManager)

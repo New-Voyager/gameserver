@@ -7,7 +7,7 @@ DO_REGISTRY := registry.digitalocean.com/voyager
 GCP_REGISTRY := gcr.io/$(GCP_PROJECT_ID)
 REGISTRY := $(GCP_REGISTRY)
 
-DEV_API_SERVER_URL ?= http://localhost:9501
+DEV_API_SERVER_INTERNAL_URL ?= http://localhost:9502
 DEV_LOG_LEVEL ?= info
 
 DOCKER_BUILDKIT ?= 1
@@ -23,7 +23,7 @@ build:
 	go build -o timer
 
 .PHONY: run
-run: export API_SERVER_URL=$(DEV_API_SERVER_URL)
+run: export API_SERVER_INTERNAL_URL=$(DEV_API_SERVER_INTERNAL_URL)
 run: export LOG_LEVEL=$(DEV_LOG_LEVEL)
 run:
 	go run ./main.go
