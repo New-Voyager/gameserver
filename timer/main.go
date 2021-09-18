@@ -42,7 +42,7 @@ func waitForAPIServer(apiServerURL string) {
 	readyURL := fmt.Sprintf("%s/internal/ready", apiServerURL)
 	client := http.Client{Timeout: 2 * time.Second}
 	for {
-		mainLogger.Info().Msgf("Checking API server ready")
+		mainLogger.Info().Msgf("Checking API server ready (%s)", readyURL)
 		resp, err := client.Get(readyURL)
 		if err == nil && resp.StatusCode == 200 {
 			resp.Body.Close()
