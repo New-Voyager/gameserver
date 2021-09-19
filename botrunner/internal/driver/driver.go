@@ -620,6 +620,13 @@ func (br *BotRunner) processAfterGameAssertions() error {
 	br.logger.Info().Msg("Verifying api responses after game.")
 	passed := br.observerBot.VerifyAPIResponses(br.gameCode, br.script.AfterGame.Verify.APIVerification)
 	if !passed {
+		// End-game history can be delayed but shouldn't be longer than this for a single game.
+		retryDelaySec := 2
+		br.logger.Info().Msgf("Api response verification failed. Retrying in %d seconds", retryDelaySec)
+		time.Sleep(time.Duration(retryDelaySec) * time.Second)
+		passed = br.observerBot.VerifyAPIResponses(br.gameCode, br.script.AfterGame.Verify.APIVerification)
+	}
+	if !passed {
 		return fmt.Errorf("Failed to verify API responses after game. Please check the logs")
 	}
 	return nil
