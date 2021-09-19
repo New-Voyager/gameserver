@@ -20,8 +20,8 @@ type gameServerEnvironment struct {
 	RedisPW                string
 	RedisDB                string
 	RedisSSL               string
-	APIServerUrl           string
-	NatsUrl                string
+	APIServerInternalURL   string
+	NatsURL                string
 	PlayTimeout            string
 	PingTimeout            string
 	DisableDelays          string
@@ -46,8 +46,8 @@ var Env = &gameServerEnvironment{
 	RedisPW:                "REDIS_PASSWORD",
 	RedisDB:                "REDIS_DB",
 	RedisSSL:               "REDIS_SSL",
-	APIServerUrl:           "API_SERVER_URL",
-	NatsUrl:                "NATS_URL",
+	APIServerInternalURL:   "API_SERVER_INTERNAL_URL",
+	NatsURL:                "NATS_URL",
 	PlayTimeout:            "PLAY_TIMEOUT",
 	PingTimeout:            "PING_TIMEOUT",
 	DisableDelays:          "DISABLE_DELAYS",
@@ -64,9 +64,9 @@ var Env = &gameServerEnvironment{
 }
 
 func (g *gameServerEnvironment) GetNatsURL() string {
-	url := os.Getenv(g.NatsUrl)
+	url := os.Getenv(g.NatsURL)
 	if url == "" {
-		msg := fmt.Sprintf("%s is not defined", g.NatsUrl)
+		msg := fmt.Sprintf("%s is not defined", g.NatsURL)
 		environmentLogger.Error().Msg(msg)
 		panic(msg)
 	}
@@ -109,8 +109,8 @@ func (g *gameServerEnvironment) GetRedisPort() int {
 	return portNum
 }
 
-func (e *gameServerEnvironment) GetRedisUser() string {
-	v := os.Getenv(e.RedisUser)
+func (g *gameServerEnvironment) GetRedisUser() string {
+	v := os.Getenv(g.RedisUser)
 	return v
 }
 
@@ -214,10 +214,10 @@ func (g *gameServerEnvironment) GetPostgresCrashDB() string {
 	return v
 }
 
-func (g *gameServerEnvironment) GetApiServerUrl() string {
-	url := os.Getenv(g.APIServerUrl)
+func (g *gameServerEnvironment) GetApiServerInternalURL() string {
+	url := os.Getenv(g.APIServerInternalURL)
 	if url == "" {
-		msg := fmt.Sprintf("%s is not defined", g.APIServerUrl)
+		msg := fmt.Sprintf("%s is not defined", g.APIServerInternalURL)
 		environmentLogger.Error().Msg(msg)
 		panic(msg)
 	}

@@ -17,7 +17,7 @@ func CreateGameManager(isScriptTest bool, delays Delays) (*Manager, error) {
 	var apiServerURL string
 	var err error
 	if !isScriptTest {
-		apiServerURL = util.Env.GetApiServerUrl()
+		apiServerURL = util.Env.GetApiServerInternalURL()
 	}
 
 	var redisHost = util.Env.GetRedisHost()

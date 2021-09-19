@@ -35,7 +35,7 @@ func main() {
 	go rest.RunServer(cmdArgs.port)
 
 	time.Sleep(1 * time.Second)
-	apiServerURL := util.Env.GetAPIServerURL()
+	apiServerURL := util.Env.GetAPIServerInternalURL()
 	waitForAPIServer(apiServerURL)
 	mainLogger.Info().Msg("Requesting to restart the active timers.")
 	requestRestartTimers(apiServerURL)
