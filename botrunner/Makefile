@@ -89,7 +89,7 @@ run:
 	POSTGRES_CRASH_DB=$(DEV_POSTGRES_CRASH_DB) \
 	ENABLE_ENCRYPTION=$(ENABLE_ENCRYPTION) \
 	LOG_LEVEL=$(DEV_LOG_LEVEL) \
-	go run ./cmd/botrunner/main.go --script $(BOTRUNNER_SCRIPT)
+	go run ./cmd/botrunner/main.go --reset-db=true --script $(BOTRUNNER_SCRIPT)
 
 .PHONY: tester
 tester: CODE=$(GAME_CODE)

@@ -24,6 +24,7 @@ type arg struct {
 	scriptFile  string
 	clubCode    string
 	gameCode    string
+	resetDB     bool
 }
 
 func init() {
@@ -31,6 +32,7 @@ func init() {
 	flag.StringVar(&cmdArgs.playersFile, "players", "botrunner_scripts/players/default.yaml", "Players YAML file")
 	flag.StringVar(&cmdArgs.clubCode, "club-code", "", "Club code to use. If not provided, a club will be created and owned by a bot.")
 	flag.StringVar(&cmdArgs.gameCode, "game-code", "", "Game code to use. If not provided, a game will be created and started by a bot.")
+	flag.BoolVar(&cmdArgs.resetDB, "reset-db", false, "If true, resets postgres tables before starting the game.")
 	flag.Parse()
 }
 
@@ -65,7 +67,7 @@ func botrunner() int {
 	}
 	driverLogger := log.With().Str("logger_name", "BotRunner").Logger()
 	playerLogger := log.With().Str("logger_name", "BotPlayer").Logger()
-	botRunner, err := driver.NewBotRunner(cmdArgs.clubCode, cmdArgs.gameCode, script, players, &driverLogger, &playerLogger, true, false)
+	botRunner, err := driver.NewBotRunner(cmdArgs.clubCode, cmdArgs.gameCode, script, players, &driverLogger, &playerLogger, cmdArgs.resetDB, false)
 	if err != nil {
 		mainLogger.Error().Msgf("Error while creating a bot runner %+v", err)
 		return 1
