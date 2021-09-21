@@ -12,22 +12,21 @@ require (
 	github.com/jmoiron/sqlx v1.3.1
 	github.com/json-iterator/go v1.1.10
 	github.com/lib/pq v1.10.0
-	github.com/looplab/fsm v0.2.0 // indirect
 	github.com/mgutz/str v1.2.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/nats-io/nats-server/v2 v2.2.1 // indirect
 	github.com/nats-io/nats.go v1.10.1-0.20210330225420-a0b1f60162f8
+	github.com/orcaman/concurrent-map v0.0.0-20210501183033-44dafcb38ecc
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.19.0
 	github.com/stretchr/testify v1.6.1
 	github.com/ugorji/go v1.2.0 // indirect
-	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
+	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/godo.v2 v2.0.9
 	gopkg.in/yaml.v2 v2.3.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
-	nhooyr.io/websocket v1.8.6
 	voyager.com/encryption v0.0.0-00010101000000-000000000000
 )
 

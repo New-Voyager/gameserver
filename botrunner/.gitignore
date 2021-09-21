@@ -26,3 +26,5 @@ __debug_bin
 
 # System test code coverage out files.
 system_test_code_coverage/
+system_test_code_coverage_1/
+system_test_code_coverage_2/

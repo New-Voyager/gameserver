@@ -2,8 +2,10 @@ package nats
 
 import (
 	"fmt"
+	"strconv"
 
 	natsgo "github.com/nats-io/nats.go"
+	cmap "github.com/orcaman/concurrent-map"
 	"github.com/rs/zerolog/log"
 
 	"voyager.com/server/util"
@@ -16,10 +18,15 @@ var natsGMLogger = log.With().Str("logger_name", "nats::gamemanager").Logger()
 // However, this game manager active NatsGame objects.
 // This will cleanup a NatsGame object and removes when the game ends.
 type GameManager struct {
-	activeGames  map[string]*NatsGame
-	gameIDToCode map[string]string
-	gameCodeToID map[string]string
+	activeGames  cmap.ConcurrentMap
+	gameIDToCode cmap.ConcurrentMap
+	gameCodeToID cmap.ConcurrentMap
 	nc           *natsgo.Conn
+}
+
+type GameListItem struct {
+	GameID   uint64 `json:"gameId"`
+	GameCode string `json:"gameCode"`
 }
 
 const (
@@ -41,9 +48,9 @@ func NewGameManager(nc *natsgo.Conn) (*GameManager, error) {
 
 	return &GameManager{
 		nc:           nc,
-		activeGames:  make(map[string]*NatsGame),
-		gameIDToCode: make(map[string]string),
-		gameCodeToID: make(map[string]string),
+		activeGames:  cmap.New(),
+		gameIDToCode: cmap.New(),
+		gameCodeToID: cmap.New(),
 	}, nil
 }
 
@@ -54,10 +61,35 @@ func (gm *GameManager) NewGame(gameID uint64, gameCode string) (*NatsGame, error
 	if err != nil {
 		return nil, err
 	}
-	gm.activeGames[gameIDStr] = game
-	gm.gameIDToCode[gameIDStr] = gameCode
-	gm.gameCodeToID[gameCode] = gameIDStr
+	gm.activeGames.Set(gameIDStr, game)
+	gm.gameIDToCode.Set(gameIDStr, gameCode)
+	gm.gameCodeToID.Set(gameCode, gameIDStr)
 	return game, nil
+}
+
+func (gm *GameManager) GetGames() ([]GameListItem, error) {
+	games := make([]GameListItem, 0)
+	for item := range gm.activeGames.Iter() {
+		gameIDStr := item.Key
+		game, ok := item.Val.(*NatsGame)
+		if !ok {
+			msg := fmt.Sprintf("GetGames unable to convert activeGames map value to *NatsGame. Value: %+v", item.Val)
+			natsGMLogger.Error().Msg(msg)
+			return nil, fmt.Errorf(msg)
+		}
+		gameID, err := strconv.ParseUint(gameIDStr, 10, 64)
+		if err != nil {
+			msg := fmt.Sprintf("GetGames unable to parse gameIDStr as uint64. Value: %s", gameIDStr)
+			natsGMLogger.Error().Msg(msg)
+			return nil, fmt.Errorf(msg)
+		}
+		gameCode := game.gameCode
+		games = append(games, GameListItem{
+			GameID:   gameID,
+			GameCode: gameCode,
+		})
+	}
+	return games, nil
 }
 
 func (gm *GameManager) CrashCleanup(gameID uint64) {
@@ -67,21 +99,23 @@ func (gm *GameManager) CrashCleanup(gameID uint64) {
 
 func (gm *GameManager) EndNatsGame(gameID uint64) {
 	gameIDStr := fmt.Sprintf("%d", gameID)
-	if game, exists := gm.activeGames[gameIDStr]; exists {
+	if v, exists := gm.activeGames.Get(gameIDStr); exists {
+		game := v.(*NatsGame)
 		game.gameEnded()
 		game.cleanup()
-		delete(gm.activeGames, gameIDStr)
-		if gameCode, exists := gm.gameIDToCode[gameIDStr]; exists {
-			delete(gm.gameCodeToID, gameCode)
+		gm.activeGames.Remove(gameIDStr)
+		if gameCode, exists := gm.gameIDToCode.Get(gameIDStr); exists {
+			gm.gameCodeToID.Remove(gameCode.(string))
+
 		}
-		delete(gm.gameIDToCode, gameIDStr)
+		gm.gameIDToCode.Remove(gameIDStr)
 	}
 }
 
 func (gm *GameManager) ResumeGame(gameID uint64) {
 	gameIDStr := fmt.Sprintf("%d", gameID)
-	if g, ok := gm.activeGames[gameIDStr]; ok {
-		g.resumeGame()
+	if g, ok := gm.activeGames.Get(gameIDStr); ok {
+		g.(*NatsGame).resumeGame()
 	} else {
 		natsGMLogger.Error().Uint64("gameId", gameID).Msgf("GameID: %d does not exist", gameID)
 	}
@@ -91,11 +125,14 @@ func (gm *GameManager) SetupHand(handSetup HandSetup) {
 	// first check whether the game is hosted by this game server
 	gameIDStr := fmt.Sprintf("%d", handSetup.GameId)
 	if handSetup.GameId == 0 {
-		gameIDStr = gm.gameCodeToID[handSetup.GameCode]
+		v, _ := gm.gameCodeToID.Get(handSetup.GameCode)
+		gameIDStr = v.(string)
 	}
 	var natsGame *NatsGame
-	var ok bool
-	if natsGame, ok = gm.activeGames[gameIDStr]; !ok {
+	v, ok := gm.activeGames.Get(gameIDStr)
+	if ok {
+		natsGame = v.(*NatsGame)
+	} else {
 		natsGMLogger.Error().Str("gameId", handSetup.GameCode).Msgf("Game code: %s does not exist. Aborting setup-deck.", handSetup.GameCode)
 		return
 	}
@@ -108,8 +145,10 @@ func (gm *GameManager) GetCurrentHandLog(gameID uint64) *map[string]interface{} 
 	// first check whether the game is hosted by this game server
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	var natsGame *NatsGame
-	var ok bool
-	if natsGame, ok = gm.activeGames[gameIDStr]; !ok {
+	v, ok := gm.activeGames.Get(gameIDStr)
+	if ok {
+		natsGame = v.(*NatsGame)
+	} else {
 		// lookup using game code
 		var errors map[string]interface{}
 		errors["errors"] = fmt.Sprintf("Cannot find game %d", gameID)

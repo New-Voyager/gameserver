@@ -44,8 +44,12 @@ for script in "${tested_scripts[@]}"; do
         echo Waiting for API server ${API_SERVER_URL}
         sleep 1
     done
-    while ! curl -s ${GAME_SERVER_URL} >/dev/null; do
-        echo Waiting for game server ${GAME_SERVER_URL}
+    while ! curl -s ${GAME_SERVER_1_URL} >/dev/null; do
+        echo Waiting for game server ${GAME_SERVER_1_URL}
+        sleep 1
+    done
+    while ! curl -s ${GAME_SERVER_2_URL} >/dev/null; do
+        echo Waiting for game server ${GAME_SERVER_2_URL}
         sleep 1
     done
 
@@ -77,7 +81,8 @@ for script in "${tested_scripts[@]}"; do
 done
 
 # Make the game server exit and create the code coverage file.
-curl -X POST game-server:8080/end-system-test
+curl -X POST ${GAME_SERVER_1_URL}/end-system-test
+curl -X POST ${GAME_SERVER_2_URL}/end-system-test
 sleep 2
 
 echo

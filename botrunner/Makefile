@@ -170,7 +170,7 @@ gcp-login:
 #################
 
 # These images are downloaded.
-API_SERVER_IMAGE := $(REGISTRY)/api-server:0.7.38
+API_SERVER_IMAGE := $(REGISTRY)/api-server:0.7.41
 SCHEDULER_IMAGE := $(REGISTRY)/scheduler:0.1.5
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
 REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
@@ -190,7 +190,13 @@ system-test: get-gocovmerge system-test-down system-test-up
 	$(COMPOSE_SYSTEM_TEST) exec -T botrunner bash -c "ABORT_ON_FAIL=$(ABORT_ON_FAIL) ./system_test.sh"
 	@# Copy the coverage files out of the game server container.
 	rm -rf ./system_test_code_coverage
-	docker cp $(COMPOSE_PROJECT_NAME)_game-server_1:/app/code_coverage ./system_test_code_coverage
+	rm -rf ./system_test_code_coverage_1
+	rm -rf ./system_test_code_coverage_2
+	docker cp $(COMPOSE_PROJECT_NAME)_game-server-1_1:/app/code_coverage ./system_test_code_coverage_1
+	docker cp $(COMPOSE_PROJECT_NAME)_game-server-2_1:/app/code_coverage ./system_test_code_coverage_2
+	mkdir ./system_test_code_coverage
+	cp ./system_test_code_coverage_1/* ./system_test_code_coverage
+	cp ./system_test_code_coverage_2/* ./system_test_code_coverage
 	@# Process the coverage files and generate a html file in the server directory.
 	./system_test_coverage_process.sh $(PROJECT_ROOT)/server ./system_test_code_coverage
 
