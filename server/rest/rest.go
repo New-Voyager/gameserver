@@ -74,6 +74,7 @@ func RunRestServer(gameManager *nats.GameManager, endSystemTestCallback func()) 
 	r.POST("/new-game", newGame)
 	r.POST("/resume-game", resumeGame)
 	r.POST("/end-game", endGame)
+	r.GET("/games", getGames)
 	r.GET("/current-hand-log", gameCurrentHandLog)
 	if util.Env.IsSystemTest() {
 		onEndSystemTest = endSystemTestCallback
@@ -193,6 +194,28 @@ func endGame(c *gin.Context) {
 
 	restLogger.Debug().Msgf("****** Resuming game %s", gameIDStr)
 	natsGameManager.EndNatsGame(gameID)
+}
+
+func getGames(c *gin.Context) {
+	type payload struct {
+		Games []nats.GameListItem `json:"games"`
+		Count int                 `json:"count"`
+	}
+
+	games, err := natsGameManager.GetGames()
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, appError{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		})
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, payload{
+		Games: games,
+		Count: len(games),
+	})
 }
 
 func gameCurrentHandLog(c *gin.Context) {
