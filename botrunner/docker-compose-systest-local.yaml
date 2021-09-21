@@ -18,10 +18,15 @@ services:
   api-server:
     ports:
       - 9501:9501
+      - 9502:9502
 
-  game-server:
+  game-server-1:
     ports:
-      - 8080:8080
+      - 8090:8080
+
+  game-server-2:
+    ports:
+      - 8091:8080
 
   botrunner:
     ports:
