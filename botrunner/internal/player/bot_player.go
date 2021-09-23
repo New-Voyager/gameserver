@@ -441,6 +441,14 @@ func (bp *BotPlayer) processHandTextMessage(message *gamescript.HandTextMessage)
 		bp.logger.Panic().Msgf("%s: Hand message from server is missing message ID. Message: %s", bp.logPrefix, message.MessageType)
 	}
 
+	if bp.config.Script.AutoPlay {
+		choices := message.DealerChoiceGames
+		nextGameIdx := rand.Intn(len(choices))
+		nextGame := game.GameType(choices[nextGameIdx])
+		bp.chooseNextGame(nextGame)
+		return
+	}
+
 	currentHand := bp.config.Script.GetHand(message.HandNum)
 	if message.MessageType == game.HandDealerChoice {
 		if currentHand.Setup.DealerChoice != nil {

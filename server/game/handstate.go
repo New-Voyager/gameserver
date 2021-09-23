@@ -456,23 +456,58 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 			}, 0)
 		}
 
-		h.actionReceived(&HandAction{
-			SeatNo: h.SmallBlindPos,
-			Action: ACTION_SB,
-			Amount: h.SmallBlind,
-		}, 0)
-		h.actionReceived(&HandAction{
-			SeatNo: h.BigBlindPos,
-			Action: ACTION_BB,
-			Amount: h.BigBlind,
-		}, 0)
+		playerInSB := h.PlayersInSeats[h.SmallBlindPos]
+		if playerInSB.PlayerId != 0 {
+			if playerInSB.Stack <= h.SmallBlind {
+				h.actionReceived(&HandAction{
+					SeatNo: h.SmallBlindPos,
+					Action: ACTION_ALLIN,
+					Amount: playerInSB.Stack,
+				}, 0)
+			} else {
+				h.actionReceived(&HandAction{
+					SeatNo: h.SmallBlindPos,
+					Action: ACTION_SB,
+					Amount: h.SmallBlind,
+				}, 0)
+			}
+		}
+
+		playerInBB := h.PlayersInSeats[h.BigBlindPos]
+		if playerInBB.PlayerId != 0 {
+			if playerInBB.Stack <= h.BigBlind {
+				h.actionReceived(&HandAction{
+					SeatNo: h.BigBlindPos,
+					Action: ACTION_ALLIN,
+					Amount: playerInBB.Stack,
+				}, 0)
+			} else {
+				h.actionReceived(&HandAction{
+					SeatNo: h.BigBlindPos,
+					Action: ACTION_BB,
+					Amount: h.BigBlind,
+				}, 0)
+			}
+		}
 
 		if h.ButtonStraddle {
-			h.actionReceived(&HandAction{
-				SeatNo: h.ButtonPos,
-				Action: ACTION_STRADDLE,
-				Amount: 2 * h.BigBlind,
-			}, 0)
+			buttonStraddleBet := 2 * h.BigBlind
+			playerInButton := h.PlayersInSeats[h.ButtonPos]
+			if playerInButton.PlayerId != 0 && playerInButton.Stack >= buttonStraddleBet {
+				if playerInButton.Stack == buttonStraddleBet {
+					h.actionReceived(&HandAction{
+						SeatNo: h.ButtonPos,
+						Action: ACTION_ALLIN,
+						Amount: playerInBB.Stack,
+					}, 0)
+				} else {
+					h.actionReceived(&HandAction{
+						SeatNo: h.ButtonPos,
+						Action: ACTION_STRADDLE,
+						Amount: buttonStraddleBet,
+					}, 0)
+				}
+			}
 		}
 	}
 
