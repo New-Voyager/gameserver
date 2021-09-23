@@ -10,21 +10,18 @@ set -e
 DEFAULT_TIMEOUT_SEC=${DEFAULT_TIMEOUT_SEC:-60}
 
 serial_scripts=(
-    $(find . -path './botrunner_scripts/crash_test/*.yaml')
+    $(find . -path './botrunner_scripts/system_test/serial/*.yaml')
 )
 
 parallel_scripts=(
-    $(find . -path './botrunner_scripts/system_test/*.yaml')
+    $(find . -path './botrunner_scripts/system_test/parallel/*.yaml')
 )
 
 # serial_scripts=(
-#     './botrunner_scripts/system_test/basic/action-verification.yaml'
+#     './botrunner_scripts/system_test/locationcheck/ipcheck/sitback.yaml'
+#     './botrunner_scripts/system_test/locationcheck/gpscheck/sitback.yaml'
 # )
-# parallel_scripts=(
-#     './botrunner_scripts/system_test/basic/river-action-3-bots.yaml'
-#     './botrunner_scripts/system_test/basic/river-action-3-bots-2-hands.yaml'
-#     './botrunner_scripts/system_test/basic/not-enough-players.yaml'
-# )
+# parallel_scripts=()
 
 all_scripts=( "${serial_scripts[@]}" "${parallel_scripts[@]}" )
 
@@ -87,7 +84,7 @@ runscript() {
     fi
 }
 
-# Run the scripts that need to be run one by one.
+# Run the scripts that need to be run one at a time.
 for script in "${serial_scripts[@]}"; do
     runscript $script
 done
@@ -98,11 +95,10 @@ mkdir test_log
 for script in "${parallel_scripts[@]}"; do
     echo "Launching ${script}"
     ( runscript $script ) > test_log/$(basename ${script}).log 2>&1 &
-
-    # Launch with delay.
-    sleep 2
 done
 
+echo
+echo "Waiting for tests to finish"
 wait
 
 # Make the game server exit and create the code coverage file.
@@ -126,9 +122,6 @@ echo
 echo "################################################################################"
 echo
 echo "RESULT"
-echo
-echo "Tested (${#tested_scripts[@]}):"
-printf -- '- %s\n' "${tested_scripts[@]}"
 echo
 echo "Succeeded ($(wc -l < ${succeeded_scripts})):"
 cat ${succeeded_scripts}
