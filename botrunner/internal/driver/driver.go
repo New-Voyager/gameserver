@@ -513,6 +513,9 @@ func (br *BotRunner) Run() error {
 }
 
 func (br *BotRunner) processAfterGameAssertions() error {
+	if br.script.AutoPlay {
+		return nil
+	}
 	errMsgs := make([]string, 0)
 	minExpectedHands := br.script.AfterGame.Verify.NumHandsPlayed.Gte
 	maxExpectedHands := br.script.AfterGame.Verify.NumHandsPlayed.Lte
