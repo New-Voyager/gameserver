@@ -1,5 +1,7 @@
+# SYSTEM_TEST_TIMEOUT_SEC:120
+
 club:
-  name: Seat-Change Testing Club
+  name: Crash Testing Club
   description: Club used for testing with the bot runner
   rewards:
     - name: High Hand
@@ -9,7 +11,7 @@ club:
 
 game:
   create: true
-  title: "Seat-Change"
+  title: "Crash during pending updates"
   game-type: "HOLDEM"
   small-blind: 1.0
   big-blind: 2.0
@@ -45,28 +47,40 @@ starting-seats:
   - seat: 6
     player: rich
     buy-in: 1000
+  - seat: 7
+    player: josh
+    buy-in: 1000
+  - seat: 8
+    player: chris
+    buy-in: 1000
   - seat: 9
     player: michael
     buy-in: 1000
 
-after-game:
-  verify:
-    num-hands-played:
-      lte: 5
+observers:
+  - player: david
+    waitlist: true
+    confirm: true
+    buy-in: 500
+  - player: olivia
+    waitlist: true
+    confirm: true
+    buy-in: 500
+  - player: emma
+    waitlist: true
+    confirm: true
+    buy-in: 500
 
-    # verify game messages
-    game-messages:
-      - type: TABLE_UPDATE
-        subType: SWITCH_SEAT
-
-# deal the following hands in the table
 hands:
   - setup:
       button-pos: 1
       auto: true
-      switch-seats:
-        - from-seat: 2
-          to-seat: 7
+      leave-game:
+        - seat: 5
+      pre-deal:
+        - setup-server-crash:
+            crash-point: PENDING_UPDATES_1
+
   - setup:
       pause: 3
       auto: true
@@ -74,15 +88,19 @@ hands:
         seats:
           - seat: 1
             player: yong
+          - seat: 2
+            player: brian
           - seat: 3
             player: tom
           - seat: 4
             player: jim
           - seat: 5
-            player: rob
+            player: david
           - seat: 6
             player: rich
           - seat: 7
-            player: brian
+            player: josh
+          - seat: 8
+            player: chris
           - seat: 9
             player: michael

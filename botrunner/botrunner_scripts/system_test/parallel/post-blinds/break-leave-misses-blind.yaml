@@ -1,7 +1,13 @@
-# SYSTEM_TEST_TIMEOUT_SEC:60
+# SYSTEM_TEST_TIMEOUT_SEC:120
 
-# a new player joins the table, in the small blind position and does not post
-# the player is waiting for his turn to post blind
+# players on seats: seat1: yong, seat2: brian, seat3: tom, seat4: jim 
+# hand1: seat 4 player goes on break and returns in next hand
+# hand2: the player does not post blind and waits for natural big blind
+#        player on seat 3 leaves the game 
+# hand3: 
+# hand4: new player sits in seat 3, seat 3 big blind, jim is not in the hand
+# hand5: jim is natural big blind
+description: Player goes on break and returns and does not post blind
 club:
   name: post blind testing
   description: Club used for testing with the bot runner
@@ -37,6 +43,9 @@ starting-seats:
   - seat: 2
     player: brian
     buy-in: 2000
+  - seat: 3
+    player: tom
+    buy-in: 2000
   - seat: 4
     player: jim
     buy-in: 2000
@@ -45,6 +54,8 @@ hands:
   - setup:
       auto: true
       button-pos: 1
+      take-break:
+        - seat: 4
       verify:
         seats:
           - seat: 1
@@ -55,74 +66,104 @@ hands:
             inhand: true
             sb: true
             status: PLAYING
-          - seat: 4
+          - seat: 3
+            inhand: true
             bb: true
+            status: PLAYING
+          - seat: 4
+            inhand: true
+            missed-blind: false
+            status: PLAYING
+  - setup:
+      auto: true
+      leave-game:
+        - seat: 3
+      sit-back:
+        - seat: 4
+      verify:
+        seats:
+          - seat: 1
+            inhand: true
+            bb: true
+            status: PLAYING
+          - seat: 2
+            button: true
             inhand: true
             status: PLAYING
+          - seat: 3
+            inhand: true
+            sb: true
+            status: PLAYING
+          - seat: 4
+            inhand: false
+            missed-blind: true
+            status: IN_BREAK
 
+  - setup:
+      auto: true
+      verify:
+        seats:
+          - seat: 1
+            inhand: true
+            sb: true
+            status: PLAYING
+          - seat: 2
+            inhand: true
+            bb: true
+            status: PLAYING
+          - seat: 4
+            inhand: false
+            missed-blind: true
+            status: PLAYING
+
+  # seat 4 misses another hand
+  # another player joins in seat-3
   - setup:
       auto: true
       new-players:
         - seat: 3
           player: olivia
-          buy-in: 2000
+          buy-in: 2000      
       verify:
         seats:
           - seat: 1
-            bb: true
-            inhand: true
-            status: PLAYING
-          - seat: 2
             inhand: true
             button: true
             status: PLAYING
+          - seat: 2
+            inhand: true
+            sb: true
+            status: PLAYING
           - seat: 3
+            inhand: true
+            bb: true
+            status: PLAYING
+          - seat: 4
             inhand: false
             missed-blind: true
             status: PLAYING
-          - seat: 4
-            sb: true
-            inhand: true
-            status: PLAYING
 
+  # seat 4 misses another hand
   - setup:
       auto: true
+      new-players:
+        - seat: 3
+          player: olivia
+          buy-in: 2000      
       verify:
         seats:
           - seat: 1
-            sb: true
             inhand: true
             status: PLAYING
           - seat: 2
             inhand: true
-            bb: true
+            button: true
             status: PLAYING
           - seat: 3
-            inhand: false
-            missed-blind: true
-            status: PLAYING
-          - seat: 4
-            button: true
-            inhand: true
-            status: PLAYING
-
-  - setup:
-      auto: true
-      verify:
-        seats:
-          - seat: 1
-            button: true
-            inhand: true
-            status: PLAYING
-          - seat: 2
             inhand: true
             sb: true
             status: PLAYING
-          - seat: 3
-            inhand: true
-            bb: true
-            missed-blind: false
-            status: PLAYING
           - seat: 4
+            bb: true
             inhand: true
             status: PLAYING

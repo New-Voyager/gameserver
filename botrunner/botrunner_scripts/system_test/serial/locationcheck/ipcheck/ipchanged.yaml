@@ -1,17 +1,15 @@
-# SYSTEM_TEST_TIMEOUT_SEC:120
+# SYSTEM_TEST_TIMEOUT_SEC:180
 
 # allow only one player to the game when two players
 # have the same ip address
-# JoinGame verification
-# SitBack verification
-# Periodicate update verification
+# Periodically update verification
 server-settings:
   game-block-time: 30
   notify-host-time-window: 10
   game-coins-per-block: 3
   free-time: 35
   new-user-free-coins: 0
-  ip-gps-check-interval: 10
+  ip-gps-check-interval: 5
 
 # Here we intentionally make the bots act slow (1 second delay per action)
 # so that each hand takes 12-13 seconds.
@@ -40,58 +38,21 @@ game:
   buy-in-min: 100
   buy-in-max: 300
   action-time: 100
-  gps-check: true
+  ip-check: true
 
 starting-seats:
   - seat: 1
     player: yong
     buy-in: 100
-    gps:
-      lat: 40.730610
-      long: -73.935242
-  - seat: 2
-    player: rich
-    buy-in: 100
-    gps:
-      lat: 41.361145
-      long: -72.057083
-    ignore-error: true
-  - seat: 3
-    player: chris
-    buy-in: 100
-    gps:
-      lat: 43.361145
-      long: -71.057083
-    ignore-error: true
-  - seat: 4
-    player: josh
-    buy-in: 100
-    gps:
-      lat: 42.361145
-      long: -72.124083
-    ignore-error: true
-
+    ip-address: 10.1.1.1
   - seat: 5
     player: brian
     buy-in: 100
-    gps:
-      lat: 42.361145
-      long: -71.057083
-    ignore-error: true
-  - seat: 6
-    player: david
-    buy-in: 100
-    gps:
-      lat: 40.361145
-      long: -73.057083
-    ignore-error: true
-
+    ip-address: 10.1.1.2
   - seat: 8
     player: tom
     buy-in: 100
-    gps:
-      lat: 51.509865
-      long: -0.118092
+    ip-address: 10.1.1.4
 
 tester:
 auto-play: false
@@ -104,47 +65,24 @@ hands:
         seats:
           - seat: 1
             player: yong
-          - seat: 2
-            player: rich
-          - seat: 3
-            player: chris
-          - seat: 4
-            player: josh
           - seat: 5
             player: brian
-          - seat: 6
-            player: david
           - seat: 8
             player: tom
 
   - setup:
       auto: true
       players-config:
-        - player: tom
-          gps:
-            lat: 40.361145
-            long: -73.057083
-
+        - player: brian
+          ip-address: 10.1.1.1
       verify:
         seats:
           - seat: 1
             player: yong
             inhand: true
-          - seat: 2
-            player: rich
-            inhand: true
-          - seat: 3
-            player: chris
-            inhand: true
-          - seat: 4
-            player: josh
-            inhand: true
           - seat: 5
             player: brian
             inhand: true
-          - seat: 6
-            inhand: true
-            player: david
           - seat: 8
             player: tom
             inhand: true
@@ -156,21 +94,56 @@ hands:
           - seat: 1
             player: yong
             inhand: true
-          - seat: 2
-            player: rich
+          - seat: 5
+            player: brian
+            inhand: false
+          - seat: 8
+            player: tom
             inhand: true
-          - seat: 3
-            player: chris
-            inhand: true
-          - seat: 4
-            player: josh
+
+  - setup:
+      auto: true
+      verify:
+        seats:
+          - seat: 1
+            player: yong
             inhand: true
           - seat: 5
             player: brian
-            inhand: true
-          - seat: 6
-            inhand: true
-            player: david
+            inhand: false
           - seat: 8
             player: tom
+            inhand: true
+
+  - setup:
+      auto: true
+      sit-back:
+        - seat: 5
+      players-config:
+        - player: brian
+          ip-address: 10.1.1.2
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+            inhand: true
+          - seat: 5
+            player: brian
             inhand: false
+          - seat: 8
+            player: tom
+            inhand: true
+
+  - setup:
+      auto: true
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+            inhand: true
+          - seat: 5
+            player: brian
+            inhand: false       # the player missed blind. needs to post blind
+          - seat: 8
+            player: tom
+            inhand: true

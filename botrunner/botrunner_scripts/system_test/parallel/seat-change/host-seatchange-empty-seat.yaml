@@ -1,4 +1,4 @@
-# SYSTEM_TEST_TIMEOUT_SEC:60
+# SYSTEM_TEST_TIMEOUT_SEC:120
 
 disabled: true
 club:
@@ -39,17 +39,11 @@ starting-seats:
   - seat: 3
     player: tom
     buy-in: 100
-  - seat: 4
-    player: jim
-    buy-in: 100
   - seat: 5
     player: rob
     buy-in: 100
   - seat: 6
     player: john
-    buy-in: 100
-  - seat: 7
-    player: michael
     buy-in: 100
   - seat: 8
     player: bill
@@ -69,13 +63,13 @@ hands:
       - host-seat-change:
           changes:
             - seat1: 1
-              seat2: 3
-            - seat1: 4
-              seat2: 5
-            - seat1: 5
               seat2: 4
             - seat1: 4
-              seat2: 6
+              seat2: 7
+            - seat1: 7
+              seat2: 1
+            - seat1: 9
+              seat2: 1
       - resume-game: true
 
   - setup:
@@ -83,70 +77,67 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: tom
+            player: david
           - seat: 2
             player: brian
           - seat: 3
-            player: yong
+            player: tom
           - seat: 4
-            player: john
           - seat: 5
             player: rob
           - seat: 6
-            player: jim
+            player: john
           - seat: 7
-            player: michael
           - seat: 8
             player: bill
           - seat: 9
-            player: david
+            player: yong
 
 after-game:
   verify:
+    num-hands-played:
+      lte: 2
 
     # verify game messages
     game-messages:
       - type: TABLE_UPDATE
         subType: HostSeatChangeMove
         seatMoves:
-          - name: tom
-            oldSeatNo: 3
+          - oldSeatNo: 4
             newSeatNo: 1
-            openSeat: false
+            openSeat: true
           - name: yong
             oldSeatNo: 1
-            newSeatNo: 3
-            openSeat: false
-      - type: TABLE_UPDATE
-        subType: HostSeatChangeMove
-        seatMoves:
-          - oldSeatNo: 5
-            newSeatNo: 4
-            openSeat: false
-            name: rob
-          - name: jim
-            oldSeatNo: 4
-            newSeatNo: 5
-            openSeat: false
-      - type: TABLE_UPDATE
-        subType: HostSeatChangeMove
-        seatMoves:
-          - name: rob
-            oldSeatNo: 4
-            newSeatNo: 5
-            openSeat: false
-          - name: jim
-            oldSeatNo: 5
             newSeatNo: 4
             openSeat: false
       - type: TABLE_UPDATE
         subType: HostSeatChangeMove
         seatMoves:
-          - name: john
-            oldSeatNo: 6
+          - oldSeatNo: 7
             newSeatNo: 4
-            openSeat: false
-          - name: jim
+            openSeat: true
+          - name: yong
             oldSeatNo: 4
-            newSeatNo: 6
+            newSeatNo: 7
+            openSeat: false
+      - type: TABLE_UPDATE
+        subType: HostSeatChangeMove
+        seatMoves:
+          - oldSeatNo: 1
+            newSeatNo: 7
+            openSeat: true
+          - name: yong
+            oldSeatNo: 7
+            newSeatNo: 1
+            openSeat: false
+      - type: TABLE_UPDATE
+        subType: HostSeatChangeMove
+        seatMoves:
+          - name: yong
+            oldSeatNo: 1
+            newSeatNo: 9
+            openSeat: false
+          - name: david
+            oldSeatNo: 9
+            newSeatNo: 1
             openSeat: false

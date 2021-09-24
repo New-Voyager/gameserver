@@ -159,15 +159,29 @@ func (br *BotRunner) Run() error {
 	br.logger.Info().Msgf("Bots joining the club")
 	// Register bots to the poker service.
 	for _, b := range append(br.bots, br.observerBot) {
-		// Try logging in first. The bot player might've already signed up from some other game.
-		err := b.Login()
-		if err == nil {
-			continue
+		var err error
+		signedIn := false
+		maxAttempts := 3
+		for attempts := 0; attempts < maxAttempts && !signedIn; attempts++ {
+			if attempts > 0 {
+				br.logger.Info().Msgf("%s could not sign in (%d/%d)", b.GetName(), attempts, maxAttempts)
+			}
+			// Try logging in first. The bot player might've already signed up from some other game.
+			err = b.Login()
+			if err == nil {
+				signedIn = true
+				break
+			}
+			// This bot has never signed up. Go ahead and sign up.
+			err = b.SignUp()
+			if err == nil {
+				signedIn = true
+				break
+			}
+			time.Sleep(2 * time.Second)
 		}
-		// This bot has never signed up. Go ahead and sign up.
-		err = b.SignUp()
-		if err != nil {
-			return errors.Wrapf(err, "%s cannot sign up", b.GetName())
+		if !signedIn {
+			return errors.Wrapf(err, "%s cannot sign in", b.GetName())
 		}
 	}
 	rewardIds := make([]uint32, 0)
