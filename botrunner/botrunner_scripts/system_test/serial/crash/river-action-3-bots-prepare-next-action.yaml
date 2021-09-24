@@ -1,4 +1,4 @@
-# SYSTEM_TEST_TIMEOUT_SEC:120
+# SYSTEM_TEST_TIMEOUT_SEC:180
 
 club:
   name: Crash Test

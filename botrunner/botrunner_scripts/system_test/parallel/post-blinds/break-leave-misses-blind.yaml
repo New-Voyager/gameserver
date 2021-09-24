@@ -1,4 +1,4 @@
-# SYSTEM_TEST_TIMEOUT_SEC:60
+# SYSTEM_TEST_TIMEOUT_SEC:120
 
 # players on seats: seat1: yong, seat2: brian, seat3: tom, seat4: jim 
 # hand1: seat 4 player goes on break and returns in next hand

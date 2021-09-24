@@ -1,4 +1,4 @@
-# SYSTEM_TEST_TIMEOUT_SEC:60
+# SYSTEM_TEST_TIMEOUT_SEC:120
 
 # a player goes on break and returns in next hand
 # the player does not post blind and waits for natural big blind

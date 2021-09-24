@@ -1,4 +1,4 @@
-# SYSTEM_TEST_TIMEOUT_SEC:60
+# SYSTEM_TEST_TIMEOUT_SEC:120
 
 # a new player joins the table, in the small blind position and does not post
 # the player is waiting for his turn to post blind

@@ -1,4 +1,4 @@
-# SYSTEM_TEST_TIMEOUT_SEC:60
+# SYSTEM_TEST_TIMEOUT_SEC:120
 
 disabled: true
 club:
