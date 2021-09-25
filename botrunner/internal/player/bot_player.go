@@ -1854,6 +1854,14 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 			playersActed:  make(map[uint32]*game.PlayerActRound),
 		},
 	}
+	gameID, err := bp.GetGameID(gameCode)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get game ID for game code [%s]", bp.logPrefix, gameCode))
+	}
+	bp.gameCode = gameCode
+	bp.gameID = gameID
+	bp.gameInfo = &gi
+
 	playerChannelName := fmt.Sprintf("player.%d", bp.PlayerID)
 	err = bp.Subscribe(gi.GameToPlayerChannel, gi.HandToAllChannel, gi.HandToPlayerChannel, gi.HandToPlayerTextChannel, playerChannelName, gi.PingChannel)
 	if err != nil {
@@ -1867,14 +1875,6 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 	bp.meToHand = gi.PlayerToHandChannel
 	bp.pingSubjectName = gi.PingChannel
 	bp.pongSubjectName = gi.PongChannel
-
-	gameID, err := bp.GetGameID(gameCode)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get game ID for game code [%s]", bp.logPrefix, gameCode))
-	}
-	bp.gameCode = gameCode
-	bp.gameID = gameID
-	bp.gameInfo = &gi
 
 	return nil
 }
