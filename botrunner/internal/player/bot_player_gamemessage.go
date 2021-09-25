@@ -195,6 +195,8 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 		bp.onTableUpdate(message)
 	case "WAITLIST_SEATING":
 		bp.seatWaitList(message)
+	case "GAME_ENDING":
+		break
 	}
 }
 
