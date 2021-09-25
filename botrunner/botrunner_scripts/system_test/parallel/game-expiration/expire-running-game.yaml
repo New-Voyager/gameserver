@@ -1,0 +1,49 @@
+# SYSTEM_TEST_TIMEOUT_SEC:180
+
+club:
+  name: Bad Robots
+  description: Club used for testing with the bot runner
+  rewards:
+    - name: High Hand
+      type: HIGH_HAND
+      amount: 100
+      schedule: ENTIRE_GAME
+
+game:
+  create: true
+  title: "Expire Running Game"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 9
+  # auto-play is set to true and game-length: 1.
+  # This game should expire in one minute and end cleanly after the active hand
+  # instead of running forever and be killed by the system test.
+  game-length: 1
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 500
+  buy-in-max: 2000
+  action-time: 30
+  rewards: High Hand
+
+bot-config:
+  min-action-pause-time: 500
+  max-action-pause-time: 1000
+
+starting-seats:
+  - seat: 1
+    player: yong
+    buy-in: 1000
+  - seat: 2
+    player: brian
+    buy-in: 1000
+  - seat: 3
+    player: tom
+    buy-in: 1000
+
+auto-play: true

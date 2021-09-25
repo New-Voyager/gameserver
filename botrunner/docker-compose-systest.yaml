@@ -128,6 +128,8 @@ services:
       API_SERVER_INTERNAL_URL: http://api-server:9502
       LOG_LEVEL: 'debug'
       POST_PROCESSING_TIMEOUT_SEC: 10
+      EXPIRE_GAMES_INTERVAL_SEC: 10
+      EXPIRE_GAMES_TIMEOUT_SEC: 10
 
 networks:
   default:
