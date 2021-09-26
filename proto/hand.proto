@@ -80,6 +80,7 @@ message PlayerInSeatState {
   bool auto_straddle = 15;
   bool button_straddle = 16;
   bool muck_losing_hand = 17;
+  uint32 button_straddle_bet = 18;
 }
 
 message PlayerBalance {
