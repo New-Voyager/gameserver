@@ -40,6 +40,11 @@ message HandActionLog {
   repeated SeatsInPots seats_pots = 4;
 }
 
+message ExtendTimer {
+  uint32 seat_no = 1;
+  uint32 extend_by_sec = 2;
+}
+
 message BetRaiseOption {
   string text = 1;
   float amount = 2;

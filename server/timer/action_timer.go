@@ -20,10 +20,17 @@ type TimerMsg struct {
 	RunItTwice       bool
 }
 
+type TimerExtendMsg struct {
+	SeatNo   uint32
+	PlayerID uint64
+	ExtendBy time.Duration
+}
+
 type ActionTimer struct {
 	gameCode string
 
 	chReset   chan TimerMsg
+	chExtend  chan TimerExtendMsg
 	chPause   chan bool
 	chEndLoop chan bool
 
@@ -40,6 +47,7 @@ func NewActionTimer(gameCode string, callback func(TimerMsg), crashHandler func(
 	at := ActionTimer{
 		gameCode:     gameCode,
 		chReset:      make(chan TimerMsg),
+		chExtend:     make(chan TimerExtendMsg),
 		chPause:      make(chan bool),
 		chEndLoop:    make(chan bool, 10),
 		callback:     callback,
@@ -85,6 +93,13 @@ func (a *ActionTimer) loop() {
 			a.currentTimerMsg = msg
 			expirationTime = msg.ExpireAt
 			paused = false
+		case msg := <-a.chExtend:
+			// Extend the existing timer.
+			if msg.PlayerID != a.currentTimerMsg.PlayerID {
+				actionTimerLogger.Info().Str("game", a.gameCode).Msgf("Player ID (%d) does not match the existing timer (%d). Ignoring the request to extend the action timer.", msg.PlayerID, a.currentTimerMsg.PlayerID)
+				break
+			}
+			expirationTime = expirationTime.Add(msg.ExtendBy)
 		default:
 			if !paused {
 				remainingSec := expirationTime.Sub(time.Now()).Seconds()
@@ -126,6 +141,21 @@ func (a *ActionTimer) Reset(t TimerMsg) error {
 	}
 	a.lastResetAt = time.Now()
 	a.chReset <- t
+	return nil
+}
+
+func (a *ActionTimer) Extend(t TimerExtendMsg) error {
+	var errMsgs []string
+	if t.SeatNo == 0 {
+		errMsgs = append(errMsgs, "invalid seatNo")
+	}
+	if t.PlayerID == 0 {
+		errMsgs = append(errMsgs, "invalid playerID")
+	}
+	if len(errMsgs) > 0 {
+		return fmt.Errorf(strings.Join(errMsgs, "; "))
+	}
+	a.chExtend <- t
 	return nil
 }
 

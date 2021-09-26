@@ -47,6 +47,11 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 		if err != nil {
 			channelGameLogger.Error().Msgf("Error while processing %s message. Error: %s", HandQueryCurrentHand, err.Error())
 		}
+	case HandExtendTimer:
+		err := g.onExtendTimer(message)
+		if err != nil {
+			channelGameLogger.Error().Msgf("Error while processing %s message. Error: %s", HandExtendTimer, err.Error())
+		}
 	}
 }
 
@@ -63,6 +68,31 @@ func (g *Game) getClientMsgItem(message *HandMessage) *HandMessageItem {
 	msgItems := message.GetMessages()
 	// Messages from the client should only contain one item.
 	return msgItems[0]
+}
+
+func (g *Game) onExtendTimer(playerMsg *HandMessage) error {
+	playerID := playerMsg.GetPlayerId()
+	if playerID == 0 {
+		return fmt.Errorf("Player ID is 0")
+	}
+	msgItem := g.getClientMsgItem(playerMsg)
+	seatNo := msgItem.GetExtendTimer().GetSeatNo()
+	if seatNo == 0 {
+		return fmt.Errorf("Seat Number is 0")
+	}
+	extendBySec := msgItem.GetExtendTimer().GetExtendBySec()
+	if extendBySec > 999 {
+		return fmt.Errorf("Too large value (%d) for extendBySec", extendBySec)
+	}
+	extendBy := time.Duration(extendBySec) * time.Second
+	err := g.extendTimer(seatNo, playerID, extendBy)
+	if err != nil {
+		return err
+	}
+
+	// Broadcast this message back so that other players know this player's time got extended.
+	g.broadcastHandMessage(playerMsg)
+	return nil
 }
 
 func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
