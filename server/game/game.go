@@ -457,19 +457,20 @@ func (g *Game) dealNewHand() error {
 			}
 			if playerInSeat.PlayerID != 0 {
 				playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
-					SeatNo:         playerInSeat.SeatNo,
-					Status:         playerInSeat.Status,
-					Stack:          playerInSeat.Stack,
-					PlayerId:       playerInSeat.PlayerID,
-					Name:           playerInSeat.Name,
-					BuyInExpTime:   playerInSeat.BuyInTimeExpAt,
-					BreakExpTime:   playerInSeat.BreakTimeExpAt,
-					Inhand:         playerInSeat.Inhand,
-					RunItTwice:     playerInSeat.RunItTwice,
-					MissedBlind:    playerInSeat.MissedBlind,
-					ButtonStraddle: playerInSeat.ButtonStraddle,
-					MuckLosingHand: playerInSeat.MuckLosingHand,
-					AutoStraddle:   playerInSeat.AutoStraddle,
+					SeatNo:            playerInSeat.SeatNo,
+					Status:            playerInSeat.Status,
+					Stack:             playerInSeat.Stack,
+					PlayerId:          playerInSeat.PlayerID,
+					Name:              playerInSeat.Name,
+					BuyInExpTime:      playerInSeat.BuyInTimeExpAt,
+					BreakExpTime:      playerInSeat.BreakTimeExpAt,
+					Inhand:            playerInSeat.Inhand,
+					RunItTwice:        playerInSeat.RunItTwice,
+					MissedBlind:       playerInSeat.MissedBlind,
+					ButtonStraddle:    playerInSeat.ButtonStraddle,
+					MuckLosingHand:    playerInSeat.MuckLosingHand,
+					AutoStraddle:      playerInSeat.AutoStraddle,
+					ButtonStraddleBet: playerInSeat.ButtontStraddleBet,
 				}
 			} else {
 				playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
@@ -561,19 +562,20 @@ func (g *Game) dealNewHand() error {
 	handPlayerInSeats := make(map[uint32]*PlayerInSeatState)
 	for _, playerInSeat := range handState.PlayersInSeats {
 		copiedState := &PlayerInSeatState{
-			SeatNo:         playerInSeat.SeatNo,
-			Status:         playerInSeat.Status,
-			Stack:          playerInSeat.Stack,
-			PlayerId:       playerInSeat.PlayerId,
-			Name:           playerInSeat.Name,
-			BuyInExpTime:   playerInSeat.BuyInExpTime,
-			BreakExpTime:   playerInSeat.BreakExpTime,
-			Inhand:         playerInSeat.Inhand,
-			RunItTwice:     playerInSeat.RunItTwice,
-			MissedBlind:    playerInSeat.MissedBlind,
-			ButtonStraddle: playerInSeat.ButtonStraddle,
-			MuckLosingHand: playerInSeat.MuckLosingHand,
-			AutoStraddle:   playerInSeat.AutoStraddle,
+			SeatNo:            playerInSeat.SeatNo,
+			Status:            playerInSeat.Status,
+			Stack:             playerInSeat.Stack,
+			PlayerId:          playerInSeat.PlayerId,
+			Name:              playerInSeat.Name,
+			BuyInExpTime:      playerInSeat.BuyInExpTime,
+			BreakExpTime:      playerInSeat.BreakExpTime,
+			Inhand:            playerInSeat.Inhand,
+			RunItTwice:        playerInSeat.RunItTwice,
+			MissedBlind:       playerInSeat.MissedBlind,
+			ButtonStraddle:    playerInSeat.ButtonStraddle,
+			MuckLosingHand:    playerInSeat.MuckLosingHand,
+			AutoStraddle:      playerInSeat.AutoStraddle,
+			ButtonStraddleBet: playerInSeat.ButtonStraddleBet,
 		}
 		handPlayerInSeats[playerInSeat.SeatNo] = copiedState
 		handPlayerInSeats[playerInSeat.SeatNo].Stack = playerInSeat.Stack - currentBettingRound.SeatBet[playerInSeat.SeatNo]

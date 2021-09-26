@@ -148,19 +148,20 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	for seatNo, playerInSeat := range playersInSeats {
 		if playerInSeat.PlayerID != 0 {
 			h.PlayersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
-				SeatNo:         playerInSeat.SeatNo,
-				Status:         playerInSeat.Status,
-				Stack:          playerInSeat.Stack,
-				PlayerId:       playerInSeat.PlayerID,
-				Name:           playerInSeat.Name,
-				BuyInExpTime:   playerInSeat.BuyInTimeExpAt,
-				BreakExpTime:   playerInSeat.BreakTimeExpAt,
-				Inhand:         playerInSeat.Inhand,
-				PostedBlind:    playerInSeat.PostedBlind,
-				RunItTwice:     playerInSeat.RunItTwice,
-				MissedBlind:    playerInSeat.MissedBlind,
-				MuckLosingHand: playerInSeat.MuckLosingHand,
-				ButtonStraddle: playerInSeat.ButtonStraddle,
+				SeatNo:            playerInSeat.SeatNo,
+				Status:            playerInSeat.Status,
+				Stack:             playerInSeat.Stack,
+				PlayerId:          playerInSeat.PlayerID,
+				Name:              playerInSeat.Name,
+				BuyInExpTime:      playerInSeat.BuyInTimeExpAt,
+				BreakExpTime:      playerInSeat.BreakTimeExpAt,
+				Inhand:            playerInSeat.Inhand,
+				PostedBlind:       playerInSeat.PostedBlind,
+				RunItTwice:        playerInSeat.RunItTwice,
+				MissedBlind:       playerInSeat.MissedBlind,
+				MuckLosingHand:    playerInSeat.MuckLosingHand,
+				ButtonStraddle:    playerInSeat.ButtonStraddle,
+				ButtonStraddleBet: playerInSeat.ButtontStraddleBet,
 			}
 			h.PlayerStats[playerInSeat.PlayerID] = &PlayerStats{InPreflop: true}
 			h.TimeoutStats[playerInSeat.PlayerID] = &TimeoutStats{
@@ -491,8 +492,11 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 		}
 
 		if h.ButtonStraddle {
-			buttonStraddleBet := 2 * h.BigBlind
 			playerInButton := h.PlayersInSeats[h.ButtonPos]
+			buttonStraddleBet := 2 * h.BigBlind
+			if playerInButton.ButtonStraddleBet > 2 {
+				buttonStraddleBet = float32(playerInButton.ButtonStraddleBet) * h.BigBlind
+			}
 			if playerInButton.PlayerId != 0 && playerInButton.Stack >= buttonStraddleBet {
 				if playerInButton.Stack == buttonStraddleBet {
 					h.actionReceived(&HandAction{
@@ -506,6 +510,7 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 						Action: ACTION_STRADDLE,
 						Amount: buttonStraddleBet,
 					}, 0)
+					h.Straddle = buttonStraddleBet
 				}
 			}
 		}
