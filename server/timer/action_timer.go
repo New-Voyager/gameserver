@@ -29,32 +29,29 @@ type TimerExtendMsg struct {
 type ActionTimer struct {
 	gameCode string
 
-	chReset        chan TimerMsg
-	chExtend       chan TimerExtendMsg
-	chPause        chan bool
-	chRemainingIn  chan bool
-	chRemainingOut chan time.Duration
-	chEndLoop      chan bool
+	chReset   chan TimerMsg
+	chExtend  chan TimerExtendMsg
+	chPause   chan bool
+	chEndLoop chan bool
 
 	callback        func(TimerMsg)
 	currentTimerMsg TimerMsg
-	expirationTime  time.Time
-	lastResetAt     time.Time
+
+	secondsTillTimeout uint32
+	lastResetAt        time.Time
 
 	crashHandler func()
 }
 
 func NewActionTimer(gameCode string, callback func(TimerMsg), crashHandler func()) *ActionTimer {
 	at := ActionTimer{
-		gameCode:       gameCode,
-		chReset:        make(chan TimerMsg),
-		chExtend:       make(chan TimerExtendMsg),
-		chPause:        make(chan bool),
-		chRemainingIn:  make(chan bool),
-		chRemainingOut: make(chan time.Duration),
-		chEndLoop:      make(chan bool, 10),
-		callback:       callback,
-		crashHandler:   crashHandler,
+		gameCode:     gameCode,
+		chReset:      make(chan TimerMsg),
+		chExtend:     make(chan TimerExtendMsg),
+		chPause:      make(chan bool),
+		chEndLoop:    make(chan bool, 10),
+		callback:     callback,
+		crashHandler: crashHandler,
 	}
 	return &at
 }
@@ -83,6 +80,7 @@ func (a *ActionTimer) loop() {
 		}
 	}()
 
+	var expirationTime time.Time
 	paused := true
 	for {
 		select {
@@ -93,7 +91,7 @@ func (a *ActionTimer) loop() {
 		case msg := <-a.chReset:
 			// Start the new timer.
 			a.currentTimerMsg = msg
-			a.expirationTime = msg.ExpireAt
+			expirationTime = msg.ExpireAt
 			paused = false
 		case msg := <-a.chExtend:
 			// Extend the existing timer.
@@ -101,26 +99,25 @@ func (a *ActionTimer) loop() {
 				actionTimerLogger.Info().Str("game", a.gameCode).Msgf("Player ID (%d) does not match the existing timer (%d). Ignoring the request to extend the action timer.", msg.PlayerID, a.currentTimerMsg.PlayerID)
 				break
 			}
-			a.expirationTime = a.expirationTime.Add(msg.ExtendBy)
-		case <-a.chRemainingIn:
-			remaining := a.expirationTime.Sub(time.Now())
-			a.chRemainingOut <- remaining
-		}
+			expirationTime = expirationTime.Add(msg.ExtendBy)
+		default:
+			if !paused {
+				remainingSec := expirationTime.Sub(time.Now()).Seconds()
+				if remainingSec < 0 {
+					remainingSec = 0
+				}
+				// track remainingActionTime to show the new observer how much time the current player has to act
+				a.secondsTillTimeout = uint32(remainingSec)
 
-		if !paused {
-			remainingSec := a.expirationTime.Sub(time.Now()).Seconds()
-			if remainingSec < 0 {
-				remainingSec = 0
+				if remainingSec <= 0 {
+					// The player timed out.
+					a.callback(a.currentTimerMsg)
+					expirationTime = time.Time{}
+					paused = true
+				}
 			}
-
-			if remainingSec <= 0 {
-				// The player timed out.
-				a.callback(a.currentTimerMsg)
-				a.expirationTime = time.Time{}
-				paused = true
-			}
+			time.Sleep(100 * time.Millisecond)
 		}
-		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -147,7 +144,7 @@ func (a *ActionTimer) Reset(t TimerMsg) error {
 	return nil
 }
 
-func (a *ActionTimer) Extend(t TimerExtendMsg) (uint32, error) {
+func (a *ActionTimer) Extend(t TimerExtendMsg) error {
 	var errMsgs []string
 	if t.SeatNo == 0 {
 		errMsgs = append(errMsgs, "invalid seatNo")
@@ -156,10 +153,10 @@ func (a *ActionTimer) Extend(t TimerExtendMsg) (uint32, error) {
 		errMsgs = append(errMsgs, "invalid playerID")
 	}
 	if len(errMsgs) > 0 {
-		return 0, fmt.Errorf(strings.Join(errMsgs, "; "))
+		return fmt.Errorf(strings.Join(errMsgs, "; "))
 	}
 	a.chExtend <- t
-	return a.GetRemainingSec(), nil
+	return nil
 }
 
 func (a *ActionTimer) GetElapsedTime() time.Duration {
@@ -167,13 +164,7 @@ func (a *ActionTimer) GetElapsedTime() time.Duration {
 }
 
 func (a *ActionTimer) GetRemainingSec() uint32 {
-	a.chRemainingIn <- true
-	remaining := <-a.chRemainingOut
-	remainingSec := remaining.Seconds()
-	if remainingSec < 0 {
-		remainingSec = 0
-	}
-	return uint32(remainingSec)
+	return a.secondsTillTimeout
 }
 
 func (a *ActionTimer) GetCurrentTimerMsg() TimerMsg {

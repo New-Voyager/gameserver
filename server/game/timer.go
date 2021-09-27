@@ -18,7 +18,7 @@ func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireA
 	})
 }
 
-func (g *Game) extendTimer(seatNo uint32, playerID uint64, extendBy time.Duration) (uint32, error) {
+func (g *Game) extendTimer(seatNo uint32, playerID uint64, extendBy time.Duration) error {
 	channelGameLogger.Debug().
 		Str("game", g.gameCode).
 		Msgf("Extending timer. Seat: %d, Extend by %s", seatNo, extendBy)
