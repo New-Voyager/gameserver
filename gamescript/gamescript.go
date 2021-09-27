@@ -151,9 +151,9 @@ type VerifySeat struct {
 
 // BotConfig contains botConfig content in the game script.
 type BotConfig struct {
-	MinActionPauseTime uint32 `yaml:"min-action-pause-time"`
-	MaxActionPauseTime uint32 `yaml:"max-action-pause-time"`
-	AutoPostBlind      bool   `yaml:"auto-post-blind"`
+	MinActionDelay uint32 `yaml:"min-action-delay"`
+	MaxActionDelay uint32 `yaml:"max-action-delay"`
+	AutoPostBlind  bool   `yaml:"auto-post-blind"`
 }
 
 type SeatChange struct {
@@ -296,10 +296,12 @@ type BettingRound struct {
 }
 
 type SeatAction struct {
-	Action     Action        `yaml:"action"`
-	PreActions []PreAction   `yaml:"pre-action"`
-	Timeout    bool          `yaml:"timeout"`
-	Verify     *VerifyAction `yaml:"verify"`
+	Action             Action        `yaml:"action"`
+	PreActions         []PreAction   `yaml:"pre-action"`
+	Timeout            bool          `yaml:"timeout"`
+	ActionDelay        uint32        `yaml:"action-delay"`
+	ExtendTimeoutBySec uint32        `yaml:"extend-timeout-by-sec"`
+	Verify             *VerifyAction `yaml:"verify"`
 }
 
 type Action struct {

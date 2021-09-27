@@ -42,6 +42,7 @@ const (
 	HandResultMessage    string = "RESULT"
 	HandEnded            string = "END"
 	HandPlayerActed      string = "PLAYER_ACTED"
+	HandExtendTimer      string = "EXTEND_ACTION_TIMER"
 	HandNoMoreActions    string = "NO_MORE_ACTIONS"
 	HandQueryCurrentHand string = "QUERY_CURRENT_HAND"
 	HandNextStep         string = "NEXT_STEP"

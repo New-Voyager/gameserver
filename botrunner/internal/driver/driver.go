@@ -82,33 +82,33 @@ func (br *BotRunner) Terminate() {
 func (br *BotRunner) Run() error {
 	br.logger.Debug().Msgf("Players: %+v, Script: %+v", br.players, br.script)
 
-	minActionPauseTime := br.script.BotConfig.MinActionPauseTime
-	maxActionPauseTime := br.script.BotConfig.MaxActionPauseTime
+	minActionDelay := br.script.BotConfig.MinActionDelay
+	maxActionMillis := br.script.BotConfig.MaxActionDelay
 
 	if !br.botIsGameHost {
 		// unscripted game, set action time for bots
-		minActionPauseTime = 3000
-		maxActionPauseTime = 7000
+		minActionDelay = 3000
+		maxActionMillis = 7000
 	}
 
 	// Create the player bots based on the setup script.
 	for i, playerConfig := range br.players.Players {
 		bot, err := player.NewBotPlayer(player.Config{
-			Name:               playerConfig.Name,
-			DeviceID:           playerConfig.DeviceID,
-			Email:              playerConfig.Email,
-			Password:           playerConfig.Password,
-			Gps:                &playerConfig.Gps,
-			IpAddress:          playerConfig.Ip,
-			IsHost:             (i == 0) && br.botIsGameHost, // First bot is the game host.
-			IsHuman:            br.script.Tester == playerConfig.Name,
-			MinActionPauseTime: minActionPauseTime,
-			MaxActionPauseTime: maxActionPauseTime,
-			APIServerURL:       util.Env.GetAPIServerURL(),
-			NatsURL:            util.Env.GetNatsURL(),
-			GQLTimeoutSec:      10,
-			Script:             br.script,
-			Players:            br.players,
+			Name:           playerConfig.Name,
+			DeviceID:       playerConfig.DeviceID,
+			Email:          playerConfig.Email,
+			Password:       playerConfig.Password,
+			Gps:            &playerConfig.Gps,
+			IpAddress:      playerConfig.Ip,
+			IsHost:         (i == 0) && br.botIsGameHost, // First bot is the game host.
+			IsHuman:        br.script.Tester == playerConfig.Name,
+			MinActionDelay: minActionDelay,
+			MaxActionDelay: maxActionMillis,
+			APIServerURL:   util.Env.GetAPIServerURL(),
+			NatsURL:        util.Env.GetNatsURL(),
+			GQLTimeoutSec:  10,
+			Script:         br.script,
+			Players:        br.players,
 		}, br.playerLogger)
 		if err != nil {
 			return errors.Wrap(err, "Unable to create a new bot")
@@ -120,18 +120,18 @@ func (br *BotRunner) Run() error {
 	// Create the observer bot. The observer will always be there
 	// regardless of what script you run.
 	b, err := player.NewBotPlayer(player.Config{
-		Name:               "observer",
-		DeviceID:           "e31c619f-a955-4f7b-985a-652992e01a7f",
-		Email:              "observer@gmail.com",
-		Password:           "mypassword",
-		IsObserver:         true,
-		MinActionPauseTime: 0,
-		MaxActionPauseTime: 0,
-		APIServerURL:       util.Env.GetAPIServerURL(),
-		NatsURL:            util.Env.GetNatsURL(),
-		GQLTimeoutSec:      10,
-		Script:             br.script,
-		Players:            br.players,
+		Name:           "observer",
+		DeviceID:       "e31c619f-a955-4f7b-985a-652992e01a7f",
+		Email:          "observer@gmail.com",
+		Password:       "mypassword",
+		IsObserver:     true,
+		MinActionDelay: 0,
+		MaxActionDelay: 0,
+		APIServerURL:   util.Env.GetAPIServerURL(),
+		NatsURL:        util.Env.GetNatsURL(),
+		GQLTimeoutSec:  10,
+		Script:         br.script,
+		Players:        br.players,
 	}, br.playerLogger)
 	if err != nil {
 		return errors.Wrap(err, "Unable to create observer bot")
@@ -277,7 +277,6 @@ func (br *BotRunner) Run() error {
 			}
 		}
 	}
-	br.logger.Info().Msgf("Bots joining the new game")
 
 	gameTitle := br.script.Game.Title
 	if br.gameCode == "" {
@@ -463,7 +462,6 @@ func (br *BotRunner) Run() error {
 				time.Sleep(1000 * time.Second)
 				continue
 			}
-			// time.Sleep(util.GetRandomMilliseconds(200, 500))
 			nextBotIdx++
 		}
 

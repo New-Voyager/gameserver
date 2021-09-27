@@ -59,8 +59,8 @@ tester: tom
 auto-play: true
 
 bot-config:
-  min-action-pause-time: 500
-  max-action-pause-time: 1000
+  min-action-delay: 500  # millisec
+  max-action-delay: 1000  # millisec
 
 after-game:
   verify:
@@ -206,8 +206,11 @@ hands:
         - action: 5, CALL, 2
           verify:
             stack: 100
-            pot-updates: 10  
+            pot-updates: 10
         - action: 8, CHECK
+          timeout: true
+          action-delay: 10000  # millisec
+          extend-timeout-by-sec: 10
 
     flop:
       verify:

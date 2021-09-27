@@ -60,6 +60,7 @@ const (
 	HandPlayerActed      string = "PLAYER_ACTED"
 	HandNoMoreActions    string = "NO_MORE_ACTIONS"
 	HandQueryCurrentHand string = "QUERY_CURRENT_HAND"
+	HandExtendTimer      string = "EXTEND_ACTION_TIMER"
 	HandDealStarted      string = "DEAL_STARTED" // used for animations
 	HandNextStep         string = "NEXT_STEP"
 	HandAnnouncement     string = "ANNOUNCEMENT"

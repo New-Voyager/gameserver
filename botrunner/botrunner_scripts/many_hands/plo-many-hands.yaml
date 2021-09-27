@@ -28,8 +28,8 @@ game:
   highhand-tracked: true
 
 bot-config:
-  min-action-pause-time: 1000
-  max-action-pause-time: 2000
+  min-action-delay: 1000
+  max-action-delay: 2000
   auto-post-blind: true
 
 starting-seats:

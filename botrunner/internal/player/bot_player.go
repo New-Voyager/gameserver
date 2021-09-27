@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/looplab/fsm"
 	"github.com/machinebox/graphql"
@@ -34,22 +35,22 @@ import (
 
 // Config holds the configuration for a bot object.
 type Config struct {
-	Name               string
-	DeviceID           string
-	Email              string
-	Password           string
-	IsHuman            bool
-	IsObserver         bool
-	IsHost             bool
-	MinActionPauseTime uint32
-	MaxActionPauseTime uint32
-	APIServerURL       string
-	NatsURL            string
-	GQLTimeoutSec      int
-	Gps                *gamescript.GpsLocation
-	IpAddress          string
-	Players            *gamescript.Players
-	Script             *gamescript.Script
+	Name           string
+	DeviceID       string
+	Email          string
+	Password       string
+	IsHuman        bool
+	IsObserver     bool
+	IsHost         bool
+	MinActionDelay uint32
+	MaxActionDelay uint32
+	APIServerURL   string
+	NatsURL        string
+	GQLTimeoutSec  int
+	Gps            *gamescript.GpsLocation
+	IpAddress      string
+	Players        *gamescript.Players
+	Script         *gamescript.Script
 }
 
 type GameMessageChannelItem struct {
@@ -2378,6 +2379,8 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 	}
 	runItTwiceActionPrompt := false
 	timeout := false
+	var actionDelayOverride uint32
+	var extendActionTimeoutBySec uint32
 	if autoPlay {
 		bp.logger.Debug().Msgf("%s: Seat %d Available actions: %+v", bp.logPrefix, bp.seatNo, seatAction.AvailableActions)
 		canBet := false
@@ -2532,9 +2535,37 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 			nextAction = game.ActionStringToAction(scriptAction.Action.Action)
 			nextAmt = scriptAction.Action.Amount
 			timeout = scriptAction.Timeout
+			actionDelayOverride = scriptAction.ActionDelay
+			extendActionTimeoutBySec = scriptAction.ExtendTimeoutBySec
 			preActions := scriptAction.PreActions
 			bp.processPreActions(preActions)
 		}
+	}
+
+	playerName := bp.getPlayerNameBySeatNo(bp.seatNo)
+	if extendActionTimeoutBySec > 0 {
+		bp.logger.Info().Msgf("%s: Seat %d (%s) requesting to extend action timeout by %d seconds", bp.logPrefix, bp.seatNo, playerName, extendActionTimeoutBySec)
+		extendTimer := game.ExtendTimer{
+			SeatNo:      bp.seatNo,
+			ExtendBySec: extendActionTimeoutBySec,
+		}
+		extendTimerMsg := game.HandMessage{
+			GameCode:   bp.gameCode,
+			HandNum:    bp.game.handNum,
+			PlayerId:   bp.PlayerID,
+			SeatNo:     bp.seatNo,
+			MessageId:  uuid.NewString(),
+			HandStatus: handStatus,
+			Messages: []*game.HandMessageItem{
+				{
+					MessageType: game.HandExtendTimer,
+					Content: &game.HandMessageItem_ExtendTimer{
+						ExtendTimer: &extendTimer,
+					},
+				},
+			},
+		}
+		bp.publishHandMsg(bp.meToHand, &extendTimerMsg)
 	}
 
 	if bp.IsHuman() {
@@ -2542,10 +2573,6 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		bufio.NewReader(os.Stdin).ReadBytes('\n')
 	}
 
-	if !bp.IsHuman() && !util.Env.ShouldDisableDelays() {
-		// Pause to think for some time to be realistic.
-		time.Sleep(bp.getActionTime())
-	}
 	var handAction game.HandAction
 	runItTwiceTimeout := false
 	if runItTwiceActionPrompt {
@@ -2599,7 +2626,6 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		},
 	}
 
-	playerName := bp.getPlayerNameBySeatNo(bp.seatNo)
 	if timeout || runItTwiceTimeout {
 		go func() {
 			if runItTwiceTimeout {
@@ -2612,14 +2638,42 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 			time.Sleep(2 * time.Second)
 		}()
 	} else {
+		if actionDelayOverride > 0 {
+			bp.logger.Info().Msgf("%s: Seat %d (%s) sleeping for %d milliseconds", bp.logPrefix, bp.seatNo, playerName, actionDelayOverride)
+		}
+		time.Sleep(bp.getActionDelay(actionDelayOverride))
 		bp.logger.Debug().Msgf("%s: Seat %d (%s) is about to act [%s %f]. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, handAction.Action, handAction.Amount, bp.game.handStatus)
 		go bp.publishAndWaitForAck(bp.meToHand, &actionMsg)
 	}
 }
 
-func (bp *BotPlayer) getActionTime() time.Duration {
-	randomMilli := util.GetRandomUint32(bp.config.MinActionPauseTime, bp.config.MaxActionPauseTime)
-	return time.Duration(randomMilli) * time.Millisecond
+func (bp *BotPlayer) getActionDelay(override uint32) time.Duration {
+	var actionTimeMillis uint32
+	if override > 0 {
+		actionTimeMillis = override
+	} else {
+		actionTimeMillis = util.GetRandomUint32(bp.config.MinActionDelay, bp.config.MaxActionDelay)
+	}
+	return time.Duration(actionTimeMillis) * time.Millisecond
+}
+
+func (bp *BotPlayer) publishHandMsg(subj string, msg *game.HandMessage) {
+	protoData, err := proto.Marshal(msg)
+	if err != nil {
+		errMsg := fmt.Sprintf("%s: Could not serialize hand message [%+v]. Error: %v", bp.logPrefix, msg, err)
+		bp.logger.Error().Msg(errMsg)
+		bp.errorStateMsg = errMsg
+		bp.sm.SetState(BotState__ERROR)
+		return
+	}
+	err = bp.natsConn.Publish(bp.meToHand, protoData)
+	if err != nil {
+		errMsg := fmt.Sprintf("%s: Could not publish hand message [%+v]. Error: %v", bp.logPrefix, msg, err)
+		bp.logger.Error().Msg(errMsg)
+		bp.errorStateMsg = errMsg
+		bp.sm.SetState(BotState__ERROR)
+		return
+	}
 }
 
 func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
