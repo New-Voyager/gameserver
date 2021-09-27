@@ -85,12 +85,13 @@ func (g *Game) onExtendTimer(playerMsg *HandMessage) error {
 		return fmt.Errorf("Too large value (%d) for extendBySec", extendBySec)
 	}
 	extendBy := time.Duration(extendBySec) * time.Second
-	err := g.extendTimer(seatNo, playerID, extendBy)
+	remainingSec, err := g.extendTimer(seatNo, playerID, extendBy)
 	if err != nil {
 		return err
 	}
 
 	// Broadcast this message back so that other players know this player's time got extended.
+	msgItem.GetExtendTimer().RemainingSec = remainingSec
 	g.broadcastHandMessage(playerMsg)
 	return nil
 }
