@@ -110,7 +110,6 @@ services:
       POSTGRES_USER: 'game'
       POSTGRES_PASSWORD: 'game'
       POSTGRES_CRASH_DB: 'livegames'
-      DISABLE_DELAYS: 0
       ENABLE_ENCRYPTION: 1
       LOG_LEVEL: 'debug'
 

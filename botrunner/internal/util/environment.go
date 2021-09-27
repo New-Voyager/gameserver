@@ -36,7 +36,6 @@ type environment struct {
 	PrintGameMsg         string
 	PrintHandMsg         string
 	PrintStateMsg        string
-	DisableDelays        string
 	EnableEncryption     string
 	LogLevel             string
 }
@@ -59,7 +58,6 @@ var Env = &environment{
 	PrintGameMsg:         "PRINT_GAME_MSG",
 	PrintHandMsg:         "PRINT_HAND_MSG",
 	PrintStateMsg:        "PRINT_STATE_MSG",
-	DisableDelays:        "DISABLE_DELAYS",
 	EnableEncryption:     "ENABLE_ENCRYPTION",
 	LogLevel:             "LOG_LEVEL",
 }
@@ -262,14 +260,6 @@ func (e *environment) GetPrintStateMsg() string {
 	return v
 }
 
-func (e *environment) GetDisableDelays() string {
-	v := os.Getenv(e.DisableDelays)
-	if v == "" {
-		return "false"
-	}
-	return v
-}
-
 func (e *environment) GetEnableEncryption() string {
 	v := os.Getenv(e.EnableEncryption)
 	if v == "" {
@@ -288,10 +278,6 @@ func (e *environment) ShouldPrintHandMsg() bool {
 
 func (e *environment) ShouldPrintStateMsg() bool {
 	return e.GetPrintStateMsg() == "1" || strings.ToLower(e.GetPrintStateMsg()) == "true"
-}
-
-func (e *environment) ShouldDisableDelays() bool {
-	return e.GetDisableDelays() == "1" || strings.ToLower(e.GetDisableDelays()) == "true"
 }
 
 func (e *environment) IsEncryptionEnabled() bool {

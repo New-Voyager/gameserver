@@ -1,4 +1,6 @@
-app-game: Two Pots Game
+# SYSTEM_TEST_TIMEOUT_SEC:180
+
+app-game: Three Pots Game
 
 club:
   name: Manchester Club
@@ -20,7 +22,7 @@ game:
   rake-cap: 5.0
   buy-in-min: 100
   buy-in-max: 400
-  action-time: 100
+  action-time: 10
 
 starting-seats:
   - seat: 1
@@ -36,14 +38,9 @@ starting-seats:
     player: rich
     buy-in: 400
 
-tester: tom
+tester:
 auto-play: false
 
-bot-config:
-  min-action-delay: 500
-  max-action-delay: 1000
-
-# deal the following hands in the table
 hands:
   - setup:
       button-pos: 1
@@ -66,14 +63,18 @@ hands:
         - action: 1, CALL, 2
         - action: 2, CALL, 2
         - action: 3, CHECK
+          timeout: true
 
     flop:
       verify:
         board: ["Ac", "Ad", "2c"]
       seat-actions:
         - action: 2, CHECK
+          timeout: true
         - action: 3, CHECK
+          timeout: true
         - action: 4, CHECK
+          timeout: true
         - action: 1, ALLIN
         - action: 2, CALL, 98
         - action: 3, CALL, 98
@@ -86,6 +87,8 @@ hands:
         - action: 2, ALLIN
         - action: 3, CALL, 100
         - action: 4, CALL, 100
+          action-delay: 15000 # 5 seconds over the game timeout setting
+          extend-timeout-by-sec: 10 # however, we are requesting additional 10 seconds, so we should not timeout-fold here.
 
     river:
       verify:
@@ -94,20 +97,23 @@ hands:
         - action: 3, ALLIN
         - action: 4, ALLIN
 
-    # result:
-    #   winners:
-    #     - seat: 1
-    #       receive: 54.0
-    #       rank: Two Pair
-    #   action-ended: SHOW_DOWN
-
-    #   players:
-    #     - seat: 1
-    #       balance:
-    #         after: 84
-    #     - seat: 5
-    #       balance:
-    #         after: 120
-    #     - seat: 8
-    #       balance:
-    #         after: 96
+    result:
+      winners:
+        - seat: 4
+          receive: 398
+          rank: Two Pair
+          rake-paid: 5
+      action-ended: SHOW_DOWN
+      players:
+        - seat: 1
+          balance:
+            after: 0
+        - seat: 2
+          balance:
+            after: 0
+        - seat: 3
+          balance:
+            after: 0
+        - seat: 4
+          balance:
+            after: 995

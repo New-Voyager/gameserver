@@ -105,22 +105,22 @@ func (a *ActionTimer) loop() {
 		case <-a.chRemainingIn:
 			remaining := a.expirationTime.Sub(time.Now())
 			a.chRemainingOut <- remaining
-		}
+		default:
+			if !paused {
+				remainingSec := a.expirationTime.Sub(time.Now()).Seconds()
+				if remainingSec < 0 {
+					remainingSec = 0
+				}
 
-		if !paused {
-			remainingSec := a.expirationTime.Sub(time.Now()).Seconds()
-			if remainingSec < 0 {
-				remainingSec = 0
+				if remainingSec <= 0 {
+					// The player timed out.
+					a.callback(a.currentTimerMsg)
+					a.expirationTime = time.Time{}
+					paused = true
+				}
 			}
-
-			if remainingSec <= 0 {
-				// The player timed out.
-				a.callback(a.currentTimerMsg)
-				a.expirationTime = time.Time{}
-				paused = true
-			}
+			time.Sleep(100 * time.Millisecond)
 		}
-		time.Sleep(100 * time.Millisecond)
 	}
 }
 

@@ -83,8 +83,8 @@ func TestReadGameScript(t *testing.T) {
 		Tester:   "tom",
 		AutoPlay: true,
 		BotConfig: BotConfig{
-			MinActionPauseTime: 500,
-			MaxActionPauseTime: 1000,
+			MinActionDelay: 500,
+			MaxActionDelay: 1000,
 		},
 		AfterGame: AfterGame{
 			Verify: AfterGameVerification{
@@ -340,6 +340,9 @@ func TestReadGameScript(t *testing.T) {
 								Seat:   8,
 								Action: "CHECK",
 							},
+							Timeout:            true,
+							ActionDelay:        10000,
+							ExtendTimeoutBySec: 10,
 						},
 					},
 				},

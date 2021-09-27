@@ -44,8 +44,8 @@ starting-seats:
 # Here we intentionally make the bots act slow (1 second delay per action)
 # so that each hand takes 12-13 seconds.
 bot-config:
-  min-action-pause-time: 1000
-  max-action-pause-time: 1000
+  min-action-delay: 1000
+  max-action-delay: 1000
 
 after-game:
   verify:
