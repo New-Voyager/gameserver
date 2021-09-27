@@ -1078,6 +1078,7 @@ func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error
 		Pots:       pots,
 		PotUpdates: currentPot,
 		SeatsPots:  handState.Pots,
+		BetAmount:  handState.getMaxBet(),
 	}
 
 	nextActionMsg := &HandMessageItem{
