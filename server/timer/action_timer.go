@@ -26,11 +26,18 @@ type TimerExtendMsg struct {
 	ExtendBy time.Duration
 }
 
+type TimerResetTimeMsg struct {
+	SeatNo        uint32
+	PlayerID      uint64
+	RemainingTime time.Duration
+}
+
 type ActionTimer struct {
 	gameCode string
 
 	chReset        chan TimerMsg
 	chExtend       chan TimerExtendMsg
+	chResetTime    chan TimerResetTimeMsg
 	chPause        chan bool
 	chRemainingIn  chan bool
 	chRemainingOut chan time.Duration
@@ -48,6 +55,7 @@ func NewActionTimer(gameCode string, callback func(TimerMsg), crashHandler func(
 	at := ActionTimer{
 		gameCode:       gameCode,
 		chReset:        make(chan TimerMsg),
+		chResetTime:    make(chan TimerResetTimeMsg),
 		chExtend:       make(chan TimerExtendMsg),
 		chPause:        make(chan bool),
 		chRemainingIn:  make(chan bool),
@@ -95,6 +103,12 @@ func (a *ActionTimer) loop() {
 			a.currentTimerMsg = msg
 			a.expirationTime = msg.ExpireAt
 			paused = false
+		case msg := <-a.chResetTime:
+			if msg.PlayerID != a.currentTimerMsg.PlayerID {
+				actionTimerLogger.Info().Str("game", a.gameCode).Msgf("Player ID (%d) does not match the existing timer (%d). Ignoring the request to reset the action timer.", msg.PlayerID, a.currentTimerMsg.PlayerID)
+				break
+			}
+			a.expirationTime = time.Now().Add(msg.RemainingTime)
 		case msg := <-a.chExtend:
 			// Extend the existing timer.
 			if msg.PlayerID != a.currentTimerMsg.PlayerID {
@@ -128,7 +142,7 @@ func (a *ActionTimer) Pause() {
 	a.chPause <- true
 }
 
-func (a *ActionTimer) Reset(t TimerMsg) error {
+func (a *ActionTimer) NewAction(t TimerMsg) error {
 	var errMsgs []string
 	if t.SeatNo == 0 {
 		errMsgs = append(errMsgs, "invalid seatNo")
@@ -159,6 +173,21 @@ func (a *ActionTimer) Extend(t TimerExtendMsg) (uint32, error) {
 		return 0, fmt.Errorf(strings.Join(errMsgs, "; "))
 	}
 	a.chExtend <- t
+	return a.GetRemainingSec(), nil
+}
+
+func (a *ActionTimer) ResetTime(t TimerResetTimeMsg) (uint32, error) {
+	var errMsgs []string
+	if t.SeatNo == 0 {
+		errMsgs = append(errMsgs, "invalid seatNo")
+	}
+	if t.PlayerID == 0 {
+		errMsgs = append(errMsgs, "invalid playerID")
+	}
+	if len(errMsgs) > 0 {
+		return 0, fmt.Errorf(strings.Join(errMsgs, "; "))
+	}
+	a.chResetTime <- t
 	return a.GetRemainingSec(), nil
 }
 

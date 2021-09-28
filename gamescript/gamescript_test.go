@@ -343,6 +343,7 @@ func TestReadGameScript(t *testing.T) {
 							Timeout:            true,
 							ActionDelay:        10000,
 							ExtendTimeoutBySec: 10,
+							ResetTimerToSec:    20,
 						},
 					},
 				},
