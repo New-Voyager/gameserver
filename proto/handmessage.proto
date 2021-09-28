@@ -73,6 +73,7 @@ message ActionChange {
   repeated float pots = 2; // pots in the center
   float pot_updates = 3;   // pot updated based on the bets
   repeated SeatsInPots seats_pots = 4; // seats that participate in the pots
+  float bet_amount = 5;  // bet amount in this betting round (used for check/fold)
 }
 
 message Flop {

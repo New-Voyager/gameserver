@@ -1092,6 +1092,23 @@ func (h *HandState) allActionComplete() bool {
 	return false
 }
 
+func (h *HandState) getMaxBet() float32 {
+	// before we go to next stage, settle pots
+	bettingState := h.RoundState[uint32(h.CurrentState)]
+	currentBettingRound := bettingState.Betting
+	maxBet := float32(0)
+	for seatNo, bet := range currentBettingRound.SeatBet {
+		if currentBettingRound.SeatBet[seatNo] == 0.0 {
+			// empty seat
+			continue
+		}
+		if maxBet < bet {
+			maxBet = bet
+		}
+	}
+	return maxBet
+}
+
 func (h *HandState) settleRound() {
 	// before we go to next stage, settle pots
 	bettingState := h.RoundState[uint32(h.CurrentState)]
@@ -1285,6 +1302,10 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 			}
 		}
 	}
+
+	// the current raise amount in the betting round
+	// this is used for calculating 2x, 3, 5x
+	nextAction.RaiseAmount = h.CurrentRaiseDiff
 
 	nextAction.SeatInSoFar = bettingRound.SeatBet[actionSeat]
 	betOptions := make([]*BetRaiseOption, 0)
