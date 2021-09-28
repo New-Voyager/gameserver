@@ -301,6 +301,7 @@ type SeatAction struct {
 	Timeout            bool          `yaml:"timeout"`
 	ActionDelay        uint32        `yaml:"action-delay"`
 	ExtendTimeoutBySec uint32        `yaml:"extend-timeout-by-sec"`
+	ResetTimerToSec    uint32        `yaml:"reset-timer-to-sec"`
 	Verify             *VerifyAction `yaml:"verify"`
 }
 

@@ -11,8 +11,6 @@ import (
 	"voyager.com/server/util"
 )
 
-const pauseTime = uint32(3000)
-
 func (g *Game) handleHandMessage(message *HandMessage) {
 	err := g.validateClientMsg(message)
 	if err != nil {
@@ -52,6 +50,11 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 		if err != nil {
 			channelGameLogger.Error().Msgf("Error while processing %s message. Error: %s", HandExtendTimer, err.Error())
 		}
+	case HandResetTimer:
+		err := g.onResetCurrentTimer(message)
+		if err != nil {
+			channelGameLogger.Error().Msgf("Error while processing %s message. Error: %s", HandResetTimer, err.Error())
+		}
 	}
 }
 
@@ -76,11 +79,12 @@ func (g *Game) onExtendTimer(playerMsg *HandMessage) error {
 		return fmt.Errorf("Player ID is 0")
 	}
 	msgItem := g.getClientMsgItem(playerMsg)
-	seatNo := msgItem.GetExtendTimer().GetSeatNo()
+	extendTimer := msgItem.GetExtendTimer()
+	seatNo := extendTimer.GetSeatNo()
 	if seatNo == 0 {
 		return fmt.Errorf("Seat Number is 0")
 	}
-	extendBySec := msgItem.GetExtendTimer().GetExtendBySec()
+	extendBySec := extendTimer.GetExtendBySec()
 	if extendBySec > 999 {
 		return fmt.Errorf("Too large value (%d) for extendBySec", extendBySec)
 	}
@@ -91,8 +95,28 @@ func (g *Game) onExtendTimer(playerMsg *HandMessage) error {
 	}
 
 	// Broadcast this message back so that other players know this player's time got extended.
-	msgItem.GetExtendTimer().RemainingSec = remainingSec
+	extendTimer.RemainingSec = remainingSec
 	g.broadcastHandMessage(playerMsg)
+	return nil
+}
+
+func (g *Game) onResetCurrentTimer(playerMsg *HandMessage) error {
+	playerID := playerMsg.GetPlayerId()
+	if playerID == 0 {
+		return fmt.Errorf("Player ID is 0")
+	}
+	msgItem := g.getClientMsgItem(playerMsg)
+	resetTimer := msgItem.GetResetTimer()
+	seatNo := resetTimer.GetSeatNo()
+	if seatNo == 0 {
+		return fmt.Errorf("Seat Number is 0")
+	}
+	newRemainingSec := resetTimer.GetRemainingSec()
+	newRemainingTime := time.Duration(newRemainingSec) * time.Second
+	err := g.resetTime(seatNo, playerID, newRemainingTime)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

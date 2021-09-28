@@ -294,5 +294,6 @@ message HandMessageItem {
     DealerChoice dealer_choice = 28;
     HandResultClient hand_result_client = 29;
     ExtendTimer extend_timer = 30;  // to extend action timer for the current action player
+    ResetTimer reset_timer = 31;  // to reset action timer for the current action player
   }
 }

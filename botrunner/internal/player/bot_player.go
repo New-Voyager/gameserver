@@ -2381,6 +2381,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 	timeout := false
 	var actionDelayOverride uint32
 	var extendActionTimeoutBySec uint32
+	var resetActionTimerToSec uint32
 	if autoPlay {
 		bp.logger.Debug().Msgf("%s: Seat %d Available actions: %+v", bp.logPrefix, bp.seatNo, seatAction.AvailableActions)
 		canBet := false
@@ -2537,12 +2538,37 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 			timeout = scriptAction.Timeout
 			actionDelayOverride = scriptAction.ActionDelay
 			extendActionTimeoutBySec = scriptAction.ExtendTimeoutBySec
+			resetActionTimerToSec = scriptAction.ResetTimerToSec
 			preActions := scriptAction.PreActions
 			bp.processPreActions(preActions)
 		}
 	}
 
 	playerName := bp.getPlayerNameBySeatNo(bp.seatNo)
+	if resetActionTimerToSec > 0 {
+		bp.logger.Info().Msgf("%s: Seat %d (%s) requesting to restart action timer at %d seconds", bp.logPrefix, bp.seatNo, playerName, resetActionTimerToSec)
+		resetTimer := game.ResetTimer{
+			SeatNo:       bp.seatNo,
+			RemainingSec: resetActionTimerToSec,
+		}
+		resetTimerMsg := game.HandMessage{
+			GameCode:   bp.gameCode,
+			HandNum:    bp.game.handNum,
+			PlayerId:   bp.PlayerID,
+			SeatNo:     bp.seatNo,
+			MessageId:  uuid.NewString(),
+			HandStatus: handStatus,
+			Messages: []*game.HandMessageItem{
+				{
+					MessageType: game.HandResetTimer,
+					Content: &game.HandMessageItem_ResetTimer{
+						ResetTimer: &resetTimer,
+					},
+				},
+			},
+		}
+		bp.publishHandMsg(bp.meToHand, &resetTimerMsg)
+	}
 	if extendActionTimeoutBySec > 0 {
 		bp.logger.Info().Msgf("%s: Seat %d (%s) requesting to extend action timeout by %d seconds", bp.logPrefix, bp.seatNo, playerName, extendActionTimeoutBySec)
 		extendTimer := game.ExtendTimer{

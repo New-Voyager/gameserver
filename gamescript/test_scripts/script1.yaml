@@ -211,6 +211,7 @@ hands:
           timeout: true
           action-delay: 10000  # millisec
           extend-timeout-by-sec: 10
+          reset-timer-to-sec: 20
 
     flop:
       verify:
