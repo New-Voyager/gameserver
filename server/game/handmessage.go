@@ -1280,8 +1280,8 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 
 	// don't pause too long if we didn't go to showdown
 	if handResult2Client.WonAt != HandStatus_SHOW_DOWN {
-		hs.TotalResultPauseTime = 2000
-		handResult2Client.PauseTimeSecs = 2000
+		hs.TotalResultPauseTime = 5000
+		handResult2Client.PauseTimeSecs = 5000
 	} else {
 		handResult2Client.PauseTimeSecs = hs.ResultPauseTime
 	}
