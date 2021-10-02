@@ -23,6 +23,9 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 
 	case GameDealHand:
 		err = g.onDealHand(message)
+		if err != nil {
+			g.isHandInProgress = false
+		}
 
 	case GameMoveToNextHand:
 		err = g.onMoveToNextHand(message)
