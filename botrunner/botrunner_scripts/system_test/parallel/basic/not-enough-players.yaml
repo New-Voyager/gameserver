@@ -44,9 +44,6 @@ hands:
       leave-game:
         - seat: 5
 
-    when-not-enough-players:
-      request-end-game: true
-
     # simulate pre-flop action
     preflop:
       seat-actions:
@@ -105,6 +102,9 @@ hands:
         - seat: 5
           balance:
             after: 98
+
+    when-not-enough-players:
+      request-end-game: true
 
   # This hand should not be played due to not enough players.
   # We're verifying that in the after-game section.
