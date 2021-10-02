@@ -1,3 +1,5 @@
+# SYSTEM_TEST_TIMEOUT_SEC:180
+
 # dealer's choice game
 # each player chooses a game, verify the game is run in the next hand
 
