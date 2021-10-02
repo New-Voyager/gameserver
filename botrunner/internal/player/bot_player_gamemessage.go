@@ -151,6 +151,14 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 			newUpdate := message.NewUpdate
 			if newUpdate == "WAIT_FOR_BUYIN" {
 				bp.logger.Info().Msgf("Bot [%s] ran out of stack. Player status: %s", message.PlayerName, newUpdate)
+				err := bp.autoReloadBalance()
+				if err != nil {
+					errMsg := fmt.Sprintf("%s: Could not reload chips when status is WAIT_FOR_BUYIN. Current hand num: %d. Error: %v", bp.logPrefix, bp.game.handNum, err)
+					bp.logger.Error().Msg(errMsg)
+					bp.errorStateMsg = errMsg
+					bp.sm.SetState(BotState__ERROR)
+					return
+				}
 			}
 			if playerStatus == game.PlayerStatus_PLAYING &&
 				message.Stack > 0.0 {

@@ -53,16 +53,15 @@ type Game struct {
 
 	handSetupPersist *RedisHandsSetupTracker
 
-	inProcessPendingUpdates bool
-	isHandInProgress        bool
-	testGameConfig          *TestGameConfig
-	delays                  Delays
-	lock                    sync.Mutex
-	PlayersInSeats          []SeatPlayer
-	Status                  GameStatus
-	TableStatus             TableStatus
-	maxRetries              uint32
-	retryDelayMillis        uint32
+	isHandInProgress bool
+	testGameConfig   *TestGameConfig
+	delays           Delays
+	lock             sync.Mutex
+	PlayersInSeats   []SeatPlayer
+	Status           GameStatus
+	TableStatus      TableStatus
+	maxRetries       uint32
+	retryDelayMillis uint32
 
 	// used for storing player configuration of runItTwicePrompt, muckLosingHand
 	//playerConfig atomic.Value
@@ -362,8 +361,6 @@ func (g *Game) dealNewHand() error {
 	var gameType GameType
 	var newHandInfo *NewHandInfo
 	var err error
-
-	g.isHandInProgress = true
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_1, 0)
 
