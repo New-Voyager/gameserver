@@ -1048,7 +1048,7 @@ func anyPendingUpdates(apiServerUrl string, gameID uint64, retryDelay uint32) (b
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
-			channelGameLogger.Fatal().Uint64("game", gameID).Msgf("Failed to get pending status. Error: %d", resp.StatusCode)
+			channelGameLogger.Error().Uint64("game", gameID).Msgf("Failed to get pending status. Error: %d", resp.StatusCode)
 			return false, fmt.Errorf("Failed to get pending status")
 		}
 
