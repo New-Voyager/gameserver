@@ -364,8 +364,6 @@ func (g *Game) dealNewHand() error {
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_1, 0)
 
-	playersInSeats := make(map[uint32]*PlayerInSeatState)
-
 	v, err := g.handSetupPersist.Load(g.gameCode)
 	if err == nil {
 		testHandSetup = v
@@ -452,29 +450,6 @@ func (g *Game) dealNewHand() error {
 			if playerInSeat.SeatNo <= uint32(newHandInfo.MaxPlayers) {
 				g.PlayersInSeats[playerInSeat.SeatNo] = playerInSeat
 			}
-			if playerInSeat.PlayerID != 0 {
-				playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
-					SeatNo:            playerInSeat.SeatNo,
-					Status:            playerInSeat.Status,
-					Stack:             playerInSeat.Stack,
-					PlayerId:          playerInSeat.PlayerID,
-					Name:              playerInSeat.Name,
-					BuyInExpTime:      playerInSeat.BuyInTimeExpAt,
-					BreakExpTime:      playerInSeat.BreakTimeExpAt,
-					Inhand:            playerInSeat.Inhand,
-					RunItTwice:        playerInSeat.RunItTwice,
-					MissedBlind:       playerInSeat.MissedBlind,
-					ButtonStraddle:    playerInSeat.ButtonStraddle,
-					MuckLosingHand:    playerInSeat.MuckLosingHand,
-					AutoStraddle:      playerInSeat.AutoStraddle,
-					ButtonStraddleBet: playerInSeat.ButtontStraddleBet,
-				}
-			} else {
-				playersInSeats[playerInSeat.SeatNo] = &PlayerInSeatState{
-					OpenSeat: true,
-					Inhand:   false,
-				}
-			}
 		}
 	} else {
 		// We're in a script test (no api server).
@@ -517,6 +492,11 @@ func (g *Game) dealNewHand() error {
 	if err != nil {
 		return errors.Wrapf(err, "Error while initializing hand state")
 	}
+	if handState.GetNoActiveSeats() < 2 {
+		// Shouldn't get here. Just being defensive.
+		return fmt.Errorf("Not dealing hand due to not enough active seats (%d)", handState.GetNoActiveSeats())
+	}
+
 	if testHandSetup != nil {
 		resultPauseTime = testHandSetup.ResultPauseTime
 	}
