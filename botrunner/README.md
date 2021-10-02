@@ -36,9 +36,9 @@ botrunner git:(master) make run
 
 You can override the api server and nats host, I.e., for Kubernetes.
 ```
-DEV_API_SERVER_URL=http://35.188.237.125:9501 \
-    DEV_API_SERVER_INTERNAL_URL=http://35.188.237.125:9502 \
-    DEV_NATS_URL=nats://35.188.237.125:4222 \
+DEV_API_SERVER_URL=https://api.pokerapp.club \
+    DEV_NATS_URL=nats://nats-0.pokerapp.club:4222,nats://nats-1.pokerapp.club:4222,nats://nats-2.pokerapp.club:4222 \
+    BOTRUNNER_SCRIPT=botrunner_scripts/load_test/holdem-load-test.yaml \
     make run
 ```
 
