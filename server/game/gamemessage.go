@@ -111,8 +111,6 @@ func (g *Game) onResume(message *GameMessage) error {
 	case FlowState_MOVE_TO_NEXT_HAND:
 		err = g.moveToNextHand(handState)
 	case FlowState_WAIT_FOR_PENDING_UPDATE:
-		// TODO: Do we need this boolean?
-		g.inProcessPendingUpdates = false
 		e := g.moveAPIServerToNextHandAndScheduleDealHand(handState)
 		if e != nil {
 			ugse, ok := e.(*UnexpectedGameStatusError)
@@ -162,7 +160,7 @@ func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCod
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		channelGameLogger.Fatal().Uint64("game", gameID).Msgf("Failed to process pending updates. Error: %d", resp.StatusCode)
+		channelGameLogger.Panic().Uint64("game", gameID).Msgf("Failed to process pending updates. Error: %d", resp.StatusCode)
 	}
 }
 
@@ -209,36 +207,39 @@ func (g *Game) moveToNextHand(handState *HandState) error {
 		return nil
 	}
 
-	if g.inProcessPendingUpdates {
-		return nil
-	}
-
 	// before we move to next hand, query API server whether we have any pending updates
 	// if there are no pending updates, deal next hand
 
 	// check any pending updates
 	pendingUpdates, _ := anyPendingUpdates(g.apiServerURL, g.gameID, g.delays.PendingUpdatesRetry)
-	g.isHandInProgress = false
 	if pendingUpdates {
-		g.inProcessPendingUpdates = true
+		g.isHandInProgress = false
 		go g.processPendingUpdates(g.apiServerURL, g.gameID, g.gameCode)
 		handState.FlowState = FlowState_WAIT_FOR_PENDING_UPDATE
 		g.saveHandState(handState)
+		// We pause the game here and wait for the api server.
+		// We'll get a rest call (resume) from the api server once it completes
+		// the pending update.
 	} else {
+		// No pending updates. Move straight on to the next hand.
 		err := g.moveAPIServerToNextHandAndScheduleDealHand(handState)
-		if err != nil {
-			ugse, ok := err.(*UnexpectedGameStatusError)
-			if ok {
-				// API server has a bug where it sometimes calls resumeGame when the game
-				// isn't ready. This is a guard against that. In this case we do nothing and
-				// wait for another resumeGame from the api server when the game is actually ready.
-				channelGameLogger.Warn().
-					Str("game", g.gameCode).
-					Msgf("Unable to start game due to invalid game/table status. Doing nothing. Msg: %s", ugse.Error())
-				g.isHandInProgress = false
-				return nil
-			}
+		if err == nil {
+			return nil
 		}
+
+		// Some error happened and we can't continue to the next hand.
+		g.isHandInProgress = false
+		ugse, ok := err.(*UnexpectedGameStatusError)
+		if ok {
+			// API server has a bug where it sometimes calls resumeGame when the game
+			// isn't ready. This is a guard against that. In this case we do nothing and
+			// wait for another resumeGame from the api server when the game is actually ready.
+			channelGameLogger.Warn().
+				Str("game", g.gameCode).
+				Msgf("Unable to continue to the next hand due to invalid game/table status received from api server. Doing nothing. Msg: %s", ugse.Error())
+			return nil
+		}
+		return err
 	}
 
 	return nil
@@ -254,6 +255,10 @@ func (g *Game) moveAPIServerToNextHandAndScheduleDealHand(handState *HandState) 
 	resp, err := g.moveAPIServerToNextHand(currentHandNum)
 	if err != nil {
 		return errors.Wrap(err, "Could not move api server to next hand")
+	}
+
+	if resp.HandNum == 0 {
+		return fmt.Errorf("Received next hand number = 0 from api server")
 	}
 
 	if resp.GameStatus != GameStatus_ACTIVE || resp.TableStatus != TableStatus_GAME_RUNNING {

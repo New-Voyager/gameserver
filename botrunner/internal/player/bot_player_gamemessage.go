@@ -151,6 +151,24 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 			newUpdate := message.NewUpdate
 			if newUpdate == "WAIT_FOR_BUYIN" {
 				bp.logger.Info().Msgf("Bot [%s] ran out of stack. Player status: %s", message.PlayerName, newUpdate)
+				if bp.game.tableStatus == game.TableStatus_NOT_ENOUGH_PLAYERS {
+					// The hand can't continue unless someone buys in now.
+					err := bp.autoReloadBalance()
+					if err != nil {
+						errMsg := fmt.Sprintf("%s: Could not reload chips when status is WAIT_FOR_BUYIN. Current hand num: %d. Error: %v", bp.logPrefix, bp.game.handNum, err)
+						bp.logger.Error().Msg(errMsg)
+						bp.errorStateMsg = errMsg
+						bp.sm.SetState(BotState__ERROR)
+						return
+					}
+				} else {
+					// Don't need to buy in now.
+					// If we buy in now, we sometimes get into the very next hand
+					// without skipping a hand. This behavior makes the testing hard
+					// since it all depends on the timing.
+					// Just wait for the next hand to start and then buy in, so that
+					// we always skip one hand.
+				}
 			}
 			if playerStatus == game.PlayerStatus_PLAYING &&
 				message.Stack > 0.0 {

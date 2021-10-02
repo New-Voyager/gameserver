@@ -263,15 +263,11 @@ func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 	// fmt.Printf("%s\n", string(data))
 
 	if message.GameCode != n.gameCode {
-		// TODO: send to the other games
-	} else if message.GameCode == n.gameCode {
-		// fmt.Printf("%s\n", string(data))
-		// if message.MessageType == game.GameCurrentStatus {
-		// 	// update table status
-		// 	UpdateTableStatus(message.GameId, message.GetStatus().GetTableStatus(), n.maxRetries, n.retryDelayMillis)
-		// }
-		n.natsConn.Publish(n.game2AllPlayersSubject, data)
+		natsGameLogger.Warn().Uint64("game", n.gameID).Msgf("BroadcastGameMessage called with message that contains wrong game code. Message game code: %s, NatsGame.gameCode: %s", message.GameCode, n.gameCode)
+		return
 	}
+
+	n.natsConn.Publish(n.game2AllPlayersSubject, data)
 }
 
 func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {

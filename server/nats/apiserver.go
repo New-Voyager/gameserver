@@ -125,7 +125,7 @@ func UpdateTableStatus(gameID uint64, status game.TableStatus, maxRetries uint32
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		logger.Fatal().Uint64("game", gameID).Msgf("Failed to update table status. Error: %d", resp.StatusCode)
+		logger.Error().Uint64("game", gameID).Msgf("Failed to update table status. Error: %d", resp.StatusCode)
 	}
 	return err
 }
