@@ -256,6 +256,10 @@ func (g *Game) moveAPIServerToNextHandAndScheduleDealHand(handState *HandState) 
 		return errors.Wrap(err, "Could not move api server to next hand")
 	}
 
+	if resp.HandNum == 0 {
+		return fmt.Errorf("Received next hand number = 0 from api server")
+	}
+
 	if resp.GameStatus != GameStatus_ACTIVE || resp.TableStatus != TableStatus_GAME_RUNNING {
 		return &UnexpectedGameStatusError{
 			GameStatus:  resp.GameStatus,
