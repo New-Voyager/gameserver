@@ -413,6 +413,9 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 	h.CurrentRaise = 0
 	// initialize all-in players list
 	h.AllInPlayers = make([]uint32, h.MaxSeats+1) // seat 0 is dealer
+	for idx := range h.AllInPlayers {
+		h.AllInPlayers[idx] = 0
+	}
 
 	// add antes here
 	h.PreflopActions.PotStart = 0
@@ -546,21 +549,21 @@ func (h *HandState) resetPlayerActions() {
 	}
 }
 
-func (h *HandState) acted(seatChangedAction uint32, action ACTION, amount float32) {
+func (h *HandState) acted(seatNo uint32, action ACTION, amount float32) {
 	bettingState := h.RoundState[uint32(h.CurrentState)]
-	h.PlayersActed[seatChangedAction].Action = action
-	h.PlayersActed[seatChangedAction].ActedBetIndex = bettingState.BetIndex
+	h.PlayersActed[seatNo].Action = action
+	h.PlayersActed[seatNo].ActedBetIndex = bettingState.BetIndex
 	if action == ACTION_FOLD {
-		h.ActiveSeats[seatChangedAction] = 0
+		h.ActiveSeats[seatNo] = 0
 		h.NoActiveSeats--
 	} else {
-		h.PlayersActed[seatChangedAction].Amount = amount
+		h.PlayersActed[seatNo].Amount = amount
 		if amount > h.CurrentRaise {
-			h.PlayersActed[seatChangedAction].RaiseAmount = amount - h.CurrentRaise
+			h.PlayersActed[seatNo].RaiseAmount = amount - h.CurrentRaise
 		} else {
-			h.PlayersActed[seatChangedAction].RaiseAmount = h.CurrentRaiseDiff
+			h.PlayersActed[seatNo].RaiseAmount = h.CurrentRaiseDiff
 		}
-		playerID := h.ActiveSeats[int(seatChangedAction)]
+		playerID := h.ActiveSeats[int(seatNo)]
 		if playerID == 0 {
 			return
 		}
@@ -598,6 +601,7 @@ func (h *HandState) acted(seatChangedAction uint32, action ACTION, amount float3
 		}
 
 		if action == ACTION_ALLIN {
+			h.AllInPlayers[seatNo] = 1
 			h.PlayerStats[playerID].Allin = true
 		}
 	}
@@ -934,7 +938,6 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 			// the player is all in
 			action.Action = ACTION_ALLIN
 			h.acted(action.SeatNo, ACTION_ALLIN, action.Amount)
-			h.AllInPlayers[action.SeatNo] = 1
 			diff = playerBalance
 		} else {
 			// if this player has an equity in this pot, just call subtract the amount
@@ -944,7 +947,6 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		playerBetSoFar += diff
 		bettingRound.SeatBet[action.SeatNo] = playerBetSoFar
 	} else if action.Action == ACTION_ALLIN {
-		h.AllInPlayers[action.SeatNo] = 1
 		amount := playerBalance + playerBetSoFar
 		bettingRound.SeatBet[action.SeatNo] = amount
 		diff = playerBalance
@@ -985,7 +987,6 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 			// player is all in
 			action.Action = ACTION_ALLIN
 			h.acted(action.SeatNo, ACTION_ALLIN, action.Amount)
-			h.AllInPlayers[action.SeatNo] = 1
 		}
 		bettingRound.SeatBet[action.SeatNo] = action.Amount
 	} else if action.Action == ACTION_SB ||
@@ -1462,13 +1463,24 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 	}
 
 	if canRaise {
-		if nextAction.MinRaiseAmount >= allIn {
-			allInAvailable = true
-			nextAction.MinRaiseAmount = 0
-			nextAction.MaxRaiseAmount = 0
-		} else {
-			availableActions = append(availableActions, ACTION_RAISE)
-			nextAction.BetOptions = betOptions
+
+		// this player can raise
+		// let us see how many active players on this hand other this player
+		if h.activeSeatsCount()-1 == h.allinCount() {
+			// all the remaining players all-in
+			// this player can just call the last player's all-in bet
+			canRaise = false
+			allInAvailable = false
+		}
+		if canRaise {
+			if nextAction.MinRaiseAmount >= allIn {
+				allInAvailable = true
+				nextAction.MinRaiseAmount = 0
+				nextAction.MaxRaiseAmount = 0
+			} else {
+				availableActions = append(availableActions, ACTION_RAISE)
+				nextAction.BetOptions = betOptions
+			}
 		}
 	}
 
