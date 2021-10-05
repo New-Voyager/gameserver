@@ -146,6 +146,7 @@ message HighHandWinner {
   repeated uint32 hh_cards = 4;
   repeated uint32 player_cards = 5;
   uint32 seat_no = 6;
+  uint32 board_no = 7;
 }
 
 message HighHand {

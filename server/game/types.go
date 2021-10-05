@@ -362,4 +362,6 @@ type NewHandInfo struct {
 	BombPotBet        float32
 	BringIn           float32
 	RunItTwiceTimeout uint32
+	HighHandRank      uint32
+	HighHandTracked   bool
 }

@@ -219,6 +219,8 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 		h.PlayersActed = make([]*PlayerActRound, h.MaxSeats+1)
 		h.BringIn = float32(newHandInfo.BringIn)
 		h.RunItTwiceTimeout = newHandInfo.RunItTwiceTimeout
+		h.HighHandTracked = newHandInfo.HighHandTracked
+		h.HighHandRank = newHandInfo.HighHandRank
 	}
 	h.BurnCards = false
 	h.CurrentActionNum = 0

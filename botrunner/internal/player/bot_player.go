@@ -1341,6 +1341,23 @@ func (bp *BotPlayer) verifyResult2() {
 		}
 	}
 
+	if len(scriptResult.HighHands) > 0 {
+		if len(scriptResult.HighHands) != len(actualResult.HighHandWinners) {
+			bp.logger.Error().Msgf("%s: Hand %d result verify failed. High hand winners expected: %d actual: %d", bp.logPrefix, bp.game.handNum, len(scriptResult.HighHands), len(actualResult.HighHandWinners))
+			passed = false
+		} else {
+			for idx, expectedHHWinner := range scriptResult.HighHands {
+				actualHHWinner := actualResult.HighHandWinners[idx]
+				if expectedHHWinner.PlayerName != actualHHWinner.PlayerName ||
+					!cmp.Equal(expectedHHWinner.HhCards, actualHHWinner.HhCards) ||
+					!cmp.Equal(expectedHHWinner.PlayerCards, actualHHWinner.PlayerCards) {
+					bp.logger.Error().Msgf("%s: Hand %d result verify failed. High hand winners expected: %+v actual: %+v", bp.logPrefix, bp.game.handNum, expectedHHWinner, actualHHWinner)
+					passed = false
+				}
+			}
+		}
+	}
+
 	if !passed {
 		panic(fmt.Sprintf("Hand %d result verify failed. Please check the logs.", bp.game.handNum))
 	}
@@ -2678,6 +2695,7 @@ func (bp *BotPlayer) getActionDelay(override uint32) time.Duration {
 	if override > 0 {
 		actionTimeMillis = override
 	} else {
+		//actionTimeMillis = 1000
 		actionTimeMillis = util.GetRandomUint32(bp.config.MinActionDelay, bp.config.MaxActionDelay)
 	}
 	return time.Duration(actionTimeMillis) * time.Millisecond

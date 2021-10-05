@@ -207,6 +207,7 @@ message HandResultClient {
   map<uint64, TimeoutStats> timeout_stats = 10;
   uint32 hand_num = 11;
   float tips_collected = 12;
+  repeated HighHandWinner high_hand_winners = 13;
 }
 
 message HandLogV2 {
