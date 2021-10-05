@@ -136,7 +136,7 @@ func runWithNats(gameManager *game.Manager) {
 	go rest.RunRestServer(natsGameManager, setupExit)
 
 	// restart games
-	time.Sleep(1 * time.Second)
+	time.Sleep(3 * time.Second)
 	mainLogger.Info().Msg("Requesting to restart the active games.")
 	err = nats.RequestRestartGames(apiServerURL)
 	if err != nil {
