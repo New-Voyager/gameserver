@@ -494,7 +494,7 @@ func (g *Game) dealNewHand() error {
 	}
 	if handState.GetNoActiveSeats() < 2 {
 		// Shouldn't get here. Just being defensive.
-		return fmt.Errorf("Not dealing hand due to not enough active seats (%d)", handState.GetNoActiveSeats())
+		return fmt.Errorf("Not dealing hand due to not enough active seats (%d). Players In Seats: %+v", handState.GetNoActiveSeats(), handState.GetPlayersInSeats())
 	}
 
 	if testHandSetup != nil {
