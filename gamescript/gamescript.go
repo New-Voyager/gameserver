@@ -434,13 +434,14 @@ type Pot struct {
 }
 
 type HandResult struct {
-	Winners       []HandWinner   `yaml:"winners"`
-	LoWinners     []HandWinner   `yaml:"lo-winners"`
-	ActionEndedAt string         `yaml:"action-ended"`
-	Players       []ResultPlayer `yaml:"players"`
-	TimeoutStats  []TimeoutStats `yaml:"timeout-stats"`
-	RunItTwice    *bool          `yaml:"run-it-twice"`
-	Boards        []BoardWinner  `yaml:"boards"`
+	Winners       []HandWinner     `yaml:"winners"`
+	LoWinners     []HandWinner     `yaml:"lo-winners"`
+	ActionEndedAt string           `yaml:"action-ended"`
+	Players       []ResultPlayer   `yaml:"players"`
+	TimeoutStats  []TimeoutStats   `yaml:"timeout-stats"`
+	RunItTwice    *bool            `yaml:"run-it-twice"`
+	Boards        []BoardWinner    `yaml:"boards"`
+	HighHands     []HighHandWinner `yaml:"high-hands"`
 }
 
 type HandWinner struct {

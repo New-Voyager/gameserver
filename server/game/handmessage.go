@@ -11,6 +11,8 @@ import (
 	"voyager.com/server/util"
 )
 
+const MIN_FULLHOUSE_RANK = 322
+
 func (g *Game) handleHandMessage(message *HandMessage) {
 	err := g.validateClientMsg(message)
 	if err != nil {
@@ -1005,7 +1007,53 @@ func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([
 			}
 		}
 	}
+	var highHandWinners []*HighHandWinner
+
+	// determine high hand winners
+	if hs.HighHandTracked {
+		highHandWinners = make([]*HighHandWinner, 0)
+		// walk through each player's rank
+		highRankFound := false
+		highRank := uint32(0)
+		for _, board := range handResultClient.Boards {
+			for _, playerRank := range board.PlayerRank {
+				if playerRank.HiRank > MIN_FULLHOUSE_RANK {
+					continue
+				}
+				if hs.HighHandRank == 0 {
+					highRankFound = true
+					highRank = playerRank.HiRank
+				}
+				if playerRank.HiRank <= hs.HighHandRank {
+					highRankFound = true
+					highRank = playerRank.HiRank
+				}
+			}
+		}
+
+		if highRankFound {
+			for _, board := range handResultClient.Boards {
+				for seatNo, playerRank := range board.PlayerRank {
+					if playerRank.HiRank == highRank {
+						player := hs.PlayersInSeats[seatNo]
+						winner := &HighHandWinner{
+							PlayerId:    player.PlayerId,
+							PlayerName:  player.Name,
+							SeatNo:      seatNo,
+							HhRank:      playerRank.HiRank,
+							HhCards:     playerRank.HiCards,
+							BoardNo:     board.BoardNo,
+							PlayerCards: poker.ByteCardsToUint32Cards(hs.PlayersCards[seatNo]),
+						}
+						highHandWinners = append(highHandWinners, winner)
+					}
+				}
+			}
+		}
+	}
+
 	handResultClient.HandNum = hs.HandNum
+	handResultClient.HighHandWinners = highHandWinners
 	msgItem2 := &HandMessageItem{
 		MessageType: HandResultMessage2,
 		Content:     &HandMessageItem_HandResultClient{HandResultClient: handResultClient},
