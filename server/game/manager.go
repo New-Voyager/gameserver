@@ -2,26 +2,37 @@ package game
 
 import (
 	"fmt"
+
+	"github.com/pkg/errors"
+	"voyager.com/server/internal/encryptionkey"
 )
 
 type Manager struct {
-	isScriptTest     bool
-	apiServerURL     string
-	delays           Delays
-	handStatePersist PersistHandState
-	handSetupPersist *RedisHandsSetupTracker
-	activeGames      map[string]*Game
-	crashHandler     func(uint64)
+	isScriptTest       bool
+	apiServerURL       string
+	delays             Delays
+	handStatePersist   PersistHandState
+	handSetupPersist   *RedisHandsSetupTracker
+	activeGames        map[string]*Game
+	crashHandler       func(uint64)
+	encryptionKeyCache *encryptionkey.Cache
 }
 
 func NewGameManager(isScriptTest bool, apiServerURL string, handPersist PersistHandState, handSetupPersist *RedisHandsSetupTracker, delays Delays) (*Manager, error) {
+
+	cache, err := encryptionkey.NewCache(100000, apiServerURL)
+	if err != nil || cache == nil {
+		return nil, errors.Wrap(err, "Unable to instantiate encryption key cache")
+	}
+
 	return &Manager{
-		isScriptTest:     isScriptTest,
-		apiServerURL:     apiServerURL,
-		delays:           delays,
-		handStatePersist: handPersist,
-		handSetupPersist: handSetupPersist,
-		activeGames:      make(map[string]*Game),
+		isScriptTest:       isScriptTest,
+		apiServerURL:       apiServerURL,
+		delays:             delays,
+		handStatePersist:   handPersist,
+		handSetupPersist:   handSetupPersist,
+		activeGames:        make(map[string]*Game),
+		encryptionKeyCache: cache,
 	}, nil
 }
 
@@ -36,6 +47,7 @@ func (gm *Manager) InitializeGame(messageSender MessageSender, gameID uint64, ga
 		gm.delays,
 		gm.handStatePersist,
 		gm.handSetupPersist,
+		gm.encryptionKeyCache,
 		gm.apiServerURL)
 	gm.activeGames[gameIDStr] = game
 
@@ -57,6 +69,7 @@ func (gm *Manager) InitializeTestGame(messageSender MessageSender, gameID uint64
 		gm.delays,
 		gm.handStatePersist,
 		gm.handSetupPersist,
+		gm.encryptionKeyCache,
 		gm.apiServerURL)
 	gm.activeGames[gameIDStr] = game
 
