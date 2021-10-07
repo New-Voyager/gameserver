@@ -20,7 +20,7 @@ type Manager struct {
 
 func NewGameManager(isScriptTest bool, apiServerURL string, handPersist PersistHandState, handSetupPersist *RedisHandsSetupTracker, delays Delays) (*Manager, error) {
 
-	cache, err := encryptionkey.NewCache(100000)
+	cache, err := encryptionkey.NewCache(100000, apiServerURL)
 	if err != nil || cache == nil {
 		return nil, errors.Wrap(err, "Unable to instantiate encryption key cache")
 	}
