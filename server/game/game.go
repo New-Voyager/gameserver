@@ -81,12 +81,8 @@ func NewPokerGame(
 	delays Delays,
 	handStatePersist PersistHandState,
 	handSetupPersist *RedisHandsSetupTracker,
+	encryptionKeyCache *encryptionkey.Cache,
 	apiServerURL string) (*Game, error) {
-
-	cache, err := encryptionkey.NewCache(32)
-	if err != nil || cache == nil {
-		return nil, errors.Wrap(err, "Unable to instantiate encryption key cache")
-	}
 
 	g := Game{
 		gameID:             gameID,
@@ -99,7 +95,7 @@ func NewPokerGame(
 		apiServerURL:       apiServerURL,
 		maxRetries:         10,
 		retryDelayMillis:   1500,
-		encryptionKeyCache: cache,
+		encryptionKeyCache: encryptionKeyCache,
 	}
 	g.scriptTestPlayers = make(map[uint64]*Player)
 	g.chGame = make(chan []byte, 10)
@@ -126,12 +122,8 @@ func NewTestPokerGame(
 	delays Delays,
 	handStatePersist PersistHandState,
 	handSetupPersist *RedisHandsSetupTracker,
+	encryptionKeyCache *encryptionkey.Cache,
 	apiServerURL string) (*Game, error) {
-
-	cache, err := encryptionkey.NewCache(32)
-	if err != nil || cache == nil {
-		return nil, errors.Wrap(err, "Unable to instantiate encryption key cache")
-	}
 
 	g := Game{
 		gameID:             gameID,
@@ -145,7 +137,7 @@ func NewTestPokerGame(
 		apiServerURL:       apiServerURL,
 		maxRetries:         10,
 		retryDelayMillis:   1500,
-		encryptionKeyCache: cache,
+		encryptionKeyCache: encryptionKeyCache,
 	}
 	g.scriptTestPlayers = make(map[uint64]*Player)
 	g.chGame = make(chan []byte, 10)
