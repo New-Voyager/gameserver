@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"math"
+	"math/rand"
 	"time"
 
 	"github.com/pkg/errors"
@@ -120,7 +121,8 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	newHandInfo *NewHandInfo,
 	testHandSetup *TestHandSetup,
 	buttonPos uint32, sbPos uint32, bbPos uint32,
-	playersInSeats []SeatPlayer) error {
+	playersInSeats []SeatPlayer,
+	randSeed rand.Source) error {
 
 	// settle players in the seats
 	if testGameConfig != nil {
@@ -285,7 +287,7 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 
 	var deck *poker.Deck
 	if testHandSetup == nil || testHandSetup.PlayerCards == nil {
-		deck = poker.NewDeck(nil).Shuffle()
+		deck = poker.NewDeck(randSeed).Shuffle()
 	} else {
 		playerCards := make([]poker.CardsInAscii, 0)
 		for _, seatCards := range testHandSetup.PlayerCards {

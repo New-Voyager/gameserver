@@ -19,7 +19,7 @@ type Deck struct {
 	randGen             *rand.Rand
 }
 
-func newSeed() rand.Source {
+func NewSeed() rand.Source {
 	var b [8]byte
 	_, err := crypto_rand.Read(b[:])
 	if err != nil {
@@ -31,12 +31,7 @@ func newSeed() rand.Source {
 
 func NewDeck(source rand.Source) *Deck {
 	if source == nil {
-		var b [8]byte
-		_, err := crypto_rand.Read(b[:])
-		if err != nil {
-			panic("cannot seed math/rand package with cryptographically secure random number generator")
-		}
-		source = rand.NewSource(int64(binary.LittleEndian.Uint64(b[:])))
+		source = NewSeed()
 	}
 	randGen := rand.New(source)
 	deck := &Deck{randGen: randGen}
@@ -68,9 +63,13 @@ func (deck *Deck) Shuffle() *Deck {
 	deck.cards = make([]Card, len(fullDeck.cards))
 	copy(deck.cards, fullDeck.cards)
 
-	randGen := rand.New(newSeed())
+	numCards := len(deck.cards)
 	for i := range deck.cards {
-		loc := int(randGen.Uint32() % 52)
+		loc := int(deck.randGen.Uint32() % uint32(numCards))
+		deck.cards[i], deck.cards[loc] = deck.cards[loc], deck.cards[i]
+	}
+	for i := numCards - 1; i >= 0; i-- {
+		loc := int(deck.randGen.Uint32() % uint32(numCards))
 		deck.cards[i], deck.cards[loc] = deck.cards[loc], deck.cards[i]
 	}
 
