@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"runtime/debug"
 	"sync"
@@ -70,6 +71,8 @@ type Game struct {
 	actionTimer2       *timer.ActionTimer
 	networkCheck       *NetworkCheck
 	encryptionKeyCache *encryptionkey.Cache
+
+	randSeed rand.Source
 }
 
 func NewPokerGame(
@@ -96,6 +99,7 @@ func NewPokerGame(
 		maxRetries:         10,
 		retryDelayMillis:   1500,
 		encryptionKeyCache: encryptionKeyCache,
+		randSeed:           poker.NewSeed(),
 	}
 	g.scriptTestPlayers = make(map[uint64]*Player)
 	g.chGame = make(chan []byte, 10)
@@ -480,7 +484,7 @@ func (g *Game) dealNewHand() error {
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
 
-	err = handState.initialize(g.testGameConfig, newHandInfo, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
+	err = handState.initialize(g.testGameConfig, newHandInfo, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats, g.randSeed)
 	if err != nil {
 		return errors.Wrapf(err, "Error while initializing hand state")
 	}
