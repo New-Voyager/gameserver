@@ -17,7 +17,7 @@ game:
   straddle-bet: 4.0
   min-players: 2
   max-players: 9
-  game-length: 60
+  game-length: 10080 # 1 week
   buy-in-approval: true
   rake-percentage: 5.0
   rake-cap: 5.0
