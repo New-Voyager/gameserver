@@ -89,7 +89,7 @@ run:
 	POSTGRES_CRASH_DB=$(DEV_POSTGRES_CRASH_DB) \
 	ENABLE_ENCRYPTION=$(ENABLE_ENCRYPTION) \
 	LOG_LEVEL=$(DEV_LOG_LEVEL) \
-	go run ./cmd/botrunner/main.go --reset-db=true --script $(BOTRUNNER_SCRIPT)
+	go run ./cmd/botrunner/main.go --reset-db=false --script $(BOTRUNNER_SCRIPT)
 
 .PHONY: tester
 tester: CODE=$(GAME_CODE)
@@ -170,7 +170,7 @@ gcp-login:
 #################
 
 # These images are downloaded.
-API_SERVER_IMAGE := $(REGISTRY)/api-server:0.7.60
+API_SERVER_IMAGE := $(REGISTRY)/api-server:0.7.63
 SCHEDULER_IMAGE := $(REGISTRY)/scheduler:0.1.6
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
 REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
