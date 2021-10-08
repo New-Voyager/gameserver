@@ -233,6 +233,10 @@ system-test-up: system-test-create-network gcp-login system-test-generate-env
 system-test-logs:
 	$(COMPOSE_SYSTEM_TEST) logs -f
 
+.PHONY: print-system-test-logs
+print-system-test-logs:
+	$(COMPOSE_SYSTEM_TEST) logs --no-color $(SVC)
+
 .PHONY: system-test-create-network
 system-test-create-network:
 	@docker network create $(TEST_DOCKER_NET) 2>/dev/null || true

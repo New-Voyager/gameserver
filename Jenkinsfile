@@ -34,7 +34,7 @@ pipeline {
         }
         stage('Docker Test') {
             steps {
-                sh 'mkdir -p jenkins_logs'
+                sh 'rm -rf jenkins_logs && mkdir jenkins_logs'
                 echo "Running Docker Test. Last ${num_log_lines} lines of the log will be printed at the end and the full log will be saved as a build artifact (${DOCKER_TEST_LOG})."
                 script {
                     try {
@@ -51,6 +51,13 @@ pipeline {
                 script {
                     try {
                         sh "make system-test > jenkins_logs/${SYSTEM_TEST_LOG} 2>&1"
+                        sh "SVC=api-server make print-system-test-logs > jenkins_logs/api-server.log"
+                        sh "SVC=game-server-1 make print-system-test-logs > jenkins_logs/game-server-1.log"
+                        sh "SVC=game-server-2 make print-system-test-logs > jenkins_logs/game-server-2.log"
+                        sh "cat jenkins_logs/game-server-1.log > jenkins_logs/game-server-both.log"
+                        sh "cat jenkins_logs/game-server-2.log >> jenkins_logs/game-server-both.log"
+                        sh "SVC=timer make print-system-test-logs > jenkins_logs/timer.log"
+                        sh "SVC=scheduler make print-system-test-logs > jenkins_logs/scheduler.log"
                     } finally {
                         printLastNLines("jenkins_logs/${SYSTEM_TEST_LOG}", num_log_lines)
                     }
