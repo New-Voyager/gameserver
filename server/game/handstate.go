@@ -860,8 +860,6 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		log = h.RiverActions
 	}
 	h.LastState = h.CurrentState
-	fmt.Printf("***** handNum: %d Current State: %s RoundState: %+v\n",
-		h.HandNum, h.CurrentState.String(), h.RoundState)
 	bettingState := h.RoundState[uint32(h.CurrentState)]
 	bettingRound := bettingState.Betting
 	playerBalance := bettingState.PlayerBalance[action.SeatNo]

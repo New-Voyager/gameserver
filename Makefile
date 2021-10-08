@@ -42,6 +42,10 @@ system-test:
 	$(MAKE) -C $(BOTRUNNER_DIR) system-test-build
 	$(MAKE) -C $(BOTRUNNER_DIR) system-test
 
+.PHONY: print-system-test-logs
+print-system-test-logs:
+	$(MAKE) -C $(BOTRUNNER_DIR) print-system-test-logs
+
 # Delegate the other targets to the game server Makefile for now.
 .PHONY: %
 %:
