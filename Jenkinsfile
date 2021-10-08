@@ -51,6 +51,8 @@ pipeline {
                 script {
                     try {
                         sh "make system-test > jenkins_logs/${SYSTEM_TEST_LOG} 2>&1"
+                    } finally {
+                        printLastNLines("jenkins_logs/${SYSTEM_TEST_LOG}", num_log_lines)
                         sh "SVC=api-server make print-system-test-logs > jenkins_logs/api-server.log"
                         sh "SVC=game-server-1 make print-system-test-logs > jenkins_logs/game-server-1.log"
                         sh "SVC=game-server-2 make print-system-test-logs > jenkins_logs/game-server-2.log"
@@ -58,8 +60,6 @@ pipeline {
                         sh "cat jenkins_logs/game-server-2.log >> jenkins_logs/game-server-both.log"
                         sh "SVC=timer make print-system-test-logs > jenkins_logs/timer.log"
                         sh "SVC=scheduler make print-system-test-logs > jenkins_logs/scheduler.log"
-                    } finally {
-                        printLastNLines("jenkins_logs/${SYSTEM_TEST_LOG}", num_log_lines)
                     }
                     sh "mv server/system_test_coverage_merged.html jenkins_logs/"
                 }
