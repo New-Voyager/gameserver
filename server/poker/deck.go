@@ -62,18 +62,32 @@ func NewDeckFromBytes(cards []byte, deckIndex int) *Deck {
 func (deck *Deck) Shuffle() *Deck {
 	deck.cards = make([]Card, len(fullDeck.cards))
 	copy(deck.cards, fullDeck.cards)
-
-	numCards := len(deck.cards)
-	for i := range deck.cards {
-		loc := int(deck.randGen.Uint32() % uint32(numCards))
-		deck.cards[i], deck.cards[loc] = deck.cards[loc], deck.cards[i]
-	}
-	for i := numCards - 1; i >= 0; i-- {
-		loc := int(deck.randGen.Uint32() % uint32(numCards))
-		deck.cards[i], deck.cards[loc] = deck.cards[loc], deck.cards[i]
-	}
+	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
+	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
+	deck.box()
+	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
 
 	return deck
+}
+
+func (deck *Deck) box() {
+	cards := make([]Card, len(deck.cards))
+	nextIdx := 0
+	cut1 := len(deck.cards) / 3
+	cut2 := cut1 * 2
+	for i := cut2; i < len(deck.cards); i++ {
+		cards[nextIdx] = deck.cards[i]
+		nextIdx++
+	}
+	for i := cut1; i < cut2; i++ {
+		cards[nextIdx] = deck.cards[i]
+		nextIdx++
+	}
+	for i := 0; i < cut1; i++ {
+		cards[nextIdx] = deck.cards[i]
+		nextIdx++
+	}
+	deck.cards = cards
 }
 
 func (deck *Deck) Draw(n int) []Card {
