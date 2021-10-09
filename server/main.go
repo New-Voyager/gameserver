@@ -29,6 +29,7 @@ var runGameScriptTests *bool
 var gameScriptsFileOrDir *string
 var delayConfigFile *string
 var testName *string
+var testDeal *bool
 var exit bool
 var mainLogger = log.With().Str("logger_name", "nats::main").Logger()
 
@@ -38,6 +39,7 @@ func init() {
 	gameScriptsFileOrDir = flag.String("game-script", "test/game-scripts", "runs tests with game script files")
 	delayConfigFile = flag.String("delays", "delays.yaml", "YAML file containing pause times")
 	testName = flag.String("testname", "", "runs a specific test")
+	testDeal = flag.Bool("test-deal", false, "deals and counts ranks")
 }
 
 func main() {
@@ -53,6 +55,10 @@ func run() error {
 	fmt.Printf("Setting log level to %s\n", logLevel)
 	zerolog.SetGlobalLevel(logLevel)
 	flag.Parse()
+	if *testDeal {
+		return dealTest()
+	}
+
 	delays, err := game.ParseDelayConfig(*delayConfigFile)
 	if err != nil {
 		return errors.Wrap(err, "Error while parsing delay config")
@@ -169,6 +175,121 @@ func testScripts() error {
 		}
 	}
 	return nil
+}
+
+func dealTest() error {
+	numDeals := 100000
+	randSeed := poker.NewSeed()
+	gameType := game.GameType_PLO
+	numPlayers := 9
+	numCardsPerPlayer := -1
+	switch gameType {
+	case game.GameType_HOLDEM:
+		numCardsPerPlayer = 2
+	case game.GameType_PLO:
+		numCardsPerPlayer = 4
+	case game.GameType_PLO_HILO:
+		numCardsPerPlayer = 4
+	case game.GameType_FIVE_CARD_PLO:
+		numCardsPerPlayer = 5
+	case game.GameType_FIVE_CARD_PLO_HILO:
+		numCardsPerPlayer = 5
+	}
+
+	hitsPerRank := make(map[int]int)
+	for i := 0; i <= 166; i++ {
+		hitsPerRank[i] = 0
+	}
+
+	numEval := 0
+	for i := 0; i < numDeals; i++ {
+		if i > 0 && i%10000 == 0 {
+			fmt.Printf("Deal %d\n", i)
+		}
+
+		deck := poker.NewDeck(randSeed).Shuffle()
+		playerCards, communityCards, err := dealCards(randSeed, deck, numCardsPerPlayer, numPlayers)
+		if err != nil {
+			return err
+		}
+		for _, pc := range playerCards {
+			var rank int32 = -1
+			if gameType == game.GameType_HOLDEM {
+				cards := make([]poker.Card, 0)
+				cards = append(cards, pc...)
+				cards = append(cards, communityCards...)
+				if len(cards) != numCardsPerPlayer+5 {
+					return fmt.Errorf("Unexpected number of cards to be evaluated: %d", len(cards))
+				}
+				rank, _ = poker.Evaluate(cards)
+			} else {
+				result := poker.EvaluateOmaha(pc, communityCards)
+				rank = result.HiRank
+			}
+			numEval++
+
+			// fmt.Printf("%s: %d (%s)\n", poker.CardsToString(cards), rank, poker.RankString(rank))
+			if rank <= 166 {
+				hitsPerRank[int(rank)]++
+			}
+		}
+	}
+
+	fmt.Printf("%d deals completed\n\nResult:\n", numDeals)
+	numRotalFlushes := 0
+	numStraightFlushes := 0
+	numfourOfAKind := 0
+	for rank := 0; rank <= 166; rank++ {
+		count := hitsPerRank[rank]
+		fmt.Printf("%3d (%s): %d\n", rank, poker.RankString(int32(rank)), count)
+		if rank == 1 {
+			numRotalFlushes += count
+		} else if rank <= 10 {
+			numStraightFlushes += count
+		} else if rank <= 166 {
+			numfourOfAKind += count
+		}
+	}
+
+	fmt.Printf("Royal Flushes    : %d/%d (%f)\n", numRotalFlushes, numEval, float32(numRotalFlushes)/float32(numEval))
+	fmt.Printf("Straight Flushes : %d/%d (%f)\n", numStraightFlushes, numEval, float32(numStraightFlushes)/float32(numEval))
+	fmt.Printf("Four Of A Kind   : %d/%d (%f)\n", numfourOfAKind, numEval, float32(numfourOfAKind)/float32(numEval))
+
+	return nil
+}
+
+func dealCards(randSeed rand.Source, deck *poker.Deck, numCardsPerPlayer int, numPlayers int) (map[int][]poker.Card, []poker.Card, error) {
+	playerCards := make(map[int][]poker.Card)
+	communityCards := make([]poker.Card, 0)
+	for i := 0; i < numPlayers; i++ {
+		playerCards[i] = make([]poker.Card, numCardsPerPlayer)
+	}
+
+	for cardIdx := 0; cardIdx < numCardsPerPlayer; cardIdx++ {
+		for player := 0; player < numPlayers; player++ {
+			c := deck.Draw(1)[0]
+			playerCards[player][cardIdx] = c
+		}
+	}
+
+	// Burn card
+	deck.Draw(1)
+	communityCards = append(communityCards, deck.Draw(3)...)
+	deck.Draw(1)
+	communityCards = append(communityCards, deck.Draw(1)...)
+	deck.Draw(1)
+	communityCards = append(communityCards, deck.Draw(1)...)
+
+	for i, cards := range playerCards {
+		if len(cards) != numCardsPerPlayer {
+			return playerCards, communityCards, fmt.Errorf("Misdeal %d %d", i, len(cards))
+		}
+	}
+	if len(communityCards) != 5 {
+		return playerCards, communityCards, fmt.Errorf("Misdeal community cards %d", len(communityCards))
+	}
+
+	return playerCards, communityCards, nil
 }
 
 func testStuff() {
