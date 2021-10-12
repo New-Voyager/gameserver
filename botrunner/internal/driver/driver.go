@@ -388,7 +388,7 @@ func (br *BotRunner) RunOneGame() error {
 				playerName := observer.Player
 				b := br.botsByName[playerName]
 				if observer.Waitlist {
-					err := b.JoinWaitlist(&observer)
+					err := b.JoinWaitlist("", &observer)
 					if err != nil {
 						return errors.Wrap(err, "Error joining waitlist")
 					}
@@ -435,6 +435,16 @@ func (br *BotRunner) RunOneGame() error {
 					if seatInfo.SeatNo == bot.GetSeatNo() {
 						bot.SetBalance(seatInfo.Stack)
 						bot.SetSeatInfo(playersInSeats)
+					}
+				}
+			}
+
+			if gameInfo.BotsToWaitlist {
+				// add remaining bots to wait list
+				for _, bot := range br.bots {
+					if bot.GetSeatNo() == 0 {
+						// add this bot to wait list
+						bot.JoinWaitlist(gameInfo.GameCode, nil)
 					}
 				}
 			}

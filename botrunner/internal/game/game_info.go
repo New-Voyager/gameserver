@@ -51,6 +51,7 @@ type GameInfo struct {
 	PingChannel             string
 	PongChannel             string
 	Start                   bool
+	BotsToWaitlist          bool
 }
 
 // SeatInfo is the info about a player sitting in a game.
