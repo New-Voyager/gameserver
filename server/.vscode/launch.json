@@ -50,6 +50,17 @@
       //   "--game-script",
       //   "test/game-scripts/test/allin.yaml"
       // ]
+    },
+    {
+      "name": "Test Deal",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/main.go",
+      "env": {
+        "LOG_LEVEL": "info",
+      },
+      "args": ["--test-deal"]
     }
   ]
 }
