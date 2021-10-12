@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 	"voyager.com/server/crashtest"
 	"voyager.com/server/game"
@@ -83,6 +84,7 @@ func RunRestServer(gameManager *nats.GameManager, endSystemTestCallback func()) 
 
 	// Intentionally crash the process for testing
 	r.POST("/setup-crash", setupCrash)
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	r.Run(":8080")
 }
 
@@ -145,6 +147,8 @@ func newGame(c *gin.Context) {
 	}
 
 	restLogger.Debug().Msgf("new-game payload: %+v", gameConfig)
+
+	util.Metrics.NewGameReceived()
 
 	// initialize nats game
 	_, err = natsGameManager.NewGame(gameConfig.GameID, gameConfig.GameCode)
