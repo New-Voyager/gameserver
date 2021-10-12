@@ -43,7 +43,8 @@ starting-seats:
     player: brian
     buy-in: 1000
 
-auto-play: false
+auto-play:
+  enabled: false
 
 after-game:
   verify:

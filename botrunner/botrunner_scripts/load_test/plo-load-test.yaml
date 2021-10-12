@@ -61,4 +61,6 @@ starting-seats:
     player: michael
     buy-in: 2000000
 
-auto-play: true
+auto-play:
+  enabled: true
+  hands-per-game: 500

@@ -70,13 +70,12 @@ func (b *BotRunnerBatch) mainLoop() {
 		}
 
 		if numDesiredInstances < numInstances {
-			// We have more botrunners than desired. Remove some of them.
-			b.logger.Info().Msgf("Reducing the number of botrunners (%d => %d) for batch [%s].", numInstances, numDesiredInstances, b.batchID)
-			for numDesiredInstances < uint32(len(b.instances)) {
-				b.instances[len(b.instances)-1].Terminate()
-				b.instances[len(b.instances)-1] = nil
-				b.instances = b.instances[:len(b.instances)-1]
-			}
+			// We have more botrunners than desired. Remove the last one.
+			last := len(b.instances) - 1
+			b.logger.Info().Msgf("Terminating botrunner %d for batch [%s] to achieve %d botrunner instances.", last, b.batchID, numDesiredInstances)
+			b.instances[last].Terminate()
+			b.instances[last] = nil
+			b.instances = b.instances[:last]
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}

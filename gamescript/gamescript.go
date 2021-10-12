@@ -20,10 +20,16 @@ type Script struct {
 	StartingSeats  []StartingSeat  `yaml:"starting-seats"`
 	Tester         string          `yaml:"tester"`
 	BotConfig      BotConfig       `yaml:"bot-config"`
-	AutoPlay       bool            `yaml:"auto-play"`
+	AutoPlay       AutoPlay        `yaml:"auto-play"`
 	Hands          []Hand          `yaml:"hands"`
 	Observers      []Observer      `yaml:"observers"`
 	AfterGame      AfterGame       `yaml:"after-game"`
+}
+
+type AutoPlay struct {
+	Enabled      bool   `yaml:"enabled"`
+	HandsPerGame uint32 `yaml:"hands-per-game"`
+	NumGames     uint32 `yaml:"num-games"`
 }
 
 type Club struct {

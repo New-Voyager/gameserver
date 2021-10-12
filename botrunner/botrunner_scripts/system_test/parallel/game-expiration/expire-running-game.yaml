@@ -46,4 +46,6 @@ starting-seats:
     player: tom
     buy-in: 1000
 
-auto-play: true
+auto-play:
+  enabled: true
+  num-games: 1

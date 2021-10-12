@@ -26,7 +26,7 @@ type BotRunner struct {
 	botIsClubOwner  bool
 	players         *gamescript.Players
 	script          *gamescript.Script
-	gameCode        string
+	humanGameCode   string
 	botIsGameHost   bool
 	currentHandNum  uint32
 	bots            []*player.BotPlayer
@@ -57,7 +57,7 @@ func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, p
 		playerLogger:   playerLogger,
 		clubCode:       clubCode,
 		botIsClubOwner: clubCode == "",
-		gameCode:       gameCode,
+		humanGameCode:  gameCode,
 		botIsGameHost:  gameCode == "",
 		players:        players,
 		script:         script,
@@ -71,6 +71,12 @@ func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, p
 		playerGame:     playerGame,
 	}
 	return &d, nil
+}
+
+func (br *BotRunner) ResetBots() {
+	for _, bot := range br.bots {
+		bot.Reset()
+	}
 }
 
 // Terminate causes this BotRunner to eventually terminate, ending the ongoing game.
@@ -138,17 +144,17 @@ func (br *BotRunner) Run() error {
 	}
 	br.observerBot = b
 
-	for _, bot := range br.bots {
-		bot.SetBotsInGame(br.bots)
-	}
-
-	//br.resetDB = false
 	if br.resetDB {
 		err = br.observerBot.ResetDB()
 		if err != nil {
 			panic("Resetting database failed")
 		}
 	}
+
+	for _, bot := range br.bots {
+		bot.SetBotsInGame(br.bots)
+	}
+
 	// we need to set the server settings before the player is created
 	if br.botIsGameHost {
 		if br.script.ServerSettings != nil {
@@ -156,7 +162,38 @@ func (br *BotRunner) Run() error {
 		}
 	}
 
-	br.logger.Info().Msgf("Bots joining the club")
+	err = br.BotsSignUp()
+	if err != nil {
+		return err
+	}
+
+	err = br.BotsJoinClub()
+	if err != nil {
+		return err
+	}
+
+	maxGames := 1
+	if br.script.AutoPlay.Enabled {
+		maxGames = int(br.script.AutoPlay.NumGames)
+	}
+
+	for i := 1; maxGames == 0 || i <= maxGames; i++ {
+		br.logger.Info().Msgf("Running game %d/%d", i, maxGames)
+		br.ResetBots()
+		err = br.RunOneGame()
+		if err != nil {
+			return err
+		}
+		if br.shouldTerminate {
+			return nil
+		}
+		time.Sleep(2 * time.Second)
+	}
+	return nil
+}
+
+func (br *BotRunner) BotsSignUp() error {
+	br.logger.Info().Msgf("Bots signing up for the service")
 	// Register bots to the poker service.
 	for _, b := range append(br.bots, br.observerBot) {
 		var err error
@@ -184,8 +221,11 @@ func (br *BotRunner) Run() error {
 			return errors.Wrapf(err, "%s cannot sign in", b.GetName())
 		}
 	}
-	rewardIds := make([]uint32, 0)
 
+	return nil
+}
+
+func (br *BotRunner) BotsJoinClub() error {
 	if !br.playerGame {
 		if br.clubCode != "" {
 			br.logger.Info().Msgf("Using an existing club [%s]", br.clubCode)
@@ -235,7 +275,7 @@ func (br *BotRunner) Run() error {
 
 		if br.botIsClubOwner {
 			// The club owner bot approves the other bots to join the club.
-			err = br.bots[0].ApproveClubMembers()
+			err := br.bots[0].ApproveClubMembers()
 			if err != nil {
 				return err
 			}
@@ -265,24 +305,41 @@ func (br *BotRunner) Run() error {
 				time.Sleep(100 * time.Millisecond)
 			}
 		}
+	}
 
+	return nil
+}
+
+func (br *BotRunner) GetRewardIDs() ([]uint32, error) {
+	rewardIds := make([]uint32, 0)
+	if !br.playerGame {
 		if br.script.Game.Rewards != "" {
 			// rewards can be listed with comma delimited string
 			//rewardID := br.bots[0].RewardsNameToID[br.script.Game.Rewards]
 			rewardID, err := br.bots[0].GetRewardID(br.clubCode, br.script.Game.Rewards)
 			if err != nil {
-				br.logger.Error().Msgf("Could not get reward info for %s", br.script.Game.Rewards)
-			} else {
-				rewardIds = append(rewardIds, rewardID)
+				return nil, errors.Wrapf(err, "Could not get reward info for %s", br.script.Game.Rewards)
 			}
+			rewardIds = append(rewardIds, rewardID)
 		}
 	}
 
-	gameTitle := br.script.Game.Title
-	if br.gameCode == "" {
+	return rewardIds, nil
+}
+
+func (br *BotRunner) RunOneGame() error {
+	var err error
+
+	rewardIDs, err := br.GetRewardIDs()
+	if err != nil {
+		return err
+	}
+
+	var gameCode string
+	if br.botIsGameHost {
 		// First bot creates the game.
-		gameCode, err := br.bots[0].CreateGame(game.GameCreateOpt{
-			Title:              gameTitle,
+		gameCode, err = br.bots[0].CreateGame(game.GameCreateOpt{
+			Title:              br.script.Game.Title,
 			GameType:           br.script.Game.GameType,
 			SmallBlind:         br.script.Game.SmallBlind,
 			BigBlind:           br.script.Game.BigBlind,
@@ -297,7 +354,7 @@ func (br *BotRunner) Run() error {
 			BuyInMin:           br.script.Game.BuyInMin,
 			BuyInMax:           br.script.Game.BuyInMax,
 			ActionTime:         br.script.Game.ActionTime,
-			RewardIds:          rewardIds,
+			RewardIds:          rewardIDs,
 			RunItTwiceAllowed:  br.script.Game.RunItTwiceAllowed,
 			MuckLosingHand:     br.script.Game.MuckLosingHand,
 			RoeGames:           br.script.Game.RoeGames,
@@ -310,16 +367,18 @@ func (br *BotRunner) Run() error {
 		if err != nil {
 			return err
 		}
-		br.gameCode = gameCode
+		br.logger.Info().Msgf("New game is created - %s", gameCode)
+	} else {
+		gameCode = br.humanGameCode
+		br.logger.Info().Msgf("Playing human game - %s", gameCode)
 	}
-	br.logger.Info().Msgf("New game is created")
 
 	// Let the observer bot start watching the game.
-	br.observerBot.ObserveGame(br.gameCode)
-	br.logger.Info().Msgf("Starting the game")
+	br.observerBot.ObserveGame(gameCode)
 	allJoinedGame := false
 	skipPlayers := make([]string, 0)
 	if br.botIsGameHost {
+		br.logger.Info().Msgf("Starting the game")
 		if br.script.ServerSettings != nil {
 			br.observerBot.SetupServerSettings(br.script.ServerSettings)
 		}
@@ -341,7 +400,7 @@ func (br *BotRunner) Run() error {
 					b.SetIPAddress(*startingSeat.IpAddress)
 				}
 
-				err = b.JoinGame(br.gameCode, startingSeat.Gps)
+				err = b.JoinGame(gameCode, startingSeat.Gps)
 				if err != nil {
 					if startingSeat.IgnoreError != nil {
 						if !*startingSeat.IgnoreError {
@@ -360,9 +419,9 @@ func (br *BotRunner) Run() error {
 		for _, observer := range br.script.Observers {
 			playerName := observer.Player
 			b := br.botsByName[playerName]
-			b.ObserveGame(br.gameCode)
+			b.ObserveGame(gameCode)
 			br.observerBots[playerName] = b
-			br.logger.Info().Msgf("Player [%s] is observing. Game Code: *** %s ***", playerName, br.gameCode)
+			br.logger.Info().Msgf("Player [%s] is observing. Game Code: *** %s ***", playerName, gameCode)
 		}
 
 		// Check if all players are seated in. Wait if necessary.
@@ -370,7 +429,7 @@ func (br *BotRunner) Run() error {
 		if !allJoinedGame {
 			for waitAttempts := 0; !playersJoined; waitAttempts++ {
 				playersJoined = true
-				playersInSeat, err := br.bots[0].GetPlayersInSeat(br.gameCode)
+				playersInSeat, err := br.bots[0].GetPlayersInSeat(gameCode)
 				if err != nil {
 					return err
 				}
@@ -378,7 +437,7 @@ func (br *BotRunner) Run() error {
 					if !br.isSitIn(startingSeat.Seat, startingSeat.Player, playersInSeat) {
 						playersJoined = false
 						if waitAttempts%3 == 0 {
-							br.logger.Info().Msgf("Waiting for player [%s] to join. Game Code: *** %s ***", startingSeat.Player, br.gameCode)
+							br.logger.Info().Msgf("Waiting for player [%s] to join. Game Code: *** %s ***", startingSeat.Player, gameCode)
 						}
 					}
 				}
@@ -392,7 +451,7 @@ func (br *BotRunner) Run() error {
 		var playersBoughtIn bool
 		for waitAttempts := 0; !playersBoughtIn; waitAttempts++ {
 			playersBoughtIn = true
-			playersInSeat, err := br.bots[0].GetPlayersInSeat(br.gameCode)
+			playersInSeat, err := br.bots[0].GetPlayersInSeat(gameCode)
 			if err != nil {
 				return err
 			}
@@ -418,13 +477,11 @@ func (br *BotRunner) Run() error {
 				time.Sleep(100 * time.Millisecond)
 			}
 		}
-		br.logger.Info().Msgf("Bots joined the new game")
-
-		br.logger.Info().Msgf("Starting the new game")
 		// Have the owner bot start the game.
 		if !br.script.Game.DontStart {
+			br.logger.Info().Msgf("Starting the new game %s", gameCode)
 			// Have the owner bot start the game.
-			err = br.bots[0].StartGame(br.gameCode)
+			err = br.bots[0].StartGame(gameCode)
 			if err != nil {
 				return err
 			}
@@ -434,10 +491,15 @@ func (br *BotRunner) Run() error {
 				playerName := observer.Player
 				b := br.botsByName[playerName]
 				if observer.Waitlist {
-					b.JoinWaitlist(&observer)
-					br.logger.Info().Msgf("Player [%s] is in waitlist. Game Code: *** %s ***", playerName, br.gameCode)
+					err := b.JoinWaitlist(&observer)
+					if err != nil {
+						return errors.Wrap(err, "Error joining waitlist")
+					}
+					br.logger.Info().Msgf("Player [%s] is in waitlist. Game Code: *** %s ***", playerName, gameCode)
 				}
 			}
+		} else {
+			br.logger.Info().Msgf("DontStart flag is set. Not starting game %s", gameCode)
 		}
 	} else {
 		// This is not a bot-created game. Ignore the script and just fill in all the empty seats.
@@ -445,7 +507,7 @@ func (br *BotRunner) Run() error {
 		var gameInfo *game.GameInfo
 
 		for nextBotIdx < len(br.bots) {
-			gi, err := br.bots[0].GetGameInfo(br.gameCode)
+			gi, err := br.bots[0].GetGameInfo(gameCode)
 			if err != nil {
 				br.logger.Error().Msgf("Unable to get game info: %s", err)
 				time.Sleep(1000 * time.Second)
@@ -456,9 +518,9 @@ func (br *BotRunner) Run() error {
 				br.logger.Info().Msg("All seats are filled.")
 				break
 			}
-			err = br.bots[nextBotIdx].JoinUnscriptedGame(br.gameCode)
+			err = br.bots[nextBotIdx].JoinUnscriptedGame(gameCode)
 			if err != nil {
-				br.logger.Error().Msgf("Bot %d unable to join game [%s]: %s", nextBotIdx, br.gameCode, err)
+				br.logger.Error().Msgf("Bot %d unable to join game [%s]: %s", nextBotIdx, gameCode, err)
 				time.Sleep(1000 * time.Second)
 				continue
 			}
@@ -482,15 +544,13 @@ func (br *BotRunner) Run() error {
 		}
 	}
 
-	br.logger.Info().Msgf("Game started")
-
 	// Wait till the game is over.
 	requestedEndGame := false
 	for !br.areBotsFinished() && !br.anyBotError() {
 		if br.shouldTerminate && br.botIsGameHost && !requestedEndGame {
-			err := br.bots[0].RequestEndGame(br.gameCode)
+			err := br.bots[0].RequestEndGame(gameCode)
 			if err != nil {
-				br.logger.Error().Msgf("Error [%s] while requesting to end game [%s]", err, br.gameCode)
+				br.logger.Error().Msgf("Error [%s] while requesting to end game [%s]", err, gameCode)
 			} else {
 				requestedEndGame = true
 			}
@@ -503,7 +563,7 @@ func (br *BotRunner) Run() error {
 	}
 
 	br.logger.Info().Msg("Processing after-game assertions")
-	err = br.processAfterGameAssertions()
+	err = br.processAfterGameAssertions(gameCode)
 	if err != nil {
 		return errors.Wrap(err, "Error in after-game check")
 	}
@@ -516,7 +576,7 @@ func (br *BotRunner) Run() error {
 	}
 
 	// Verify game-server crashed as requested.
-	err = br.verifyGameServerCrashLog()
+	err = br.verifyGameServerCrashLog(gameCode)
 	if err != nil {
 		return err
 	}
@@ -524,8 +584,8 @@ func (br *BotRunner) Run() error {
 	return nil
 }
 
-func (br *BotRunner) processAfterGameAssertions() error {
-	if br.script.AutoPlay {
+func (br *BotRunner) processAfterGameAssertions(gameCode string) error {
+	if br.script.AutoPlay.Enabled {
 		return nil
 	}
 	errMsgs := make([]string, 0)
@@ -633,13 +693,13 @@ func (br *BotRunner) processAfterGameAssertions() error {
 	}
 
 	br.logger.Info().Msg("Verifying api responses after game.")
-	passed := br.observerBot.VerifyAPIResponses(br.gameCode, br.script.AfterGame.Verify.APIVerification)
+	passed := br.observerBot.VerifyAPIResponses(gameCode, br.script.AfterGame.Verify.APIVerification)
 	if !passed {
 		// End-game history can be delayed but shouldn't be longer than this for a single game.
 		retryDelaySec := 2
 		br.logger.Info().Msgf("Api response verification failed. Retrying in %d seconds", retryDelaySec)
 		time.Sleep(time.Duration(retryDelaySec) * time.Second)
-		passed = br.observerBot.VerifyAPIResponses(br.gameCode, br.script.AfterGame.Verify.APIVerification)
+		passed = br.observerBot.VerifyAPIResponses(gameCode, br.script.AfterGame.Verify.APIVerification)
 	}
 	if !passed {
 		return fmt.Errorf("Failed to verify API responses after game. Please check the logs")
@@ -647,7 +707,7 @@ func (br *BotRunner) processAfterGameAssertions() error {
 	return nil
 }
 
-func (br *BotRunner) verifyGameServerCrashLog() error {
+func (br *BotRunner) verifyGameServerCrashLog(gameCode string) error {
 	var expectedCrashPoints []string
 	for _, hand := range br.script.Hands {
 		for _, pd := range hand.Setup.PreDeal {
@@ -676,7 +736,7 @@ func (br *BotRunner) verifyGameServerCrashLog() error {
 	db := sqlx.MustConnect("postgres", util.Env.GetPostgresConnStr())
 	defer db.Close()
 	var crashPoints []string
-	query := fmt.Sprintf("SELECT crash_point FROM crash_test WHERE game_code = '%s' ORDER BY \"createdAt\" ASC", br.gameCode)
+	query := fmt.Sprintf("SELECT crash_point FROM crash_test WHERE game_code = '%s' ORDER BY \"createdAt\" ASC", gameCode)
 	err := db.Select(&crashPoints, query)
 	if err != nil {
 		return errors.Wrapf(err, "Error from sqlx. Query: [%s]", query)

@@ -84,7 +84,7 @@ The script path is relative to the Botrunner's working directory.
 ```
 # Launch 100 Botrunner instances with 3-second interval.
 curl -i -X POST http://localhost:8081/apply -H 'content-type: application/json' -d'{"batchId": "holdem", "script": "botrunner_scripts/load_test/holdem-load-test.yaml", "numGames": 100, "launchInterval": 3.0}'
-curl -i -X POST http://localhost:8081/apply -H 'content-type: application/json' -d'{"script": "botrunner_scripts/many_hands/plo-many-hands.yaml", "numGames": 1, "launchInterval": 3.0}'
+curl -i -X POST http://localhost:8081/apply -H 'content-type: application/json' -d'{"batchId": "plo", "script": "botrunner_scripts/load_test/plo-load-test.yaml", "numGames": 100, "launchInterval": 3.0}'
 
 # Each Botrunner logs to its own file. Tail the logs.
 tail -f log/default_group/botrunner_*.log
