@@ -613,12 +613,19 @@ func (bp *BotPlayer) setupReloadChips() error {
 	return nil
 }
 
-func (bp *BotPlayer) JoinWaitlist(observer *gamescript.Observer) error {
-	_, err := bp.gqlHelper.JoinWaitList(bp.gameCode)
+func (bp *BotPlayer) JoinWaitlist(gameCode string, observer *gamescript.Observer) error {
+	if bp.gameCode != "" {
+		gameCode = bp.gameCode
+	}
+	_, err := bp.gqlHelper.JoinWaitList(gameCode)
 	if err == nil {
 		bp.inWaitList = true
-		bp.confirmWaitlist = observer.Confirm
-		bp.buyInAmount = uint32(observer.BuyIn)
+		if observer != nil {
+			bp.confirmWaitlist = observer.Confirm
+			bp.buyInAmount = uint32(observer.BuyIn)
+		} else {
+			bp.confirmWaitlist = true
+		}
 	}
 	return err
 }
