@@ -180,7 +180,7 @@ func testScripts() error {
 func dealTest() error {
 	numDeals := 100000
 	randSeed := poker.NewSeed()
-	gameType := game.GameType_PLO
+	gameType := game.GameType_HOLDEM
 	numPlayers := 9
 	numCardsPerPlayer := -1
 	switch gameType {
@@ -201,13 +201,15 @@ func dealTest() error {
 		hitsPerRank[i] = 0
 	}
 
+	deck := poker.NewDeck(randSeed)
+
 	numEval := 0
 	for i := 0; i < numDeals; i++ {
 		if i > 0 && i%10000 == 0 {
 			fmt.Printf("Deal %d\n", i)
 		}
 
-		deck := poker.NewDeck(randSeed).Shuffle()
+		deck.Shuffle()
 		playerCards, communityCards, err := dealCards(randSeed, deck, numCardsPerPlayer, numPlayers)
 		if err != nil {
 			return err

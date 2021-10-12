@@ -10,15 +10,14 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/jmoiron/sqlx v1.3.1
-	github.com/json-iterator/go v1.1.10
+	github.com/json-iterator/go v1.1.11
 	github.com/lib/pq v1.10.0
 	github.com/mgutz/str v1.2.0 // indirect
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/nats-io/nats-server/v2 v2.2.1 // indirect
 	github.com/nats-io/nats.go v1.10.1-0.20210330225420-a0b1f60162f8
 	github.com/orcaman/concurrent-map v0.0.0-20210501183033-44dafcb38ecc
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus/client_golang v1.11.0
 	github.com/rs/zerolog v1.19.0
 	github.com/stretchr/testify v1.6.1
 	github.com/ugorji/go v1.2.0 // indirect
