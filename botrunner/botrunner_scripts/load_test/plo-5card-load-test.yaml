@@ -9,7 +9,7 @@ club:
 
 game:
   create: true
-  title: "5 Cards PLO"
+  title: "5 Cards PLO Load Test"
   game-type: "FIVE_CARD_PLO"
   small-blind: 1.0
   big-blind: 2.0
