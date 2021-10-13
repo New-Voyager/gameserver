@@ -162,41 +162,28 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 		return nil, errors.Wrap(err, fmt.Sprintf("Error connecting to NATS server [%s]", playerConfig.NatsURL))
 	}
 
-	var logPrefix string
-	if playerConfig.IsHuman {
-		logPrefix = fmt.Sprintf("Player [%s]", playerConfig.Name)
-	} else {
-		logPrefix = fmt.Sprintf("Bot [%s]", playerConfig.Name)
-	}
-
 	gqlClient := graphql.NewClient(util.GetGqlURL(playerConfig.APIServerURL))
 	gqlHelper := gql.NewGQLHelper(gqlClient, uint32(playerConfig.GQLTimeoutSec), "")
 	restHelper := rest.NewRestClient(util.GetInternalRestURL(playerConfig.APIServerURL), uint32(playerConfig.GQLTimeoutSec), "")
 
 	bp := BotPlayer{
-		logger:              logger,
-		config:              playerConfig,
-		PlayerUUID:          playerConfig.DeviceID,
-		gqlHelper:           gqlHelper,
-		restHelper:          restHelper,
-		natsConn:            nc,
-		chGame:              make(chan *GameMessageChannelItem, 10),
-		chHand:              make(chan *game.HandMessage, 10),
-		chPing:              make(chan *game.PingPongMessage, 10),
-		chHandText:          make(chan *gamescript.HandTextMessage, 10),
-		end:                 make(chan bool),
-		endPing:             make(chan bool),
-		logPrefix:           logPrefix,
-		printGameMsg:        util.Env.ShouldPrintGameMsg(),
-		printHandMsg:        util.Env.ShouldPrintHandMsg(),
-		printStateMsg:       util.Env.ShouldPrintStateMsg(),
-		RewardsNameToID:     make(map[string]uint32),
-		clientLastMsgID:     "0",
-		serverLastMsgIDs:    util.NewQueue(10),
-		maxRetry:            300,
-		PrivateMessages:     make([]map[string]interface{}, 0),
-		GameMessages:        make([]*gamescript.NonProtoMessage, 0),
-		PrivateTextMessages: make([]*gamescript.HandTextMessage, 0),
+		logger:          logger,
+		config:          playerConfig,
+		PlayerUUID:      playerConfig.DeviceID,
+		gqlHelper:       gqlHelper,
+		restHelper:      restHelper,
+		natsConn:        nc,
+		chGame:          make(chan *GameMessageChannelItem, 10),
+		chHand:          make(chan *game.HandMessage, 10),
+		chPing:          make(chan *game.PingPongMessage, 10),
+		chHandText:      make(chan *gamescript.HandTextMessage, 10),
+		end:             make(chan bool),
+		endPing:         make(chan bool),
+		printGameMsg:    util.Env.ShouldPrintGameMsg(),
+		printHandMsg:    util.Env.ShouldPrintHandMsg(),
+		printStateMsg:   util.Env.ShouldPrintStateMsg(),
+		RewardsNameToID: make(map[string]uint32),
+		maxRetry:        300,
 	}
 
 	bp.sm = fsm.NewFSM(
@@ -247,9 +234,44 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 			"enter_state": func(e *fsm.Event) { bp.enterState(e) },
 		},
 	)
+	bp.Reset()
+	return &bp, nil
+}
+
+func (bp *BotPlayer) Reset() {
+	bp.gameCode = ""
+	bp.gameID = 0
+	bp.seatNo = 0
+	bp.clientLastMsgID = "0"
+	bp.serverLastMsgIDs = util.NewQueue(10)
+	bp.seatInfo = nil
+	bp.buyInAmount = 0
+	bp.havePair = false
+	bp.pairCard = 0
+	bp.balance = 0
+	bp.gameInfo = nil
+	bp.inWaitList = false
+	bp.confirmWaitlist = false
+	bp.meToHandSubjectName = ""
+	bp.pongSubjectName = ""
+	bp.gameMsgSubscription = nil
+	bp.gameMsgSubscription = nil
+	bp.handMsgAllSubscription = nil
+	bp.handMsgPlayerSubscription = nil
+	bp.handMsgPlayerTextSubscription = nil
+	bp.playerMsgPlayerSubscription = nil
+	bp.pingSubscription = nil
+	bp.game = nil
+	bp.observing = false
+	bp.hasNextHandBeenSetup = false
+	bp.hasSentLeaveGameRequest = false
+	bp.errorStateMsg = ""
+	bp.PrivateMessages = make([]map[string]interface{}, 0)
+	bp.GameMessages = make([]*gamescript.NonProtoMessage, 0)
+	bp.PrivateTextMessages = make([]*gamescript.HandTextMessage, 0)
+	bp.updateLogPrefix()
 	go bp.messageLoop()
 	go bp.pingMessageLoop()
-	return &bp, nil
 }
 
 func (bp *BotPlayer) SetBotsInGame(bots []*BotPlayer) {
@@ -3010,6 +3032,9 @@ func (bp *BotPlayer) getPlayerCardsFromConfig(seatCards []gamescript.SeatCards) 
 }
 
 func (bp *BotPlayer) reloadBotFromGameInfo(newHand *game.NewHand) error {
+	if bp.PlayerID == 0 {
+		panic("bp.PlayerID == 0 in reloadBotFromGameInfo")
+	}
 	bp.game.table.playersBySeat = make(map[uint32]*player)
 	if newHand.HandNum == 1 {
 		gameInfo, err := bp.GetGameInfo(bp.gameCode)
@@ -3019,40 +3044,31 @@ func (bp *BotPlayer) reloadBotFromGameInfo(newHand *game.NewHand) error {
 		bp.gameInfo = &gameInfo
 	}
 	var seatNo uint32
-	var isSeated bool
 	var isPlaying bool
-	for seatNo, p := range newHand.PlayersInSeats { //gameInfo.SeatInfo.PlayersInSeats {
+	for sn, p := range newHand.PlayersInSeats { //gameInfo.SeatInfo.PlayersInSeats {
 		if p.OpenSeat {
 			continue
 		}
 		isBot := true
-		if playerInSeat, ok := bp.seatInfo[seatNo]; ok {
+		if playerInSeat, ok := bp.seatInfo[sn]; ok {
 			isBot = playerInSeat.IsBot
 		}
 		pl := &player{
 			playerID: p.PlayerId,
-			seatNo:   seatNo,
+			seatNo:   sn,
 			status:   game.PlayerStatus(game.PlayerStatus_value[p.Status.String()]),
 			stack:    p.Stack,
 			isBot:    isBot,
 		}
 		bp.game.table.playersBySeat[p.SeatNo] = pl
 		if p.PlayerId == bp.PlayerID {
-			isSeated = true
 			seatNo = p.SeatNo
 			if pl.status == game.PlayerStatus_PLAYING {
 				isPlaying = true
 			}
 		}
 	}
-	if isSeated {
-		if seatNo == 0 {
-			panic("seatNo == 0 in newHand.PlayersInSeats")
-		}
-		bp.updateSeatNo(seatNo)
-	} else {
-		bp.updateSeatNo(0)
-	}
+	bp.updateSeatNo(seatNo)
 
 	bp.observing = true
 	if isPlaying {
