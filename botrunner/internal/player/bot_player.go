@@ -584,14 +584,22 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			data, _ := protojson.Marshal(message)
 			bp.logger.Debug().Msgf("A new hand is started. Hand Num: %d, message: %s", message.HandNum, string(data))
 			bp.logger.Info().Msgf("New Hand. Hand Num: %d", message.HandNum)
-			if !bp.config.Script.AutoPlay.Enabled {
+			if bp.config.Script.AutoPlay.Enabled {
+				handsPerGame := bp.config.Script.AutoPlay.HandsPerGame
+				if handsPerGame != 0 && message.HandNum >= handsPerGame {
+					err := bp.RequestEndGame(bp.gameCode)
+					if err != nil {
+						bp.logger.Error().Msgf("%s: Could not schedule to end game: %s", bp.logPrefix, err.Error())
+					}
+				}
+			} else {
 				if int(message.HandNum) == len(bp.config.Script.Hands) {
 					bp.logger.Info().Msgf("%s: Last hand: %d Game will be ended in next hand", bp.logPrefix, message.HandNum)
 
 					// The host bot should schedule to end the game after this hand is over.
 					err := bp.RequestEndGame(bp.gameCode)
 					if err != nil {
-						bp.logger.Error().Msgf("Could not request to end game: %s", err.Error())
+						bp.logger.Error().Msgf("%s: Could not schedule to end game: %s", bp.logPrefix, err.Error())
 					}
 				}
 			}
