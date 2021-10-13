@@ -73,16 +73,112 @@ func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, p
 	return &d, nil
 }
 
-func (br *BotRunner) ResetBots() {
-	for _, bot := range br.bots {
-		bot.Reset()
-	}
-	br.observerBot.Reset()
-}
+// Run sets up the game and joins the bots. Waits until the game is over.
+func (br *BotRunner) Run() error {
+	br.logger.Debug().Msgf("Players: %+v, Script: %+v", br.players, br.script)
 
-// Terminate causes this BotRunner to eventually terminate, ending the ongoing game.
-func (br *BotRunner) Terminate() {
-	br.shouldTerminate = true
+	minActionDelay := br.script.BotConfig.MinActionDelay
+	maxActionMillis := br.script.BotConfig.MaxActionDelay
+
+	if !br.botIsGameHost {
+		// unscripted game, set action time for bots
+		minActionDelay = 3000
+		maxActionMillis = 7000
+	}
+
+	// Create the player bots based on the setup script.
+	for i, playerConfig := range br.players.Players {
+		bot, err := player.NewBotPlayer(player.Config{
+			Name:           playerConfig.Name,
+			DeviceID:       playerConfig.DeviceID,
+			Email:          playerConfig.Email,
+			Password:       playerConfig.Password,
+			Gps:            &playerConfig.Gps,
+			IpAddress:      playerConfig.Ip,
+			IsHost:         (i == 0) && br.botIsGameHost, // First bot is the game host.
+			IsHuman:        br.script.Tester == playerConfig.Name,
+			MinActionDelay: minActionDelay,
+			MaxActionDelay: maxActionMillis,
+			APIServerURL:   util.Env.GetAPIServerURL(),
+			NatsURL:        util.Env.GetNatsURL(),
+			GQLTimeoutSec:  10,
+			Script:         br.script,
+			Players:        br.players,
+		}, br.playerLogger)
+		if err != nil {
+			return errors.Wrap(err, "Unable to create a new bot")
+		}
+		br.bots = append(br.bots, bot)
+		br.botsByName[playerConfig.Name] = bot
+	}
+
+	// Create the observer bot. The observer will always be there
+	// regardless of what script you run.
+	b, err := player.NewBotPlayer(player.Config{
+		Name:           "observer",
+		DeviceID:       "e31c619f-a955-4f7b-985a-652992e01a7f",
+		Email:          "observer@gmail.com",
+		Password:       "mypassword",
+		IsObserver:     true,
+		MinActionDelay: 0,
+		MaxActionDelay: 0,
+		APIServerURL:   util.Env.GetAPIServerURL(),
+		NatsURL:        util.Env.GetNatsURL(),
+		GQLTimeoutSec:  10,
+		Script:         br.script,
+		Players:        br.players,
+	}, br.playerLogger)
+	if err != nil {
+		return errors.Wrap(err, "Unable to create observer bot")
+	}
+	br.observerBot = b
+
+	if br.resetDB {
+		err = br.observerBot.ResetDB()
+		if err != nil {
+			panic("Resetting database failed")
+		}
+	}
+
+	for _, bot := range br.bots {
+		bot.SetBotsInGame(br.bots)
+	}
+
+	// we need to set the server settings before the player is created
+	if br.botIsGameHost {
+		if br.script.ServerSettings != nil {
+			br.observerBot.SetupServerSettings(br.script.ServerSettings)
+		}
+	}
+
+	err = br.BotsSignIn()
+	if err != nil {
+		return errors.Wrap(err, "Bots could not sign in")
+	}
+
+	err = br.BotsJoinClub()
+	if err != nil {
+		return errors.Wrap(err, "Bots could not join club")
+	}
+
+	maxGames := 1
+	if br.script.AutoPlay.Enabled {
+		maxGames = int(br.script.AutoPlay.NumGames)
+	}
+
+	for i := 1; maxGames == 0 || i <= maxGames; i++ {
+		br.logger.Info().Msgf("Running game %d/%d", i, maxGames)
+		br.ResetBots()
+		err = br.RunOneGame()
+		if err != nil {
+			return err
+		}
+		if br.shouldTerminate {
+			return nil
+		}
+		time.Sleep(2 * time.Second)
+	}
+	return nil
 }
 
 func (br *BotRunner) BotsSignIn() error {
@@ -203,24 +299,6 @@ func (br *BotRunner) BotsJoinClub() error {
 	}
 
 	return nil
-}
-
-func (br *BotRunner) GetRewardIds() ([]uint32, error) {
-	rewardIds := make([]uint32, 0)
-
-	if !br.playerGame {
-		if br.script.Game.Rewards != "" {
-			// rewards can be listed with comma delimited string
-			//rewardID := br.bots[0].RewardsNameToID[br.script.Game.Rewards]
-			rewardID, err := br.bots[0].GetRewardID(br.clubCode, br.script.Game.Rewards)
-			if err != nil {
-				return nil, fmt.Errorf("Could not get reward info for %s", br.script.Game.Rewards)
-			}
-			rewardIds = append(rewardIds, rewardID)
-		}
-	}
-
-	return rewardIds, nil
 }
 
 func (br *BotRunner) RunOneGame() error {
@@ -503,112 +581,34 @@ func (br *BotRunner) RunOneGame() error {
 	return nil
 }
 
-// Run sets up the game and joins the bots. Waits until the game is over.
-func (br *BotRunner) Run() error {
-	br.logger.Debug().Msgf("Players: %+v, Script: %+v", br.players, br.script)
-
-	minActionDelay := br.script.BotConfig.MinActionDelay
-	maxActionMillis := br.script.BotConfig.MaxActionDelay
-
-	if !br.botIsGameHost {
-		// unscripted game, set action time for bots
-		minActionDelay = 3000
-		maxActionMillis = 7000
-	}
-
-	// Create the player bots based on the setup script.
-	for i, playerConfig := range br.players.Players {
-		bot, err := player.NewBotPlayer(player.Config{
-			Name:           playerConfig.Name,
-			DeviceID:       playerConfig.DeviceID,
-			Email:          playerConfig.Email,
-			Password:       playerConfig.Password,
-			Gps:            &playerConfig.Gps,
-			IpAddress:      playerConfig.Ip,
-			IsHost:         (i == 0) && br.botIsGameHost, // First bot is the game host.
-			IsHuman:        br.script.Tester == playerConfig.Name,
-			MinActionDelay: minActionDelay,
-			MaxActionDelay: maxActionMillis,
-			APIServerURL:   util.Env.GetAPIServerURL(),
-			NatsURL:        util.Env.GetNatsURL(),
-			GQLTimeoutSec:  10,
-			Script:         br.script,
-			Players:        br.players,
-		}, br.playerLogger)
-		if err != nil {
-			return errors.Wrap(err, "Unable to create a new bot")
-		}
-		br.bots = append(br.bots, bot)
-		br.botsByName[playerConfig.Name] = bot
-	}
-
-	// Create the observer bot. The observer will always be there
-	// regardless of what script you run.
-	b, err := player.NewBotPlayer(player.Config{
-		Name:           "observer",
-		DeviceID:       "e31c619f-a955-4f7b-985a-652992e01a7f",
-		Email:          "observer@gmail.com",
-		Password:       "mypassword",
-		IsObserver:     true,
-		MinActionDelay: 0,
-		MaxActionDelay: 0,
-		APIServerURL:   util.Env.GetAPIServerURL(),
-		NatsURL:        util.Env.GetNatsURL(),
-		GQLTimeoutSec:  10,
-		Script:         br.script,
-		Players:        br.players,
-	}, br.playerLogger)
-	if err != nil {
-		return errors.Wrap(err, "Unable to create observer bot")
-	}
-	br.observerBot = b
-
-	if br.resetDB {
-		err = br.observerBot.ResetDB()
-		if err != nil {
-			panic("Resetting database failed")
-		}
-	}
-
+func (br *BotRunner) ResetBots() {
 	for _, bot := range br.bots {
-		bot.SetBotsInGame(br.bots)
+		bot.Reset()
 	}
+	br.observerBot.Reset()
+}
 
-	// we need to set the server settings before the player is created
-	if br.botIsGameHost {
-		if br.script.ServerSettings != nil {
-			br.observerBot.SetupServerSettings(br.script.ServerSettings)
+func (br *BotRunner) GetRewardIds() ([]uint32, error) {
+	rewardIds := make([]uint32, 0)
+
+	if !br.playerGame {
+		if br.script.Game.Rewards != "" {
+			// rewards can be listed with comma delimited string
+			//rewardID := br.bots[0].RewardsNameToID[br.script.Game.Rewards]
+			rewardID, err := br.bots[0].GetRewardID(br.clubCode, br.script.Game.Rewards)
+			if err != nil {
+				return nil, fmt.Errorf("Could not get reward info for %s", br.script.Game.Rewards)
+			}
+			rewardIds = append(rewardIds, rewardID)
 		}
 	}
 
-	err = br.BotsSignIn()
-	if err != nil {
-		return errors.Wrap(err, "Bots could not sign in")
-	}
+	return rewardIds, nil
+}
 
-	err = br.BotsJoinClub()
-	if err != nil {
-		return errors.Wrap(err, "Bots could not join club")
-	}
-
-	maxGames := 1
-	if br.script.AutoPlay.Enabled {
-		maxGames = int(br.script.AutoPlay.NumGames)
-	}
-
-	for i := 1; maxGames == 0 || i <= maxGames; i++ {
-		br.logger.Info().Msgf("Running game %d/%d", i, maxGames)
-		br.ResetBots()
-		err = br.RunOneGame()
-		if err != nil {
-			return err
-		}
-		if br.shouldTerminate {
-			return nil
-		}
-		time.Sleep(2 * time.Second)
-	}
-	return nil
+// Terminate causes this BotRunner to eventually terminate, ending the ongoing game.
+func (br *BotRunner) Terminate() {
+	br.shouldTerminate = true
 }
 
 func (br *BotRunner) processAfterGameAssertions(gameCode string) error {
