@@ -78,85 +78,7 @@ func (br *BotRunner) Terminate() {
 	br.shouldTerminate = true
 }
 
-// Run sets up the game and joins the bots. Waits until the game is over.
-func (br *BotRunner) Run() error {
-	br.logger.Debug().Msgf("Players: %+v, Script: %+v", br.players, br.script)
-
-	minActionDelay := br.script.BotConfig.MinActionDelay
-	maxActionMillis := br.script.BotConfig.MaxActionDelay
-
-	if !br.botIsGameHost {
-		// unscripted game, set action time for bots
-		minActionDelay = 3000
-		maxActionMillis = 7000
-	}
-
-	// Create the player bots based on the setup script.
-	for i, playerConfig := range br.players.Players {
-		bot, err := player.NewBotPlayer(player.Config{
-			Name:           playerConfig.Name,
-			DeviceID:       playerConfig.DeviceID,
-			Email:          playerConfig.Email,
-			Password:       playerConfig.Password,
-			Gps:            &playerConfig.Gps,
-			IpAddress:      playerConfig.Ip,
-			IsHost:         (i == 0) && br.botIsGameHost, // First bot is the game host.
-			IsHuman:        br.script.Tester == playerConfig.Name,
-			MinActionDelay: minActionDelay,
-			MaxActionDelay: maxActionMillis,
-			APIServerURL:   util.Env.GetAPIServerURL(),
-			NatsURL:        util.Env.GetNatsURL(),
-			GQLTimeoutSec:  10,
-			Script:         br.script,
-			Players:        br.players,
-		}, br.playerLogger)
-		if err != nil {
-			return errors.Wrap(err, "Unable to create a new bot")
-		}
-		br.bots = append(br.bots, bot)
-		br.botsByName[playerConfig.Name] = bot
-	}
-
-	// Create the observer bot. The observer will always be there
-	// regardless of what script you run.
-	b, err := player.NewBotPlayer(player.Config{
-		Name:           "observer",
-		DeviceID:       "e31c619f-a955-4f7b-985a-652992e01a7f",
-		Email:          "observer@gmail.com",
-		Password:       "mypassword",
-		IsObserver:     true,
-		MinActionDelay: 0,
-		MaxActionDelay: 0,
-		APIServerURL:   util.Env.GetAPIServerURL(),
-		NatsURL:        util.Env.GetNatsURL(),
-		GQLTimeoutSec:  10,
-		Script:         br.script,
-		Players:        br.players,
-	}, br.playerLogger)
-	if err != nil {
-		return errors.Wrap(err, "Unable to create observer bot")
-	}
-	br.observerBot = b
-
-	for _, bot := range br.bots {
-		bot.SetBotsInGame(br.bots)
-	}
-
-	//br.resetDB = false
-	if br.resetDB {
-		err = br.observerBot.ResetDB()
-		if err != nil {
-			panic("Resetting database failed")
-		}
-	}
-	// we need to set the server settings before the player is created
-	if br.botIsGameHost {
-		if br.script.ServerSettings != nil {
-			br.observerBot.SetupServerSettings(br.script.ServerSettings)
-		}
-	}
-
-	br.logger.Info().Msgf("Bots joining the club")
+func (br *BotRunner) BotsSignIn() error {
 	// Register bots to the poker service.
 	for _, b := range append(br.bots, br.observerBot) {
 		var err error
@@ -184,7 +106,13 @@ func (br *BotRunner) Run() error {
 			return errors.Wrapf(err, "%s cannot sign in", b.GetName())
 		}
 	}
-	rewardIds := make([]uint32, 0)
+
+	return nil
+}
+
+func (br *BotRunner) BotsJoinClub() error {
+	br.logger.Info().Msgf("Bots joining the club")
+	var err error
 
 	if !br.playerGame {
 		if br.clubCode != "" {
@@ -265,17 +193,120 @@ func (br *BotRunner) Run() error {
 				time.Sleep(100 * time.Millisecond)
 			}
 		}
+	}
 
+	return nil
+}
+
+func (br *BotRunner) GetRewardIds() ([]uint32, error) {
+	rewardIds := make([]uint32, 0)
+
+	if !br.playerGame {
 		if br.script.Game.Rewards != "" {
 			// rewards can be listed with comma delimited string
 			//rewardID := br.bots[0].RewardsNameToID[br.script.Game.Rewards]
 			rewardID, err := br.bots[0].GetRewardID(br.clubCode, br.script.Game.Rewards)
 			if err != nil {
-				br.logger.Error().Msgf("Could not get reward info for %s", br.script.Game.Rewards)
-			} else {
-				rewardIds = append(rewardIds, rewardID)
+				return nil, fmt.Errorf("Could not get reward info for %s", br.script.Game.Rewards)
 			}
+			rewardIds = append(rewardIds, rewardID)
 		}
+	}
+
+	return rewardIds, nil
+}
+
+// Run sets up the game and joins the bots. Waits until the game is over.
+func (br *BotRunner) Run() error {
+	br.logger.Debug().Msgf("Players: %+v, Script: %+v", br.players, br.script)
+
+	minActionDelay := br.script.BotConfig.MinActionDelay
+	maxActionMillis := br.script.BotConfig.MaxActionDelay
+
+	if !br.botIsGameHost {
+		// unscripted game, set action time for bots
+		minActionDelay = 3000
+		maxActionMillis = 7000
+	}
+
+	// Create the player bots based on the setup script.
+	for i, playerConfig := range br.players.Players {
+		bot, err := player.NewBotPlayer(player.Config{
+			Name:           playerConfig.Name,
+			DeviceID:       playerConfig.DeviceID,
+			Email:          playerConfig.Email,
+			Password:       playerConfig.Password,
+			Gps:            &playerConfig.Gps,
+			IpAddress:      playerConfig.Ip,
+			IsHost:         (i == 0) && br.botIsGameHost, // First bot is the game host.
+			IsHuman:        br.script.Tester == playerConfig.Name,
+			MinActionDelay: minActionDelay,
+			MaxActionDelay: maxActionMillis,
+			APIServerURL:   util.Env.GetAPIServerURL(),
+			NatsURL:        util.Env.GetNatsURL(),
+			GQLTimeoutSec:  10,
+			Script:         br.script,
+			Players:        br.players,
+		}, br.playerLogger)
+		if err != nil {
+			return errors.Wrap(err, "Unable to create a new bot")
+		}
+		br.bots = append(br.bots, bot)
+		br.botsByName[playerConfig.Name] = bot
+	}
+
+	// Create the observer bot. The observer will always be there
+	// regardless of what script you run.
+	b, err := player.NewBotPlayer(player.Config{
+		Name:           "observer",
+		DeviceID:       "e31c619f-a955-4f7b-985a-652992e01a7f",
+		Email:          "observer@gmail.com",
+		Password:       "mypassword",
+		IsObserver:     true,
+		MinActionDelay: 0,
+		MaxActionDelay: 0,
+		APIServerURL:   util.Env.GetAPIServerURL(),
+		NatsURL:        util.Env.GetNatsURL(),
+		GQLTimeoutSec:  10,
+		Script:         br.script,
+		Players:        br.players,
+	}, br.playerLogger)
+	if err != nil {
+		return errors.Wrap(err, "Unable to create observer bot")
+	}
+	br.observerBot = b
+
+	if br.resetDB {
+		err = br.observerBot.ResetDB()
+		if err != nil {
+			panic("Resetting database failed")
+		}
+	}
+
+	for _, bot := range br.bots {
+		bot.SetBotsInGame(br.bots)
+	}
+
+	// we need to set the server settings before the player is created
+	if br.botIsGameHost {
+		if br.script.ServerSettings != nil {
+			br.observerBot.SetupServerSettings(br.script.ServerSettings)
+		}
+	}
+
+	err = br.BotsSignIn()
+	if err != nil {
+		return errors.Wrap(err, "Bots could not sign in")
+	}
+
+	err = br.BotsJoinClub()
+	if err != nil {
+		return errors.Wrap(err, "Bots could not join club")
+	}
+
+	rewardIds, err := br.GetRewardIds()
+	if err != nil {
+		return errors.Wrap(err, "Could not get reward ids")
 	}
 
 	gameTitle := br.script.Game.Title
@@ -525,7 +556,7 @@ func (br *BotRunner) Run() error {
 }
 
 func (br *BotRunner) processAfterGameAssertions() error {
-	if br.script.AutoPlay {
+	if br.script.AutoPlay.Enabled {
 		return nil
 	}
 	errMsgs := make([]string, 0)
