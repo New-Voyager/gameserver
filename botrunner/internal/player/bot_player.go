@@ -250,6 +250,9 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 }
 
 func (bp *BotPlayer) Reset() {
+	if bp.sm.Current() != BotState__NOT_IN_GAME {
+		panic("Can't reset while in game")
+	}
 	bp.gameCode = ""
 	bp.gameID = 0
 	bp.seatNo = 0
