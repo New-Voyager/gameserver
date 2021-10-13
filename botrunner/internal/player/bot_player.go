@@ -75,7 +75,6 @@ type BotPlayer struct {
 	PlayerUUID      string
 	EncryptionKey   string
 	RewardsNameToID map[string]uint32
-	scriptedGame    bool
 
 	// initial seat information (used for determining whether bot or human)
 	seatInfo map[uint32]game.SeatInfo // initial seat info (used in auto play games)
@@ -111,25 +110,13 @@ type BotPlayer struct {
 	// GameInfo received from the api server.
 	gameInfo *game.GameInfo
 
-	// Seat change variables
-	requestedSeatChange bool
-	confirmSeatChange   bool
-
 	// wait list variables
 	inWaitList      bool
 	confirmWaitlist bool
 
-	// other config
-	muckLosingHand bool
-
 	// Nats subjects
-	gameToAll       string
-	handToAll       string
-	handToMe        string
-	handToMeText    string
-	meToHand        string
-	pingSubjectName string
-	pongSubjectName string
+	meToHandSubjectName string
+	pongSubjectName     string
 
 	// Nats subscription objects
 	gameMsgSubscription           *natsgo.Subscription
@@ -208,7 +195,6 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 		clientLastMsgID:     "0",
 		serverLastMsgIDs:    util.NewQueue(10),
 		maxRetry:            300,
-		scriptedGame:        true,
 		PrivateMessages:     make([]map[string]interface{}, 0),
 		GameMessages:        make([]*gamescript.NonProtoMessage, 0),
 		PrivateTextMessages: make([]*gamescript.HandTextMessage, 0),
@@ -1886,12 +1872,7 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to game %s channels", bp.logPrefix, gameCode))
 	}
 
-	bp.gameToAll = gi.GameToPlayerChannel
-	bp.handToAll = gi.HandToAllChannel
-	bp.handToMe = gi.HandToPlayerChannel
-	bp.handToMeText = gi.HandToPlayerTextChannel
-	bp.meToHand = gi.PlayerToHandChannel
-	bp.pingSubjectName = gi.PingChannel
+	bp.meToHandSubjectName = gi.PlayerToHandChannel
 	bp.pongSubjectName = gi.PongChannel
 
 	return nil
@@ -2127,7 +2108,6 @@ func (bp *BotPlayer) autoReloadBalance() error {
 // JoinUnscriptedGame joins a game without using the yaml script. This is used for joining
 // a human-created game where you can freely grab whatever seat available.
 func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
-	bp.scriptedGame = false
 	if !bp.config.Script.AutoPlay.Enabled {
 		return fmt.Errorf("%s: JoinUnscriptedGame called with a non-autoplay script", bp.logPrefix)
 	}
@@ -2326,7 +2306,7 @@ func (bp *BotPlayer) queryCurrentHandState() error {
 	}
 	bp.logger.Info().Msgf("%s: Querying current hand. Msg: %s", bp.logPrefix, string(protoData))
 	// Send to hand subject.
-	err = bp.natsConn.Publish(bp.meToHand, protoData)
+	err = bp.natsConn.Publish(bp.meToHandSubjectName, protoData)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to publish to nats", bp.logPrefix))
 	}
@@ -2356,9 +2336,6 @@ func (bp *BotPlayer) UpdateGamePlayerSettings(
 	err := bp.gqlHelper.UpdateGamePlayerSettings(gameCode, settings)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to update game config [%s]", bp.logPrefix, gameCode))
-	}
-	if muckLosingHand != nil {
-		bp.muckLosingHand = *muckLosingHand
 	}
 	return nil
 }
@@ -2584,7 +2561,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 				},
 			},
 		}
-		bp.publishHandMsg(bp.meToHand, &resetTimerMsg)
+		bp.publishHandMsg(bp.meToHandSubjectName, &resetTimerMsg)
 	}
 	if extendActionTimeoutBySec > 0 {
 		bp.logger.Info().Msgf("%s: Seat %d (%s) requesting to extend action timeout by %d seconds", bp.logPrefix, bp.seatNo, playerName, extendActionTimeoutBySec)
@@ -2608,7 +2585,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 				},
 			},
 		}
-		bp.publishHandMsg(bp.meToHand, &extendTimerMsg)
+		bp.publishHandMsg(bp.meToHandSubjectName, &extendTimerMsg)
 	}
 
 	if bp.IsHuman() {
@@ -2686,7 +2663,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		}
 		time.Sleep(bp.getActionDelay(actionDelayOverride))
 		bp.logger.Debug().Msgf("%s: Seat %d (%s) is about to act [%s %f]. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, handAction.Action, handAction.Amount, bp.game.handStatus)
-		go bp.publishAndWaitForAck(bp.meToHand, &actionMsg)
+		go bp.publishAndWaitForAck(bp.meToHandSubjectName, &actionMsg)
 	}
 }
 
@@ -2710,7 +2687,7 @@ func (bp *BotPlayer) publishHandMsg(subj string, msg *game.HandMessage) {
 		bp.sm.SetState(BotState__ERROR)
 		return
 	}
-	err = bp.natsConn.Publish(bp.meToHand, protoData)
+	err = bp.natsConn.Publish(bp.meToHandSubjectName, protoData)
 	if err != nil {
 		errMsg := fmt.Sprintf("%s: Could not publish hand message [%+v]. Error: %v", bp.logPrefix, msg, err)
 		bp.logger.Error().Msg(errMsg)
@@ -2747,7 +2724,7 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 		if attempts > 1 {
 			bp.logger.Info().Msgf("%s: Attempt (%d) to publish message type: %s, message ID: %s", bp.logPrefix, attempts, game.HandPlayerActed, msg.GetMessageId())
 		}
-		if err := bp.natsConn.Publish(bp.meToHand, protoData); err != nil {
+		if err := bp.natsConn.Publish(bp.meToHandSubjectName, protoData); err != nil {
 			bp.logger.Error().Msgf("%s: Error [%s] while publishing message %+v", bp.logPrefix, err, msg)
 			time.Sleep(2 * time.Second)
 			continue

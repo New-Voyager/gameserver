@@ -237,39 +237,6 @@ func (bp *BotPlayer) processNotEnoughPlayers() error {
 	return nil
 }
 
-// func (bp *BotPlayer) onTableUpdate(message *game.GameMessage) {
-// 	// based on the update, do different things
-// 	tableUpdate := message.GetTableUpdate()
-// 	if tableUpdate.Type == game.TableUpdateSeatChangeProcess {
-// 		// data, _ := protojson.Marshal(message)
-// 		// fmt.Printf("%s\n", string(data))
-// 		// // open seat
-// 		// // do i want to change seat??
-// 		// if bp.requestedSeatChange && bp.confirmSeatChange {
-// 		// 	bp.logger.Info().Msgf("%s: Confirming seat change to the open seat", bp.logPrefix)
-// 		// 	// confirm seat change
-// 		// 	bp.gqlHelper.ConfirmSeatChange(bp.gameCode)
-// 		// }
-// 	} else if tableUpdate.Type == game.TableUpdateWaitlistSeating {
-// 		data, _ := protojson.Marshal(message)
-// 		fmt.Printf("%s\n", string(data))
-
-// 		bp.seatWaitList(message.GetTableUpdate())
-// 	} else if tableUpdate.Type == game.TableUpdateHostSeatChangeMove ||
-// 		tableUpdate.Type == game.TableUpdateHostSeatChangeInProcessStart ||
-// 		tableUpdate.Type == game.TableUpdateHostSeatChangeInProcessEnd {
-// 		data, _ := protojson.Marshal(message)
-
-// 		if tableUpdate.Type == game.TableUpdateHostSeatChangeInProcessEnd {
-// 			fmt.Printf("==========================\n")
-// 			fmt.Printf("%s\n", string(data))
-// 			fmt.Printf("==========================\n")
-// 		} else {
-// 			fmt.Printf("%s\n", string(data))
-// 		}
-// 	}
-// }
-
 func (bp *BotPlayer) seatWaitList(message *gamescript.NonProtoMessage) {
 	if !bp.inWaitList {
 		return
@@ -344,8 +311,6 @@ func (bp *BotPlayer) setupSeatChange() error {
 		if seatChangeRequest.Seat == bp.seatNo {
 			bp.logger.Info().Msgf("%s: Player [%s] requesting seat change.", bp.logPrefix, bp.config.Name)
 			bp.gqlHelper.RequestSeatChange(bp.gameCode)
-			bp.requestedSeatChange = true
-			bp.confirmSeatChange = seatChangeRequest.Confirm
 		}
 	}
 	return nil
