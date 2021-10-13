@@ -39,8 +39,7 @@ starting-seats:
     buy-in: 400
 
 tester:
-auto-play:
-  enabled: false
+auto-play: false
 
 hands:
   - setup:

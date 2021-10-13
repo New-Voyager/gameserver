@@ -2,6 +2,4 @@
 club:
 game:
 starting-seats: []
-auto-play:
-  enabled: true
-  num-games: 1
+auto-play: true

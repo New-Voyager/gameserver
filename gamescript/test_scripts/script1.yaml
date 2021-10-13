@@ -56,10 +56,7 @@ starting-seats:
     buy-in: 100
 
 tester: tom
-auto-play:
-  enabled: true
-  hands-per-game: 250
-  num-games: 10
+auto-play: true
 
 bot-config:
   min-action-delay: 500  # millisec

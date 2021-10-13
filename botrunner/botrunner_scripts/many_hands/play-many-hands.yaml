@@ -60,5 +60,4 @@ starting-seats:
     player: michael
     buy-in: 1000
 
-auto-play:
-  enabled: true
+auto-play: true

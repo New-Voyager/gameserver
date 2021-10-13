@@ -43,8 +43,7 @@ starting-seats:
     player: tom
     buy-in: 100
 
-auto-play:
-  enabled: false
+auto-play: false
 
 hands:
   - setup:

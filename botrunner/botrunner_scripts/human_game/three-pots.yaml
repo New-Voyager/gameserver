@@ -37,8 +37,7 @@ starting-seats:
     buy-in: 400
 
 tester: tom
-auto-play:
-  enabled: false
+auto-play: false
 
 bot-config:
   min-action-delay: 500

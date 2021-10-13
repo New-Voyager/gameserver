@@ -37,8 +37,7 @@ starting-seats:
     buy-in: 300
 
 tester:
-auto-play:
-  enabled: false
+auto-play: false
 
 # deal the following hands in the table
 hands:

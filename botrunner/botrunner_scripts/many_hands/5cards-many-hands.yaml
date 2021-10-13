@@ -57,5 +57,4 @@ starting-seats:
     player: chris
     buy-in: 1000
 
-auto-play:
-  enabled: true
+auto-play: true

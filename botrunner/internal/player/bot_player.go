@@ -75,6 +75,7 @@ type BotPlayer struct {
 	PlayerUUID      string
 	EncryptionKey   string
 	RewardsNameToID map[string]uint32
+	scriptedGame    bool
 
 	// initial seat information (used for determining whether bot or human)
 	seatInfo map[uint32]game.SeatInfo // initial seat info (used in auto play games)
@@ -110,13 +111,25 @@ type BotPlayer struct {
 	// GameInfo received from the api server.
 	gameInfo *game.GameInfo
 
+	// Seat change variables
+	requestedSeatChange bool
+	confirmSeatChange   bool
+
 	// wait list variables
 	inWaitList      bool
 	confirmWaitlist bool
 
+	// other config
+	muckLosingHand bool
+
 	// Nats subjects
-	meToHandSubjectName string
-	pongSubjectName     string
+	gameToAll       string
+	handToAll       string
+	handToMe        string
+	handToMeText    string
+	meToHand        string
+	pingSubjectName string
+	pongSubjectName string
 
 	// Nats subscription objects
 	gameMsgSubscription           *natsgo.Subscription
@@ -139,6 +152,7 @@ type BotPlayer struct {
 
 	decision ScriptBasedDecision
 
+	isSeated             bool
 	hasNextHandBeenSetup bool // For host only
 
 	// The bot wants to leave after the current hand and has sent the
@@ -162,28 +176,42 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 		return nil, errors.Wrap(err, fmt.Sprintf("Error connecting to NATS server [%s]", playerConfig.NatsURL))
 	}
 
+	var logPrefix string
+	if playerConfig.IsHuman {
+		logPrefix = fmt.Sprintf("Player [%s]", playerConfig.Name)
+	} else {
+		logPrefix = fmt.Sprintf("Bot [%s]", playerConfig.Name)
+	}
+
 	gqlClient := graphql.NewClient(util.GetGqlURL(playerConfig.APIServerURL))
 	gqlHelper := gql.NewGQLHelper(gqlClient, uint32(playerConfig.GQLTimeoutSec), "")
 	restHelper := rest.NewRestClient(util.GetInternalRestURL(playerConfig.APIServerURL), uint32(playerConfig.GQLTimeoutSec), "")
 
 	bp := BotPlayer{
-		logger:          logger,
-		config:          playerConfig,
-		PlayerUUID:      playerConfig.DeviceID,
-		gqlHelper:       gqlHelper,
-		restHelper:      restHelper,
-		natsConn:        nc,
-		chGame:          make(chan *GameMessageChannelItem, 10),
-		chHand:          make(chan *game.HandMessage, 10),
-		chPing:          make(chan *game.PingPongMessage, 10),
-		chHandText:      make(chan *gamescript.HandTextMessage, 10),
-		end:             make(chan bool),
-		endPing:         make(chan bool),
-		printGameMsg:    util.Env.ShouldPrintGameMsg(),
-		printHandMsg:    util.Env.ShouldPrintHandMsg(),
-		printStateMsg:   util.Env.ShouldPrintStateMsg(),
-		RewardsNameToID: make(map[string]uint32),
-		maxRetry:        300,
+		logger:              logger,
+		config:              playerConfig,
+		PlayerUUID:          playerConfig.DeviceID,
+		gqlHelper:           gqlHelper,
+		restHelper:          restHelper,
+		natsConn:            nc,
+		chGame:              make(chan *GameMessageChannelItem, 10),
+		chHand:              make(chan *game.HandMessage, 10),
+		chPing:              make(chan *game.PingPongMessage, 10),
+		chHandText:          make(chan *gamescript.HandTextMessage, 10),
+		end:                 make(chan bool),
+		endPing:             make(chan bool),
+		logPrefix:           logPrefix,
+		printGameMsg:        util.Env.ShouldPrintGameMsg(),
+		printHandMsg:        util.Env.ShouldPrintHandMsg(),
+		printStateMsg:       util.Env.ShouldPrintStateMsg(),
+		RewardsNameToID:     make(map[string]uint32),
+		clientLastMsgID:     "0",
+		serverLastMsgIDs:    util.NewQueue(10),
+		maxRetry:            300,
+		scriptedGame:        true,
+		PrivateMessages:     make([]map[string]interface{}, 0),
+		GameMessages:        make([]*gamescript.NonProtoMessage, 0),
+		PrivateTextMessages: make([]*gamescript.HandTextMessage, 0),
 	}
 
 	bp.sm = fsm.NewFSM(
@@ -229,62 +257,18 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 				Src:  []string{BotState__ACTED_WAITING_FOR_ACK, BotState__MY_TURN},
 				Dst:  BotState__WAITING_FOR_MY_TURN,
 			},
-			{
-				Name: BotEvent__UNSUBSCRIBE,
-				Src: []string{
-					BotState__OBSERVING,
-					BotState__JOINING,
-					BotState__REJOINING,
-					BotState__WAITING_FOR_MY_TURN,
-					BotState__ACTED_WAITING_FOR_ACK,
-					BotState__MY_TURN,
-				},
-				Dst: BotState__NOT_IN_GAME,
-			},
 		},
 		fsm.Callbacks{
 			"enter_state": func(e *fsm.Event) { bp.enterState(e) },
 		},
 	)
-
-	bp.Reset()
+	go bp.messageLoop()
+	go bp.pingMessageLoop()
 	return &bp, nil
 }
 
-func (bp *BotPlayer) Reset() {
-	bp.gameCode = ""
-	bp.gameID = 0
-	bp.seatNo = 0
-	bp.clientLastMsgID = "0"
-	bp.serverLastMsgIDs = util.NewQueue(10)
-	bp.seatInfo = nil
-	bp.buyInAmount = 0
-	bp.havePair = false
-	bp.pairCard = 0
-	bp.balance = 0
-	bp.gameInfo = nil
-	bp.inWaitList = false
-	bp.confirmWaitlist = false
-	bp.meToHandSubjectName = ""
-	bp.pongSubjectName = ""
-	bp.gameMsgSubscription = nil
-	bp.gameMsgSubscription = nil
-	bp.handMsgAllSubscription = nil
-	bp.handMsgPlayerSubscription = nil
-	bp.handMsgPlayerTextSubscription = nil
-	bp.playerMsgPlayerSubscription = nil
-	bp.pingSubscription = nil
-	bp.game = nil
-	bp.observing = false
-	bp.hasNextHandBeenSetup = false
-	bp.hasSentLeaveGameRequest = false
-	bp.errorStateMsg = ""
-	bp.PrivateMessages = make([]map[string]interface{}, 0)
-	bp.GameMessages = make([]*gamescript.NonProtoMessage, 0)
-	bp.PrivateTextMessages = make([]*gamescript.HandTextMessage, 0)
-	bp.updateLogPrefix()
-	go bp.messageLoop()
-	go bp.pingMessageLoop()
+func (bp *BotPlayer) SetBotsInGame(bots []*BotPlayer) {
+	bp.bots = bots
 }
 
 func (bp *BotPlayer) enterState(e *fsm.Event) {
@@ -307,10 +291,6 @@ func (bp *BotPlayer) updateLogPrefix() {
 	} else {
 		bp.logPrefix = fmt.Sprintf("Bot [%s:%d:%d]", bp.config.Name, bp.PlayerID, bp.seatNo)
 	}
-}
-
-func (bp *BotPlayer) SetBotsInGame(bots []*BotPlayer) {
-	bp.bots = bots
 }
 
 func (bp *BotPlayer) SetIPAddress(ipAddress string) {
@@ -462,7 +442,7 @@ func (bp *BotPlayer) processHandTextMessage(message *gamescript.HandTextMessage)
 		bp.logger.Panic().Msgf("%s: Hand message from server is missing message ID. Message: %s", bp.logPrefix, message.MessageType)
 	}
 
-	if bp.config.Script.AutoPlay.Enabled {
+	if bp.config.Script.AutoPlay {
 		choices := message.DealerChoiceGames
 		nextGameIdx := rand.Intn(len(choices))
 		nextGame := game.GameType(choices[nextGameIdx])
@@ -585,26 +565,19 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			data, _ := protojson.Marshal(message)
 			bp.logger.Debug().Msgf("A new hand is started. Hand Num: %d, message: %s", message.HandNum, string(data))
 			bp.logger.Info().Msgf("New Hand. Hand Num: %d", message.HandNum)
-			if bp.config.Script.AutoPlay.Enabled {
-				handsPerGame := bp.config.Script.AutoPlay.HandsPerGame
-				if handsPerGame != 0 && message.HandNum >= handsPerGame {
-					err := bp.RequestEndGame(bp.gameCode)
-					if err != nil {
-						bp.logger.Error().Msgf("%s: Could not schedule to end game: %s", bp.logPrefix, err.Error())
-					}
-				}
-			} else {
+			if !bp.config.Script.AutoPlay {
 				if int(message.HandNum) == len(bp.config.Script.Hands) {
 					bp.logger.Info().Msgf("%s: Last hand: %d Game will be ended in next hand", bp.logPrefix, message.HandNum)
-					err := bp.RequestEndGame(bp.gameCode)
-					if err != nil {
-						bp.logger.Error().Msgf("%s: Could not schedule to end game: %s", bp.logPrefix, err.Error())
-					}
+
+					// The host bot should schedule to end the game after this hand is over.
+					go func() {
+						bp.RequestEndGame(bp.gameCode)
+					}()
 				}
 			}
 			bp.pauseGameIfNeeded()
 
-			if !bp.config.Script.AutoPlay.Enabled {
+			if !bp.config.Script.AutoPlay {
 				bp.verifyNewHand(message.HandNum, newHand)
 			}
 		}
@@ -726,7 +699,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 
 	case game.HandPlayerActed:
 		/* MessageType: PLAYER_ACTED */
-		if bp.IsHost() && !bp.config.Script.AutoPlay.Enabled && !bp.hasNextHandBeenSetup {
+		if bp.IsHost() && !bp.config.Script.AutoPlay && !bp.hasNextHandBeenSetup {
 			// We're just using this message as a signal that the betting
 			// round is in progress and we are now ready to setup the next hand.
 			err := bp.setupNextHand()
@@ -771,7 +744,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if seatNo == bp.seatNo && isTimedOut {
 			bp.event(BotEvent__ACTION_TIMEDOUT)
 		}
-		if seatNo == bp.seatNo && !bp.config.Script.AutoPlay.Enabled {
+		if seatNo == bp.seatNo && !bp.config.Script.AutoPlay {
 			// verify the player action
 			verify, err := bp.decision.GetPrevActionToVerify(bp)
 			if err == nil {
@@ -892,7 +865,7 @@ func (bp *BotPlayer) chooseNextGame(gameType game.GameType) {
 
 func (bp *BotPlayer) verifyBoard() {
 	// if the script is configured to auto play, return
-	if bp.config.Script.AutoPlay.Enabled {
+	if bp.config.Script.AutoPlay {
 		return
 	}
 
@@ -951,7 +924,7 @@ func (bp *BotPlayer) updateBalance(playerBalances map[uint32]float32) {
 
 func (bp *BotPlayer) verifyCardRank(currentRanks map[uint32]string) {
 	// if the script is configured to auto play, return
-	if bp.config.Script.AutoPlay.Enabled {
+	if bp.config.Script.AutoPlay {
 		return
 	}
 
@@ -1174,7 +1147,7 @@ func (bp *BotPlayer) verifyBoardWinners(scriptBoard *gamescript.BoardWinner, act
 
 func (bp *BotPlayer) verifyResult2() {
 	// don't verify result for auto play
-	if bp.config.Script.AutoPlay.Enabled {
+	if bp.config.Script.AutoPlay {
 		return
 	}
 
@@ -1447,13 +1420,13 @@ func (bp *BotPlayer) verifyPotWinners(actualPot *game.PotWinners, expectedPot ga
 }
 
 func (bp *BotPlayer) verifyAPIRespForHand() {
-	if bp.config.Script.AutoPlay.Enabled {
+	if bp.config.Script.AutoPlay {
 		return
 	}
 
 	bp.logger.Info().Msgf("%s: Verifying api responses", bp.logPrefix)
 
-	if bp.config.Script.AutoPlay.Enabled {
+	if bp.config.Script.AutoPlay {
 		return
 	}
 	passed := bp.VerifyAPIResponses(bp.gameCode, bp.config.Script.GetHand(bp.game.handNum).APIVerification)
@@ -1857,10 +1830,6 @@ func (bp *BotPlayer) Subscribe(gameToAllSubjectName string,
 
 // unsubscribe makes the bot unsubscribe from the nats subjects.
 func (bp *BotPlayer) unsubscribe() error {
-	if bp.sm.Current() == BotState__NOT_IN_GAME {
-		return nil
-	}
-
 	var errMsg string
 	if bp.gameMsgSubscription != nil {
 		err := bp.gameMsgSubscription.Unsubscribe()
@@ -1883,7 +1852,6 @@ func (bp *BotPlayer) unsubscribe() error {
 		}
 		bp.handMsgPlayerSubscription = nil
 	}
-	bp.event(BotEvent__UNSUBSCRIBE)
 	if errMsg != "" {
 		return fmt.Errorf(errMsg)
 	}
@@ -1904,9 +1872,12 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 			playersActed:  make(map[uint32]*game.PlayerActRound),
 		},
 	}
-
+	gameID, err := bp.GetGameID(gameCode)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get game ID for game code [%s]", bp.logPrefix, gameCode))
+	}
 	bp.gameCode = gameCode
-	bp.gameID = gi.GameID
+	bp.gameID = gameID
 	bp.gameInfo = &gi
 
 	playerChannelName := fmt.Sprintf("player.%d", bp.PlayerID)
@@ -1915,7 +1886,12 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to game %s channels", bp.logPrefix, gameCode))
 	}
 
-	bp.meToHandSubjectName = gi.PlayerToHandChannel
+	bp.gameToAll = gi.GameToPlayerChannel
+	bp.handToAll = gi.HandToAllChannel
+	bp.handToMe = gi.HandToPlayerChannel
+	bp.handToMeText = gi.HandToPlayerTextChannel
+	bp.meToHand = gi.PlayerToHandChannel
+	bp.pingSubjectName = gi.PingChannel
 	bp.pongSubjectName = gi.PongChannel
 
 	return nil
@@ -1952,7 +1928,7 @@ func (bp *BotPlayer) JoinGame(gameCode string, gps *gamescript.GpsLocation) erro
 	playerInMySeat := bp.getPlayerInSeat(scriptSeatNo)
 	if playerInMySeat != nil && playerInMySeat.Name == bp.config.Name {
 		// I was already sitting in this game and still have my seat. Just rejoining after a crash.
-		bp.seatNo = scriptSeatNo
+
 		bp.event(BotEvent__REJOIN)
 
 		if bp.gameInfo.PlayerGameStatus == game.PlayerStatus_WAIT_FOR_BUYIN.String() {
@@ -1999,16 +1975,16 @@ func (bp *BotPlayer) JoinGame(gameCode string, gps *gamescript.GpsLocation) erro
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
 		} else {
 			// update player config
-			if bp.config.Script.AutoPlay.Enabled {
+			scriptSeatConfig := bp.config.Script.GetSeatConfigByPlayerName(bp.config.Name)
+			runItTwice := scriptSeatConfig.RunItTwice
+			if scriptSeatConfig != nil {
+				bp.UpdateGamePlayerSettings(gameCode, nil, nil, nil, nil, runItTwice, &scriptSeatConfig.MuckLosingHand)
+			}
+
+			if bp.config.Script.AutoPlay {
 				runItTwice := true
 				muckLosingHand := true
 				bp.UpdateGamePlayerSettings(gameCode, nil, nil, nil, nil, &runItTwice, &muckLosingHand)
-			} else {
-				scriptSeatConfig := bp.config.Script.GetSeatConfigByPlayerName(bp.config.Name)
-				runItTwice := scriptSeatConfig.RunItTwice
-				if scriptSeatConfig != nil {
-					bp.UpdateGamePlayerSettings(gameCode, nil, nil, nil, nil, runItTwice, &scriptSeatConfig.MuckLosingHand)
-				}
 			}
 		}
 		bp.buyInAmount = uint32(scriptBuyInAmount)
@@ -2016,11 +1992,12 @@ func (bp *BotPlayer) JoinGame(gameCode string, gps *gamescript.GpsLocation) erro
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("%s: Unable to buy in", bp.logPrefix))
 		}
-		bp.balance = scriptBuyInAmount
 
 		bp.event(BotEvent__SUCCEED_BUYIN)
 	}
 
+	bp.seatNo = scriptSeatNo
+	bp.balance = scriptBuyInAmount
 	bp.updateLogPrefix()
 
 	return nil
@@ -2150,7 +2127,8 @@ func (bp *BotPlayer) autoReloadBalance() error {
 // JoinUnscriptedGame joins a game without using the yaml script. This is used for joining
 // a human-created game where you can freely grab whatever seat available.
 func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
-	if !bp.config.Script.AutoPlay.Enabled {
+	bp.scriptedGame = false
+	if !bp.config.Script.AutoPlay {
 		return fmt.Errorf("%s: JoinUnscriptedGame called with a non-autoplay script", bp.logPrefix)
 	}
 
@@ -2199,8 +2177,9 @@ func (bp *BotPlayer) SitIn(gameCode string, seatNo uint32, gps *gamescript.GpsLo
 	bp.observing = false
 	bp.inWaitList = false
 	bp.seatNo = seatNo
+	bp.isSeated = true
 	bp.updateLogPrefix()
-	bp.logger.Info().Msgf("%s: Successfully took a seat in game [%s]. Status: [%s]", bp.logPrefix, gameCode, status.Seat.Status)
+	bp.logger.Info().Msgf("%s: Successfully took a seat in game [%s]. Status: [%s]", bp.logPrefix, gameCode, status)
 	return nil
 }
 
@@ -2229,7 +2208,7 @@ func (bp *BotPlayer) LeaveGameImmediately() error {
 	if err != nil {
 		return errors.Wrap(err, "Error while unsubscribing from NATS subjects")
 	}
-	if bp.IsSeated() && !bp.hasSentLeaveGameRequest {
+	if bp.isSeated && !bp.hasSentLeaveGameRequest {
 		_, err = bp.gqlHelper.LeaveGame(bp.gameCode)
 		if err != nil {
 			return errors.Wrap(err, "Error while making a GQL request to leave game")
@@ -2239,9 +2218,9 @@ func (bp *BotPlayer) LeaveGameImmediately() error {
 		bp.end <- true
 		bp.endPing <- true
 	}()
+	bp.isSeated = false
 	bp.gameCode = ""
 	bp.gameID = 0
-	bp.seatNo = 0
 	return nil
 }
 
@@ -2293,7 +2272,7 @@ func (bp *BotPlayer) StartGame(gameCode string) error {
 	bp.logger.Info().Msgf("%s: Starting the game [%s].", bp.logPrefix, gameCode)
 
 	// setup first deck if not auto play
-	if bp.IsHost() && !bp.config.Script.AutoPlay.Enabled {
+	if bp.IsHost() && !bp.config.Script.AutoPlay {
 		err := bp.setupNextHand()
 		if err != nil {
 			return errors.Wrapf(err, "%s: Unable to setup next hand", bp.logPrefix)
@@ -2320,7 +2299,7 @@ func (bp *BotPlayer) RequestEndGame(gameCode string) error {
 
 	status, err := bp.gqlHelper.EndGame(gameCode)
 	if err != nil {
-		return errors.Wrapf(err, "%s: Error while requesting to end the game [%s]", bp.logPrefix, gameCode)
+		return errors.Wrap(err, fmt.Sprintf("%s: Error while requesting to end the game [%s]", bp.logPrefix, gameCode))
 	}
 
 	bp.logger.Info().Msgf("%s: Successfully requested to end the game [%s]. Status: [%s]", bp.logPrefix, gameCode, status)
@@ -2347,7 +2326,7 @@ func (bp *BotPlayer) queryCurrentHandState() error {
 	}
 	bp.logger.Info().Msgf("%s: Querying current hand. Msg: %s", bp.logPrefix, string(protoData))
 	// Send to hand subject.
-	err = bp.natsConn.Publish(bp.meToHandSubjectName, protoData)
+	err = bp.natsConn.Publish(bp.meToHand, protoData)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to publish to nats", bp.logPrefix))
 	}
@@ -2364,16 +2343,8 @@ func (bp *BotPlayer) UpdateGamePlayerSettings(
 	runItTwiceAllowed *bool,
 	muckLosingHand *bool,
 ) error {
-	ritStr := "<nil>"
-	if runItTwiceAllowed != nil {
-		ritStr = fmt.Sprintf("%v", *runItTwiceAllowed)
-	}
-	mlhStr := "<nil>"
-	if muckLosingHand != nil {
-		mlhStr = fmt.Sprintf("%v", *muckLosingHand)
-	}
-	bp.logger.Info().Msgf("%s: Updating player configuration [runItTwiceAllowed: %s, muckLosingHand: %s] game [%s].",
-		bp.logPrefix, ritStr, mlhStr, gameCode)
+	bp.logger.Info().Msgf("%s: Updating player configuration [runItTwiceAllowed: %v, muckLosingHand: %v] game [%s].",
+		bp.logPrefix, runItTwiceAllowed, muckLosingHand, gameCode)
 	settings := gql.GamePlayerSettingsUpdateInput{
 		AutoStraddle:      autoStraddle,
 		Straddle:          straddle,
@@ -2385,6 +2356,9 @@ func (bp *BotPlayer) UpdateGamePlayerSettings(
 	err := bp.gqlHelper.UpdateGamePlayerSettings(gameCode, settings)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to update game config [%s]", bp.logPrefix, gameCode))
+	}
+	if muckLosingHand != nil {
+		bp.muckLosingHand = *muckLosingHand
 	}
 	return nil
 }
@@ -2412,7 +2386,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 	nextAmt := float32(0)
 	autoPlay := false
 
-	if bp.config.Script.AutoPlay.Enabled {
+	if bp.config.Script.AutoPlay {
 		autoPlay = true
 	} else if len(bp.config.Script.Hands) >= int(bp.game.handNum) {
 		handScript := bp.config.Script.GetHand(bp.game.handNum)
@@ -2610,7 +2584,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 				},
 			},
 		}
-		bp.publishHandMsg(bp.meToHandSubjectName, &resetTimerMsg)
+		bp.publishHandMsg(bp.meToHand, &resetTimerMsg)
 	}
 	if extendActionTimeoutBySec > 0 {
 		bp.logger.Info().Msgf("%s: Seat %d (%s) requesting to extend action timeout by %d seconds", bp.logPrefix, bp.seatNo, playerName, extendActionTimeoutBySec)
@@ -2634,7 +2608,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 				},
 			},
 		}
-		bp.publishHandMsg(bp.meToHandSubjectName, &extendTimerMsg)
+		bp.publishHandMsg(bp.meToHand, &extendTimerMsg)
 	}
 
 	if bp.IsHuman() {
@@ -2712,7 +2686,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		}
 		time.Sleep(bp.getActionDelay(actionDelayOverride))
 		bp.logger.Debug().Msgf("%s: Seat %d (%s) is about to act [%s %f]. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, handAction.Action, handAction.Amount, bp.game.handStatus)
-		go bp.publishAndWaitForAck(bp.meToHandSubjectName, &actionMsg)
+		go bp.publishAndWaitForAck(bp.meToHand, &actionMsg)
 	}
 }
 
@@ -2736,7 +2710,7 @@ func (bp *BotPlayer) publishHandMsg(subj string, msg *game.HandMessage) {
 		bp.sm.SetState(BotState__ERROR)
 		return
 	}
-	err = bp.natsConn.Publish(bp.meToHandSubjectName, protoData)
+	err = bp.natsConn.Publish(bp.meToHand, protoData)
 	if err != nil {
 		errMsg := fmt.Sprintf("%s: Could not publish hand message [%+v]. Error: %v", bp.logPrefix, msg, err)
 		bp.logger.Error().Msg(errMsg)
@@ -2773,7 +2747,7 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 		if attempts > 1 {
 			bp.logger.Info().Msgf("%s: Attempt (%d) to publish message type: %s, message ID: %s", bp.logPrefix, attempts, game.HandPlayerActed, msg.GetMessageId())
 		}
-		if err := bp.natsConn.Publish(bp.meToHandSubjectName, protoData); err != nil {
+		if err := bp.natsConn.Publish(bp.meToHand, protoData); err != nil {
 			bp.logger.Error().Msgf("%s: Error [%s] while publishing message %+v", bp.logPrefix, err, msg)
 			time.Sleep(2 * time.Second)
 			continue
@@ -2847,13 +2821,12 @@ func (bp *BotPlayer) IsHuman() bool {
 
 // IsSeated returns true if this bot is sitting in a table.
 func (bp *BotPlayer) IsSeated() bool {
-	return bp.seatNo != 0
+	return bp.isSeated
 }
 
 // IsGameOver returns true if the bot has finished the game.
 func (bp *BotPlayer) IsGameOver() bool {
 	if bp.game == nil || bp.game.table == nil {
-		// Game hasn't started.
 		return false
 	}
 	return bp.game.status == game.GameStatus_ENDED
@@ -3095,8 +3068,10 @@ func (bp *BotPlayer) reloadBotFromGameInfo(newHand *game.NewHand) error {
 		}
 	}
 	if isSeated {
+		bp.isSeated = true
 		bp.seatNo = seatNo
 	} else {
+		bp.isSeated = false
 		bp.seatNo = 0
 	}
 

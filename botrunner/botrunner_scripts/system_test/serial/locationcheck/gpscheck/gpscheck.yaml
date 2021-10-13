@@ -49,8 +49,7 @@ starting-seats:
       long: -0.118092
 
 tester:
-auto-play:
-  enabled: false
+auto-play: false
 
 hands:
   - setup:

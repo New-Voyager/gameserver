@@ -80,12 +80,8 @@ func TestReadGameScript(t *testing.T) {
 				PostBlind:      false,
 			},
 		},
-		Tester: "tom",
-		AutoPlay: AutoPlay{
-			Enabled:      true,
-			HandsPerGame: 250,
-			NumGames:     10,
-		},
+		Tester:   "tom",
+		AutoPlay: true,
 		BotConfig: BotConfig{
 			MinActionDelay: 500,
 			MaxActionDelay: 1000,

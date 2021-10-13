@@ -11,6 +11,91 @@ import (
 	"voyager.com/gamescript"
 )
 
+// func (bp *BotPlayer) processGameMessage(message *game.GameMessage) {
+// 	bp.lastGameMessage = message
+
+// 	switch message.MessageType {
+// 	case game.PlayerUpdate:
+// 		playerUpdateMsg := message.GetPlayerUpdate()
+// 		if playerUpdateMsg == nil {
+// 			return
+// 		}
+// 		seatNo := playerUpdateMsg.GetSeatNo()
+// 		playerID := playerUpdateMsg.GetPlayerId()
+// 		playerStatus := playerUpdateMsg.GetStatus()
+// 		buyIn := playerUpdateMsg.GetBuyIn()
+// 		stack := playerUpdateMsg.GetStack()
+// 		p := &player{
+// 			seatNo:   seatNo,
+// 			playerID: playerID,
+// 			status:   playerStatus,
+// 			buyIn:    buyIn,
+// 			stack:    stack,
+// 		}
+// 		// SOMA: Don't update table view here
+// 		// table view is updated for every hand
+// 		//bp.game.table.playersBySeat[seatNo] = p
+// 		if playerID == bp.PlayerID {
+// 			// me
+// 			bp.seatNo = p.seatNo
+
+// 			if playerUpdateMsg.GetStatus() == game.PlayerStatus_PLAYING &&
+// 				playerUpdateMsg.GetStack() > 0.0 {
+// 				bp.observing = false
+// 			}
+// 		}
+// 		bp.logger.Info().Msgf("%s: PlayerUpdate: ID: %d Seat No: %d Stack: %f Status: %d",
+// 			bp.logPrefix, playerID, playerUpdateMsg.GetSeatNo(), playerUpdateMsg.GetStack(), playerUpdateMsg.GetStatus())
+
+// 		if playerUpdateMsg.GetNewUpdate() == game.NewUpdate_SWITCH_SEAT {
+// 			if playerID == bp.PlayerID {
+// 				data, _ := json.Marshal(message)
+// 				fmt.Printf("%s\n", string(data))
+
+// 				bp.seatNo = p.seatNo
+// 				bp.updateLogPrefix()
+// 			}
+// 			bp.logger.Info().Msgf("%s: Player: %d switched to a new seat. Seat No: %d from Seat: %d",
+// 				bp.logPrefix, playerID, p.seatNo, playerUpdateMsg.OldSeat)
+// 			// a player switched seat, his old seat is empty
+// 			bp.game.table.playersBySeat[playerUpdateMsg.OldSeat] = nil
+// 		}
+
+// 	case game.GameCurrentStatus:
+// 		gameStatus := message.GetStatus()
+// 		if gameStatus == nil {
+// 			return
+// 		}
+
+// 		gs := gameStatus.GetStatus()
+// 		ts := gameStatus.GetTableStatus()
+// 		bp.game.status = gs
+// 		bp.game.tableStatus = ts
+// 		bp.logger.Info().Msgf("%s: Received game status message. Game Status: %s Table Status: %s", bp.logPrefix, gs, ts)
+// 		if ts == game.TableStatus_GAME_RUNNING {
+// 			err := bp.queryCurrentHandState()
+// 			if err != nil {
+// 				bp.logger.Error().Msgf("%s: Error while querying current hand state. Error: %v", bp.logPrefix, err)
+// 			}
+// 		}
+// 		if gs == game.GameStatus_ENDED {
+// 			// The game just ended. Player should leave the game.
+// 			err := bp.LeaveGameImmediately()
+// 			if err != nil {
+// 				bp.logger.Error().Msgf("%s: Error while leaving game: %s", bp.logPrefix, err)
+// 			}
+// 		}
+
+// 	case game.GameTableUpdate:
+// 		tableUpdateMsg := message.GetTableUpdate()
+// 		if tableUpdateMsg == nil {
+// 			return
+// 		}
+// 		bp.logger.Info().Msgf("%s: Received table update message. Type: %s", bp.logPrefix, tableUpdateMsg.Type)
+// 		bp.onTableUpdate(message)
+// 	}
+// }
+
 func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMessage) {
 	if util.Env.ShouldPrintGameMsg() {
 		fmt.Printf("[%s] HANDLING NON-PROTO GAME MESSAGE: %+v\n", bp.logPrefix, message)
@@ -152,6 +237,39 @@ func (bp *BotPlayer) processNotEnoughPlayers() error {
 	return nil
 }
 
+// func (bp *BotPlayer) onTableUpdate(message *game.GameMessage) {
+// 	// based on the update, do different things
+// 	tableUpdate := message.GetTableUpdate()
+// 	if tableUpdate.Type == game.TableUpdateSeatChangeProcess {
+// 		// data, _ := protojson.Marshal(message)
+// 		// fmt.Printf("%s\n", string(data))
+// 		// // open seat
+// 		// // do i want to change seat??
+// 		// if bp.requestedSeatChange && bp.confirmSeatChange {
+// 		// 	bp.logger.Info().Msgf("%s: Confirming seat change to the open seat", bp.logPrefix)
+// 		// 	// confirm seat change
+// 		// 	bp.gqlHelper.ConfirmSeatChange(bp.gameCode)
+// 		// }
+// 	} else if tableUpdate.Type == game.TableUpdateWaitlistSeating {
+// 		data, _ := protojson.Marshal(message)
+// 		fmt.Printf("%s\n", string(data))
+
+// 		bp.seatWaitList(message.GetTableUpdate())
+// 	} else if tableUpdate.Type == game.TableUpdateHostSeatChangeMove ||
+// 		tableUpdate.Type == game.TableUpdateHostSeatChangeInProcessStart ||
+// 		tableUpdate.Type == game.TableUpdateHostSeatChangeInProcessEnd {
+// 		data, _ := protojson.Marshal(message)
+
+// 		if tableUpdate.Type == game.TableUpdateHostSeatChangeInProcessEnd {
+// 			fmt.Printf("==========================\n")
+// 			fmt.Printf("%s\n", string(data))
+// 			fmt.Printf("==========================\n")
+// 		} else {
+// 			fmt.Printf("%s\n", string(data))
+// 		}
+// 	}
+// }
+
 func (bp *BotPlayer) seatWaitList(message *gamescript.NonProtoMessage) {
 	if !bp.inWaitList {
 		return
@@ -226,6 +344,8 @@ func (bp *BotPlayer) setupSeatChange() error {
 		if seatChangeRequest.Seat == bp.seatNo {
 			bp.logger.Info().Msgf("%s: Player [%s] requesting seat change.", bp.logPrefix, bp.config.Name)
 			bp.gqlHelper.RequestSeatChange(bp.gameCode)
+			bp.requestedSeatChange = true
+			bp.confirmSeatChange = seatChangeRequest.Confirm
 		}
 	}
 	return nil
@@ -433,7 +553,7 @@ func (bp *BotPlayer) setupLeaveGame() error {
 		for _, leaveGameRequest := range leaveGame {
 			if leaveGameRequest.Seat == bp.seatNo {
 				// will leave in next hand
-				if bp.IsSeated() {
+				if bp.isSeated {
 					var err error
 					_, err = bp.gqlHelper.LeaveGame(bp.gameCode)
 					if err != nil {
@@ -458,7 +578,7 @@ func (bp *BotPlayer) setupSwitchSeats() error {
 		for _, request := range switchSeats {
 			if request.FromSeat == bp.seatNo {
 				// will leave in next hand
-				if bp.IsSeated() {
+				if bp.isSeated {
 					var err error
 					_, err = bp.gqlHelper.SwitchSeat(bp.gameCode, int(request.ToSeat))
 					if err != nil {

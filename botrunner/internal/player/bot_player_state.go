@@ -19,5 +19,4 @@ const (
 	BotEvent__SEND_MY_ACTION      string = "SEND_MY_ACTION"
 	BotEvent__RECEIVE_ACK         string = "RECEIVE_ACK"
 	BotEvent__ACTION_TIMEDOUT     string = "ACTION_TIMEDOUT"
-	BotEvent__UNSUBSCRIBE         string = "UNSUBSCRIBE"
 )
