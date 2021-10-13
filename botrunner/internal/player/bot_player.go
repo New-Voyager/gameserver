@@ -442,7 +442,7 @@ func (bp *BotPlayer) processHandTextMessage(message *gamescript.HandTextMessage)
 		bp.logger.Panic().Msgf("%s: Hand message from server is missing message ID. Message: %s", bp.logPrefix, message.MessageType)
 	}
 
-	if bp.config.Script.AutoPlay {
+	if bp.config.Script.AutoPlay.Enabled {
 		choices := message.DealerChoiceGames
 		nextGameIdx := rand.Intn(len(choices))
 		nextGame := game.GameType(choices[nextGameIdx])
@@ -565,7 +565,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			data, _ := protojson.Marshal(message)
 			bp.logger.Debug().Msgf("A new hand is started. Hand Num: %d, message: %s", message.HandNum, string(data))
 			bp.logger.Info().Msgf("New Hand. Hand Num: %d", message.HandNum)
-			if !bp.config.Script.AutoPlay {
+			if !bp.config.Script.AutoPlay.Enabled {
 				if int(message.HandNum) == len(bp.config.Script.Hands) {
 					bp.logger.Info().Msgf("%s: Last hand: %d Game will be ended in next hand", bp.logPrefix, message.HandNum)
 
@@ -577,7 +577,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			}
 			bp.pauseGameIfNeeded()
 
-			if !bp.config.Script.AutoPlay {
+			if !bp.config.Script.AutoPlay.Enabled {
 				bp.verifyNewHand(message.HandNum, newHand)
 			}
 		}
@@ -699,7 +699,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 
 	case game.HandPlayerActed:
 		/* MessageType: PLAYER_ACTED */
-		if bp.IsHost() && !bp.config.Script.AutoPlay && !bp.hasNextHandBeenSetup {
+		if bp.IsHost() && !bp.config.Script.AutoPlay.Enabled && !bp.hasNextHandBeenSetup {
 			// We're just using this message as a signal that the betting
 			// round is in progress and we are now ready to setup the next hand.
 			err := bp.setupNextHand()
@@ -744,7 +744,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if seatNo == bp.seatNo && isTimedOut {
 			bp.event(BotEvent__ACTION_TIMEDOUT)
 		}
-		if seatNo == bp.seatNo && !bp.config.Script.AutoPlay {
+		if seatNo == bp.seatNo && !bp.config.Script.AutoPlay.Enabled {
 			// verify the player action
 			verify, err := bp.decision.GetPrevActionToVerify(bp)
 			if err == nil {
@@ -865,7 +865,7 @@ func (bp *BotPlayer) chooseNextGame(gameType game.GameType) {
 
 func (bp *BotPlayer) verifyBoard() {
 	// if the script is configured to auto play, return
-	if bp.config.Script.AutoPlay {
+	if bp.config.Script.AutoPlay.Enabled {
 		return
 	}
 
@@ -924,7 +924,7 @@ func (bp *BotPlayer) updateBalance(playerBalances map[uint32]float32) {
 
 func (bp *BotPlayer) verifyCardRank(currentRanks map[uint32]string) {
 	// if the script is configured to auto play, return
-	if bp.config.Script.AutoPlay {
+	if bp.config.Script.AutoPlay.Enabled {
 		return
 	}
 
@@ -1147,7 +1147,7 @@ func (bp *BotPlayer) verifyBoardWinners(scriptBoard *gamescript.BoardWinner, act
 
 func (bp *BotPlayer) verifyResult2() {
 	// don't verify result for auto play
-	if bp.config.Script.AutoPlay {
+	if bp.config.Script.AutoPlay.Enabled {
 		return
 	}
 
@@ -1420,13 +1420,13 @@ func (bp *BotPlayer) verifyPotWinners(actualPot *game.PotWinners, expectedPot ga
 }
 
 func (bp *BotPlayer) verifyAPIRespForHand() {
-	if bp.config.Script.AutoPlay {
+	if bp.config.Script.AutoPlay.Enabled {
 		return
 	}
 
 	bp.logger.Info().Msgf("%s: Verifying api responses", bp.logPrefix)
 
-	if bp.config.Script.AutoPlay {
+	if bp.config.Script.AutoPlay.Enabled {
 		return
 	}
 	passed := bp.VerifyAPIResponses(bp.gameCode, bp.config.Script.GetHand(bp.game.handNum).APIVerification)
@@ -1981,7 +1981,7 @@ func (bp *BotPlayer) JoinGame(gameCode string, gps *gamescript.GpsLocation) erro
 				bp.UpdateGamePlayerSettings(gameCode, nil, nil, nil, nil, runItTwice, &scriptSeatConfig.MuckLosingHand)
 			}
 
-			if bp.config.Script.AutoPlay {
+			if bp.config.Script.AutoPlay.Enabled {
 				runItTwice := true
 				muckLosingHand := true
 				bp.UpdateGamePlayerSettings(gameCode, nil, nil, nil, nil, &runItTwice, &muckLosingHand)
@@ -2128,7 +2128,7 @@ func (bp *BotPlayer) autoReloadBalance() error {
 // a human-created game where you can freely grab whatever seat available.
 func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
 	bp.scriptedGame = false
-	if !bp.config.Script.AutoPlay {
+	if !bp.config.Script.AutoPlay.Enabled {
 		return fmt.Errorf("%s: JoinUnscriptedGame called with a non-autoplay script", bp.logPrefix)
 	}
 
@@ -2272,7 +2272,7 @@ func (bp *BotPlayer) StartGame(gameCode string) error {
 	bp.logger.Info().Msgf("%s: Starting the game [%s].", bp.logPrefix, gameCode)
 
 	// setup first deck if not auto play
-	if bp.IsHost() && !bp.config.Script.AutoPlay {
+	if bp.IsHost() && !bp.config.Script.AutoPlay.Enabled {
 		err := bp.setupNextHand()
 		if err != nil {
 			return errors.Wrapf(err, "%s: Unable to setup next hand", bp.logPrefix)
@@ -2386,7 +2386,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 	nextAmt := float32(0)
 	autoPlay := false
 
-	if bp.config.Script.AutoPlay {
+	if bp.config.Script.AutoPlay.Enabled {
 		autoPlay = true
 	} else if len(bp.config.Script.Hands) >= int(bp.game.handNum) {
 		handScript := bp.config.Script.GetHand(bp.game.handNum)
