@@ -366,8 +366,8 @@ func (bp *BotPlayer) handlePrivateHandMsg(msg *natsgo.Msg) {
 }
 
 func (bp *BotPlayer) handlePrivateHandTextMsg(msg *natsgo.Msg) {
-	data := msg.Data
 	var message gamescript.HandTextMessage
+	data := msg.Data
 	if util.Env.ShouldPrintHandMsg() {
 		fmt.Printf("%s: Received hand msg (text): %s\n", bp.logPrefix, string(data))
 	}
@@ -3180,4 +3180,8 @@ func (bp *BotPlayer) ResetDB() error {
 	}
 
 	return nil
+}
+
+func (bp *BotPlayer) SetBuyinAmount(amount uint32) {
+	bp.buyInAmount = amount
 }

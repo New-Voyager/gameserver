@@ -153,6 +153,7 @@ func (bp *BotPlayer) processNotEnoughPlayers() error {
 }
 
 func (bp *BotPlayer) seatWaitList(message *gamescript.NonProtoMessage) {
+	bp.logger.Info().Msgf("[%s] Waitlist seating message received In Waitlist: %v", bp.logPrefix, bp.inWaitList)
 	if !bp.inWaitList {
 		return
 	}
@@ -161,6 +162,7 @@ func (bp *BotPlayer) seatWaitList(message *gamescript.NonProtoMessage) {
 		// not my turn
 		return
 	}
+	bp.logger.Info().Msgf("[%s] My turn to take a seat: Confirm Waitlist: %v", bp.logPrefix, bp.confirmWaitlist)
 
 	if !bp.confirmWaitlist {
 		// decline wait list
@@ -493,7 +495,7 @@ func (bp *BotPlayer) setupReloadChips() error {
 	return nil
 }
 
-func (bp *BotPlayer) JoinWaitlist(gameCode string, observer *gamescript.Observer) error {
+func (bp *BotPlayer) JoinWaitlist(gameCode string, observer *gamescript.Observer, confirmWaitlist bool) error {
 	if bp.gameCode != "" {
 		gameCode = bp.gameCode
 	}
@@ -504,7 +506,7 @@ func (bp *BotPlayer) JoinWaitlist(gameCode string, observer *gamescript.Observer
 			bp.confirmWaitlist = observer.Confirm
 			bp.buyInAmount = uint32(observer.BuyIn)
 		} else {
-			bp.confirmWaitlist = true
+			bp.confirmWaitlist = confirmWaitlist
 		}
 	}
 	return err
