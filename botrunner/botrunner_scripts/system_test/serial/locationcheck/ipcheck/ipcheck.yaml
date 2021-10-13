@@ -43,7 +43,8 @@ starting-seats:
     ip-address: 10.1.1.4
 
 tester:
-auto-play: false
+auto-play:
+  enabled: false
 
 hands:
   - setup:

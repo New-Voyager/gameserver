@@ -927,6 +927,7 @@ func (g *GQLHelper) PostBlind(gameCode string) (bool, error) {
 // GameInfoGQL is the gql query string for gameinfo api.
 const GameInfoGQL = `query game_info($gameCode: String!) {
     gameInfo(gameCode: $gameCode) {
+        gameID
         gameCode
         gameType
         title

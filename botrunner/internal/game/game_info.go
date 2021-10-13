@@ -4,6 +4,7 @@ import "time"
 
 // GameInfo is the response object for gameinfo api.
 type GameInfo struct {
+	GameID                uint64 `json:"gameID"`
 	GameCode              string
 	GameType              string
 	Title                 string
