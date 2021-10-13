@@ -229,6 +229,18 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 				Src:  []string{BotState__ACTED_WAITING_FOR_ACK, BotState__MY_TURN},
 				Dst:  BotState__WAITING_FOR_MY_TURN,
 			},
+			{
+				Name: BotEvent__UNSUBSCRIBE,
+				Src: []string{
+					BotState__OBSERVING,
+					BotState__JOINING,
+					BotState__REJOINING,
+					BotState__WAITING_FOR_MY_TURN,
+					BotState__ACTED_WAITING_FOR_ACK,
+					BotState__MY_TURN,
+				},
+				Dst: BotState__NOT_IN_GAME,
+			},
 		},
 		fsm.Callbacks{
 			"enter_state": func(e *fsm.Event) { bp.enterState(e) },
@@ -1857,6 +1869,7 @@ func (bp *BotPlayer) unsubscribe() error {
 		}
 		bp.handMsgPlayerSubscription = nil
 	}
+	bp.event(BotEvent__UNSUBSCRIBE)
 	if errMsg != "" {
 		return fmt.Errorf(errMsg)
 	}
