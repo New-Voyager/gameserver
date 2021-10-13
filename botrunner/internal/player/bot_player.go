@@ -1890,12 +1890,9 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 			playersActed:  make(map[uint32]*game.PlayerActRound),
 		},
 	}
-	gameID, err := bp.GetGameID(gameCode)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get game ID for game code [%s]", bp.logPrefix, gameCode))
-	}
+
 	bp.gameCode = gameCode
-	bp.gameID = gameID
+	bp.gameID = gi.GameID
 	bp.gameInfo = &gi
 
 	playerChannelName := fmt.Sprintf("player.%d", bp.PlayerID)
