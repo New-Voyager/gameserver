@@ -2188,7 +2188,7 @@ func (bp *BotPlayer) SitIn(gameCode string, seatNo uint32, gps *gamescript.GpsLo
 	bp.observing = false
 	bp.inWaitList = false
 	bp.updateSeatNo(seatNo)
-	bp.logger.Info().Msgf("%s: Successfully took a seat in game [%s]. Status: [%s]", bp.logPrefix, gameCode, status)
+	bp.logger.Info().Msgf("%s: Successfully took a seat %d in game [%s]. Status: [%s]", bp.logPrefix, status.Seat.SeatNo, gameCode, status.Seat.Status)
 	return nil
 }
 
@@ -2352,8 +2352,16 @@ func (bp *BotPlayer) UpdateGamePlayerSettings(
 	runItTwiceAllowed *bool,
 	muckLosingHand *bool,
 ) error {
-	bp.logger.Info().Msgf("%s: Updating player configuration [runItTwiceAllowed: %v, muckLosingHand: %v] game [%s].",
-		bp.logPrefix, runItTwiceAllowed, muckLosingHand, gameCode)
+	ritStr := "<nil>"
+	if runItTwiceAllowed != nil {
+		ritStr = fmt.Sprintf("%v", *runItTwiceAllowed)
+	}
+	mlhStr := "<nil>"
+	if muckLosingHand != nil {
+		mlhStr = fmt.Sprintf("%v", *muckLosingHand)
+	}
+	bp.logger.Info().Msgf("%s: Updating player configuration [runItTwiceAllowed: %s, muckLosingHand: %s] game [%s].",
+		bp.logPrefix, ritStr, mlhStr, gameCode)
 	settings := gql.GamePlayerSettingsUpdateInput{
 		AutoStraddle:      autoStraddle,
 		Straddle:          straddle,
