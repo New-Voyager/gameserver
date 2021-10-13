@@ -77,6 +77,7 @@ func (br *BotRunner) ResetBots() {
 	for _, bot := range br.bots {
 		bot.Reset()
 	}
+	br.observerBot.Reset()
 }
 
 // Terminate causes this BotRunner to eventually terminate, ending the ongoing game.

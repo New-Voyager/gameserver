@@ -246,7 +246,6 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 			"enter_state": func(e *fsm.Event) { bp.enterState(e) },
 		},
 	)
-	bp.Reset()
 	return &bp, nil
 }
 
