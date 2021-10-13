@@ -63,3 +63,4 @@ starting-seats:
 
 auto-play:
   enabled: true
+  hands-per-game: 300
