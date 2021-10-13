@@ -7,7 +7,6 @@ import (
 
 	"github.com/pkg/errors"
 	"voyager.com/botrunner/internal/game"
-	"voyager.com/botrunner/internal/util"
 	"voyager.com/gamescript"
 )
 
@@ -97,9 +96,9 @@ import (
 // }
 
 func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMessage) {
-	if util.Env.ShouldPrintGameMsg() {
-		fmt.Printf("[%s] HANDLING NON-PROTO GAME MESSAGE: %+v\n", bp.logPrefix, message)
-	}
+	// if util.Env.ShouldPrintGameMsg() {
+	// 	fmt.Printf("[%s] HANDLING NON-PROTO GAME MESSAGE: %+v\n", bp.logPrefix, message)
+	// }
 	bp.GameMessages = append(bp.GameMessages, message)
 	switch message.Type {
 	case "GAME_STATUS":
@@ -271,6 +270,7 @@ func (bp *BotPlayer) processNotEnoughPlayers() error {
 // }
 
 func (bp *BotPlayer) seatWaitList(message *gamescript.NonProtoMessage) {
+	fmt.Printf("[%s] Waitlist seating message received In Waitlist: %v \n", bp.logPrefix, bp.inWaitList)
 	if !bp.inWaitList {
 		return
 	}
@@ -279,6 +279,7 @@ func (bp *BotPlayer) seatWaitList(message *gamescript.NonProtoMessage) {
 		// not my turn
 		return
 	}
+	fmt.Printf("[%s] My turn to take a seat: Confirm Waitlist: %v \n", bp.logPrefix, bp.confirmWaitlist)
 
 	if !bp.confirmWaitlist {
 		// decline wait list
@@ -613,7 +614,7 @@ func (bp *BotPlayer) setupReloadChips() error {
 	return nil
 }
 
-func (bp *BotPlayer) JoinWaitlist(gameCode string, observer *gamescript.Observer) error {
+func (bp *BotPlayer) JoinWaitlist(gameCode string, observer *gamescript.Observer, confirmWaitlist bool) error {
 	if bp.gameCode != "" {
 		gameCode = bp.gameCode
 	}
@@ -624,7 +625,7 @@ func (bp *BotPlayer) JoinWaitlist(gameCode string, observer *gamescript.Observer
 			bp.confirmWaitlist = observer.Confirm
 			bp.buyInAmount = uint32(observer.BuyIn)
 		} else {
-			bp.confirmWaitlist = true
+			bp.confirmWaitlist = confirmWaitlist
 		}
 	}
 	return err

@@ -348,8 +348,8 @@ func (bp *BotPlayer) handlePrivateHandMsg(msg *natsgo.Msg) {
 }
 
 func (bp *BotPlayer) handlePrivateHandTextMsg(msg *natsgo.Msg) {
-	data := msg.Data
 	var message gamescript.HandTextMessage
+	data := msg.Data
 	if util.Env.ShouldPrintHandMsg() {
 		fmt.Printf("%s: Received hand msg (text): %s\n", bp.logPrefix, string(data))
 	}
@@ -378,7 +378,7 @@ func (bp *BotPlayer) unmarshalAndQueueHandMsg(data []byte) {
 	}
 
 	if util.Env.ShouldPrintHandMsg() {
-		fmt.Printf("%s: Received hand msg (proto): %s\n", bp.logPrefix, message.String())
+		// fmt.Printf("%s: Received hand msg (proto): %s\n", bp.logPrefix, message.String())
 	}
 
 	bp.chHand <- &message
@@ -396,6 +396,7 @@ func (bp *BotPlayer) handlePingMsg(msg *natsgo.Msg) {
 }
 
 func (bp *BotPlayer) messageLoop() {
+	fmt.Printf("%s: [%s] Listening for game messages and hand messages\n", bp.logPrefix, bp.gameCode)
 	for {
 		select {
 		case <-bp.end:
@@ -1901,6 +1902,7 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 // Every player must call either JoinGame or ObserveGame in order to participate in a game.
 func (bp *BotPlayer) ObserveGame(gameCode string) error {
 	bp.logger.Info().Msgf("%s: Observing game %s", bp.logPrefix, gameCode)
+	fmt.Printf("%s: Observing game %s\n", bp.logPrefix, gameCode)
 	err := bp.enterGame(gameCode)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to enter game %s", bp.logPrefix, gameCode))
@@ -3161,4 +3163,8 @@ func (bp *BotPlayer) ResetDB() error {
 	}
 
 	return nil
+}
+
+func (bp *BotPlayer) SetBuyinAmount(amount uint32) {
+	bp.buyInAmount = amount
 }

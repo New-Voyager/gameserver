@@ -434,7 +434,7 @@ func (br *BotRunner) Run() error {
 				playerName := observer.Player
 				b := br.botsByName[playerName]
 				if observer.Waitlist {
-					b.JoinWaitlist("", &observer)
+					b.JoinWaitlist(br.gameCode, &observer, true)
 					br.logger.Info().Msgf("Player [%s] is in waitlist. Game Code: *** %s ***", playerName, br.gameCode)
 				}
 			}
@@ -480,12 +480,25 @@ func (br *BotRunner) Run() error {
 				}
 			}
 
+			// botsJoinedWaitlist := false
 			if gameInfo.BotsToWaitlist {
 				// add remaining bots to wait list
 				for _, bot := range br.bots {
+					b.JoinGame(br.gameCode, nil)
 					if bot.GetSeatNo() == 0 {
 						// add this bot to wait list
-						bot.JoinWaitlist(gameInfo.GameCode, nil)
+						bot.ObserveGame(gameInfo.GameCode)
+						bot.SetBuyinAmount(uint32(gameInfo.BuyInMax))
+						confirmWaitlist := true
+						if bot.GetName() == "emma" {
+							confirmWaitlist = false
+						}
+						if bot.GetName() == "emma" ||
+							bot.GetName() == "rob" ||
+							bot.GetName() == "olivia" {
+							bot.JoinWaitlist(gameInfo.GameCode, nil, confirmWaitlist)
+							//botsJoinedWaitlist = true
+						}
 					}
 				}
 			}
