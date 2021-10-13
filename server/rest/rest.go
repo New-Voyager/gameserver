@@ -68,7 +68,8 @@ func jsonAppErrorReporterT(errType gin.ErrorType) gin.HandlerFunc {
 */
 func RunRestServer(gameManager *nats.GameManager, endSystemTestCallback func()) {
 	natsGameManager = gameManager
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Recovery())
 	//r.Use(JSONAppErrorReporter())
 
 	r.GET("/ready", checkReady)
