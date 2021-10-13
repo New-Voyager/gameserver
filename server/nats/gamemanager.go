@@ -64,7 +64,7 @@ func (gm *GameManager) NewGame(gameID uint64, gameCode string) (*NatsGame, error
 	gm.activeGames.Set(gameIDStr, game)
 	gm.gameIDToCode.Set(gameIDStr, gameCode)
 	gm.gameCodeToID.Set(gameCode, gameIDStr)
-	util.Metrics.SetNumActiveGames(gm.activeGames.Count())
+	util.Metrics.SetActiveGamesMapCount(gm.activeGames.Count())
 	return game, nil
 }
 
@@ -110,7 +110,7 @@ func (gm *GameManager) EndNatsGame(gameID uint64) {
 
 		}
 		gm.gameIDToCode.Remove(gameIDStr)
-		util.Metrics.SetNumActiveGames(gm.activeGames.Count())
+		util.Metrics.SetActiveGamesMapCount(gm.activeGames.Count())
 	}
 }
 

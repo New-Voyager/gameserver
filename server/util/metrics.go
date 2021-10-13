@@ -6,10 +6,10 @@ import (
 )
 
 type metrics struct {
-	newGameReceivedCounter prometheus.Counter
-	newHandMsgSentCounter  prometheus.Counter
-	handEndMsgSentCounter  prometheus.Counter
-	activeGamesGauge       prometheus.Gauge
+	newGameReceivedCounter   prometheus.Counter
+	newHandMsgSentCounter    prometheus.Counter
+	handEndMsgSentCounter    prometheus.Counter
+	activeGamesMapCountGauge prometheus.Gauge
 }
 
 func (m *metrics) NewGameReceived() {
@@ -24,8 +24,8 @@ func (m *metrics) HandEndMsgSent() {
 	m.handEndMsgSentCounter.Inc()
 }
 
-func (m *metrics) SetNumActiveGames(numActiveGames int) {
-	m.activeGamesGauge.Set(float64(numActiveGames))
+func (m *metrics) SetActiveGamesMapCount(count int) {
+	m.activeGamesMapCountGauge.Set(float64(count))
 }
 
 var Metrics = &metrics{
@@ -41,8 +41,8 @@ var Metrics = &metrics{
 		Name: "hand_end_msg_sent_total",
 		Help: "Total number of hand END messages sent",
 	}),
-	activeGamesGauge: promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "num_active_games",
-		Help: "Number of games currently hosted",
+	activeGamesMapCountGauge: promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "active_games_map_entries_count",
+		Help: "Count of the entries in the nats game manager activeGames map",
 	}),
 }
