@@ -139,7 +139,6 @@ type BotPlayer struct {
 
 	decision ScriptBasedDecision
 
-	isSeated             bool
 	hasNextHandBeenSetup bool // For host only
 
 	// The bot wants to leave after the current hand and has sent the
@@ -573,12 +572,10 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			if player.PlayerId == bp.PlayerID {
 				bp.balance = player.Stack
 				if bp.seatNo == 0 {
-					bp.seatNo = seatNo
-					bp.updateLogPrefix()
+					bp.updateSeatNo(seatNo)
 				} else if bp.seatNo != seatNo {
 					bp.logger.Info().Msgf("%s: Player: %s changed seat from %d to %d", bp.logPrefix, player.Name, bp.seatNo, seatNo)
-					bp.seatNo = seatNo
-					bp.updateLogPrefix()
+					bp.updateSeatNo(seatNo)
 				}
 				break
 			}
@@ -1977,9 +1974,8 @@ func (bp *BotPlayer) JoinGame(gameCode string, gps *gamescript.GpsLocation) erro
 		bp.event(BotEvent__SUCCEED_BUYIN)
 	}
 
-	bp.seatNo = scriptSeatNo
+	bp.updateSeatNo(scriptSeatNo)
 	bp.balance = scriptBuyInAmount
-	bp.updateLogPrefix()
 
 	return nil
 }
@@ -2072,9 +2068,8 @@ func (bp *BotPlayer) NewPlayer(gameCode string, startingSeat *gamescript.Startin
 		}
 	}
 
-	bp.seatNo = scriptSeatNo
+	bp.updateSeatNo(scriptSeatNo)
 	bp.balance = scriptBuyInAmount
-	bp.updateLogPrefix()
 
 	return nil
 }
@@ -2132,7 +2127,7 @@ func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to buy in", bp.logPrefix))
 	}
-	bp.seatNo = seatNo
+	bp.updateSeatNo(seatNo)
 
 	// unscripted game, bots will run it twice
 	if bp.gameInfo.RunItTwiceAllowed {
@@ -2147,6 +2142,9 @@ func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
 
 // SitIn takes a seat in a game as a player.
 func (bp *BotPlayer) SitIn(gameCode string, seatNo uint32, gps *gamescript.GpsLocation) error {
+	if seatNo == 0 {
+		panic("seatNo == 0 in SitIn")
+	}
 	bp.logger.Info().Msgf("%s: Grabbing seat [%d] in game [%s].", bp.logPrefix, seatNo, gameCode)
 	bp.gqlHelper.IpAddress = bp.config.IpAddress
 	status, err := bp.gqlHelper.SitIn(gameCode, seatNo, gps)
@@ -2156,9 +2154,7 @@ func (bp *BotPlayer) SitIn(gameCode string, seatNo uint32, gps *gamescript.GpsLo
 
 	bp.observing = false
 	bp.inWaitList = false
-	bp.seatNo = seatNo
-	bp.isSeated = true
-	bp.updateLogPrefix()
+	bp.updateSeatNo(seatNo)
 	bp.logger.Info().Msgf("%s: Successfully took a seat in game [%s]. Status: [%s]", bp.logPrefix, gameCode, status)
 	return nil
 }
@@ -2188,7 +2184,7 @@ func (bp *BotPlayer) LeaveGameImmediately() error {
 	if err != nil {
 		return errors.Wrap(err, "Error while unsubscribing from NATS subjects")
 	}
-	if bp.isSeated && !bp.hasSentLeaveGameRequest {
+	if bp.IsSeated() && !bp.hasSentLeaveGameRequest {
 		_, err = bp.gqlHelper.LeaveGame(bp.gameCode)
 		if err != nil {
 			return errors.Wrap(err, "Error while making a GQL request to leave game")
@@ -2198,7 +2194,7 @@ func (bp *BotPlayer) LeaveGameImmediately() error {
 		bp.end <- true
 		bp.endPing <- true
 	}()
-	bp.isSeated = false
+	bp.updateSeatNo(0)
 	bp.gameCode = ""
 	bp.gameID = 0
 	return nil
@@ -2798,7 +2794,12 @@ func (bp *BotPlayer) IsHuman() bool {
 
 // IsSeated returns true if this bot is sitting in a table.
 func (bp *BotPlayer) IsSeated() bool {
-	return bp.isSeated
+	return bp.seatNo != 0
+}
+
+func (bp *BotPlayer) updateSeatNo(seatNo uint32) {
+	bp.seatNo = seatNo
+	bp.updateLogPrefix()
 }
 
 // IsGameOver returns true if the bot has finished the game.
@@ -3045,19 +3046,18 @@ func (bp *BotPlayer) reloadBotFromGameInfo(newHand *game.NewHand) error {
 		}
 	}
 	if isSeated {
-		bp.isSeated = true
-		bp.seatNo = seatNo
+		if seatNo == 0 {
+			panic("seatNo == 0 in newHand.PlayersInSeats")
+		}
+		bp.updateSeatNo(seatNo)
 	} else {
-		bp.isSeated = false
-		bp.seatNo = 0
+		bp.updateSeatNo(0)
 	}
 
 	bp.observing = true
 	if isPlaying {
 		bp.observing = false
 	}
-
-	bp.updateLogPrefix()
 
 	return nil
 }
