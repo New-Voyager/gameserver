@@ -589,9 +589,10 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 					bp.logger.Info().Msgf("%s: Last hand: %d Game will be ended in next hand", bp.logPrefix, message.HandNum)
 
 					// The host bot should schedule to end the game after this hand is over.
-					go func() {
-						bp.RequestEndGame(bp.gameCode)
-					}()
+					err := bp.RequestEndGame(bp.gameCode)
+					if err != nil {
+						bp.logger.Error().Msgf("Could not request to end game: %s", err.Error())
+					}
 				}
 			}
 			bp.pauseGameIfNeeded()
