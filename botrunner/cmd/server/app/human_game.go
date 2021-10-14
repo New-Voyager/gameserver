@@ -40,19 +40,10 @@ func NewHumanGame(clubCode string, gameCode string, players *gamescript.Players,
 func (b *HumanGame) Launch() error {
 	botRunnerLoggerName := fmt.Sprintf("BotRunner<%s>", b.gameCode)
 	botPlayerLoggerName := fmt.Sprintf("BotPlayer<%s>", b.gameCode)
-	err := os.MkdirAll(b.botRunnerLogDir, os.ModePerm)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("Unable to create log directory %s", b.botRunnerLogDir))
-	}
-	logFileName := b.getLogFileName(b.botRunnerLogDir)
-	f, err := os.Create(logFileName)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("Unable to create log file %s", logFileName))
-	}
-	botRunnerLogger := zerolog.New(f).With().Str("logger_name", botRunnerLoggerName).Logger()
-	botPlayerLogger := zerolog.New(f).With().Str("logger_name", botPlayerLoggerName).Logger()
+	botRunnerLogger := zerolog.New(os.Stdout).With().Str("logger_name", botRunnerLoggerName).Logger()
+	botPlayerLogger := zerolog.New(os.Stdout).With().Str("logger_name", botPlayerLoggerName).Logger()
 
-	b.logger.Info().Msgf("Launching bot runner to join a human game. Logging to %s", logFileName)
+	b.logger.Info().Msgf("Launching bot runner to join a human game.")
 	playerGame := false
 	if b.clubCode == "" {
 		playerGame = true
