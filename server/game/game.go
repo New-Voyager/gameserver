@@ -19,6 +19,7 @@ import (
 	"voyager.com/server/internal/encryptionkey"
 	"voyager.com/server/poker"
 	"voyager.com/server/timer"
+	"voyager.com/server/util"
 )
 
 /**
@@ -715,6 +716,16 @@ func (g *Game) broadcastHandMessage(message *HandMessage) {
 		b, _ := proto.Marshal(message)
 		for _, player := range g.scriptTestPlayers {
 			player.chHand <- b
+		}
+	}
+
+	for _, msgItem := range message.GetMessages() {
+		msgType := msgItem.GetMessageType()
+		switch msgType {
+		case HandNewHand:
+			util.Metrics.NewHandMsgSent()
+		case HandEnded:
+			util.Metrics.HandEndMsgSent()
 		}
 	}
 }

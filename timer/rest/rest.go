@@ -16,7 +16,8 @@ var (
 )
 
 func RunServer(portNo uint) {
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Recovery())
 
 	r.GET("/ready", checkReady)
 	r.POST("/start-timer", startTimer)
