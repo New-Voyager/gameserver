@@ -162,7 +162,7 @@ func (br *BotRunner) Run() error {
 	}
 
 	maxGames := 1
-	if br.script.AutoPlay.Enabled {
+	if br.script.AutoPlay.Enabled && br.botIsGameHost {
 		maxGames = int(br.script.AutoPlay.NumGames)
 	}
 

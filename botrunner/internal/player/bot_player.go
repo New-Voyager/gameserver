@@ -2705,11 +2705,11 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 			time.Sleep(2 * time.Second)
 		}()
 	} else {
+		bp.logger.Debug().Msgf("%s: Seat %d (%s) is about to act [%s %f]. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, handAction.Action, handAction.Amount, bp.game.handStatus)
 		if actionDelayOverride > 0 {
 			bp.logger.Info().Msgf("%s: Seat %d (%s) sleeping for %d milliseconds", bp.logPrefix, bp.seatNo, playerName, actionDelayOverride)
 		}
 		time.Sleep(bp.getActionDelay(actionDelayOverride))
-		bp.logger.Debug().Msgf("%s: Seat %d (%s) is about to act [%s %f]. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, handAction.Action, handAction.Amount, bp.game.handStatus)
 		go bp.publishAndWaitForAck(bp.meToHandSubjectName, &actionMsg)
 	}
 }
