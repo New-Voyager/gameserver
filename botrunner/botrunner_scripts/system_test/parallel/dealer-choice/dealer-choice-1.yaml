@@ -25,6 +25,7 @@ game:
   buy-in-max: 300
   action-time: 100
   dealer-choice-games: ['HOLDEM', 'PLO', 'PLO_HILO', 'FIVE_CARD_PLO', 'FIVE_CARD_PLO_HILO']
+  dealer-choice-orbit: false
 
 starting-seats:
   - seat: 1

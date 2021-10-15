@@ -258,6 +258,7 @@ func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (string,
 	req.Var("appCoinsNeeded", opt.AppCoinsNeeded)
 	req.Var("ipCheck", opt.IpCheck)
 	req.Var("gpsCheck", opt.GpsCheck)
+	req.Var("dealerChoiceOrbit", opt.DealerChoiceOrbit)
 
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Authorization", g.authToken)
@@ -1142,6 +1143,7 @@ const ConfigureGameGQL = `mutation configure_game(
 	$appCoinsNeeded: Boolean
 	$ipCheck: Boolean
 	$gpsCheck: Boolean
+	$dealerChoiceOrbit: Boolean
 ) {
 	configuredGame: configureGame(
 		clubCode: $clubCode
@@ -1170,6 +1172,7 @@ const ConfigureGameGQL = `mutation configure_game(
 			appCoinsNeeded: $appCoinsNeeded
 			ipCheck: $ipCheck
 			gpsCheck: $gpsCheck
+			dealerChoiceOrbit: $dealerChoiceOrbit
 		}
 	) {
 		gameCode

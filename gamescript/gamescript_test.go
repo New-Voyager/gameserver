@@ -53,6 +53,8 @@ func TestReadGameScript(t *testing.T) {
 			ActionTime:         100,
 			Rewards:            "High Hand",
 			RoeGames:           []string{"HOLDEM", "PLO"},
+			DealerChoiceGames:  []string{"HOLDEM", "PLO", "PLO_HILO", "FIVE_CARD_PLO", "FIVE_CARD_PLO_HILO"},
+			DealerChoiceOrbit:  true,
 		},
 		StartingSeats: []StartingSeat{
 			{

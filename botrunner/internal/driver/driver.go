@@ -333,6 +333,7 @@ func (br *BotRunner) RunOneGame() error {
 			MuckLosingHand:     br.script.Game.MuckLosingHand,
 			RoeGames:           br.script.Game.RoeGames,
 			DealerChoiceGames:  br.script.Game.DealerChoiceGames,
+			DealerChoiceOrbit:  br.script.Game.DealerChoiceOrbit,
 			HighHandTracked:    br.script.Game.HighHandTracked,
 			AppCoinsNeeded:     br.script.Game.AppCoinsNeeded,
 			IpCheck:            br.script.Game.IpCheck,
