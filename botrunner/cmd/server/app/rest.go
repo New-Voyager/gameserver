@@ -8,14 +8,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"voyager.com/botrunner/internal/caches"
+	"voyager.com/botrunner/internal/logging"
 	"voyager.com/botrunner/internal/util"
 	"voyager.com/gamescript"
 )
 
 var (
-	restLogger      = log.With().Str("logger_name", "app::rest").Logger()
+	restLogger      = logging.GetZeroLogger("app::rest", nil)
 	baseLogDir      = "log"
 	humanGameScript = "botrunner_scripts/human_game/human-game.yaml"
 	playersConfig   = "botrunner_scripts/players/default.yaml"

@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"voyager.com/server/game"
+	"voyager.com/server/util"
 )
 
-var logger = log.With().Str("logger_name", "server::apiserver").Logger()
+var logger = util.GetZeroLogger("nats::apiserver", nil)
 
 // Subscribes to messages coming from apiserver and act on the messages
 // that is sent to this game server.

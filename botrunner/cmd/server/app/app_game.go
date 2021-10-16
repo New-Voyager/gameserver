@@ -7,7 +7,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"voyager.com/botrunner/internal/driver"
 	"voyager.com/botrunner/internal/logging"
 	"voyager.com/gamescript"
@@ -27,7 +26,7 @@ type AppGame struct {
 // NewAppGame creates a new instance of AppGame.
 func NewAppGame(clubCode string, name string, players *gamescript.Players, script *gamescript.Script) (*AppGame, error) {
 	b := AppGame{
-		logger:          log.With().Str("logger_name", "AppGame").Logger(),
+		logger:          *logging.GetZeroLogger("AppGame", nil),
 		botRunnerLogDir: filepath.Join(baseLogDir, "app_game"),
 		players:         players,
 		script:          script,

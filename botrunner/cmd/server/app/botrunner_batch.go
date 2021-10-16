@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"voyager.com/botrunner/internal/driver"
 	"voyager.com/botrunner/internal/logging"
 	"voyager.com/botrunner/internal/util"
@@ -31,7 +30,7 @@ type BotRunnerBatch struct {
 // NewBotRunnerBatch creates a new instance of BotRunnerBatch.
 func NewBotRunnerBatch(batchID string, players *gamescript.Players, script *gamescript.Script) (*BotRunnerBatch, error) {
 	b := BotRunnerBatch{
-		logger:          log.With().Str("logger_name", "BotRunnerBatch").Logger(),
+		logger:          *logging.GetZeroLogger("BotRunnerBatch", nil),
 		batchID:         batchID,
 		botRunnerLogDir: filepath.Join(baseLogDir, batchID),
 		players:         players,

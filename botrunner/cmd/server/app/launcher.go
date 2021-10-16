@@ -5,11 +5,11 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
+	"voyager.com/botrunner/internal/logging"
 	"voyager.com/gamescript"
 )
 
-var launcherLogger = log.With().Str("logger_name", "app::launcher").Logger()
+var launcherLogger = logging.GetZeroLogger("app::launcher", nil)
 var launcherOnce sync.Once
 var launcher *Launcher
 

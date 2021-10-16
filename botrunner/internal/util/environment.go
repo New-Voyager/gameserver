@@ -10,14 +10,14 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"voyager.com/botrunner/internal/logging"
 )
 
 func init() {
 
 }
 
-var environmentLogger = log.With().Str("logger_name", "util::environment").Logger()
+var environmentLogger = logging.GetZeroLogger("util::environment", nil)
 
 type environment struct {
 	RedisHost            string

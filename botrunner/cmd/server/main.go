@@ -6,14 +6,14 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"voyager.com/botrunner/cmd/server/app"
+	"voyager.com/botrunner/internal/logging"
 	"voyager.com/botrunner/internal/util"
 )
 
 var (
 	cmdArgs    arg
-	mainLogger = log.With().Str("logger_name", "main::main").Logger()
+	mainLogger = logging.GetZeroLogger("main::main", nil)
 )
 
 type arg struct {
