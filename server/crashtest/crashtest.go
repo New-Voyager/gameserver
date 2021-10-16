@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog/log"
 	"voyager.com/server/internal"
 	"voyager.com/server/util"
 )
@@ -54,7 +53,7 @@ var (
 	crashPoint    CrashPoint = CrashPoint_NO_CRASH
 	crashPlayerID uint64
 
-	crashTestLogger = log.With().Str("logger_name", "crashtest::crashtest").Logger()
+	crashTestLogger = util.GetZeroLogger("crashtest::crashtest", nil)
 )
 
 // Set schedules for crashing at the specified point.
@@ -106,7 +105,7 @@ func Hit(gameCode string, cp CrashPoint, playerID uint64) {
 	if err != nil {
 		fmt.Printf("Error while inserting crash record. Game Code: %s, Crash Point: %s, Error: %s\n", gameCode, cp, err)
 	} else {
-		fmt.Printf("CRASHTEST (This is an intentional crash) GameCode: %s CrashPoint: %s, CrashPlayerID: %d\n", gameCode, cp, crashPlayerID)
+		fmt.Printf("CRASHTEST GameCode: %s CrashPoint: %s, CrashPlayerID: %d\n", gameCode, cp, crashPlayerID)
 	}
 
 	// exitProcessFunc may not exit the process immediately.

@@ -7,14 +7,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/zerolog/log"
 	"voyager.com/server/crashtest"
 	"voyager.com/server/game"
+	"voyager.com/server/internal"
 	"voyager.com/server/nats"
 	"voyager.com/server/util"
 )
 
-var restLogger = log.With().Str("logger_name", "game::rest").Logger()
+var restLogger = util.GetZeroLogger("game::rest", nil)
 var natsGameManager *nats.GameManager
 var onEndSystemTest func()
 
@@ -128,7 +128,6 @@ func setupCrash(c *gin.Context) {
 }
 
 func newGame(c *gin.Context) {
-	restLogger.Debug().Msgf("New game is received")
 	type payload struct {
 		GameID    uint64 `json:"gameId"`
 		GameCode  string `json:"gameCode"`
@@ -148,11 +147,19 @@ func newGame(c *gin.Context) {
 	}
 
 	restLogger.Debug().Msgf("new-game payload: %+v", gameConfig)
+	gameID := gameConfig.GameID
+	gameCode := gameConfig.GameCode
 
+	internal.GameCodeCache.Add(gameID, gameCode)
 	util.Metrics.NewGameReceived()
 
+	restLogger.Debug().
+		Uint64("gameID", gameID).
+		Str("gameCode", gameCode).
+		Msgf("New game is received")
+
 	// initialize nats game
-	_, err = natsGameManager.NewGame(gameConfig.GameID, gameConfig.GameCode)
+	_, err = natsGameManager.NewGame(gameID, gameCode)
 	if err != nil {
 		msg := fmt.Sprintf("Unable to initialize nats game: %v", err)
 		restLogger.Error().Msg(msg)
@@ -162,13 +169,16 @@ func newGame(c *gin.Context) {
 	if gameConfig.IsRestart {
 		// This game is being restarted due to game server crash, etc.
 		// Need to resume from where it left off.
-		restLogger.Debug().Msgf("Resuming game %d/%s", gameConfig.GameID, gameConfig.GameCode)
-		natsGameManager.ResumeGame(gameConfig.GameID)
+		restLogger.Debug().
+			Uint64("gameID", gameID).
+			Str("gameCode", gameCode).
+			Msgf("Resuming game due to restart")
+		natsGameManager.ResumeGame(gameID)
 	}
 
 	// TODO: Returning table status probably doesn't make sense.
 	c.JSON(http.StatusOK, tableStatus{
-		GameID:      gameConfig.GameID,
+		GameID:      gameID,
 		TableStatus: uint32(game.TableStatus_WAITING_TO_BE_STARTED),
 	})
 }
@@ -183,7 +193,16 @@ func resumeGame(c *gin.Context) {
 		c.String(400, "Failed to parse game-id [%s] from resume-game endpoint.", gameIDStr)
 	}
 
-	restLogger.Debug().Msgf("****** Resuming game %s", gameIDStr)
+	gameCode, ok := internal.GameCodeCache.GameIDToCode(gameID)
+	if !ok {
+		// Should not get here.
+		gameCode = ""
+		restLogger.Warn().Uint64("gameID", gameID).Msgf("No game code found in cache while resuming game")
+	}
+	restLogger.Debug().
+		Uint64("gameID", gameID).
+		Str("gameCode", gameCode).
+		Msgf("Resuming game")
 	natsGameManager.ResumeGame(gameID)
 }
 
@@ -197,7 +216,16 @@ func endGame(c *gin.Context) {
 		c.String(400, "Failed to parse game-id [%s] from end-game endpoint.", gameIDStr)
 	}
 
-	restLogger.Debug().Msgf("****** Resuming game %s", gameIDStr)
+	gameCode, ok := internal.GameCodeCache.GameIDToCode(gameID)
+	if !ok {
+		// Should not get here.
+		gameCode = ""
+		restLogger.Warn().Uint64("gameID", gameID).Msgf("No game code found in cache while ending game")
+	}
+	restLogger.Debug().
+		Uint64("gameID", gameID).
+		Str("gameCode", gameCode).
+		Msgf("Ending game")
 	natsGameManager.EndNatsGame(gameID)
 }
 
@@ -234,8 +262,12 @@ func gameCurrentHandLog(c *gin.Context) {
 	if err != nil {
 		c.String(400, "Failed to parse game-id [%s] from current hand log endpoint.", gameIDStr)
 	}
-	log := natsGameManager.GetCurrentHandLog(gameID)
-	c.JSON(http.StatusOK, log)
+	log, success := natsGameManager.GetCurrentHandLog(gameID)
+	status := http.StatusOK
+	if !success {
+		status = http.StatusInternalServerError
+	}
+	c.JSON(status, log)
 }
 
 func endSystemTest(c *gin.Context) {

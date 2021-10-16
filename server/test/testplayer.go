@@ -6,11 +6,11 @@ import (
 	"strconv"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/rs/zerolog/log"
 	"voyager.com/server/game"
+	"voyager.com/server/util"
 )
 
-var testPlayerLogger = log.With().Str("logger_name", "test::testplayer").Logger()
+var testPlayerLogger = util.GetZeroLogger("test::testplayer", nil)
 
 // TestPlayer is a receiver for game and hand messages
 // it also sends messages to game and hand via player object

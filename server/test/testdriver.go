@@ -7,13 +7,13 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"gopkg.in/godo.v2/glob"
 	yaml "gopkg.in/yaml.v2"
 	"voyager.com/server/game"
+	"voyager.com/server/util"
 )
 
-var testDriverLogger = log.With().Str("logger_name", "test::testdriver").Logger()
+var testDriverLogger = util.GetZeroLogger("test::testdriver", nil)
 
 type ScriptTestResult struct {
 	Filename string

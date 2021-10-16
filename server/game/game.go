@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/proto"
 	"voyager.com/encryption"
 	"voyager.com/server/crashtest"
@@ -26,8 +26,6 @@ import (
 NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 **/
 
-var channelGameLogger = log.With().Str("logger_name", "game::game").Logger()
-
 type MessageSender interface {
 	BroadcastGameMessage(message *GameMessage)
 	BroadcastHandMessage(message *HandMessage)
@@ -38,6 +36,8 @@ type MessageSender interface {
 type Game struct {
 	gameID   uint64
 	gameCode string
+
+	logger *zerolog.Logger
 
 	manager        *Manager
 	end            chan bool
@@ -88,7 +88,12 @@ func NewPokerGame(
 	encryptionKeyCache *encryptionkey.Cache,
 	apiServerURL string) (*Game, error) {
 
+	logger := util.GetZeroLogger("game::Game", nil).With().
+		Uint64("gameID", gameID).
+		Str("gameCode", gameCode).
+		Logger()
 	g := Game{
+		logger:             &logger,
 		gameID:             gameID,
 		gameCode:           gameCode,
 		isScriptTest:       isScriptTest,
@@ -107,9 +112,25 @@ func NewPokerGame(
 	g.chHand = make(chan []byte, 10)
 	g.end = make(chan bool, 10)
 	g.chPlayTimedOut = make(chan timer.TimerMsg)
-	g.actionTimer = timer.NewActionTimer(g.gameCode, g.queueActionTimeoutMsg, g.crashHandler)
-	g.actionTimer2 = timer.NewActionTimer(g.gameCode, g.queueActionTimeoutMsg, g.crashHandler)
-	g.networkCheck = NewNetworkCheck(g.gameID, g.gameCode, messageSender, g.crashHandler)
+	timer1Logger := util.GetZeroLogger("timer::ActionTimer", nil).
+		With().Uint64("gameID", gameID).
+		Str("gameCode", gameCode).
+		Int("timerID", 1).
+		Logger()
+	g.actionTimer = timer.NewActionTimer(&timer1Logger, g.queueActionTimeoutMsg, g.crashHandler)
+
+	// Timer 2 is used for run-it-twice player 2.
+	timer2Logger := util.GetZeroLogger("timer::ActionTimer", nil).
+		With().Uint64("gameID", gameID).
+		Str("gameCode", gameCode).
+		Int("timerID", 2).
+		Logger()
+	g.actionTimer2 = timer.NewActionTimer(&timer2Logger, g.queueActionTimeoutMsg, g.crashHandler)
+	networkCheckLogger := util.GetZeroLogger("NetworkCheck", nil).
+		With().Uint64("gameID", gameID).
+		Str("gameCode", gameCode).
+		Logger()
+	g.networkCheck = NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, messageSender, g.crashHandler)
 
 	if g.isScriptTest {
 		g.initTestGameState()
@@ -130,7 +151,12 @@ func NewTestPokerGame(
 	encryptionKeyCache *encryptionkey.Cache,
 	apiServerURL string) (*Game, error) {
 
+	logger := util.GetZeroLogger("game::Game", nil).With().
+		Uint64("gameID", gameID).
+		Str("gameCode", gameCode).
+		Logger()
 	g := Game{
+		logger:             &logger,
 		gameID:             gameID,
 		gameCode:           gameCode,
 		isScriptTest:       isScriptTest,
@@ -149,9 +175,25 @@ func NewTestPokerGame(
 	g.chHand = make(chan []byte, 10)
 	g.end = make(chan bool, 10)
 	g.chPlayTimedOut = make(chan timer.TimerMsg)
-	g.actionTimer = timer.NewActionTimer(g.gameCode, g.queueActionTimeoutMsg, g.crashHandler)
-	g.actionTimer2 = timer.NewActionTimer(g.gameCode, g.queueActionTimeoutMsg, g.crashHandler)
-	g.networkCheck = NewNetworkCheck(g.gameID, g.gameCode, messageSender, g.crashHandler)
+	timer1Logger := util.GetZeroLogger("timer::ActionTimer", nil).
+		With().Uint64("gameID", gameID).
+		Str("gameCode", gameCode).
+		Int("timerID", 1).
+		Logger()
+	g.actionTimer = timer.NewActionTimer(&timer1Logger, g.queueActionTimeoutMsg, g.crashHandler)
+
+	// Timer 2 is used for run-it-twice player 2.
+	timer2Logger := util.GetZeroLogger("timer::ActionTimer", nil).
+		With().Uint64("gameID", gameID).
+		Str("gameCode", gameCode).
+		Int("timerID", 2).
+		Logger()
+	g.actionTimer2 = timer.NewActionTimer(&timer2Logger, g.queueActionTimeoutMsg, g.crashHandler)
+	networkCheckLogger := util.GetZeroLogger("game::NetworkCheck", nil).
+		With().Uint64("gameID", gameID).
+		Str("gameCode", gameCode).
+		Logger()
+	g.networkCheck = NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, messageSender, g.crashHandler)
 
 	if g.isScriptTest {
 		g.initTestGameState()
@@ -184,16 +226,14 @@ func (g *Game) GameStarted() error {
 }
 
 func (g *Game) GameEnded() error {
-	channelGameLogger.Info().
-		Str("game", g.gameCode).
+	g.logger.Info().
 		Msg("Cleaning up game")
 	g.end <- true
 	g.actionTimer.Destroy()
 	g.actionTimer2.Destroy()
 	g.networkCheck.Destroy()
 	g.removeHandState()
-	channelGameLogger.Info().
-		Str("game", g.gameCode).
+	g.logger.Info().
 		Msg("Finished cleaning up game")
 	return nil
 }
@@ -203,8 +243,7 @@ func (g *Game) runGame(handState *HandState) {
 		if err := recover(); err != nil {
 			// Panic occurred.
 			debug.PrintStack()
-			channelGameLogger.Error().
-				Str("game", g.gameCode).
+			g.logger.Error().
 				Msgf("runGame returning due to panic: %s\nStack Trace:\n%s", err, string(debug.Stack()))
 
 			g.crashHandler()
@@ -216,8 +255,7 @@ func (g *Game) runGame(handState *HandState) {
 		if g.isScriptTest && !g.running {
 			started, err := g.startTestGame()
 			if err != nil {
-				channelGameLogger.Error().
-					Str("game", g.gameCode).
+				g.logger.Error().
 					Msg(fmt.Sprintf("Failed to start game: %v", err))
 			} else {
 				if started {
@@ -244,13 +282,12 @@ func (g *Game) runGame(handState *HandState) {
 		case timeoutMsg := <-g.chPlayTimedOut:
 			err := g.handlePlayTimeout(timeoutMsg)
 			if err != nil {
-				channelGameLogger.Error().Msgf("Error while handling player timeout %+v", err)
+				g.logger.Error().Msgf("Error while handling player timeout %+v", err)
 			}
 		default:
 			if g.isScriptTest && !g.running {
 				playersInSeats := g.playersInSeatsCount()
-				channelGameLogger.Trace().
-					Str("game", g.gameCode).
+				g.logger.Trace().
 					Msg(fmt.Sprintf("Waiting for players to join. %d players in the table, and waiting for %d more players",
 						playersInSeats, g.testGameConfig.MinPlayers-playersInSeats))
 				time.Sleep(50 * time.Millisecond)
@@ -297,8 +334,7 @@ func (g *Game) startTestGame() (bool, error) {
 		return false, nil
 	}
 
-	channelGameLogger.Info().
-		Str("game", g.gameCode).
+	g.logger.Info().
 		Msgf("Test game starting")
 
 	g.Status = GameStatus_ACTIVE
@@ -369,8 +405,7 @@ func (g *Game) dealNewHand() error {
 	if testHandSetup != nil {
 		pauseBeforeHand := testHandSetup.Pause
 		if pauseBeforeHand != 0 {
-			channelGameLogger.Debug().
-				Str("game", g.gameCode).
+			g.logger.Debug().
 				Uint32("hand", newHandNum).
 				Msg(fmt.Sprintf("PAUSING the game %d seconds", pauseBeforeHand))
 			time.Sleep(time.Duration(pauseBeforeHand) * time.Second)
@@ -498,8 +533,7 @@ func (g *Game) dealNewHand() error {
 		resultPauseTime = testHandSetup.ResultPauseTime
 	}
 	if resultPauseTime == 0 {
-		channelGameLogger.Warn().
-			Str("game", g.gameCode).
+		g.logger.Warn().
 			Msgf("Using the default result delay value (delays.ResultPerWinner = %d) instead of the one from the hand config", g.delays.ResultPerWinner)
 		resultPauseTime = g.delays.ResultPerWinner
 	}
@@ -517,8 +551,7 @@ func (g *Game) dealNewHand() error {
 	}
 
 	if g.isScriptTest {
-		channelGameLogger.Trace().
-			Str("game", g.gameCode).
+		g.logger.Trace().
 			Uint32("hand", handState.HandNum).
 			Msg(fmt.Sprintf("Table: %s", handState.PrintTable(g.scriptTestPlayers)))
 	}
@@ -647,8 +680,7 @@ func (g *Game) dealNewHand() error {
 	}
 
 	// print next action
-	channelGameLogger.Trace().
-		Str("game", g.gameCode).
+	g.logger.Trace().
 		Uint32("hand", handState.HandNum).
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, g.PlayersInSeats)))
 
@@ -989,14 +1021,13 @@ func (g *Game) getGameInfoOld(apiServerURL string, gameCode string, retryDelay u
 
 		resp, err := http.Get(url)
 		if resp == nil {
-			channelGameLogger.Error().Msgf("Connection to API server is lost. Waiting for %.3f seconds before retrying", float32(retryDelay)/1000)
+			g.logger.Error().Msgf("Connection to API server is lost. Waiting for %.3f seconds before retrying", float32(retryDelay)/1000)
 			time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 			continue
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
-			channelGameLogger.Error().
-				Str("gameCode", gameCode).
+			g.logger.Error().
 				Msgf("Failed to fetch game info from api server (%s). Error: %d", apiServerURL, resp.StatusCode)
 			time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 			ignore = true
@@ -1016,7 +1047,7 @@ func (g *Game) getGameInfoOld(apiServerURL string, gameCode string, retryDelay u
 	return &gameConfig, nil
 }
 
-func anyPendingUpdates(apiServerUrl string, gameID uint64, retryDelay uint32) (bool, error) {
+func (g *Game) anyPendingUpdates(apiServerUrl string, gameID uint64, retryDelay uint32) (bool, error) {
 	type pendingUpdates struct {
 		PendingUpdates bool
 	}
@@ -1026,13 +1057,13 @@ func anyPendingUpdates(apiServerUrl string, gameID uint64, retryDelay uint32) (b
 	for retry {
 		resp, err := http.Get(url)
 		if resp == nil {
-			channelGameLogger.Error().Msgf("Connection to API server is lost. Waiting for %.3f seconds before retrying", float32(retryDelay)/1000)
+			g.logger.Error().Msgf("Connection to API server is lost. Waiting for %.3f seconds before retrying", float32(retryDelay)/1000)
 			time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 			continue
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
-			channelGameLogger.Error().Uint64("game", gameID).Msgf("Failed to get pending status. Error: %d", resp.StatusCode)
+			g.logger.Error().Uint64("game", gameID).Msgf("Failed to get pending status. Error: %d", resp.StatusCode)
 			return false, fmt.Errorf("Failed to get pending status")
 		}
 

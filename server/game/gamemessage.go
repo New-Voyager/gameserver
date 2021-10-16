@@ -12,8 +12,7 @@ import (
 )
 
 func (g *Game) handleGameMessage(message *GameMessage) {
-	channelGameLogger.Trace().
-		Str("game", g.gameCode).
+	g.logger.Trace().
 		Msgf("Game message: %s. %v", message.MessageType, message)
 
 	var err error
@@ -40,8 +39,7 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 			// We shouldn't really get here, but this is just to
 			// handle potential error situation from api server
 			// where it calls resumeGame multiple times.
-			channelGameLogger.Warn().
-				Str("game", g.gameCode).
+			g.logger.Warn().
 				Msgf("onResume called when hand is already in progress. Doing nothing.")
 			break
 		}
@@ -59,8 +57,7 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 
 	if err != nil {
 		err = errors.Wrapf(err, "Error while handling %s", message.MessageType)
-		channelGameLogger.Error().
-			Str("game", g.gameCode).
+		g.logger.Error().
 			Msg(err.Error())
 	}
 }
@@ -95,8 +92,7 @@ func (g *Game) onResume(message *GameMessage) (bool, error) {
 		return isPaused, nil
 	}
 
-	channelGameLogger.Debug().
-		Str("game", g.gameCode).
+	g.logger.Debug().
 		Msgf("Resuming game. Restarting hand at flow state [%s].", handState.FlowState)
 
 	// We could be crash-restarting. Restore the encryption keys from the hand state.
@@ -135,14 +131,14 @@ func (g *Game) onResume(message *GameMessage) (bool, error) {
 
 func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCode string) {
 	// call api server processPendingUpdates
-	channelGameLogger.Debug().Msgf("Processing pending updates for the game %d", gameID)
+	g.logger.Debug().Msgf("Processing pending updates for the game %d", gameID)
 	url := fmt.Sprintf("%s/internal/process-pending-updates/gameId/%d", apiServerURL, gameID)
 
 	retries := 0
 	resp, err := http.Post(url, "application/json", nil)
 	for err != nil && retries < int(g.maxRetries) {
 		retries++
-		channelGameLogger.Error().Msgf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, g.maxRetries)
+		g.logger.Error().Msgf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, g.maxRetries)
 		time.Sleep(time.Duration(g.retryDelayMillis) * time.Millisecond)
 		resp, err = http.Post(url, "application/json", nil)
 	}
@@ -160,7 +156,7 @@ func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCod
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		channelGameLogger.Panic().Uint64("game", gameID).Msgf("Failed to process pending updates. Error: %d", resp.StatusCode)
+		g.logger.Panic().Uint64("game", gameID).Msgf("Failed to process pending updates. Error: %d", resp.StatusCode)
 	}
 }
 
@@ -213,7 +209,7 @@ func (g *Game) moveToNextHand(handState *HandState) (bool, error) {
 	// if there are no pending updates, deal next hand
 
 	// check any pending updates
-	pendingUpdates, _ := anyPendingUpdates(g.apiServerURL, g.gameID, g.delays.PendingUpdatesRetry)
+	pendingUpdates, _ := g.anyPendingUpdates(g.apiServerURL, g.gameID, g.delays.PendingUpdatesRetry)
 	if pendingUpdates {
 		go g.processPendingUpdates(g.apiServerURL, g.gameID, g.gameCode)
 		handState.FlowState = FlowState_WAIT_FOR_PENDING_UPDATE

@@ -19,7 +19,6 @@ import (
 	"voyager.com/server/util"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"voyager.com/server/poker"
 	"voyager.com/server/test"
 )
@@ -31,7 +30,7 @@ var delayConfigFile *string
 var testName *string
 var testDeal *bool
 var exit bool
-var mainLogger = log.With().Str("logger_name", "nats::main").Logger()
+var mainLogger = util.GetZeroLogger("main::main", nil)
 
 func init() {
 	runServer = flag.Bool("server", true, "runs game server")

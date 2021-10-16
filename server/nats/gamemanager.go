@@ -6,13 +6,13 @@ import (
 
 	natsgo "github.com/nats-io/nats.go"
 	cmap "github.com/orcaman/concurrent-map"
-	"github.com/rs/zerolog/log"
+	"github.com/pkg/errors"
 
 	"voyager.com/server/util"
 )
 
 var NatsURL string
-var natsGMLogger = log.With().Str("logger_name", "nats::gamemanager").Logger()
+var natsGMLogger = util.GetZeroLogger("nats::gamemanager", nil)
 
 // This game manager is similar to game.GameManager.
 // However, this game manager active NatsGame objects.
@@ -55,11 +55,13 @@ func NewGameManager(nc *natsgo.Conn) (*GameManager, error) {
 }
 
 func (gm *GameManager) NewGame(gameID uint64, gameCode string) (*NatsGame, error) {
-	natsGMLogger.Info().Msgf("New game %d/%s", gameID, gameCode)
+	natsGMLogger.Info().
+		Uint64("gameID", gameID).Str("gameCode", gameCode).
+		Msgf("New game %d:%s", gameID, gameCode)
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	game, err := newNatsGame(gm.nc, gameID, gameCode)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Could create new NATS game")
 	}
 	gm.activeGames.Set(gameIDStr, game)
 	gm.gameIDToCode.Set(gameIDStr, gameCode)
@@ -94,7 +96,7 @@ func (gm *GameManager) GetGames() ([]GameListItem, error) {
 }
 
 func (gm *GameManager) CrashCleanup(gameID uint64) {
-	natsGMLogger.Error().Msgf("CrashCleanup called for game ID %d", gameID)
+	natsGMLogger.Error().Uint64("gameID", gameID).Msgf("CrashCleanup called", gameID)
 	gm.EndNatsGame(gameID)
 }
 
@@ -143,7 +145,7 @@ func (gm *GameManager) SetupHand(handSetup HandSetup) {
 	natsGame.setupHand(handSetup)
 }
 
-func (gm *GameManager) GetCurrentHandLog(gameID uint64) *map[string]interface{} {
+func (gm *GameManager) GetCurrentHandLog(gameID uint64) (*map[string]interface{}, bool /*success*/) {
 	// first check whether the game is hosted by this game server
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	var natsGame *NatsGame
@@ -154,8 +156,8 @@ func (gm *GameManager) GetCurrentHandLog(gameID uint64) *map[string]interface{} 
 		// lookup using game code
 		var errors map[string]interface{}
 		errors["errors"] = fmt.Sprintf("Cannot find game %d", gameID)
-		return &errors
+		return &errors, false
 	}
 	handLog := natsGame.getHandLog()
-	return handLog
+	return handLog, true
 }

@@ -120,8 +120,7 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 // handle run-it-twice confirmation
 func (g *Game) runItTwiceConfirmation(h *HandState, message *HandMessage) ([]*HandMessageItem, error) {
 	actionMsg := g.getClientMsgItem(message)
-	channelGameLogger.Info().
-		Str("game", g.gameCode).
+	g.logger.Info().
 		Uint32("seatNo", message.SeatNo).
 		Str("message", actionMsg.MessageType).
 		Msgf("Run it twice confirmation: %d", actionMsg.GetPlayerActed().Action)
@@ -201,8 +200,7 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 
 	if runItTwice.Seat1Confirmed && runItTwice.Seat2Confirmed {
 		// run two boards
-		channelGameLogger.Info().
-			Str("game", g.gameCode).
+		g.logger.Info().
 			Uint32("handNum", h.HandNum).
 			Msgf("Both seats YES. Running two boards")
 		h.RunItTwiceConfirmed = true
@@ -285,7 +283,7 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 			boardCards2[i] = uint32(card)
 		}
 
-		fmt.Printf("Board1: %s, Board2: %s\n", poker.CardsToString(boardCards), poker.CardsToString(boardCards2))
+		g.logger.Trace().Msgf("Board1: %s, Board2: %s", poker.CardsToString(boardCards), poker.CardsToString(boardCards2))
 
 		pots := make([]*SeatsInPots, 0)
 		for _, pot := range h.Pots {
@@ -318,8 +316,7 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 		}
 	} else {
 		// one of the players didn't confirm
-		channelGameLogger.Info().
-			Str("game", g.gameCode).
+		g.logger.Info().
 			Uint32("handNum", h.HandNum).
 			Msgf("Running one board")
 		h.RunItTwiceConfirmed = false

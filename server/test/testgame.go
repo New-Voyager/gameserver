@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rs/zerolog/log"
 	"voyager.com/server/game"
+	"voyager.com/server/util"
 )
 
-var testGameLogger = log.With().Str("logger_name", "test::testgame").Logger()
+var testGameLogger = util.GetZeroLogger("test::testgame", nil)
 var gameID uint64 = 1
 
 // TestGame is a game simulation object to drive the game from client perspective

@@ -9,10 +9,10 @@ import (
 
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
+	"voyager.com/server/util"
 )
 
-var encryptionKeyCacheLogger = log.With().Str("logger_name", "internal::encryptionkey").Logger()
+var encryptionKeyCacheLogger = util.GetZeroLogger("internal::encryptionkey", nil)
 
 type Cache struct {
 	cache            *lru.Cache
