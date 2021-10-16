@@ -1,4 +1,4 @@
-package internal
+package caches
 
 import (
 	"fmt"
@@ -7,14 +7,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-type GameCodeCacheStruct struct {
+type GameCodeCache struct {
 	gameIDToCode *lru.Cache
 	gameCodeToID *lru.Cache
 }
 
-var GameCodeCache = createCache()
-
-func createCache() *GameCodeCacheStruct {
+func createCache() *GameCodeCache {
 	c, err := NewCache()
 	if err != nil {
 		panic("Cannot initialize game code cache")
@@ -22,7 +20,7 @@ func createCache() *GameCodeCacheStruct {
 	return c
 }
 
-func NewCache() (*GameCodeCacheStruct, error) {
+func NewCache() (*GameCodeCache, error) {
 	size := 100000
 	gameIDToCode, err := lru.New(size)
 	if err != nil {
@@ -32,13 +30,13 @@ func NewCache() (*GameCodeCacheStruct, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to initialize gameCodeToID cache")
 	}
-	return &GameCodeCacheStruct{
+	return &GameCodeCache{
 		gameIDToCode: gameIDToCode,
 		gameCodeToID: gameCodeToID,
 	}, nil
 }
 
-func (c *GameCodeCacheStruct) Add(gameID uint64, gameCode string) error {
+func (c *GameCodeCache) Add(gameID uint64, gameCode string) error {
 	if gameID == 0 {
 		return fmt.Errorf("Invalid game ID [%d]", gameID)
 	} else if gameCode == "" {
@@ -50,7 +48,7 @@ func (c *GameCodeCacheStruct) Add(gameID uint64, gameCode string) error {
 	return nil
 }
 
-func (c *GameCodeCacheStruct) GameIDToCode(gameID uint64) (string, bool) {
+func (c *GameCodeCache) GameIDToCode(gameID uint64) (string, bool) {
 	v, exists := c.gameIDToCode.Get(gameID)
 	if !exists {
 		return "", false
@@ -58,7 +56,7 @@ func (c *GameCodeCacheStruct) GameIDToCode(gameID uint64) (string, bool) {
 	return v.(string), true
 }
 
-func (c *GameCodeCacheStruct) GameCodeToID(gameCode string) (uint64, bool) {
+func (c *GameCodeCache) GameCodeToID(gameCode string) (uint64, bool) {
 	v, exists := c.gameCodeToID.Get(gameCode)
 	if !exists {
 		return 0, false

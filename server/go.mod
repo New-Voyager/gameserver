@@ -27,6 +27,7 @@ require (
 	gopkg.in/godo.v2 v2.0.9
 	gopkg.in/yaml.v2 v2.3.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
+	voyager.com/caching v0.0.0-00010101000000-000000000000
 	voyager.com/encryption v0.0.0-00010101000000-000000000000
 )
 
@@ -49,3 +50,5 @@ replace voyager.com/server/rest => ./rest
 replace voyager.com/server/timer => ./timer
 
 replace voyager.com/encryption => ../encryption
+
+replace voyager.com/caching => ../caching

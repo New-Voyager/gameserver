@@ -9,7 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"voyager.com/server/crashtest"
 	"voyager.com/server/game"
-	"voyager.com/server/internal"
+	"voyager.com/server/internal/caches"
 	"voyager.com/server/nats"
 	"voyager.com/server/util"
 )
@@ -150,7 +150,7 @@ func newGame(c *gin.Context) {
 	gameID := gameConfig.GameID
 	gameCode := gameConfig.GameCode
 
-	internal.GameCodeCache.Add(gameID, gameCode)
+	caches.GameCodeCache.Add(gameID, gameCode)
 	util.Metrics.NewGameReceived()
 
 	restLogger.Debug().
@@ -193,7 +193,7 @@ func resumeGame(c *gin.Context) {
 		c.String(400, "Failed to parse game-id [%s] from resume-game endpoint.", gameIDStr)
 	}
 
-	gameCode, ok := internal.GameCodeCache.GameIDToCode(gameID)
+	gameCode, ok := caches.GameCodeCache.GameIDToCode(gameID)
 	if !ok {
 		// Should not get here.
 		gameCode = ""
@@ -216,7 +216,7 @@ func endGame(c *gin.Context) {
 		c.String(400, "Failed to parse game-id [%s] from end-game endpoint.", gameIDStr)
 	}
 
-	gameCode, ok := internal.GameCodeCache.GameIDToCode(gameID)
+	gameCode, ok := caches.GameCodeCache.GameIDToCode(gameID)
 	if !ok {
 		// Should not get here.
 		gameCode = ""

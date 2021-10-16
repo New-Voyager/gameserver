@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"voyager.com/botrunner/internal/driver"
+	"voyager.com/botrunner/internal/logging"
 	"voyager.com/botrunner/internal/util"
 	"voyager.com/gamescript"
 )
@@ -88,7 +89,6 @@ func (b *BotRunnerBatch) mainLoop() {
 		}
 
 		nextInstanceNo := numInstances + 1
-		loggerName := fmt.Sprintf("BotRunner%d", nextInstanceNo)
 		err := os.MkdirAll(b.botRunnerLogDir, os.ModePerm)
 		if err != nil {
 			b.logger.Error().Msgf("Unable to create log directory %s: %s", b.botRunnerLogDir, err)
@@ -102,8 +102,8 @@ func (b *BotRunnerBatch) mainLoop() {
 			time.Sleep(2 * time.Second)
 			continue
 		}
-		botRunnerLogger := zerolog.New(f).With().Timestamp().Str("logger_name", loggerName).Logger()
-		botPlayerLogger := zerolog.New(f).With().Timestamp().Str("logger_name", "BotPlayer").Logger()
+		botRunnerLogger := logging.GetZeroLogger("BotRunner", f).With().Logger()
+		botPlayerLogger := logging.GetZeroLogger("BotPlayer", f).With().Logger()
 
 		b.logger.Info().Msgf("Launching bot runner instance [%d]. Logging to %s.", nextInstanceNo, logFileName)
 		botRunner, err := driver.NewBotRunner("", "", b.script, b.players, &botRunnerLogger, &botPlayerLogger, false, false)

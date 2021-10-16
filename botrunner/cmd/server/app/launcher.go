@@ -105,12 +105,12 @@ func (l *Launcher) BatchExists(batchID string) bool {
 }
 
 // JoinHumanGame starts a BotRunner that joins a human-created game.
-func (l *Launcher) JoinHumanGame(clubCode string, gameCode string, players *gamescript.Players, script *gamescript.Script) error {
+func (l *Launcher) JoinHumanGame(clubCode string, gameID uint64, gameCode string, players *gamescript.Players, script *gamescript.Script) error {
 	_, exists := l.humanGames[gameCode]
 	if exists {
 		return fmt.Errorf("There is already an existing BotRunner for game [%s]", gameCode)
 	}
-	h, err := NewHumanGame(clubCode, gameCode, players, script)
+	h, err := NewHumanGame(clubCode, gameID, gameCode, players, script)
 	if err != nil {
 		return err
 	}

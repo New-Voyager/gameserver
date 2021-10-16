@@ -3,11 +3,13 @@ package app
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"voyager.com/botrunner/internal/caches"
 	"voyager.com/botrunner/internal/util"
 	"voyager.com/gamescript"
 )
@@ -223,14 +225,29 @@ func getAppGameTitle(scriptFile string) (string, error) {
 func joinHumanGame(c *gin.Context) {
 	clubCode := c.Query("club-code")
 	if clubCode == "" {
-		c.String(400, "Failed to read club-code param from join-hame endpoint")
+		c.String(400, "Failed to read club-code param from join-human-game endpoint")
 	}
 	gameCode := c.Query("game-code")
 	if gameCode == "" {
-		c.String(400, "Failed to read game-code param from join-hame endpoint.")
+		c.String(400, "Failed to read game-code param from join-human-game endpoint.")
 	}
 	if clubCode == "null" {
 		clubCode = ""
+	}
+	gameIDStr := c.Query("game-id")
+	if gameIDStr == "" {
+		c.String(400, "Failed to read game-id param from join-human-game endpoint")
+	}
+	gameID, err := strconv.ParseUint(gameIDStr, 10, 64)
+	if err != nil {
+		c.String(400, "Failed to parse game-id [%s] from join-human-game endpoint.", gameIDStr)
+	}
+
+	err = caches.GameCodeCache.Add(gameID, gameCode)
+	if err != nil {
+		restLogger.Error().Msgf(err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	players, err := gamescript.ReadPlayersConfig(playersConfig)
@@ -249,7 +266,7 @@ func joinHumanGame(c *gin.Context) {
 	}
 
 	launcher := GetLauncher()
-	err = launcher.JoinHumanGame(clubCode, gameCode, players, script)
+	err = launcher.JoinHumanGame(clubCode, gameID, gameCode, players, script)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error while joining human game. Error: %s", err)
 		restLogger.Error().Msg(errMsg)

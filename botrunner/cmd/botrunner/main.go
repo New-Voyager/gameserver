@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"voyager.com/botrunner/internal/driver"
+	"voyager.com/botrunner/internal/logging"
 	"voyager.com/botrunner/internal/util"
 
 	"voyager.com/gamescript"
@@ -65,8 +66,8 @@ func botrunner() int {
 		mainLogger.Error().Msgf("Error while parsing script file: %+v", err)
 		return 1
 	}
-	driverLogger := log.With().Str("logger_name", "BotRunner").Logger()
-	playerLogger := log.With().Str("logger_name", "BotPlayer").Logger()
+	driverLogger := logging.GetZeroLogger("BotRunner", nil).With().Logger()
+	playerLogger := logging.GetZeroLogger("BotPlayer", nil).With().Logger()
 	botRunner, err := driver.NewBotRunner(cmdArgs.clubCode, cmdArgs.gameCode, script, players, &driverLogger, &playerLogger, cmdArgs.resetDB, false)
 	if err != nil {
 		mainLogger.Error().Msgf("Error while creating a bot runner %+v", err)

@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"voyager.com/botrunner/internal/driver"
+	"voyager.com/botrunner/internal/logging"
 	"voyager.com/gamescript"
 )
 
@@ -38,7 +39,6 @@ func NewAppGame(clubCode string, name string, players *gamescript.Players, scrip
 
 // Launch launches the BotRunner.
 func (b *AppGame) Launch() error {
-	loggerName := fmt.Sprintf("BotRunner<%s>", b.name)
 	err := os.MkdirAll(b.botRunnerLogDir, os.ModePerm)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("Unable to create log directory %s", b.botRunnerLogDir))
@@ -48,10 +48,10 @@ func (b *AppGame) Launch() error {
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("Unable to create log file %s", logFileName))
 	}
-	botRunnerLogger := zerolog.New(f).With().Str("logger_name", loggerName).Logger()
-	botPlayerLogger := zerolog.New(f).With().Str("logger_name", "BotPlayer").Logger()
 
 	b.logger.Info().Msgf("Launching bot runner to start an app game. Logging to %s", logFileName)
+	botRunnerLogger := logging.GetZeroLogger("BotRunner", f).With().Logger()
+	botPlayerLogger := logging.GetZeroLogger("BotPlayer", f).With().Logger()
 	botRunner, err := driver.NewBotRunner(b.clubCode, "", b.script, b.players, &botRunnerLogger, &botPlayerLogger, false, false)
 	if err != nil {
 		errors.Wrap(err, "Error while creating a BotRunner")

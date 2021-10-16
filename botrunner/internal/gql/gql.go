@@ -231,7 +231,7 @@ func (g *GQLHelper) GetClubMemberStatus(clubCode string) (ClubInfoResp, error) {
 }
 
 // CreateGame creates a new game.
-func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (string, error) {
+func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (ConfigureGameResp, error) {
 	req := graphql.NewRequest(ConfigureGameGQL)
 	req.Var("clubCode", clubCode)
 	req.Var("title", opt.Title)
@@ -269,9 +269,9 @@ func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (string,
 	var respData ConfigureGameResp
 	err := g.client.Run(ctx, req, &respData)
 	if err != nil {
-		return "", err
+		return ConfigureGameResp{}, err
 	}
-	return respData.ConfiguredGame.GameCode, nil
+	return respData, nil
 }
 
 // SitIn takes a seat in a game.
@@ -1175,12 +1175,14 @@ const ConfigureGameGQL = `mutation configure_game(
 			dealerChoiceOrbit: $dealerChoiceOrbit
 		}
 	) {
+		gameID
 		gameCode
 	}
 }`
 
 type ConfigureGameResp struct {
 	ConfiguredGame struct {
+		GameID   uint64 `json:"gameID"`
 		GameCode string
 	}
 }
