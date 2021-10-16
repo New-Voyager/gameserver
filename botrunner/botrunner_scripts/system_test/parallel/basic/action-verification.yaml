@@ -22,7 +22,7 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
   - seat: 2
     player: brian
@@ -51,7 +51,7 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
             button: true
             inhand: true
             stack: 100

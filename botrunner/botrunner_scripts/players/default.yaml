@@ -1,7 +1,7 @@
 players:
-  - name: yong
+  - name: young
     deviceId: c2dc2c3d-13da-46cc-8c66-caa0c77459de
-    email: yong@gmail.com
+    email: young@gmail.com
     password: 340k7n0p
     gps:
       lat: 40.730610

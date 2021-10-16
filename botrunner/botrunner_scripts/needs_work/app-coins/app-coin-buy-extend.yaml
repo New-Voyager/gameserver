@@ -32,7 +32,7 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
   - seat: 2
     player: brian
@@ -55,7 +55,7 @@ after-game:
 
     # verify host received APPCOIN_NEEDED message
     private-messages:
-      - player: yong # host
+      - player: young # host
         messages:
           - type: APPCOIN_NEEDED
 

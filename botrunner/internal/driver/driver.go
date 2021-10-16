@@ -80,12 +80,6 @@ func (br *BotRunner) Run() error {
 	minActionDelay := br.script.BotConfig.MinActionDelay
 	maxActionMillis := br.script.BotConfig.MaxActionDelay
 
-	if !br.botIsGameHost {
-		// unscripted game, set action time for bots
-		minActionDelay = 3000
-		maxActionMillis = 7000
-	}
-
 	// Create the player bots based on the setup script.
 	for i, playerConfig := range br.players.Players {
 		bot, err := player.NewBotPlayer(player.Config{

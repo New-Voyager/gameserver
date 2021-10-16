@@ -31,7 +31,7 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
   - seat: 2
     player: brian
@@ -87,7 +87,7 @@ hands:
           - seat: 2
             player: brian
           - seat: 3
-            player: yong
+            player: young
           - seat: 4
             player: john
           - seat: 5
@@ -113,7 +113,7 @@ after-game:
             oldSeatNo: 3
             newSeatNo: 1
             openSeat: false
-          - name: yong
+          - name: young
             oldSeatNo: 1
             newSeatNo: 3
             openSeat: false

@@ -29,7 +29,7 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 300
   - seat: 2
     player: brian

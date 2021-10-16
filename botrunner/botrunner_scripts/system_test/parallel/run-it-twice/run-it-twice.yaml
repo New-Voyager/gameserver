@@ -26,7 +26,7 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
     run-it-twice: true
   - seat: 2

@@ -29,7 +29,7 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
     gps:
       lat: 40.730610
@@ -59,7 +59,7 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
           - seat: 8
             player: tom
 
@@ -68,6 +68,6 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
           - seat: 8
             player: tom

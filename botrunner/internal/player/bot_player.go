@@ -2719,7 +2719,6 @@ func (bp *BotPlayer) getActionDelay(override uint32) time.Duration {
 	if override > 0 {
 		actionTimeMillis = override
 	} else {
-		//actionTimeMillis = 1000
 		actionTimeMillis = util.GetRandomUint32(bp.config.MinActionDelay, bp.config.MaxActionDelay)
 	}
 	return time.Duration(actionTimeMillis) * time.Millisecond

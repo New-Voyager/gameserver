@@ -31,7 +31,7 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
   - seat: 2
     player: brian
@@ -91,7 +91,7 @@ hands:
           - seat: 8
             player: bill
           - seat: 9
-            player: yong
+            player: young
 
 after-game:
   verify:
@@ -106,7 +106,7 @@ after-game:
           - oldSeatNo: 4
             newSeatNo: 1
             openSeat: true
-          - name: yong
+          - name: young
             oldSeatNo: 1
             newSeatNo: 4
             openSeat: false
@@ -116,7 +116,7 @@ after-game:
           - oldSeatNo: 7
             newSeatNo: 4
             openSeat: true
-          - name: yong
+          - name: young
             oldSeatNo: 4
             newSeatNo: 7
             openSeat: false
@@ -126,14 +126,14 @@ after-game:
           - oldSeatNo: 1
             newSeatNo: 7
             openSeat: true
-          - name: yong
+          - name: young
             oldSeatNo: 7
             newSeatNo: 1
             openSeat: false
       - type: TABLE_UPDATE
         subType: HostSeatChangeMove
         seatMoves:
-          - name: yong
+          - name: young
             oldSeatNo: 1
             newSeatNo: 9
             openSeat: false

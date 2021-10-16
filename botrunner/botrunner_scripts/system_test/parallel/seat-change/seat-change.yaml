@@ -30,7 +30,7 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 1000
   - seat: 2
     player: brian
@@ -76,7 +76,7 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
           - seat: 2
             player: brian
           - seat: 4

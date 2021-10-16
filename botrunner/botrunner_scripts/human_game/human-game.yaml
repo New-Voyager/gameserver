@@ -5,3 +5,6 @@ starting-seats: []
 auto-play:
   enabled: true
   num-games: 1
+bot-config:
+  min-action-delay: 1000
+  max-action-delay: 5000

@@ -42,7 +42,7 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
     ip-address: 10.1.1.1
   - seat: 5
@@ -65,7 +65,7 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
           - seat: 5
             player: brian
           - seat: 8
@@ -79,7 +79,7 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
             inhand: true
           - seat: 5
             player: brian
@@ -93,7 +93,7 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
             inhand: true
           - seat: 5
             player: brian
@@ -107,7 +107,7 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
             inhand: true
           - seat: 5
             player: brian
@@ -126,7 +126,7 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
             inhand: true
           - seat: 5
             player: brian
@@ -140,7 +140,7 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
             inhand: true
           - seat: 5
             player: brian

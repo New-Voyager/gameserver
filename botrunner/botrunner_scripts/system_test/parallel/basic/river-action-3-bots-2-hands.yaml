@@ -22,7 +22,7 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
   - seat: 5
     player: brian
@@ -104,7 +104,7 @@ hands:
 
     api:
       game-result-table:
-        - player-name: yong
+        - player-name: young
           hands-played: 1
           buy-in: 100
           profit: 28
@@ -191,7 +191,7 @@ hands:
 
     api:
       game-result-table:
-        - player-name: yong
+        - player-name: young
           hands-played: 2
           buy-in: 100
           profit: 24
@@ -214,7 +214,7 @@ after-game:
   verify:
     api:
       game-result-table:
-        - player-name: yong
+        - player-name: young
           hands-played: 2
           buy-in: 100
           profit: 24
