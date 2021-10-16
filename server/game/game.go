@@ -227,15 +227,13 @@ func (g *Game) GameStarted() error {
 }
 
 func (g *Game) GameEnded() error {
-	g.logger.Info().
-		Msg("Cleaning up game")
+	g.logger.Info().Msg("Cleaning up game")
 	g.end <- true
 	g.actionTimer.Destroy()
 	g.actionTimer2.Destroy()
 	g.networkCheck.Destroy()
 	g.removeHandState()
-	g.logger.Info().
-		Msg("Finished cleaning up game")
+	g.logger.Info().Msg("Finished cleaning up game")
 	return nil
 }
 
@@ -256,8 +254,7 @@ func (g *Game) runGame(handState *HandState) {
 		if g.isScriptTest && !g.running {
 			started, err := g.startTestGame()
 			if err != nil {
-				g.logger.Error().
-					Msg(fmt.Sprintf("Failed to start game: %v", err))
+				g.logger.Error().Msg(fmt.Sprintf("Failed to start game: %v", err))
 			} else {
 				if started {
 					g.running = true
@@ -335,8 +332,7 @@ func (g *Game) startTestGame() (bool, error) {
 		return false, nil
 	}
 
-	g.logger.Info().
-		Msgf("Test game starting")
+	g.logger.Info().Msgf("Test game starting")
 
 	g.Status = GameStatus_ACTIVE
 	g.TableStatus = TableStatus_GAME_RUNNING
@@ -407,7 +403,7 @@ func (g *Game) dealNewHand() error {
 		pauseBeforeHand := testHandSetup.Pause
 		if pauseBeforeHand != 0 {
 			g.logger.Debug().
-				Uint32("hand", newHandNum).
+				Uint32(logging.HandNumKey, newHandNum).
 				Msg(fmt.Sprintf("PAUSING the game %d seconds", pauseBeforeHand))
 			time.Sleep(time.Duration(pauseBeforeHand) * time.Second)
 		}
@@ -553,7 +549,7 @@ func (g *Game) dealNewHand() error {
 
 	if g.isScriptTest {
 		g.logger.Trace().
-			Uint32("hand", handState.HandNum).
+			Uint32(logging.HandNumKey, handState.HandNum).
 			Msg(fmt.Sprintf("Table: %s", handState.PrintTable(g.scriptTestPlayers)))
 	}
 
@@ -682,7 +678,7 @@ func (g *Game) dealNewHand() error {
 
 	// print next action
 	g.logger.Trace().
-		Uint32("hand", handState.HandNum).
+		Uint32(logging.HandNumKey, handState.HandNum).
 		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, g.PlayersInSeats)))
 
 	allMsgItems := make([]*HandMessageItem, 0)
@@ -1064,7 +1060,7 @@ func (g *Game) anyPendingUpdates(apiServerUrl string, gameID uint64, retryDelay 
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
-			g.logger.Error().Uint64("game", gameID).Msgf("Failed to get pending status. Error: %d", resp.StatusCode)
+			g.logger.Error().Msgf("Failed to get pending status. Error: %d", resp.StatusCode)
 			return false, fmt.Errorf("Failed to get pending status")
 		}
 

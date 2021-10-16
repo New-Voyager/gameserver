@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"voyager.com/logging"
 	"voyager.com/server/poker"
 )
 
@@ -121,7 +122,7 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 func (g *Game) runItTwiceConfirmation(h *HandState, message *HandMessage) ([]*HandMessageItem, error) {
 	actionMsg := g.getClientMsgItem(message)
 	g.logger.Info().
-		Uint32("seatNo", message.SeatNo).
+		Uint32(logging.SeatNumKey, message.SeatNo).
 		Str("message", actionMsg.MessageType).
 		Msgf("Run it twice confirmation: %d", actionMsg.GetPlayerActed().Action)
 	action := actionMsg.GetPlayerActed().Action

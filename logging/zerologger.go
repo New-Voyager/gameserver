@@ -9,8 +9,13 @@ import (
 )
 
 const (
-	GameIDKey   string = "gameID"
-	GameCodeKey string = "gameCode"
+	GameIDKey     string = "gameID"
+	GameCodeKey   string = "gameCode"
+	HandNumKey    string = "handNo"
+	SeatNumKey    string = "seatNo"
+	PlayerNameKey string = "playerName"
+	PlayerIDKey   string = "playerID"
+	MsgTypeKey    string = "msgType"
 )
 
 func GetZeroLogger(name string, out io.Writer) *zerolog.Logger {

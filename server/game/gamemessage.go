@@ -57,8 +57,7 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 
 	if err != nil {
 		err = errors.Wrapf(err, "Error while handling %s", message.MessageType)
-		g.logger.Error().
-			Msg(err.Error())
+		g.logger.Error().Msg(err.Error())
 	}
 }
 
@@ -156,7 +155,7 @@ func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCod
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		g.logger.Panic().Uint64("game", gameID).Msgf("Failed to process pending updates. Error: %d", resp.StatusCode)
+		g.logger.Panic().Msgf("Failed to process pending updates. Error: %d", resp.StatusCode)
 	}
 }
 

@@ -24,8 +24,7 @@ func (g *Game) saveHandResult2ToAPIServer(result2 *HandResultServer) (*SaveHandR
 	var m protojson.MarshalOptions
 	m.EmitUnpopulated = true
 	data, _ := m.Marshal(result2)
-	g.logger.Debug().
-		Msgf("Result to API server: %s", string(data))
+	g.logger.Debug().Msgf("Result to API server: %s", string(data))
 	url := fmt.Sprintf("%s/internal/save-hand/gameId/%d/handNum/%d", g.apiServerURL, result2.GameId, result2.HandNum)
 	retries := 0
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))

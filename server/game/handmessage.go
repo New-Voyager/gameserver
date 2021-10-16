@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"voyager.com/logging"
 	"voyager.com/server/crashtest"
 	"voyager.com/server/poker"
 	"voyager.com/server/util"
@@ -17,18 +18,12 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 	err := g.validateClientMsg(message)
 	if err != nil {
 		g.logger.Error().
-			Str("game", g.gameCode).
-			Uint32("player", message.SeatNo).
+			Uint32(logging.SeatNumKey, message.SeatNo).
 			Msgf(err.Error())
 		return
 	}
 
 	msgItem := g.getClientMsgItem(message)
-	g.logger.Debug().
-		Str("game", g.gameCode).
-		Uint32("player", message.SeatNo).
-		Str("message", msgItem.MessageType).
-		Msg(fmt.Sprintf("%v", message))
 
 	switch msgItem.MessageType {
 	case HandPlayerActed:
@@ -275,7 +270,6 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 				actionExpiresAt = now.Add(time.Duration(retryWindowSec) * time.Second)
 			}
 			g.logger.Info().
-				Str("game", g.gameCode).
 				Msgf("Game server restarted with no saved action message. Relying on the client to resend the action. Restarting the action timer. Current time: %s. Action expires at: %s (%f seconds from now).", now, actionExpiresAt, actionExpiresAt.Sub(now).Seconds())
 
 			var canCheck bool
@@ -291,27 +285,18 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 			}
 			return nil
 		}
-		g.logger.Info().
-			Str("game", g.gameCode).
-			Msg("Restoring action message from hand state.")
+		g.logger.Info().Msg("Restoring action message from hand state.")
 		playerMsg = handState.ActionMsgInProgress
 	}
 
 	actionMsg := g.getClientMsgItem(playerMsg)
 	messageSeatNo := actionMsg.GetPlayerActed().GetSeatNo()
-	g.logger.Debug().
-		Str("game", g.gameCode).
-		Uint32("player", messageSeatNo).
-		Str("messageType", actionMsg.MessageType).
-		Msg(fmt.Sprintf("%v", playerMsg))
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_1, playerMsg.PlayerId)
 
 	if messageSeatNo == 0 && !g.isScriptTest {
 		errMsg := fmt.Sprintf("Invalid seat number [%d] for player ID %d. Ignoring the action message.", messageSeatNo, playerMsg.PlayerId)
-		g.logger.Error().
-			Str("game", g.gameCode).
-			Msgf(errMsg)
+		g.logger.Error().Msgf(errMsg)
 		return fmt.Errorf(errMsg)
 	}
 
@@ -324,8 +309,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		errMsg := fmt.Sprintf("Invalid seat %d made action. Ignored. The next valid action seat is: %d",
 			actionMsg.GetPlayerActed().GetSeatNo(), handState.NextSeatAction.SeatNo)
 		g.logger.Error().
-			Str("game", g.gameCode).
-			Uint32("hand", handState.GetHandNum()).
+			Uint32(logging.HandNumKey, handState.GetHandNum()).
 			Msg(errMsg)
 		if !actionMsg.GetPlayerActed().GetTimedOut() {
 			// Acknowledge so that the client stops retrying.
@@ -336,9 +320,10 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 	if !actionMsg.GetPlayerActed().GetTimedOut() {
 		if playerMsg.MessageId == "" && !g.isScriptTest {
-			errMsg := fmt.Sprintf("Missing message ID for player ID %d Seat %d. Ignoring the action message.", playerMsg.PlayerId, messageSeatNo)
+			errMsg := "Missing message ID. Ignoring the action message."
 			g.logger.Error().
-				Str("game", g.gameCode).
+				Uint64(logging.PlayerIDKey, playerMsg.PlayerId).
+				Uint32(logging.SeatNumKey, messageSeatNo).
 				Msgf(errMsg)
 			return fmt.Errorf(errMsg)
 		}
@@ -348,9 +333,8 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	if playerMsg.HandNum != handState.HandNum {
 		errMsg := fmt.Sprintf("Invalid hand number: %d current hand number: %d", playerMsg.HandNum, handState.HandNum)
 		g.logger.Error().
-			Str("game", g.gameCode).
-			Uint32("player", messageSeatNo).
-			Str("messageType", actionMsg.MessageType).
+			Uint32(logging.SeatNumKey, messageSeatNo).
+			Str(logging.MsgTypeKey, actionMsg.MessageType).
 			Msg(errMsg)
 
 		// This can happen if the action was already processed, but the client is retrying
@@ -364,9 +348,8 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		// Ignore the action message.
 		errMsg := fmt.Sprintf("Invalid player action: %s", err)
 		g.logger.Error().
-			Str("game", g.gameCode).
-			Uint32("player", messageSeatNo).
-			Str("messageType", actionMsg.MessageType).
+			Uint32(logging.SeatNumKey, messageSeatNo).
+			Str(logging.MsgTypeKey, actionMsg.MessageType).
 			Msg(errMsg)
 
 		return fmt.Errorf(errMsg)
@@ -384,7 +367,6 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		if (seatNo == runItTwiceState.Seat1 && runItTwiceState.Seat1Responded) ||
 			(seatNo == runItTwiceState.Seat2 && runItTwiceState.Seat2Responded) {
 			g.logger.Info().
-				Str("game", g.gameCode).
 				Msgf("Received duplicate run-it-twice response for seat %d. This can happen if the player acted too late and the timeout was triggered at the same time.", seatNo)
 			return nil
 		}
@@ -422,9 +404,8 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	if handState.NextSeatAction == nil {
 		errMsg := "Invalid action. There is no next action"
 		g.logger.Error().
-			Str("game", g.gameCode).
-			Uint32("player", messageSeatNo).
-			Str("messageType", actionMsg.MessageType).
+			Uint32(logging.SeatNumKey, messageSeatNo).
+			Str(logging.MsgTypeKey, actionMsg.MessageType).
 			Str("action", actionMsg.GetPlayerActed().Action.String()).
 			Msg(errMsg)
 
@@ -438,9 +419,8 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	if handState.CurrentState == HandStatus_SHOW_DOWN {
 		errMsg := "Invalid action. Hand is in show-down state"
 		g.logger.Error().
-			Str("game", g.gameCode).
-			Uint32("player", messageSeatNo).
-			Str("messageType", actionMsg.MessageType).
+			Uint32(logging.SeatNumKey, messageSeatNo).
+			Str(logging.MsgTypeKey, actionMsg.MessageType).
 			Msg(errMsg)
 
 		// This can happen if the action was already processed, but the client is retrying
@@ -454,9 +434,8 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	if handState.FlowState != expectedState {
 		errMsg := fmt.Sprintf("onPlayerActed called in wrong flow state. Ignoring message. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 		g.logger.Error().
-			Str("game", g.gameCode).
-			Uint32("player", messageSeatNo).
-			Str("messageType", actionMsg.MessageType).
+			Uint32(logging.SeatNumKey, messageSeatNo).
+			Str(logging.MsgTypeKey, actionMsg.MessageType).
 			Msg(errMsg)
 		return nil
 	}
@@ -509,9 +488,7 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	playerMsg := handState.ActionMsgInProgress
 	if playerMsg == nil {
 		errMsg := "Unable to get action message in progress. handState.ActionMsgInProgress is nil"
-		g.logger.Error().
-			Str("game", g.gameCode).
-			Msg(errMsg)
+		g.logger.Error().Msg(errMsg)
 		return fmt.Errorf(errMsg)
 	}
 
@@ -618,7 +595,6 @@ func (g *Game) handleHandEnded(handState *HandState, totalPauseTime uint32, allM
 		if totalPauseTime > 0 {
 			if !util.Env.ShouldDisableDelays() {
 				g.logger.Debug().
-					Str("game", g.gameCode).
 					Msgf("Sleeping %d milliseconds for result animation", totalPauseTime)
 				time.Sleep(time.Duration(totalPauseTime) * time.Millisecond)
 			}
@@ -662,7 +638,6 @@ func (g *Game) sendActionAck(handState *HandState, playerMsg *HandMessage, curre
 	}
 	g.sendHandMessageToPlayer(serverMsg, player.PlayerId)
 	g.logger.Debug().
-		Str("game", g.gameCode).
 		Msg(fmt.Sprintf("Acknowledgment sent to %d. Message Id: %s", playerMsg.GetPlayerId(), playerMsg.GetMessageId()))
 }
 
@@ -730,7 +705,6 @@ func (g *Game) getPlayerCardRank(handState *HandState, boardCards []uint32) map[
 
 func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 	g.logger.Debug().
-		Str("game", g.gameCode).
 		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	flopCards := make([]uint32, 3)
@@ -798,7 +772,6 @@ func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 
 func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 	g.logger.Debug().
-		Str("game", g.gameCode).
 		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	err := handState.setupTurn()
@@ -872,7 +845,6 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 
 func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
 	g.logger.Debug().
-		Str("game", g.gameCode).
 		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	err := handState.setupRiver()
@@ -1067,7 +1039,6 @@ func (g *Game) moveToNextRound(handState *HandState) ([]*HandMessageItem, error)
 	if handState.LastState == HandStatus_DEAL {
 		// How do we get here?
 		g.logger.Warn().
-			Str("game", g.gameCode).
 			Msg("handState.LastState == HandStatus_DEAL in moveToNextRound")
 		return []*HandMessageItem{}, nil
 	}
@@ -1360,7 +1331,7 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 		}
 		saveResult, err := g.saveHandResult2ToAPIServer(handResultServer)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Could not save result to api server")
+			return nil, errors.Wrapf(err, "Could not save hand result to api server")
 		}
 		if saveResult != nil {
 			// retry here

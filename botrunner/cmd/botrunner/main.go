@@ -65,9 +65,9 @@ func botrunner() int {
 		mainLogger.Error().Msgf("Error while parsing script file: %+v", err)
 		return 1
 	}
-	driverLogger := logging.GetZeroLogger("BotRunner", nil).With().Logger()
-	playerLogger := logging.GetZeroLogger("BotPlayer", nil).With().Logger()
-	botRunner, err := driver.NewBotRunner(cmdArgs.clubCode, cmdArgs.gameCode, script, players, &driverLogger, &playerLogger, cmdArgs.resetDB, false)
+	driverLogger := logging.GetZeroLogger("BotRunner", nil)
+	playerLogger := logging.GetZeroLogger("BotPlayer", nil)
+	botRunner, err := driver.NewBotRunner(cmdArgs.clubCode, cmdArgs.gameCode, script, players, driverLogger, playerLogger, cmdArgs.resetDB, false)
 	if err != nil {
 		mainLogger.Error().Msgf("Error while creating a bot runner %+v", err)
 		return 1

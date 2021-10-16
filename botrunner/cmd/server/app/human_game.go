@@ -57,7 +57,13 @@ func (b *HumanGame) Launch() error {
 	if err != nil {
 		errors.Wrap(err, "Error while creating a BotRunner")
 	}
-	go botRunner.Run()
+	go func() {
+		err := botRunner.Run()
+		if err != nil {
+			b.logger.Err(err).Msg("Botrunner returned error")
+		}
+		// TOOD: Clean up this instance.
+	}()
 	b.instance = botRunner
 	return nil
 }
