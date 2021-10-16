@@ -203,28 +203,20 @@ func (n *NatsGame) setupHand(handSetup HandSetup) {
 	n.serverGame.QueueGameMessage(&message)
 }
 
-// messages sent from player to game
-func (n *NatsGame) player2Game(msg *natsgo.Msg) {
-	n.logger.Debug().
-		Msg(fmt.Sprintf("Player->Game: %s", string(msg.Data)))
-	// convert to protobuf message
-	// convert json message to go message
-	var message game.GameMessage
-	//err := jsoniter.Unmarshal(msg.Data, &message)
-	e := protojson.Unmarshal(msg.Data, &message)
-	if e != nil {
-		return
-	}
-
-	n.serverGame.QueueGameMessage(&message)
-}
-
 // messages sent from player to game hand
 func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
-	n.logger.Debug().
-		Msg(fmt.Sprintf("Player->Hand: %s", string(msg.Data)))
 	var message game.HandMessage
 	e := proto.Unmarshal(msg.Data, &message)
+	logLevel := n.logger.GetLevel()
+	if logLevel == zerolog.DebugLevel || logLevel == zerolog.TraceLevel {
+		b, err := protojson.Marshal(&message)
+		if err != nil {
+			n.logger.Debug().Msgf("Cannot log player msg as json: %s", err)
+		} else {
+			n.logger.Debug().
+				Msg(fmt.Sprintf("Player->Hand: %v", string(b)))
+		}
+	}
 	if e != nil {
 		return
 	}
@@ -274,7 +266,6 @@ func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
 		Msg(fmt.Sprintf("Game->AllPlayers: %s", message.MessageType))
 	// let send this to all players
 	data, _ := protojson.Marshal(message)
-	// fmt.Printf("%s\n", string(data))
 
 	if message.GameCode != n.gameCode {
 		n.logger.Warn().Msgf("BroadcastGameMessage called with message that contains wrong game code. Message game code: %s, NatsGame.gameCode: %s", message.GameCode, n.gameCode)

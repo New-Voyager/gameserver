@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+	"google.golang.org/protobuf/encoding/protojson"
 	"voyager.com/logging"
 	"voyager.com/server/crashtest"
 	"voyager.com/server/poker"
@@ -270,7 +272,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 				actionExpiresAt = now.Add(time.Duration(retryWindowSec) * time.Second)
 			}
 			g.logger.Info().
-				Msgf("Game server restarted with no saved action message. Relying on the client to resend the action. Restarting the action timer. Current time: %s. Action expires at: %s (%f seconds from now).", now, actionExpiresAt, actionExpiresAt.Sub(now).Seconds())
+				Msgf("Game server restarted with no saved action message. Relying on the client to resend the action. Restarting the action timer. Current time: %s. Action expires at: %s (%.3f seconds from now).", now, actionExpiresAt.Format(time.RFC3339), actionExpiresAt.Sub(now).Seconds())
 
 			var canCheck bool
 			for _, action := range handState.NextSeatAction.AvailableActions {
@@ -571,6 +573,7 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	}
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_1, playerMsg.PlayerId)
+	g.logHandState(handState)
 	g.broadcastHandMessage(&serverMsg)
 	handState.ActionMsgInProgress = nil
 
@@ -580,6 +583,21 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3, playerMsg.PlayerId)
 	g.handleHandEnded(handState, handState.TotalResultPauseTime, allMsgItems)
 	return nil
+}
+
+func (g *Game) logHandState(handState *HandState) {
+	logLevel := g.logger.GetLevel()
+	if logLevel == zerolog.DebugLevel || logLevel == zerolog.TraceLevel {
+		nextSeatAction := handState.GetNextSeatAction()
+		b, err := protojson.Marshal(nextSeatAction)
+		if err != nil {
+			g.logger.Debug().Msgf("Cannot log next seat action as json: %s", err)
+		} else {
+			g.logger.Debug().
+				Uint32(logging.HandNumKey, handState.GetHandNum()).
+				Msgf("Next seat action: %s", string(b))
+		}
+	}
 }
 
 func (g *Game) handleHandEnded(handState *HandState, totalPauseTime uint32, allMsgItems []*HandMessageItem) {
@@ -638,7 +656,8 @@ func (g *Game) sendActionAck(handState *HandState, playerMsg *HandMessage, curre
 	}
 	g.sendHandMessageToPlayer(serverMsg, player.PlayerId)
 	g.logger.Debug().
-		Msg(fmt.Sprintf("Acknowledgment sent to %d. Message Id: %s", playerMsg.GetPlayerId(), playerMsg.GetMessageId()))
+		Uint64(logging.PlayerIDKey, playerMsg.GetPlayerId()).
+		Msg(fmt.Sprintf("Acknowledgment sent to player. Message Id: %s", playerMsg.GetMessageId()))
 }
 
 func (g *Game) getPots(handState *HandState) ([]float32, []*SeatsInPots) {
@@ -705,6 +724,7 @@ func (g *Game) getPlayerCardRank(handState *HandState, boardCards []uint32) map[
 
 func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 	g.logger.Debug().
+		Uint32(logging.HandNumKey, handState.GetHandNum()).
 		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	flopCards := make([]uint32, 3)
@@ -772,6 +792,7 @@ func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 
 func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 	g.logger.Debug().
+		Uint32(logging.HandNumKey, handState.GetHandNum()).
 		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	err := handState.setupTurn()
@@ -845,6 +866,7 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 
 func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
 	g.logger.Debug().
+		Uint32(logging.HandNumKey, handState.GetHandNum()).
 		Msgf("Moving to %s", HandStatus_name[int32(handState.CurrentState)])
 
 	err := handState.setupRiver()

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"voyager.com/logging"
 	"voyager.com/server/crashtest"
 )
 
@@ -128,9 +129,11 @@ func (g *Game) onResume(message *GameMessage) (bool, error) {
 	return isPaused, err
 }
 
-func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCode string) {
+func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCode string, handNum uint32) {
 	// call api server processPendingUpdates
-	g.logger.Debug().Msgf("Processing pending updates for the game %d", gameID)
+	g.logger.Debug().
+		Uint32(logging.HandNumKey, handNum).
+		Msgf("Processing pending updates")
 	url := fmt.Sprintf("%s/internal/process-pending-updates/gameId/%d", apiServerURL, gameID)
 
 	retries := 0
@@ -210,7 +213,7 @@ func (g *Game) moveToNextHand(handState *HandState) (bool, error) {
 	// check any pending updates
 	pendingUpdates, _ := g.anyPendingUpdates(g.apiServerURL, g.gameID, g.delays.PendingUpdatesRetry)
 	if pendingUpdates {
-		go g.processPendingUpdates(g.apiServerURL, g.gameID, g.gameCode)
+		go g.processPendingUpdates(g.apiServerURL, g.gameID, g.gameCode, handState.GetHandNum())
 		handState.FlowState = FlowState_WAIT_FOR_PENDING_UPDATE
 		g.saveHandState(handState)
 		// We pause the game here and wait for the api server.
