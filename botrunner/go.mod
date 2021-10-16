@@ -27,6 +27,7 @@ require (
 	voyager.com/caching v0.0.0-00010101000000-000000000000
 	voyager.com/encryption v0.0.0-00010101000000-000000000000
 	voyager.com/gamescript v0.0.0-00010101000000-000000000000
+	voyager.com/logging v0.0.0-00010101000000-000000000000
 )
 
 replace voyager.com/gamescript => ../gamescript
@@ -34,3 +35,5 @@ replace voyager.com/gamescript => ../gamescript
 replace voyager.com/encryption => ../encryption
 
 replace voyager.com/caching => ../caching
+
+replace voyager.com/logging => ../logging

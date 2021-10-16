@@ -8,11 +8,12 @@ import (
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/pkg/errors"
 
+	"voyager.com/logging"
 	"voyager.com/server/util"
 )
 
 var NatsURL string
-var natsGMLogger = util.GetZeroLogger("nats::gamemanager", nil)
+var natsGMLogger = logging.GetZeroLogger("nats::gamemanager", nil)
 
 // This game manager is similar to game.GameManager.
 // However, this game manager active NatsGame objects.

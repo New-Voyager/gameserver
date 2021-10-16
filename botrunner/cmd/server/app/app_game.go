@@ -8,8 +8,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"voyager.com/botrunner/internal/driver"
-	"voyager.com/botrunner/internal/logging"
 	"voyager.com/gamescript"
+	"voyager.com/logging"
 )
 
 // AppGame manages an instance of a BotRunner that creates a script game using an existing club.

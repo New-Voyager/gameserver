@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"voyager.com/botrunner/internal/logging"
 	_player "voyager.com/botrunner/internal/player"
 	"voyager.com/botrunner/internal/util"
 	"voyager.com/gamescript"
+	"voyager.com/logging"
 )
 
 var (

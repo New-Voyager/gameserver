@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog"
-	"voyager.com/botrunner/internal/logging"
+	"voyager.com/logging"
 )
 
 func init() {

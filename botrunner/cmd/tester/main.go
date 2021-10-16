@@ -8,9 +8,9 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
 	"voyager.com/botrunner/cmd/tester/app"
-	"voyager.com/botrunner/internal/logging"
 	"voyager.com/botrunner/internal/util"
 	"voyager.com/gamescript"
+	"voyager.com/logging"
 )
 
 var (

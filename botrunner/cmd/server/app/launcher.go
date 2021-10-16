@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"voyager.com/botrunner/internal/logging"
 	"voyager.com/gamescript"
+	"voyager.com/logging"
 )
 
 var launcherLogger = logging.GetZeroLogger("app::launcher", nil)

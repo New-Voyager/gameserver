@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	jsoniter "github.com/json-iterator/go"
+	"voyager.com/logging"
 	"voyager.com/server/game"
-	"voyager.com/server/util"
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/rs/zerolog/log"
@@ -77,7 +77,7 @@ type DriverBotMessage struct {
 	GameCode    string               `json:"game-code"`
 }
 
-var natsTestDriverLogger = util.GetZeroLogger("nats::game", nil)
+var natsTestDriverLogger = logging.GetZeroLogger("nats::game", nil)
 
 func NewNatsDriverBotListener(nc *natsgo.Conn, gameManager *GameManager) (*NatsDriverBotListener, error) {
 	natsTestDriver := &NatsDriverBotListener{

@@ -9,9 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 	"voyager.com/botrunner/internal/caches"
-	"voyager.com/botrunner/internal/logging"
 	"voyager.com/botrunner/internal/util"
 	"voyager.com/gamescript"
+	"voyager.com/logging"
 )
 
 var (

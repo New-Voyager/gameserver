@@ -29,6 +29,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
 	voyager.com/caching v0.0.0-00010101000000-000000000000
 	voyager.com/encryption v0.0.0-00010101000000-000000000000
+	voyager.com/logging v0.0.0-00010101000000-000000000000
 )
 
 replace voyager.com/server/internal => ./internal
@@ -52,3 +53,5 @@ replace voyager.com/server/timer => ./timer
 replace voyager.com/encryption => ../encryption
 
 replace voyager.com/caching => ../caching
+
+replace voyager.com/logging => ../logging

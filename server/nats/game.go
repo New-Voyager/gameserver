@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+	"voyager.com/logging"
 	"voyager.com/server/game"
 	"voyager.com/server/util"
 )
@@ -68,7 +69,7 @@ type NatsGame struct {
 }
 
 func newNatsGame(nc *natsgo.Conn, gameID uint64, gameCode string) (*NatsGame, error) {
-	logger := util.GetZeroLogger("nats::NatsGame", nil).With().
+	logger := logging.GetZeroLogger("nats::NatsGame", nil).With().
 		Uint64("gameID", gameID).
 		Str("gameCode", gameCode).
 		Logger()

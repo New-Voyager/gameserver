@@ -8,9 +8,9 @@ import (
 
 	"github.com/rs/zerolog"
 	"voyager.com/botrunner/internal/driver"
-	"voyager.com/botrunner/internal/logging"
 	"voyager.com/botrunner/internal/util"
 	"voyager.com/gamescript"
+	"voyager.com/logging"
 )
 
 // BotRunnerBatch is a group of BotRunner's that are given the same batch ID.

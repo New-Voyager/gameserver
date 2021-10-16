@@ -14,10 +14,10 @@ import (
 	"github.com/rs/zerolog"
 	"voyager.com/botrunner/internal/caches"
 	"voyager.com/botrunner/internal/game"
-	"voyager.com/botrunner/internal/logging"
 	"voyager.com/botrunner/internal/player"
 	"voyager.com/botrunner/internal/util"
 	"voyager.com/gamescript"
+	"voyager.com/logging"
 )
 
 // BotRunner is the main driver object that sets up the bots for a game.

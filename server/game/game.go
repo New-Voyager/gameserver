@@ -15,6 +15,7 @@ import (
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/proto"
 	"voyager.com/encryption"
+	"voyager.com/logging"
 	"voyager.com/server/crashtest"
 	"voyager.com/server/internal/encryptionkey"
 	"voyager.com/server/poker"
@@ -88,7 +89,7 @@ func NewPokerGame(
 	encryptionKeyCache *encryptionkey.Cache,
 	apiServerURL string) (*Game, error) {
 
-	logger := util.GetZeroLogger("game::Game", nil).With().
+	logger := logging.GetZeroLogger("game::Game", nil).With().
 		Uint64("gameID", gameID).
 		Str("gameCode", gameCode).
 		Logger()
@@ -112,7 +113,7 @@ func NewPokerGame(
 	g.chHand = make(chan []byte, 10)
 	g.end = make(chan bool, 10)
 	g.chPlayTimedOut = make(chan timer.TimerMsg)
-	timer1Logger := util.GetZeroLogger("timer::ActionTimer", nil).
+	timer1Logger := logging.GetZeroLogger("timer::ActionTimer", nil).
 		With().Uint64("gameID", gameID).
 		Str("gameCode", gameCode).
 		Int("timerID", 1).
@@ -120,13 +121,13 @@ func NewPokerGame(
 	g.actionTimer = timer.NewActionTimer(&timer1Logger, g.queueActionTimeoutMsg, g.crashHandler)
 
 	// Timer 2 is used for run-it-twice player 2.
-	timer2Logger := util.GetZeroLogger("timer::ActionTimer", nil).
+	timer2Logger := logging.GetZeroLogger("timer::ActionTimer", nil).
 		With().Uint64("gameID", gameID).
 		Str("gameCode", gameCode).
 		Int("timerID", 2).
 		Logger()
 	g.actionTimer2 = timer.NewActionTimer(&timer2Logger, g.queueActionTimeoutMsg, g.crashHandler)
-	networkCheckLogger := util.GetZeroLogger("NetworkCheck", nil).
+	networkCheckLogger := logging.GetZeroLogger("NetworkCheck", nil).
 		With().Uint64("gameID", gameID).
 		Str("gameCode", gameCode).
 		Logger()
@@ -151,7 +152,7 @@ func NewTestPokerGame(
 	encryptionKeyCache *encryptionkey.Cache,
 	apiServerURL string) (*Game, error) {
 
-	logger := util.GetZeroLogger("game::Game", nil).With().
+	logger := logging.GetZeroLogger("game::Game", nil).With().
 		Uint64("gameID", gameID).
 		Str("gameCode", gameCode).
 		Logger()
@@ -175,7 +176,7 @@ func NewTestPokerGame(
 	g.chHand = make(chan []byte, 10)
 	g.end = make(chan bool, 10)
 	g.chPlayTimedOut = make(chan timer.TimerMsg)
-	timer1Logger := util.GetZeroLogger("timer::ActionTimer", nil).
+	timer1Logger := logging.GetZeroLogger("timer::ActionTimer", nil).
 		With().Uint64("gameID", gameID).
 		Str("gameCode", gameCode).
 		Int("timerID", 1).
@@ -183,13 +184,13 @@ func NewTestPokerGame(
 	g.actionTimer = timer.NewActionTimer(&timer1Logger, g.queueActionTimeoutMsg, g.crashHandler)
 
 	// Timer 2 is used for run-it-twice player 2.
-	timer2Logger := util.GetZeroLogger("timer::ActionTimer", nil).
+	timer2Logger := logging.GetZeroLogger("timer::ActionTimer", nil).
 		With().Uint64("gameID", gameID).
 		Str("gameCode", gameCode).
 		Int("timerID", 2).
 		Logger()
 	g.actionTimer2 = timer.NewActionTimer(&timer2Logger, g.queueActionTimeoutMsg, g.crashHandler)
-	networkCheckLogger := util.GetZeroLogger("game::NetworkCheck", nil).
+	networkCheckLogger := logging.GetZeroLogger("game::NetworkCheck", nil).
 		With().Uint64("gameID", gameID).
 		Str("gameCode", gameCode).
 		Logger()

@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"voyager.com/logging"
 	"voyager.com/server/crashtest"
 	"voyager.com/server/game"
 	"voyager.com/server/internal/caches"
@@ -14,7 +15,7 @@ import (
 	"voyager.com/server/util"
 )
 
-var restLogger = util.GetZeroLogger("game::rest", nil)
+var restLogger = logging.GetZeroLogger("game::rest", nil)
 var natsGameManager *nats.GameManager
 var onEndSystemTest func()
 

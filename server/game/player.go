@@ -7,14 +7,14 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-	"voyager.com/server/util"
+	"voyager.com/logging"
 )
 
 /**
 NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 **/
 
-var playerLogger = util.GetZeroLogger("game::player", nil)
+var playerLogger = logging.GetZeroLogger("game::player", nil)
 var TotalJsonBytesReceived = 0
 var TotalBase64BytesReceived = 0
 var TotalBinaryDataReceived = 0

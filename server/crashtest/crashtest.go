@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"voyager.com/logging"
 	"voyager.com/server/internal"
 	"voyager.com/server/util"
 )
@@ -53,7 +54,7 @@ var (
 	crashPoint    CrashPoint = CrashPoint_NO_CRASH
 	crashPlayerID uint64
 
-	crashTestLogger = util.GetZeroLogger("crashtest::crashtest", nil)
+	crashTestLogger = logging.GetZeroLogger("crashtest::crashtest", nil)
 )
 
 // Set schedules for crashing at the specified point.

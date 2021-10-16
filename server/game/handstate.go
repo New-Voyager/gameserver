@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"voyager.com/logging"
 	"voyager.com/server/poker"
-	"voyager.com/server/util"
 )
 
-var handLogger = util.GetZeroLogger("game::hand", nil)
+var handLogger = logging.GetZeroLogger("game::hand", nil)
 var preFlopBets = []int{3, 5, 10}     // big blinds
 var postFlopBets = []int{30, 50, 100} // % of pot
 var raiseOptions = []int{2, 3, 5}     // raise times

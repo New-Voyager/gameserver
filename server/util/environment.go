@@ -8,9 +8,10 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/sirupsen/logrus"
+	"voyager.com/logging"
 )
 
-var environmentLogger = GetZeroLogger("util::environment", nil)
+var environmentLogger = logging.GetZeroLogger("util::environment", nil)
 
 type gameServerEnvironment struct {
 	PersistMethod          string

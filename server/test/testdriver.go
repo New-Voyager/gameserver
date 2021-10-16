@@ -9,11 +9,11 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/godo.v2/glob"
 	yaml "gopkg.in/yaml.v2"
+	"voyager.com/logging"
 	"voyager.com/server/game"
-	"voyager.com/server/util"
 )
 
-var testDriverLogger = util.GetZeroLogger("test::testdriver", nil)
+var testDriverLogger = logging.GetZeroLogger("test::testdriver", nil)
 
 type ScriptTestResult struct {
 	Filename string

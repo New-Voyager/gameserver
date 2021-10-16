@@ -4,8 +4,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"voyager.com/botrunner/internal/driver"
-	"voyager.com/botrunner/internal/logging"
 	"voyager.com/gamescript"
+	"voyager.com/logging"
 )
 
 // HumanGame manages an instance of a BotRunner that joins to a human-created game.

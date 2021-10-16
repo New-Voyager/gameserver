@@ -63,10 +63,12 @@ docker-build: compile-proto
 		[ -d build/gamescript ] || cp -r $(PROJECT_ROOT)/gamescript build/gamescript; \
 		[ -d build/encryption ] || cp -r $(PROJECT_ROOT)/encryption build/encryption; \
 		[ -d build/caching ] || cp -r $(PROJECT_ROOT)/caching build/caching; \
+		[ -d build/logging ] || cp -r $(PROJECT_ROOT)/logging build/logging; \
 	else \
 		rsync -avu --delete $(PROJECT_ROOT)/gamescript/ build/gamescript; \
 		rsync -avu --delete $(PROJECT_ROOT)/encryption/ build/encryption; \
 		rsync -avu --delete $(PROJECT_ROOT)/caching/ build/caching; \
+		rsync -avu --delete $(PROJECT_ROOT)/logging/ build/logging; \
 	fi
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(BOTRUNNER_IMAGE)
 	rm -rf build/

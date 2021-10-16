@@ -26,12 +26,12 @@ import (
 	"google.golang.org/protobuf/proto"
 	"voyager.com/botrunner/internal/game"
 	"voyager.com/botrunner/internal/gql"
-	"voyager.com/botrunner/internal/logging"
 	"voyager.com/botrunner/internal/poker"
 	"voyager.com/botrunner/internal/rest"
 	"voyager.com/botrunner/internal/util"
 	"voyager.com/encryption"
 	"voyager.com/gamescript"
+	"voyager.com/logging"
 )
 
 // Config holds the configuration for a bot object.

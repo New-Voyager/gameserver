@@ -19,6 +19,7 @@ import (
 	"voyager.com/server/util"
 
 	"github.com/rs/zerolog"
+	"voyager.com/logging"
 	"voyager.com/server/poker"
 	"voyager.com/server/test"
 )
@@ -30,7 +31,7 @@ var delayConfigFile *string
 var testName *string
 var testDeal *bool
 var exit bool
-var mainLogger = util.GetZeroLogger("main::main", nil)
+var mainLogger = logging.GetZeroLogger("main::main", nil)
 
 func init() {
 	runServer = flag.Bool("server", true, "runs game server")

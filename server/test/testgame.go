@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
+	"voyager.com/logging"
 	"voyager.com/server/game"
-	"voyager.com/server/util"
 )
 
-var testGameLogger = util.GetZeroLogger("test::testgame", nil)
+var testGameLogger = logging.GetZeroLogger("test::testgame", nil)
 var gameID uint64 = 1
 
 // TestGame is a game simulation object to drive the game from client perspective
