@@ -823,6 +823,12 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			bp.logger.Info().Msg(msg)
 			return
 		}
+
+		// On rare occasions when running many bot games (100+) in the same botrunner server, I see that
+		// BotEvent__RECEIVE_ACK results in a state error because it is processed before BotEvent__SEND_MY_ACTION.
+		// "Ignoring unexpected MSG_ACK msg - PLAYER_ACTED:114 BotState: MY_TURN"
+		// Adding a sleep here to yield this goroutine so that the other event gets processed first.
+		time.Sleep(5 * time.Millisecond)
 		err := bp.event(BotEvent__RECEIVE_ACK)
 		if err != nil {
 			bp.logger.Info().Msg(msg)
