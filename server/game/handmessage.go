@@ -298,36 +298,44 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 	if messageSeatNo == 0 && !g.isScriptTest {
 		errMsg := fmt.Sprintf("Invalid seat number [%d] for player ID %d. Ignoring the action message.", messageSeatNo, playerMsg.PlayerId)
-		g.logger.Error().Msgf(errMsg)
 		return fmt.Errorf(errMsg)
 	}
 
-	if handState.NextSeatAction != nil && (actionMsg.GetPlayerActed().GetSeatNo() != handState.NextSeatAction.SeatNo) {
+	actionMsgSeatNo := actionMsg.GetPlayerActed().GetSeatNo()
+	if handState.NextSeatAction != nil && (actionMsgSeatNo != handState.NextSeatAction.SeatNo) {
 		// Unexpected seat acted.
 		// One scenario this can happen is when a player made a last-second action and the timeout
 		// was triggered at the same time. We get two actions in that case - one last-minute action
 		// from the player, and the other default action created by the timeout handler on behalf
 		// of the player. We are discarding whichever action that came last in that case.
-		errMsg := fmt.Sprintf("Invalid seat %d made action. Ignored. The next valid action seat is: %d",
-			actionMsg.GetPlayerActed().GetSeatNo(), handState.NextSeatAction.SeatNo)
+		errMsg := fmt.Sprintf("Invalid seat made action. Ignored. The next valid action seat is: %d",
+			handState.NextSeatAction.SeatNo)
 		g.logger.Error().
+			Uint32(logging.SeatNumKey, actionMsgSeatNo).
 			Uint32(logging.HandNumKey, handState.GetHandNum()).
 			Msg(errMsg)
 		if !actionMsg.GetPlayerActed().GetTimedOut() {
 			// Acknowledge so that the client stops retrying.
 			g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
 		}
-		return fmt.Errorf(errMsg)
+		return fmt.Errorf("Invalid seat made action. Ignored")
 	}
 
 	if !actionMsg.GetPlayerActed().GetTimedOut() {
 		if playerMsg.MessageId == "" && !g.isScriptTest {
-			errMsg := "Missing message ID. Ignoring the action message."
+			b, err := protojson.Marshal(actionMsg)
+			var msgStr string
+			if err == nil {
+				msgStr = string(b)
+			} else {
+				msgStr = playerMsg.String()
+			}
+			errMsg := fmt.Sprintf("Missing message ID. Ignoring the action message. Msg: %s", msgStr)
 			g.logger.Error().
 				Uint64(logging.PlayerIDKey, playerMsg.PlayerId).
 				Uint32(logging.SeatNumKey, messageSeatNo).
 				Msgf(errMsg)
-			return fmt.Errorf(errMsg)
+			return fmt.Errorf("Missing message ID")
 		}
 	}
 
@@ -335,6 +343,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	if playerMsg.HandNum != handState.HandNum {
 		errMsg := fmt.Sprintf("Invalid hand number: %d current hand number: %d", playerMsg.HandNum, handState.HandNum)
 		g.logger.Error().
+			Uint64(logging.PlayerIDKey, playerMsg.GetPlayerId()).
 			Uint32(logging.SeatNumKey, messageSeatNo).
 			Str(logging.MsgTypeKey, actionMsg.MessageType).
 			Msg(errMsg)
@@ -350,6 +359,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		// Ignore the action message.
 		errMsg := fmt.Sprintf("Invalid player action: %s", err)
 		g.logger.Error().
+			Uint64(logging.PlayerIDKey, playerMsg.GetPlayerId()).
 			Uint32(logging.SeatNumKey, messageSeatNo).
 			Str(logging.MsgTypeKey, actionMsg.MessageType).
 			Msg(errMsg)
@@ -369,7 +379,9 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		if (seatNo == runItTwiceState.Seat1 && runItTwiceState.Seat1Responded) ||
 			(seatNo == runItTwiceState.Seat2 && runItTwiceState.Seat2Responded) {
 			g.logger.Info().
-				Msgf("Received duplicate run-it-twice response for seat %d. This can happen if the player acted too late and the timeout was triggered at the same time.", seatNo)
+				Uint64(logging.PlayerIDKey, playerMsg.GetPlayerId()).
+				Uint32(logging.SeatNumKey, seatNo).
+				Msg("Received duplicate run-it-twice response. This can happen if the player acted too late and the timeout was triggered at the same time.")
 			return nil
 		}
 		msgItems, err := g.runItTwiceConfirmation(handState, playerMsg)
@@ -397,7 +409,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		}
 
 		g.broadcastHandMessage(&msg)
-		g.saveHandState(handState)
+		g.saveHandStateWithRetry(handState)
 		g.handleHandEnded(handState, handState.TotalResultPauseTime, msgItems)
 
 		return nil
@@ -449,13 +461,13 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		g.pausePlayTimer(messageSeatNo)
 	}
 	handState.ActionMsgInProgress = playerMsg
-	g.saveHandState(handState)
+	g.saveHandStateWithRetry(handState)
 	g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_2, playerMsg.PlayerId)
 
 	handState.FlowState = FlowState_PREPARE_NEXT_ACTION
-	g.saveHandState(handState)
+	g.saveHandStateWithRetry(handState)
 	err := g.prepareNextAction(handState, uint64(actedSeconds))
 	if err != nil {
 		return err
@@ -578,7 +590,16 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	handState.ActionMsgInProgress = nil
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_2, playerMsg.PlayerId)
-	g.saveHandState(handState)
+	err = g.saveHandStateWithRetry(handState)
+	if err != nil {
+		g.logger.Error().
+			Uint32(logging.HandNumKey, handState.GetHandNum()).
+			Err(err).
+			Msgf("Cannot save hand state")
+
+		// Panic the goroutine for this game to trigger cleanup.
+		panic(fmt.Sprintf("Cannot save hand state for game %d:%s hand %d", g.gameID, g.gameCode, handState.GetHandNum()))
+	}
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3, playerMsg.PlayerId)
 	g.handleHandEnded(handState, handState.TotalResultPauseTime, allMsgItems)
@@ -591,7 +612,7 @@ func (g *Game) logHandState(handState *HandState) {
 		nextSeatAction := handState.GetNextSeatAction()
 		b, err := protojson.Marshal(nextSeatAction)
 		if err != nil {
-			g.logger.Debug().Msgf("Cannot log next seat action as json: %s", err)
+			g.logger.Warn().Msgf("Cannot log next seat action as json: %s", err)
 		} else {
 			g.logger.Debug().
 				Uint32(logging.HandNumKey, handState.GetHandNum()).
