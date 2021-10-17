@@ -6,11 +6,11 @@ import (
 	"strconv"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/rs/zerolog/log"
+	"voyager.com/logging"
 	"voyager.com/server/game"
 )
 
-var testPlayerLogger = log.With().Str("logger_name", "test::testplayer").Logger()
+var testPlayerLogger = logging.GetZeroLogger("test::testplayer", nil)
 
 // TestPlayer is a receiver for game and hand messages
 // it also sends messages to game and hand via player object
@@ -148,28 +148,28 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 			if msgItem.MessageType != game.HandNextAction {
 				testPlayerLogger.Debug().
 					Uint32("club", t.player.ClubID).
-					Uint64("game", t.player.GameID).
+					Uint64(logging.GameIDKey, t.player.GameID).
 					Uint64("playerid", t.player.PlayerID).
-					Uint32("seatNo", t.player.SeatNo).
-					Str("player", t.player.PlayerName).
+					Uint32(logging.SeatNumKey, t.player.SeatNo).
+					Str(logging.PlayerNameKey, t.player.PlayerName).
 					Msg(fmt.Sprintf("%s", string(jsonb)))
 			}
 			if msgItem.MessageType == game.HandResultMessage {
 				testPlayerLogger.Debug().
 					Uint32("club", t.player.ClubID).
-					Uint64("game", t.player.GameID).
+					Uint64(logging.GameIDKey, t.player.GameID).
 					Uint64("playerid", t.player.PlayerID).
-					Uint32("seatNo", t.player.SeatNo).
-					Str("player", t.player.PlayerName).
+					Uint32(logging.SeatNumKey, t.player.SeatNo).
+					Str(logging.PlayerNameKey, t.player.PlayerName).
 					Msg(fmt.Sprintf("%s", string(jsonb)))
 			}
 			if msgItem.MessageType == game.HandResultMessage2 {
 				testPlayerLogger.Debug().
 					Uint32("club", t.player.ClubID).
-					Uint64("game", t.player.GameID).
+					Uint64(logging.GameIDKey, t.player.GameID).
 					Uint64("playerid", t.player.PlayerID).
-					Uint32("seatNo", t.player.SeatNo).
-					Str("player", t.player.PlayerName).
+					Uint32(logging.SeatNumKey, t.player.SeatNo).
+					Str(logging.PlayerNameKey, t.player.PlayerName).
 					Msg(fmt.Sprintf("%s", string(jsonb)))
 			}
 			// save next action information
@@ -216,10 +216,10 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 	if !logged {
 		testPlayerLogger.Trace().
 			Uint32("club", t.player.ClubID).
-			Uint64("game", t.player.GameID).
+			Uint64(logging.GameIDKey, t.player.GameID).
 			Uint64("playerid", t.player.PlayerID).
-			Uint32("seatNo", t.player.SeatNo).
-			Str("player", t.player.PlayerName).
+			Uint32(logging.SeatNumKey, t.player.SeatNo).
+			Str(logging.PlayerNameKey, t.player.PlayerName).
 			Msg(fmt.Sprintf("HAND MESSAGE Json: %s", string(jsonb)))
 	}
 }
@@ -227,10 +227,10 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 func (t *TestPlayer) GameMessageFromGame(messageBytes []byte, gameMessage *game.GameMessage, jsonb []byte) {
 	testPlayerLogger.Trace().
 		Uint32("club", t.player.ClubID).
-		Uint64("game", t.player.GameID).
+		Uint64(logging.GameIDKey, t.player.GameID).
 		Uint64("playerid", t.player.PlayerID).
-		Uint32("seatNo", t.player.SeatNo).
-		Str("player", t.player.PlayerName).
+		Uint32(logging.SeatNumKey, t.player.SeatNo).
+		Str(logging.PlayerNameKey, t.player.PlayerName).
 		Msg(fmt.Sprintf("GAME MESSAGE Json: %s", string(jsonb)))
 
 	// parse json message

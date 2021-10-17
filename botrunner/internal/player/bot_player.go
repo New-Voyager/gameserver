@@ -31,6 +31,7 @@ import (
 	"voyager.com/botrunner/internal/util"
 	"voyager.com/encryption"
 	"voyager.com/gamescript"
+	"voyager.com/logging"
 )
 
 // Config holds the configuration for a bot object.
@@ -246,6 +247,7 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 			"enter_state": func(e *fsm.Event) { bp.enterState(e) },
 		},
 	)
+	bp.updateLogPrefix()
 	return &bp, nil
 }
 
@@ -284,8 +286,15 @@ func (bp *BotPlayer) Reset() {
 	bp.GameMessages = make([]*gamescript.NonProtoMessage, 0)
 	bp.PrivateTextMessages = make([]*gamescript.HandTextMessage, 0)
 	bp.updateLogPrefix()
+	bp.UpdateLogger(0, "")
 	go bp.messageLoop()
 	go bp.pingMessageLoop()
+}
+
+func (bp *BotPlayer) UpdateLogger(gameID uint64, gameCode string) {
+	newLogger := bp.logger.With().Uint64(logging.GameIDKey, gameID).Str(logging.GameCodeKey, gameCode).Logger()
+	bp.logger = &newLogger
+	bp.updateLogPrefix()
 }
 
 func (bp *BotPlayer) SetBotsInGame(bots []*BotPlayer) {
@@ -372,13 +381,15 @@ func (bp *BotPlayer) handlePrivateHandTextMsg(msg *natsgo.Msg) {
 	var message gamescript.HandTextMessage
 	data := msg.Data
 	if util.Env.ShouldPrintHandMsg() {
-		fmt.Printf("%s: Received hand msg (text): %s\n", bp.logPrefix, string(data))
+		bp.logger.Debug().Msgf("%s: Received hand msg (text): %s\n", bp.logPrefix, string(data))
 	}
 
 	err := json.Unmarshal(msg.Data, &message)
-	if err == nil {
-		bp.PrivateTextMessages = append(bp.PrivateTextMessages, &message)
+	if err != nil {
+		panic(fmt.Sprintf("%s: Unable to unmarshal hand text msg. Msg: %s", bp.logPrefix, string(msg.Data)))
 	}
+
+	bp.PrivateTextMessages = append(bp.PrivateTextMessages, &message)
 	bp.chHandText <- &message
 }
 
@@ -493,7 +504,15 @@ func (bp *BotPlayer) processHandTextMessage(message *gamescript.HandTextMessage)
 			case "FIVE_CARD_PLO_HILO":
 				gameType = game.GameType_FIVE_CARD_PLO_HILO
 			}
-			bp.gqlHelper.DealerChoice(bp.gameCode, gameType)
+
+			bp.logger.Info().
+				Msgf("%s: Submitting dealer choice for hand %d: %s", bp.logPrefix, message.HandNum, gameType)
+			_, err := bp.gqlHelper.DealerChoice(bp.gameCode, gameType)
+			if err != nil {
+				errMsg := fmt.Sprintf("%s: Error submitting dealer choice: %s", bp.logPrefix, err)
+				bp.logger.Error().Msg(errMsg)
+				panic(errMsg)
+			}
 		}
 	}
 }
@@ -1771,16 +1790,19 @@ func (bp *BotPlayer) ApproveClubMembers() error {
 }
 
 // CreateGame creates a new game.
-func (bp *BotPlayer) CreateGame(gameOpt game.GameCreateOpt) (string, error) {
+func (bp *BotPlayer) CreateGame(gameOpt game.GameCreateOpt) (uint64, string, error) {
 	bp.logger.Info().Msgf("%s: Creating a new game [%s].", bp.logPrefix, gameOpt.Title)
 
-	gameCode, err := bp.gqlHelper.CreateGame(bp.clubCode, gameOpt)
+	created, err := bp.gqlHelper.CreateGame(bp.clubCode, gameOpt)
 	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("%s: Unable to create new game", bp.logPrefix))
+		return 0, "", errors.Wrap(err, fmt.Sprintf("%s: Unable to create new game", bp.logPrefix))
 	}
+	gameID := created.ConfiguredGame.GameID
+	gameCode := created.ConfiguredGame.GameCode
 	bp.logger.Info().Msgf("%s: Successfully created a new game. Game Code: [%s]", bp.logPrefix, gameCode)
+	bp.gameID = gameID
 	bp.gameCode = gameCode
-	return bp.gameCode, nil
+	return bp.gameID, bp.gameCode, nil
 }
 
 // Subscribe makes the bot subscribe to the game's nats subjects.

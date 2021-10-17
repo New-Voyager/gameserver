@@ -92,4 +92,5 @@ type GameCreateOpt struct {
 	AppCoinsNeeded     bool
 	IpCheck            bool
 	GpsCheck           bool
+	DealerChoiceOrbit  bool
 }

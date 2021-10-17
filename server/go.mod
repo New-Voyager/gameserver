@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/MichaelTJones/walk v0.0.0-20161122175330-4748e29d5718 // indirect
+	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e // indirect
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/go-redis/redis/v8 v8.3.3
@@ -18,7 +19,8 @@ require (
 	github.com/orcaman/concurrent-map v0.0.0-20210501183033-44dafcb38ecc
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
-	github.com/rs/zerolog v1.19.0
+	github.com/rs/zerolog v1.25.0
+	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.6.1
 	github.com/ugorji/go v1.2.0 // indirect
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
@@ -26,7 +28,9 @@ require (
 	gopkg.in/godo.v2 v2.0.9
 	gopkg.in/yaml.v2 v2.3.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
+	voyager.com/caching v0.0.0-00010101000000-000000000000
 	voyager.com/encryption v0.0.0-00010101000000-000000000000
+	voyager.com/logging v0.0.0-00010101000000-000000000000
 )
 
 replace voyager.com/server/internal => ./internal
@@ -48,3 +52,7 @@ replace voyager.com/server/rest => ./rest
 replace voyager.com/server/timer => ./timer
 
 replace voyager.com/encryption => ../encryption
+
+replace voyager.com/caching => ../caching
+
+replace voyager.com/logging => ../logging

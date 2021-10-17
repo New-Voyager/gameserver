@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
+	"voyager.com/logging"
 	"voyager.com/server/game"
 )
 
-var logger = log.With().Str("logger_name", "server::apiserver").Logger()
+var logger = logging.GetZeroLogger("nats::apiserver", nil)
 
 // Subscribes to messages coming from apiserver and act on the messages
 // that is sent to this game server.
@@ -125,7 +125,7 @@ func UpdateTableStatus(gameID uint64, status game.TableStatus, maxRetries uint32
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		logger.Error().Uint64("game", gameID).Msgf("Failed to update table status. Error: %d", resp.StatusCode)
+		logger.Error().Msgf("Failed to update table status. Error: %d", resp.StatusCode)
 	}
 	return err
 }

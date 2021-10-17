@@ -5,11 +5,11 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"voyager.com/gamescript"
+	"voyager.com/logging"
 )
 
-var launcherLogger = log.With().Str("logger_name", "app::launcher").Logger()
+var launcherLogger = logging.GetZeroLogger("app::launcher", nil)
 var launcherOnce sync.Once
 var launcher *Launcher
 
@@ -105,12 +105,12 @@ func (l *Launcher) BatchExists(batchID string) bool {
 }
 
 // JoinHumanGame starts a BotRunner that joins a human-created game.
-func (l *Launcher) JoinHumanGame(clubCode string, gameCode string, players *gamescript.Players, script *gamescript.Script) error {
+func (l *Launcher) JoinHumanGame(clubCode string, gameID uint64, gameCode string, players *gamescript.Players, script *gamescript.Script) error {
 	_, exists := l.humanGames[gameCode]
 	if exists {
 		return fmt.Errorf("There is already an existing BotRunner for game [%s]", gameCode)
 	}
-	h, err := NewHumanGame(clubCode, gameCode, players, script)
+	h, err := NewHumanGame(clubCode, gameID, gameCode, players, script)
 	if err != nil {
 		return err
 	}

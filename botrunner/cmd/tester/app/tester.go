@@ -5,14 +5,14 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	_player "voyager.com/botrunner/internal/player"
 	"voyager.com/botrunner/internal/util"
 	"voyager.com/gamescript"
+	"voyager.com/logging"
 )
 
 var (
-	logger = log.With().Str("logger_name", "app::tester").Logger()
+	logger = logging.GetZeroLogger("app::tester", nil)
 )
 
 // Tester is the object that drives the tester application.
@@ -42,7 +42,7 @@ func (t *Tester) Run() error {
 		return fmt.Errorf("No player found in the setup script")
 	}
 
-	playerLogger := log.With().Str("logger_name", "TesterPlayer").Logger()
+	playerLogger := logging.GetZeroLogger("TesterPlayer", nil)
 	player, err := _player.NewBotPlayer(_player.Config{
 		Name:          playerConf.Name,
 		DeviceID:      playerConf.DeviceID,
@@ -55,7 +55,7 @@ func (t *Tester) Run() error {
 		GQLTimeoutSec: 10,
 		Script:        t.script,
 		Players:       t.players,
-	}, &playerLogger)
+	}, playerLogger)
 	if err != nil {
 		return err
 	}

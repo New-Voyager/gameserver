@@ -37,6 +37,8 @@ game:
   action-time: 100
   rewards: High Hand
   roe-games: ["HOLDEM", "PLO"]
+  dealer-choice-games: ['HOLDEM', 'PLO', 'PLO_HILO', 'FIVE_CARD_PLO', 'FIVE_CARD_PLO_HILO']
+  dealer-choice-orbit: true
 
 starting-seats:
   - seat: 1

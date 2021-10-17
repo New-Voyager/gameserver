@@ -6,11 +6,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 	"voyager.com/server/util"
 )
-
-var networkCheckLogger = log.With().Str("logger_name", "game::networkcheck").Logger()
 
 type playerPingState struct {
 	pongSeq      uint32
@@ -19,6 +17,7 @@ type playerPingState struct {
 }
 
 type NetworkCheck struct {
+	logger                 *zerolog.Logger
 	gameID                 uint64
 	gameCode               string
 	chEndLoop              chan bool
@@ -32,12 +31,14 @@ type NetworkCheck struct {
 }
 
 func NewNetworkCheck(
+	logger *zerolog.Logger,
 	gameID uint64,
 	gameCode string,
 	messageReceiver *MessageSender,
 	crashHandler func(),
 ) *NetworkCheck {
 	n := NetworkCheck{
+		logger:                 logger,
 		gameID:                 gameID,
 		gameCode:               gameCode,
 		chEndLoop:              make(chan bool, 10),
@@ -62,13 +63,12 @@ func (n *NetworkCheck) loop() {
 		if err != nil {
 			// Panic occurred.
 			debug.PrintStack()
-			networkCheckLogger.Error().
-				Str("game", n.gameCode).
+			n.logger.Error().
 				Msgf("network check loop returning due to panic: %s\nStack Trace:\n%s", err, string(debug.Stack()))
 
 			n.crashHandler()
 		} else {
-			networkCheckLogger.Info().Str("game", n.gameCode).Msg("Network check loop returning")
+			n.logger.Info().Msg("Network check loop returning")
 		}
 	}()
 
@@ -143,7 +143,7 @@ func (n *NetworkCheck) doPingCheck(pingSeq uint32, playerIDs []uint64) {
 			if ps.pongSeq == pingSeq {
 				// Pong is received as expected.
 				if n.debugConnectivityCheck {
-					networkCheckLogger.Info().Msgf("Player %d pong response time: %.3f seconds\n", playerID, ps.pongRecvTime.Sub(pingSentTime).Seconds())
+					n.logger.Info().Msgf("Player %d pong response time: %.3f seconds\n", playerID, ps.pongRecvTime.Sub(pingSentTime).Seconds())
 				}
 			} else {
 				// Response (pong) not received in time.
@@ -193,7 +193,8 @@ func (n *NetworkCheck) broadcastPingMessage(msg *PingPongMessage) error {
 func (n *NetworkCheck) broadcastGameMessage(msg *GameMessage) error {
 	if *n.messageSender != nil {
 		msg.GameCode = n.gameCode
-		(*n.messageSender).BroadcastGameMessage(msg)
+		skipLog := !n.debugConnectivityCheck
+		(*n.messageSender).BroadcastGameMessage(msg, skipLog)
 	}
 	return nil
 }
@@ -201,7 +202,7 @@ func (n *NetworkCheck) broadcastGameMessage(msg *GameMessage) error {
 func (n *NetworkCheck) handlePongMessage(message *PingPongMessage) {
 	err := n.onPlayerResponse(message)
 	if err != nil {
-		networkCheckLogger.Error().Msgf("Error while processing pong message. Error: %s", err.Error())
+		n.logger.Error().Msgf("Error while processing pong message. Error: %s", err.Error())
 	}
 }
 
@@ -212,7 +213,7 @@ func (n *NetworkCheck) onPlayerResponse(playerPongMsg *PingPongMessage) error {
 	pongRecvTime := time.Now()
 
 	if n.debugConnectivityCheck {
-		networkCheckLogger.Info().Msgf("PONG %d from player %d at %s\n", pongSeq, playerID, pongRecvTime.Format(time.RFC3339))
+		n.logger.Info().Msgf("PONG %d from player %d at %s\n", pongSeq, playerID, pongRecvTime.Format(time.RFC3339))
 	}
 
 	n.pingStatesLock.Lock()

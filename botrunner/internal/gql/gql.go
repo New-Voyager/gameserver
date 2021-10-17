@@ -231,7 +231,7 @@ func (g *GQLHelper) GetClubMemberStatus(clubCode string) (ClubInfoResp, error) {
 }
 
 // CreateGame creates a new game.
-func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (string, error) {
+func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (ConfigureGameResp, error) {
 	req := graphql.NewRequest(ConfigureGameGQL)
 	req.Var("clubCode", clubCode)
 	req.Var("title", opt.Title)
@@ -258,6 +258,7 @@ func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (string,
 	req.Var("appCoinsNeeded", opt.AppCoinsNeeded)
 	req.Var("ipCheck", opt.IpCheck)
 	req.Var("gpsCheck", opt.GpsCheck)
+	req.Var("dealerChoiceOrbit", opt.DealerChoiceOrbit)
 
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Authorization", g.authToken)
@@ -268,9 +269,9 @@ func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (string,
 	var respData ConfigureGameResp
 	err := g.client.Run(ctx, req, &respData)
 	if err != nil {
-		return "", err
+		return ConfigureGameResp{}, err
 	}
-	return respData.ConfiguredGame.GameCode, nil
+	return respData, nil
 }
 
 // SitIn takes a seat in a game.
@@ -1142,6 +1143,7 @@ const ConfigureGameGQL = `mutation configure_game(
 	$appCoinsNeeded: Boolean
 	$ipCheck: Boolean
 	$gpsCheck: Boolean
+	$dealerChoiceOrbit: Boolean
 ) {
 	configuredGame: configureGame(
 		clubCode: $clubCode
@@ -1170,14 +1172,17 @@ const ConfigureGameGQL = `mutation configure_game(
 			appCoinsNeeded: $appCoinsNeeded
 			ipCheck: $ipCheck
 			gpsCheck: $gpsCheck
+			dealerChoiceOrbit: $dealerChoiceOrbit
 		}
 	) {
+		gameID
 		gameCode
 	}
 }`
 
 type ConfigureGameResp struct {
 	ConfiguredGame struct {
+		GameID   uint64 `json:"gameID"`
 		GameCode string
 	}
 }

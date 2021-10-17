@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+	"voyager.com/logging"
 )
 
 /**
 NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 **/
 
-var playerLogger = log.With().Str("logger_name", "game::player").Logger()
+var playerLogger = logging.GetZeroLogger("game::player", nil)
 var TotalJsonBytesReceived = 0
 var TotalBase64BytesReceived = 0
 var TotalBinaryDataReceived = 0
@@ -118,7 +118,7 @@ func (p *Player) handleHandMessage(messageBytes []byte, message *HandMessage) {
 		} else {
 			// playerLogger.Warn().
 			// 	Uint32("club", message.ClubId).
-			// 	Uint64("game", message.GameId).
+			// 	Uint64(logging.GameIDKey, message.GameId).
 			// 	Msg(fmt.Sprintf("Unhandled Hand message type: %s %v", msgItem.MessageType, message))
 		}
 	}
@@ -181,7 +181,7 @@ func (p *Player) onPlayerAction(messageBytes []byte, message *HandMessage, msgIt
 		if seatAction.AvailableActions != nil && len(seatAction.AvailableActions) >= 1 {
 			if seatAction.AvailableActions[0] == ACTION_RUN_IT_TWICE_PROMPT {
 				playerLogger.Debug().
-					Str("game", message.GameCode).
+					Str(logging.GameIDKey, message.GameCode).
 					Msg(fmt.Sprintf("Run it twice prompt. Seat No: %d", seatAction.SeatNo))
 			}
 		}

@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
+	"voyager.com/logging"
 	"voyager.com/server/poker"
 )
 
-var handLogger = log.With().Str("logger_name", "game::hand").Logger()
+var handLogger = logging.GetZeroLogger("game::hand", nil)
 var preFlopBets = []int{3, 5, 10}     // big blinds
 var postFlopBets = []int{30, 50, 100} // % of pot
 var raiseOptions = []int{2, 3, 5}     // raise times
@@ -194,8 +194,8 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	// if there is no active player in the button pos (panic)
 	if !h.PlayersInSeats[buttonPos].Inhand {
 		handLogger.Error().
-			Uint64("game", h.GetGameId()).
-			Uint32("hand", h.GetHandNum()).
+			Uint64(logging.GameIDKey, h.GetGameId()).
+			Uint32(logging.HandNumKey, h.GetHandNum()).
 			Msgf("Button Pos: %d does not have any active seat: %v. This is a dead button", buttonPos, h.PlayersInSeats)
 	}
 
@@ -331,8 +331,8 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	}
 	h.Boards = append(h.Boards, board1)
 	handLogger.Debug().
-		Uint64("game", h.GetGameId()).
-		Uint32("hand", h.GetHandNum()).
+		Uint64(logging.GameIDKey, h.GetGameId()).
+		Uint32(logging.HandNumKey, h.GetHandNum()).
 		Msgf("Board1: %s", poker.CardsToString(h.BoardCards))
 
 	if h.DoubleBoard {
@@ -344,8 +344,8 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 		}
 		h.Boards = append(h.Boards, board2)
 		handLogger.Debug().
-			Uint64("game", h.GetGameId()).
-			Uint32("hand", h.GetHandNum()).
+			Uint64(logging.GameIDKey, h.GetGameId()).
+			Uint32(logging.HandNumKey, h.GetHandNum()).
 			Msgf("Board2: %s", poker.CardsToString(cards))
 	}
 
@@ -818,9 +818,9 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 	if len(playersInSeats) < int(action.SeatNo) {
 		errMsg := fmt.Sprintf("Unable to find player ID for the action seat %d. PlayerIds: %v", action.SeatNo, playersInSeats)
 		handLogger.Error().
-			Uint64("game", h.GetGameId()).
-			Uint32("hand", h.GetHandNum()).
-			Uint32("seat", action.SeatNo).
+			Uint64(logging.GameIDKey, h.GetGameId()).
+			Uint32(logging.HandNumKey, h.GetHandNum()).
+			Uint32(logging.SeatNumKey, action.SeatNo).
 			Msg(errMsg)
 		return fmt.Errorf(errMsg)
 	}
@@ -828,9 +828,9 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 	if action.Action == ACTION_FOLD || action.Action == ACTION_CHECK {
 		if action.Amount > 0 {
 			handLogger.Warn().
-				Uint64("game", h.GetGameId()).
-				Uint32("hand", h.GetHandNum()).
-				Uint32("seat", action.SeatNo).
+				Uint64(logging.GameIDKey, h.GetGameId()).
+				Uint32(logging.HandNumKey, h.GetHandNum()).
+				Uint32(logging.SeatNumKey, action.SeatNo).
 				Msgf("Invalid amount %f passed for the fold action. Setting the amount to 0", action.Amount)
 		}
 		action.Amount = 0
@@ -841,9 +841,9 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		errMsg := fmt.Sprintf("Invalid seat %d. PlayerID is 0", action.SeatNo)
 		// something wrong
 		handLogger.Error().
-			Uint64("game", h.GetGameId()).
-			Uint32("hand", h.GetHandNum()).
-			Uint32("seat", action.SeatNo).
+			Uint64(logging.GameIDKey, h.GetGameId()).
+			Uint32(logging.HandNumKey, h.GetHandNum()).
+			Uint32(logging.SeatNumKey, action.SeatNo).
 			Msg(errMsg)
 		return fmt.Errorf(errMsg)
 	}
@@ -960,10 +960,10 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		if action.Amount < h.GetCurrentRaise() {
 			// invalid
 			handLogger.Error().
-				Uint64("game", h.GetGameId()).
-				Uint32("hand", h.GetHandNum()).
-				Uint32("seat", action.SeatNo).
-				Msg(fmt.Sprintf("Invalid raise %f. Current bet: %f", action.Amount, h.GetCurrentRaise()))
+				Uint64(logging.GameIDKey, h.GetGameId()).
+				Uint32(logging.HandNumKey, h.GetHandNum()).
+				Uint32(logging.SeatNumKey, action.SeatNo).
+				Msgf("Invalid raise %f. Current bet: %f", action.Amount, h.GetCurrentRaise())
 		}
 
 		handAction := ACTION_RAISE

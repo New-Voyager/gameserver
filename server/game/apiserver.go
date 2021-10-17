@@ -24,16 +24,13 @@ func (g *Game) saveHandResult2ToAPIServer(result2 *HandResultServer) (*SaveHandR
 	var m protojson.MarshalOptions
 	m.EmitUnpopulated = true
 	data, _ := m.Marshal(result2)
-	channelGameLogger.Debug().
-		Str("game", g.gameCode).
-		Msgf("Result to API server: %s", string(data))
+	g.logger.Debug().Msgf("Result to API server: %s", string(data))
 	url := fmt.Sprintf("%s/internal/save-hand/gameId/%d/handNum/%d", g.apiServerURL, result2.GameId, result2.HandNum)
 	retries := 0
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
 	for err != nil && retries < int(g.maxRetries) {
 		retries++
-		channelGameLogger.Error().
-			Str("game", g.gameCode).
+		g.logger.Error().
 			Msgf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, g.maxRetries)
 		time.Sleep(time.Duration(g.retryDelayMillis) * time.Millisecond)
 		resp, err = http.Post(url, "application/json", bytes.NewBuffer(data))
@@ -68,8 +65,7 @@ func (g *Game) getNewHandInfo() (*NewHandInfo, error) {
 	resp, err := http.Get(url)
 	for err != nil && retries < int(g.maxRetries) {
 		retries++
-		channelGameLogger.Error().
-			Str("game", g.gameCode).
+		g.logger.Error().
 			Msgf("Error in get %s: %s. Retrying (%d/%d)", url, err, retries, g.maxRetries)
 		time.Sleep(time.Duration(g.retryDelayMillis) * time.Millisecond)
 		resp, err = http.Get(url)
@@ -101,15 +97,13 @@ func (g *Game) getNewHandInfo() (*NewHandInfo, error) {
 func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) (moveToNextHandResp, error) {
 	url := fmt.Sprintf("%s/internal/move-to-next-hand/game_num/%s/hand_num/%d", g.apiServerURL, g.gameCode, gameServerHandNum)
 
-	channelGameLogger.Debug().
-		Str("game", g.gameCode).
+	g.logger.Debug().
 		Msgf("Calling /move-to-next-hand with current hand number %d", gameServerHandNum)
 	retries := 0
 	resp, err := http.Post(url, "text/plain", bytes.NewBuffer([]byte{}))
 	for err != nil && retries < int(g.maxRetries) {
 		retries++
-		channelGameLogger.Error().
-			Str("game", g.gameCode).
+		g.logger.Error().
 			Msgf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, g.maxRetries)
 		time.Sleep(time.Duration(g.retryDelayMillis) * time.Millisecond)
 		resp, err = http.Post(url, "text/plain", bytes.NewBuffer([]byte{}))
@@ -124,13 +118,11 @@ func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) (moveToNextHand
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		msg := "Cannot read response from /move-to-next-hand"
-		channelGameLogger.Error().
-			Str("game", g.gameCode).
+		g.logger.Error().
 			Msgf(msg)
 		return moveToNextHandResp{}, errors.Wrap(err, msg)
 	}
-	channelGameLogger.Debug().
-		Str("game", g.gameCode).
+	g.logger.Debug().
 		Msgf("Response from /move-to-next-hand: %s", string(bodyBytes))
 
 	if resp.StatusCode != http.StatusOK {

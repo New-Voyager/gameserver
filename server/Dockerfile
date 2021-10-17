@@ -11,6 +11,8 @@ RUN wget https://github.com/eradman/entr/archive/4.6.tar.gz -O entr.tar.gz && \
 RUN mkdir /build
 COPY . /build/server
 COPY build/encryption /build/encryption
+COPY build/caching /build/caching
+COPY build/logging /build/logging
 WORKDIR /build/server
 
 RUN --mount=type=cache,target=/go --mount=type=cache,target=/root/.cache/go-build \

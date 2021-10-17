@@ -6,10 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
-
-var actionTimerLogger = log.With().Str("logger_name", "game::action_timer").Logger()
 
 type TimerMsg struct {
 	SeatNo           uint32
@@ -33,7 +31,7 @@ type TimerResetTimeMsg struct {
 }
 
 type ActionTimer struct {
-	gameCode string
+	logger *zerolog.Logger
 
 	chReset        chan TimerMsg
 	chExtend       chan TimerExtendMsg
@@ -51,9 +49,9 @@ type ActionTimer struct {
 	crashHandler func()
 }
 
-func NewActionTimer(gameCode string, callback func(TimerMsg), crashHandler func()) *ActionTimer {
+func NewActionTimer(logger *zerolog.Logger, callback func(TimerMsg), crashHandler func()) *ActionTimer {
 	at := ActionTimer{
-		gameCode:       gameCode,
+		logger:         logger,
 		chReset:        make(chan TimerMsg),
 		chResetTime:    make(chan TimerResetTimeMsg),
 		chExtend:       make(chan TimerExtendMsg),
@@ -81,13 +79,12 @@ func (a *ActionTimer) loop() {
 		if err != nil {
 			// Panic occurred.
 			debug.PrintStack()
-			actionTimerLogger.Error().
-				Str("game", a.gameCode).
+			a.logger.Error().
 				Msgf("Action timer loop returning due to panic: %s\nStack Trace:\n%s", err, string(debug.Stack()))
 
 			a.crashHandler()
 		} else {
-			actionTimerLogger.Info().Str("game", a.gameCode).Msg("Action timer loop returning")
+			a.logger.Info().Msg("Action timer loop returning")
 		}
 	}()
 
@@ -105,14 +102,14 @@ func (a *ActionTimer) loop() {
 			paused = false
 		case msg := <-a.chResetTime:
 			if msg.PlayerID != a.currentTimerMsg.PlayerID {
-				actionTimerLogger.Info().Str("game", a.gameCode).Msgf("Player ID (%d) does not match the existing timer (%d). Ignoring the request to reset the action timer.", msg.PlayerID, a.currentTimerMsg.PlayerID)
+				a.logger.Info().Msgf("Player ID (%d) does not match the existing timer (%d). Ignoring the request to reset the action timer.", msg.PlayerID, a.currentTimerMsg.PlayerID)
 				break
 			}
 			a.expirationTime = time.Now().Add(msg.RemainingTime)
 		case msg := <-a.chExtend:
 			// Extend the existing timer.
 			if msg.PlayerID != a.currentTimerMsg.PlayerID {
-				actionTimerLogger.Info().Str("game", a.gameCode).Msgf("Player ID (%d) does not match the existing timer (%d). Ignoring the request to extend the action timer.", msg.PlayerID, a.currentTimerMsg.PlayerID)
+				a.logger.Info().Msgf("Player ID (%d) does not match the existing timer (%d). Ignoring the request to extend the action timer.", msg.PlayerID, a.currentTimerMsg.PlayerID)
 				break
 			}
 			a.expirationTime = a.expirationTime.Add(msg.ExtendBy)

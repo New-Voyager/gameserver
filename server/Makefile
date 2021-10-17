@@ -113,8 +113,12 @@ docker-build: compile-proto
 	mkdir -p build
 	if ! command -v rsync; then \
 		[ -d build/encryption ] || cp -r $(PROJECT_ROOT)/encryption build/encryption; \
+		[ -d build/caching ] || cp -r $(PROJECT_ROOT)/caching build/caching; \
+		[ -d build/logging ] || cp -r $(PROJECT_ROOT)/logging build/logging; \
 	else \
 		rsync -avu --delete $(PROJECT_ROOT)/encryption/ build/encryption; \
+		rsync -avu --delete $(PROJECT_ROOT)/caching/ build/caching; \
+		rsync -avu --delete $(PROJECT_ROOT)/logging/ build/logging; \
 	fi
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(GAME_SERVER_IMAGE)
 	rm -rf build/

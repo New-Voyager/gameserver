@@ -3,13 +3,13 @@ package game
 import (
 	"time"
 
+	"voyager.com/logging"
 	"voyager.com/server/timer"
 )
 
 func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireAt time.Time) {
-	channelGameLogger.Debug().
-		Str("game", g.gameCode).
-		Msgf("Resetting timer. Current timer seat: %d, player ID: %d, expires at %s (%f seconds from now)", seatNo, playerID, expireAt, expireAt.Sub(time.Now()).Seconds())
+	g.logger.Debug().
+		Msgf("Resetting timer. Current timer seat: %d, player ID: %d, expires at %s (%.3f seconds from now)", seatNo, playerID, expireAt.Format(time.RFC3339), expireAt.Sub(time.Now()).Seconds())
 	g.actionTimer.NewAction(timer.TimerMsg{
 		SeatNo:   seatNo,
 		PlayerID: playerID,
@@ -19,8 +19,7 @@ func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireA
 }
 
 func (g *Game) resetTime(seatNo uint32, playerID uint64, remainingTime time.Duration) error {
-	channelGameLogger.Debug().
-		Str("game", g.gameCode).
+	g.logger.Debug().
 		Msgf("Resetting time for the current timer. Seat: %d, player ID: %d, remaining: %s", seatNo, playerID, remainingTime)
 	_, err := g.actionTimer.ResetTime(timer.TimerResetTimeMsg{
 		SeatNo:        seatNo,
@@ -31,8 +30,7 @@ func (g *Game) resetTime(seatNo uint32, playerID uint64, remainingTime time.Dura
 }
 
 func (g *Game) extendTimer(seatNo uint32, playerID uint64, extendBy time.Duration) (uint32, error) {
-	channelGameLogger.Debug().
-		Str("game", g.gameCode).
+	g.logger.Debug().
 		Msgf("Extending timer. Seat: %d, Extend by %s", seatNo, extendBy)
 	return g.actionTimer.Extend(timer.TimerExtendMsg{
 		SeatNo:   seatNo,
@@ -42,9 +40,8 @@ func (g *Game) extendTimer(seatNo uint32, playerID uint64, extendBy time.Duratio
 }
 
 func (g *Game) runItTwiceTimer(seatNo uint32, playerID uint64, seatNo2 uint32, playerID2 uint64, expireAt time.Time) {
-	channelGameLogger.Debug().
-		Str("game", g.gameCode).
-		Msgf("Resetting timers for run-it-twice prompt. SeatNo 1: %d SeatNo 2: %d expires at %s (%f seconds from now)", seatNo, seatNo2, expireAt, expireAt.Sub(time.Now()).Seconds())
+	g.logger.Debug().
+		Msgf("Resetting timers for run-it-twice prompt. SeatNo 1: %d SeatNo 2: %d expires at %s (%.3f seconds from now)", seatNo, seatNo2, expireAt.Format(time.RFC3339), expireAt.Sub(time.Now()).Seconds())
 	g.actionTimer.NewAction(timer.TimerMsg{
 		SeatNo:     seatNo,
 		PlayerID:   playerID,
@@ -62,18 +59,18 @@ func (g *Game) runItTwiceTimer(seatNo uint32, playerID uint64, seatNo2 uint32, p
 func (g *Game) pausePlayTimer(seatNo uint32) {
 	actionResponseTime := g.actionTimer.GetElapsedTime()
 
-	channelGameLogger.Debug().
-		Str("game", g.gameCode).
-		Msgf("Pausing timer. Seat responded seat: %d Responded in: %fs \n", seatNo, actionResponseTime.Seconds())
+	g.logger.Debug().
+		Uint32(logging.SeatNumKey, seatNo).
+		Msgf("Pausing timer. Player responded in: %.3fs", actionResponseTime.Seconds())
 	g.actionTimer.Pause()
 }
 
 func (g *Game) pausePlayTimer2(seatNo uint32) {
 	actionResponseTime := g.actionTimer2.GetElapsedTime()
 
-	channelGameLogger.Debug().
-		Str("game", g.gameCode).
-		Msgf("Pausing timer 2. Seat responded seat: %d Responded in: %fs \n", seatNo, actionResponseTime.Seconds())
+	g.logger.Debug().
+		Uint32(logging.SeatNumKey, seatNo).
+		Msgf("Pausing timer 2. Player responded in: %.3fs", actionResponseTime.Seconds())
 	g.actionTimer2.Pause()
 }
 

@@ -62,9 +62,13 @@ docker-build: compile-proto
 	if ! command -v rsync; then \
 		[ -d build/gamescript ] || cp -r $(PROJECT_ROOT)/gamescript build/gamescript; \
 		[ -d build/encryption ] || cp -r $(PROJECT_ROOT)/encryption build/encryption; \
+		[ -d build/caching ] || cp -r $(PROJECT_ROOT)/caching build/caching; \
+		[ -d build/logging ] || cp -r $(PROJECT_ROOT)/logging build/logging; \
 	else \
 		rsync -avu --delete $(PROJECT_ROOT)/gamescript/ build/gamescript; \
 		rsync -avu --delete $(PROJECT_ROOT)/encryption/ build/encryption; \
+		rsync -avu --delete $(PROJECT_ROOT)/caching/ build/caching; \
+		rsync -avu --delete $(PROJECT_ROOT)/logging/ build/logging; \
 	fi
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(BOTRUNNER_IMAGE)
 	rm -rf build/
@@ -170,8 +174,8 @@ gcp-login:
 #################
 
 # These images are downloaded.
-API_SERVER_IMAGE := $(REGISTRY)/api-server:0.7.78
-SCHEDULER_IMAGE := $(REGISTRY)/scheduler:0.1.8
+API_SERVER_IMAGE := $(REGISTRY)/api-server:0.7.85
+SCHEDULER_IMAGE := $(REGISTRY)/scheduler:0.1.9
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
 REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
 POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5

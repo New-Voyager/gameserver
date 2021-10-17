@@ -7,15 +7,15 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"voyager.com/botrunner/cmd/tester/app"
 	"voyager.com/botrunner/internal/util"
 	"voyager.com/gamescript"
+	"voyager.com/logging"
 )
 
 var (
 	cmdArgs    arg
-	mainLogger = log.With().Str("logger_name", "main::main").Logger()
+	mainLogger = logging.GetZeroLogger("main::main", nil)
 )
 
 type arg struct {

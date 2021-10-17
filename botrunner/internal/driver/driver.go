@@ -12,10 +12,12 @@ import (
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	"voyager.com/botrunner/internal/caches"
 	"voyager.com/botrunner/internal/game"
 	"voyager.com/botrunner/internal/player"
 	"voyager.com/botrunner/internal/util"
 	"voyager.com/gamescript"
+	"voyager.com/logging"
 )
 
 // BotRunner is the main driver object that sets up the bots for a game.
@@ -101,7 +103,7 @@ func (br *BotRunner) Run() error {
 			MaxActionDelay: maxActionMillis,
 			APIServerURL:   util.Env.GetAPIServerURL(),
 			NatsURL:        util.Env.GetNatsURL(),
-			GQLTimeoutSec:  10,
+			GQLTimeoutSec:  util.Env.GetGQLTimeoutSec(),
 			Script:         br.script,
 			Players:        br.players,
 		}, br.playerLogger)
@@ -124,7 +126,7 @@ func (br *BotRunner) Run() error {
 		MaxActionDelay: 0,
 		APIServerURL:   util.Env.GetAPIServerURL(),
 		NatsURL:        util.Env.GetNatsURL(),
-		GQLTimeoutSec:  10,
+		GQLTimeoutSec:  util.Env.GetGQLTimeoutSec(),
 		Script:         br.script,
 		Players:        br.players,
 	}, br.playerLogger)
@@ -309,10 +311,11 @@ func (br *BotRunner) RunOneGame() error {
 		return errors.Wrap(err, "Could not get reward ids")
 	}
 
+	var gameID uint64
 	var gameCode string
 	if br.botIsGameHost {
 		// First bot creates the game.
-		gameCode, err = br.bots[0].CreateGame(game.GameCreateOpt{
+		gameID, gameCode, err = br.bots[0].CreateGame(game.GameCreateOpt{
 			Title:              br.script.Game.Title,
 			GameType:           br.script.Game.GameType,
 			SmallBlind:         br.script.Game.SmallBlind,
@@ -333,6 +336,7 @@ func (br *BotRunner) RunOneGame() error {
 			MuckLosingHand:     br.script.Game.MuckLosingHand,
 			RoeGames:           br.script.Game.RoeGames,
 			DealerChoiceGames:  br.script.Game.DealerChoiceGames,
+			DealerChoiceOrbit:  br.script.Game.DealerChoiceOrbit,
 			HighHandTracked:    br.script.Game.HighHandTracked,
 			AppCoinsNeeded:     br.script.Game.AppCoinsNeeded,
 			IpCheck:            br.script.Game.IpCheck,
@@ -341,11 +345,24 @@ func (br *BotRunner) RunOneGame() error {
 		if err != nil {
 			return err
 		}
+		err := caches.GameCodeCache.Add(gameID, gameCode)
+		if err != nil {
+			return errors.Wrap(err, "Could not update game code cache")
+		}
 	} else {
 		gameCode = br.humanGameCode
+		gameID, _ = caches.GameCodeCache.GameCodeToID(gameCode)
 		br.logger.Info().Msgf("Playing human game - %s", gameCode)
 	}
+
+	newLogger := br.logger.With().
+		Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).Logger()
+	br.logger = &newLogger
+
 	br.logger.Info().Msgf("New game is created")
+
+	br.UpdateBotLoggers(gameID, gameCode)
 
 	// Let the observer bot start watching the game.
 	br.observerBot.ObserveGame(gameCode)
@@ -586,6 +603,13 @@ func (br *BotRunner) ResetBots() {
 		bot.Reset()
 	}
 	br.observerBot.Reset()
+}
+
+func (br *BotRunner) UpdateBotLoggers(gameID uint64, gameCode string) {
+	for _, bot := range br.bots {
+		bot.UpdateLogger(gameID, gameCode)
+	}
+	br.observerBot.UpdateLogger(gameID, gameCode)
 }
 
 func (br *BotRunner) GetRewardIds() ([]uint32, error) {

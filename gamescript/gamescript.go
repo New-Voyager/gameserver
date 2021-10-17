@@ -84,6 +84,7 @@ type Game struct {
 	MuckLosingHand     bool     `yaml:"muck-losing-hand"`
 	RoeGames           []string `yaml:"roe-games"`
 	DealerChoiceGames  []string `yaml:"dealer-choice-games"`
+	DealerChoiceOrbit  bool     `yaml:"dealer-choice-orbit"`
 	HighHandTracked    bool     `yaml:"highhand-tracked"`
 	AppCoinsNeeded     bool     `yaml:"appcoins-needed"`
 	DoubleBoard        bool     `yaml:"double-board"`

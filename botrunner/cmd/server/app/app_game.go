@@ -7,9 +7,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"voyager.com/botrunner/internal/driver"
 	"voyager.com/gamescript"
+	"voyager.com/logging"
 )
 
 // AppGame manages an instance of a BotRunner that creates a script game using an existing club.
@@ -26,7 +26,7 @@ type AppGame struct {
 // NewAppGame creates a new instance of AppGame.
 func NewAppGame(clubCode string, name string, players *gamescript.Players, script *gamescript.Script) (*AppGame, error) {
 	b := AppGame{
-		logger:          log.With().Str("logger_name", "AppGame").Logger(),
+		logger:          *logging.GetZeroLogger("AppGame", nil),
 		botRunnerLogDir: filepath.Join(baseLogDir, "app_game"),
 		players:         players,
 		script:          script,
@@ -38,7 +38,6 @@ func NewAppGame(clubCode string, name string, players *gamescript.Players, scrip
 
 // Launch launches the BotRunner.
 func (b *AppGame) Launch() error {
-	loggerName := fmt.Sprintf("BotRunner<%s>", b.name)
 	err := os.MkdirAll(b.botRunnerLogDir, os.ModePerm)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("Unable to create log directory %s", b.botRunnerLogDir))
@@ -48,11 +47,11 @@ func (b *AppGame) Launch() error {
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("Unable to create log file %s", logFileName))
 	}
-	botRunnerLogger := zerolog.New(f).With().Str("logger_name", loggerName).Logger()
-	botPlayerLogger := zerolog.New(f).With().Str("logger_name", "BotPlayer").Logger()
 
 	b.logger.Info().Msgf("Launching bot runner to start an app game. Logging to %s", logFileName)
-	botRunner, err := driver.NewBotRunner(b.clubCode, "", b.script, b.players, &botRunnerLogger, &botPlayerLogger, false, false)
+	botRunnerLogger := logging.GetZeroLogger("BotRunner", f)
+	botPlayerLogger := logging.GetZeroLogger("BotPlayer", f)
+	botRunner, err := driver.NewBotRunner(b.clubCode, "", b.script, b.players, botRunnerLogger, botPlayerLogger, false, false)
 	if err != nil {
 		errors.Wrap(err, "Error while creating a BotRunner")
 	}

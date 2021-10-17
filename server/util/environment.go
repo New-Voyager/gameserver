@@ -7,10 +7,11 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"github.com/sirupsen/logrus"
+	"voyager.com/logging"
 )
 
-var environmentLogger = log.With().Str("logger_name", "util::environment").Logger()
+var environmentLogger = logging.GetZeroLogger("util::environment", nil)
 
 type gameServerEnvironment struct {
 	PersistMethod          string
@@ -328,6 +329,28 @@ func (g *gameServerEnvironment) GetZeroLogLogLevel() zerolog.Level {
 		return zerolog.ErrorLevel
 	case "disabled":
 		return zerolog.Disabled
+	default:
+		panic(fmt.Sprintf("Unsupported %s: %s", g.LogLevel, l))
+	}
+}
+
+func (g *gameServerEnvironment) GetLogrusLogLevel() logrus.Level {
+	l := g.GetLogLevel()
+	switch strings.ToLower(l) {
+	case "trace":
+		return logrus.TraceLevel
+	case "debug":
+		return logrus.DebugLevel
+	case "info":
+		return logrus.InfoLevel
+	case "warn":
+		fallthrough
+	case "warning":
+		return logrus.WarnLevel
+	case "error":
+		return logrus.ErrorLevel
+	case "disabled":
+		panic("'disabled' log level is not supported in logrus")
 	default:
 		panic(fmt.Sprintf("Unsupported %s: %s", g.LogLevel, l))
 	}
