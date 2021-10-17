@@ -16,7 +16,14 @@ TIMER_IMAGE ?= $(LOCAL_IMAGE_NAME)
 
 .PHONY: docker-build
 docker-build:
+	mkdir -p build
+	if ! command -v rsync; then \
+		[ -d build/logging ] || cp -r $(PROJECT_ROOT)/logging build/logging; \
+	else \
+		rsync -avu --delete $(PROJECT_ROOT)/logging/ build/logging; \
+	fi
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(TIMER_IMAGE)
+	rm -rf build/
 
 .PHONY: build
 build:

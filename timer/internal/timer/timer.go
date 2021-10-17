@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"voyager.com/logging"
 )
 
-var timerLogger = log.With().Str("logger_name", "timer::timer").Logger()
+var timerLogger = logging.GetZeroLogger("timer::timer", nil)
 var controllerOnce sync.Once
 var controller *Controller
 
@@ -133,7 +133,7 @@ func (c *Controller) CancelTimer(gameID uint64, playerID uint64, purpose string)
 }
 
 func (c *Controller) runMainLoop() {
-	var lastProcessedTs int64 = time.Now().Unix()
+	lastProcessedTs := time.Now().Unix()
 
 	for {
 		if c.end {
@@ -143,7 +143,7 @@ func (c *Controller) runMainLoop() {
 
 		time.Sleep(100 * time.Millisecond)
 
-		var currentTs int64 = time.Now().Unix()
+		currentTs := time.Now().Unix()
 		if currentTs <= lastProcessedTs {
 			if currentTs < lastProcessedTs {
 				// Should not be here.

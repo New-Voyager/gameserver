@@ -10,13 +10,14 @@ import (
 )
 
 const (
-	GameIDKey     string = "gameID"
-	GameCodeKey   string = "gameCode"
-	HandNumKey    string = "handNo"
-	SeatNumKey    string = "seatNo"
-	PlayerNameKey string = "playerName"
-	PlayerIDKey   string = "playerID"
-	MsgTypeKey    string = "msgType"
+	GameIDKey       string = "gameID"
+	GameCodeKey     string = "gameCode"
+	HandNumKey      string = "handNo"
+	SeatNumKey      string = "seatNo"
+	PlayerNameKey   string = "playerName"
+	PlayerIDKey     string = "playerID"
+	MsgTypeKey      string = "msgType"
+	TimerPurposeKey string = "purpose"
 )
 
 func getEnableColorLog() string {
