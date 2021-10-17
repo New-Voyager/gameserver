@@ -41,6 +41,7 @@ services:
       POSTGRES_USER: 'game'
       POSTGRES_PASSWORD: 'game'
       POSTGRES_DB: 'game'
+      LOG_LEVEL: 'debug'
 
   game-server-1:
     image: ${GAME_SERVER_IMAGE}
