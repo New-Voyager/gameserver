@@ -187,6 +187,12 @@ ifndef CI
 COMPOSE_SYSTEM_TEST := $(COMPOSE_SYSTEM_TEST) -f docker-compose-systest-local.yaml
 endif
 
+ifdef CI
+COLORIZE_LOG=0
+else
+COLORIZE_LOG=1
+endif
+
 UNAME := $(shell uname)
 
 .PHONY: system-test
@@ -256,4 +262,5 @@ system-test-generate-env:
 		echo "NATS_SERVER_IMAGE=$(NATS_SERVER_IMAGE)" >> .env && \
 		echo "REDIS_IMAGE=$(REDIS_IMAGE)" >> .env && \
 		echo "POSTGRES_IMAGE=$(POSTGRES_IMAGE)" >> .env && \
-		echo "TEST_DOCKER_NET=$(TEST_DOCKER_NET)" >> .env
+		echo "TEST_DOCKER_NET=$(TEST_DOCKER_NET)" >> .env && \
+		echo "COLORIZE_LOG=$(COLORIZE_LOG)" >> .env

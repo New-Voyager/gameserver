@@ -3,6 +3,7 @@ package logging
 import (
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -18,11 +19,25 @@ const (
 	MsgTypeKey    string = "msgType"
 )
 
+func getEnableColorLog() string {
+	v := os.Getenv("COLORIZE_LOG")
+	if v == "" {
+		// Use colorized logging by default.
+		return "true"
+	}
+	return v
+}
+
+func IsColorLoggingEnabled() bool {
+	return getEnableColorLog() == "1" || strings.ToLower(getEnableColorLog()) == "true"
+}
+
 func GetZeroLogger(name string, out io.Writer) *zerolog.Logger {
 	if out == nil {
 		out = os.Stdout
 	}
-	output := zerolog.ConsoleWriter{Out: out, TimeFormat: time.RFC3339}
+	noColor := !IsColorLoggingEnabled()
+	output := zerolog.ConsoleWriter{Out: out, NoColor: noColor, TimeFormat: time.RFC3339}
 	logger := zerolog.New(output).With().Timestamp().Str("logger", name).Logger()
 	return &logger
 }
