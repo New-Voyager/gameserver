@@ -1,0 +1,6 @@
+# Compiled executables
+scheduler
+!scheduler/
+
+# VS Code debugger
+__debug_bin

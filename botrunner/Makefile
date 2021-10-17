@@ -34,6 +34,7 @@ LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh botrunner)
 BOTRUNNER_IMAGE ?= $(LOCAL_IMAGE_NAME)
 GAME_SERVER_IMAGE := $(shell $(BUILD_HELPER)/get_local_image_name.sh game-server)
 TIMER_IMAGE := $(shell $(BUILD_HELPER)/get_local_image_name.sh timer)
+SCHEDULER_IMAGE := $(shell $(BUILD_HELPER)/get_local_image_name.sh scheduler)
 
 PROTO_DIR := $(PROJECT_ROOT)/proto
 PLAYERS_YAML := $(PWD)/botrunner_scripts/players/default.yaml
@@ -175,7 +176,6 @@ gcp-login:
 
 # These images are downloaded.
 API_SERVER_IMAGE := $(REGISTRY)/api-server:0.7.85
-SCHEDULER_IMAGE := $(REGISTRY)/scheduler:0.1.9
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
 REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
 POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5
@@ -228,8 +228,9 @@ endif
 .PHONY: system-test-build
 system-test-build:
 	GAME_SERVER_IMAGE=$(GAME_SERVER_IMAGE) $(MAKE) -C $(PROJECT_ROOT)/server docker-build
-	TIMER_IMAGE=$(TIMER_IMAGE) $(MAKE) -C $(PROJECT_ROOT)/timer docker-build
 	BOTRUNNER_IMAGE=$(BOTRUNNER_IMAGE) $(MAKE) -C $(PROJECT_ROOT)/botrunner docker-build
+	TIMER_IMAGE=$(TIMER_IMAGE) $(MAKE) -C $(PROJECT_ROOT)/timer docker-build
+	SCHEDULER_IMAGE=$(SCHEDULER_IMAGE) $(MAKE) -C $(PROJECT_ROOT)/scheduler docker-build
 
 .PHONY: system-test-down
 system-test-down: system-test-create-network system-test-generate-env
