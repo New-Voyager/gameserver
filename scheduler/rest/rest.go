@@ -6,12 +6,12 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
+	"voyager.com/logging"
 	"voyager.com/scheduler/internal/scheduler"
 )
 
 var (
-	restLogger          = log.With().Str("logger_name", "rest::rest").Logger()
+	restLogger          = logging.GetZeroLogger("rest::rest", nil)
 	schedulerController = scheduler.GetController()
 )
 

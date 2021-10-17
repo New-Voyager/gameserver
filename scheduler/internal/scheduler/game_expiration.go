@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"voyager.com/logging"
 	"voyager.com/scheduler/internal/util"
 )
 
 var (
-	expireGamesLogger = log.With().Str("logger_name", "scheduler::game_expiration").Logger()
+	expireGamesLogger = logging.GetZeroLogger("scheduler::game_expiration", nil)
 )
 
 func CleanUpExpiredGames() {

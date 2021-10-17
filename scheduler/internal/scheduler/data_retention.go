@@ -3,12 +3,12 @@ package scheduler
 import (
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"voyager.com/logging"
 	"voyager.com/scheduler/internal/util"
 )
 
 var (
-	dataRetentionLogger = log.With().Str("logger_name", "scheduler::data_retention").Logger()
+	dataRetentionLogger = logging.GetZeroLogger("scheduler::data_retention", nil)
 )
 
 func DataRetention() {
