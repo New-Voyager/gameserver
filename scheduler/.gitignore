@@ -4,3 +4,4 @@ scheduler
 
 # VS Code debugger
 __debug_bin
+build/
