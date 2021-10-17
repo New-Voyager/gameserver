@@ -174,7 +174,7 @@ gcp-login:
 #################
 
 # These images are downloaded.
-API_SERVER_IMAGE := $(REGISTRY)/api-server:0.7.84
+API_SERVER_IMAGE := $(REGISTRY)/api-server:0.7.85
 SCHEDULER_IMAGE := $(REGISTRY)/scheduler:0.1.9
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
 REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
