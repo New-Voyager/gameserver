@@ -146,10 +146,6 @@ hands:
   # seat 4 misses another hand
   - setup:
       auto: true
-      new-players:
-        - seat: 3
-          player: olivia
-          buy-in: 2000      
       verify:
         seats:
           - seat: 1
