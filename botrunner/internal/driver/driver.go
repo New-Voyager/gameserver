@@ -103,7 +103,7 @@ func (br *BotRunner) Run() error {
 			MaxActionDelay: maxActionMillis,
 			APIServerURL:   util.Env.GetAPIServerURL(),
 			NatsURL:        util.Env.GetNatsURL(),
-			GQLTimeoutSec:  10,
+			GQLTimeoutSec:  util.Env.GetGQLTimeoutSec(),
 			Script:         br.script,
 			Players:        br.players,
 		}, br.playerLogger)
@@ -126,7 +126,7 @@ func (br *BotRunner) Run() error {
 		MaxActionDelay: 0,
 		APIServerURL:   util.Env.GetAPIServerURL(),
 		NatsURL:        util.Env.GetNatsURL(),
-		GQLTimeoutSec:  10,
+		GQLTimeoutSec:  util.Env.GetGQLTimeoutSec(),
 		Script:         br.script,
 		Players:        br.players,
 	}, br.playerLogger)

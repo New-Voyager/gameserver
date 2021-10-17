@@ -38,6 +38,7 @@ type environment struct {
 	PrintStateMsg        string
 	EnableEncryption     string
 	LogLevel             string
+	GqlTimeoutSec        string
 }
 
 // Env is a helper object for accessing environment variables.
@@ -60,6 +61,7 @@ var Env = &environment{
 	PrintStateMsg:        "PRINT_STATE_MSG",
 	EnableEncryption:     "ENABLE_ENCRYPTION",
 	LogLevel:             "LOG_LEVEL",
+	GqlTimeoutSec:        "GQL_TIMEOUT_SEC",
 }
 
 func (e *environment) GetNatsURL() string {
@@ -282,6 +284,20 @@ func (e *environment) ShouldPrintStateMsg() bool {
 
 func (e *environment) IsEncryptionEnabled() bool {
 	return e.GetEnableEncryption() == "1" || strings.ToLower(e.GetEnableEncryption()) == "true"
+}
+
+func (e *environment) GetGQLTimeoutSec() int {
+	v := os.Getenv(e.GqlTimeoutSec)
+	if v == "" {
+		return 30
+	}
+	timeoutSec, err := strconv.Atoi(v)
+	if err != nil {
+		msg := fmt.Sprintf("Invalid value for %s: %v", e.GqlTimeoutSec, v)
+		environmentLogger.Error().Msg(msg)
+		panic(msg)
+	}
+	return timeoutSec
 }
 
 func (e *environment) GetLogLevel() string {

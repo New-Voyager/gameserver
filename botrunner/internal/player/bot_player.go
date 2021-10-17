@@ -381,13 +381,15 @@ func (bp *BotPlayer) handlePrivateHandTextMsg(msg *natsgo.Msg) {
 	var message gamescript.HandTextMessage
 	data := msg.Data
 	if util.Env.ShouldPrintHandMsg() {
-		fmt.Printf("%s: Received hand msg (text): %s\n", bp.logPrefix, string(data))
+		bp.logger.Debug().Msgf("%s: Received hand msg (text): %s\n", bp.logPrefix, string(data))
 	}
 
 	err := json.Unmarshal(msg.Data, &message)
-	if err == nil {
-		bp.PrivateTextMessages = append(bp.PrivateTextMessages, &message)
+	if err != nil {
+		panic(fmt.Sprintf("%s: Unable to unmarshal hand text msg. Msg: %s", bp.logPrefix, string(msg.Data)))
 	}
+
+	bp.PrivateTextMessages = append(bp.PrivateTextMessages, &message)
 	bp.chHandText <- &message
 }
 
@@ -502,7 +504,16 @@ func (bp *BotPlayer) processHandTextMessage(message *gamescript.HandTextMessage)
 			case "FIVE_CARD_PLO_HILO":
 				gameType = game.GameType_FIVE_CARD_PLO_HILO
 			}
-			bp.gqlHelper.DealerChoice(bp.gameCode, gameType)
+
+			bp.logger.Info().
+				Uint32(logging.HandNumKey, message.HandNum).
+				Msgf("%s: Submitting dealer choice: %s", bp.logPrefix, gameType)
+			_, err := bp.gqlHelper.DealerChoice(bp.gameCode, gameType)
+			if err != nil {
+				errMsg := fmt.Sprintf("%s: Error submitting dealer choice: %s", bp.logPrefix, err)
+				bp.logger.Error().Msg(errMsg)
+				panic(errMsg)
+			}
 		}
 	}
 }
