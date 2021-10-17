@@ -28,7 +28,7 @@ NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 **/
 
 type MessageSender interface {
-	BroadcastGameMessage(message *GameMessage)
+	BroadcastGameMessage(message *GameMessage, noLog bool)
 	BroadcastHandMessage(message *HandMessage)
 	BroadcastPingMessage(message *PingPongMessage)
 	SendHandMessageToPlayer(message *HandMessage, playerID uint64)
@@ -762,7 +762,7 @@ func (g *Game) broadcastHandMessage(message *HandMessage) {
 func (g *Game) broadcastGameMessage(message *GameMessage) {
 	message.GameCode = g.gameCode
 	if *g.messageSender != nil {
-		(*g.messageSender).BroadcastGameMessage(message)
+		(*g.messageSender).BroadcastGameMessage(message, false)
 	} else {
 		b, _ := proto.Marshal(message)
 		for _, player := range g.scriptTestPlayers {

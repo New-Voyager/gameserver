@@ -261,9 +261,11 @@ func (n *NatsGame) player2Pong(msg *natsgo.Msg) {
 	n.serverGame.HandlePongMessage(&message)
 }
 
-func (n NatsGame) BroadcastGameMessage(message *game.GameMessage) {
-	n.logger.Debug().
-		Msg(fmt.Sprintf("Game->AllPlayers: %s", message.MessageType))
+func (n NatsGame) BroadcastGameMessage(message *game.GameMessage, noLog bool) {
+	if !noLog {
+		n.logger.Debug().
+			Msg(fmt.Sprintf("Game->AllPlayers: %s", message.MessageType))
+	}
 	// let send this to all players
 	data, _ := protojson.Marshal(message)
 

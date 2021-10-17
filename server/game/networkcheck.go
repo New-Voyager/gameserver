@@ -193,7 +193,8 @@ func (n *NetworkCheck) broadcastPingMessage(msg *PingPongMessage) error {
 func (n *NetworkCheck) broadcastGameMessage(msg *GameMessage) error {
 	if *n.messageSender != nil {
 		msg.GameCode = n.gameCode
-		(*n.messageSender).BroadcastGameMessage(msg)
+		skipLog := !n.debugConnectivityCheck
+		(*n.messageSender).BroadcastGameMessage(msg, skipLog)
 	}
 	return nil
 }

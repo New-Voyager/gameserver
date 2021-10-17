@@ -305,7 +305,7 @@ func (g *Game) broadcastTableState() error {
 	gameMessage.GameMessage = &GameMessage_TableState{TableState: gameTableState}
 
 	if *g.messageSender != nil {
-		(*g.messageSender).BroadcastGameMessage(&gameMessage)
+		(*g.messageSender).BroadcastGameMessage(&gameMessage, false)
 	}
 	return nil
 }
