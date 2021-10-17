@@ -506,8 +506,7 @@ func (bp *BotPlayer) processHandTextMessage(message *gamescript.HandTextMessage)
 			}
 
 			bp.logger.Info().
-				Uint32(logging.HandNumKey, message.HandNum).
-				Msgf("%s: Submitting dealer choice: %s", bp.logPrefix, gameType)
+				Msgf("%s: Submitting dealer choice for hand %d: %s", bp.logPrefix, message.HandNum, gameType)
 			_, err := bp.gqlHelper.DealerChoice(bp.gameCode, gameType)
 			if err != nil {
 				errMsg := fmt.Sprintf("%s: Error submitting dealer choice: %s", bp.logPrefix, err)
