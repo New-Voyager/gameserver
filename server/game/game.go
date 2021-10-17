@@ -104,7 +104,7 @@ func NewPokerGame(
 		handSetupPersist:   handSetupPersist,
 		apiServerURL:       apiServerURL,
 		maxRetries:         10,
-		retryDelayMillis:   1500,
+		retryDelayMillis:   2000,
 		encryptionKeyCache: encryptionKeyCache,
 		randSeed:           poker.NewSeed(),
 	}
@@ -168,7 +168,7 @@ func NewTestPokerGame(
 		handSetupPersist:   handSetupPersist,
 		apiServerURL:       apiServerURL,
 		maxRetries:         10,
-		retryDelayMillis:   1500,
+		retryDelayMillis:   2000,
 		encryptionKeyCache: encryptionKeyCache,
 	}
 	g.scriptTestPlayers = make(map[uint64]*Player)
@@ -707,7 +707,7 @@ func (g *Game) dealNewHand() error {
 	g.broadcastHandMessage(&handMsg)
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_5, 0)
 
-	g.saveHandState(handState)
+	g.saveHandStateWithRetry(handState)
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_6, 0)
 	return nil
 }
@@ -718,6 +718,34 @@ func (g *Game) generateMsgID(prefix string, handNum uint32, handStatus HandStatu
 
 func (g *Game) GenerateMsgID(prefix string, handNum uint32, handStatus HandStatus, playerID uint64, originalMsgID string, currentActionNum uint32) string {
 	return g.generateMsgID(prefix, handNum, handStatus, playerID, originalMsgID, currentActionNum)
+}
+
+func (g *Game) saveHandStateWithRetry(handState *HandState) error {
+	err := g.saveHandState(handState)
+	if err == nil {
+		return nil
+	}
+
+	for i := 1; i <= int(g.maxRetries); i++ {
+		g.logger.Warn().
+			Uint32(logging.HandNumKey, handState.GetHandNum()).
+			Err(err).
+			Msgf("Failed to save hand state. Retrying (%d/%d)", i, g.maxRetries)
+		time.Sleep(time.Duration(g.retryDelayMillis) * time.Millisecond)
+		err = g.saveHandState(handState)
+		if err == nil {
+			g.logger.Info().
+				Uint32(logging.HandNumKey, handState.GetHandNum()).
+				Msg("Successfully saved hand state")
+			break
+		}
+	}
+
+	g.logger.Error().
+		Uint32(logging.HandNumKey, handState.GetHandNum()).
+		Err(err).
+		Msgf("Retry exhausted saving hand state.")
+	return err
 }
 
 func (g *Game) saveHandState(handState *HandState) error {

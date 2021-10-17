@@ -215,7 +215,7 @@ func (g *Game) moveToNextHand(handState *HandState) (bool, error) {
 	if pendingUpdates {
 		go g.processPendingUpdates(g.apiServerURL, g.gameID, g.gameCode, handState.GetHandNum())
 		handState.FlowState = FlowState_WAIT_FOR_PENDING_UPDATE
-		g.saveHandState(handState)
+		g.saveHandStateWithRetry(handState)
 		// We pause the game here and wait for the api server.
 		// We'll get a rest call (resume) from the api server once it completes
 		// the pending update.
@@ -266,7 +266,7 @@ func (g *Game) moveAPIServerToNextHandAndScheduleDealHand(handState *HandState) 
 
 	if handState != nil {
 		handState.FlowState = FlowState_DEAL_HAND
-		g.saveHandState(handState)
+		g.saveHandStateWithRetry(handState)
 	}
 
 	gameMessage := &GameMessage{
