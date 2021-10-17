@@ -1,6 +1,11 @@
 SERVER_DIR := server
 BOTRUNNER_DIR := botrunner
 TIMER_DIR := timer
+SCHEDULER_DIR := scheduler
+GAMESCRIPT_DIR := gamescript
+ENCRYPTION_DIR := encryption
+CACHING_DIR := caching
+LOGGING_DIR := logging
 
 .PHONY: compile-proto
 compile-proto:
@@ -12,32 +17,36 @@ build:
 	$(MAKE) -C $(SERVER_DIR) build
 	$(MAKE) -C $(BOTRUNNER_DIR) build
 	$(MAKE) -C $(TIMER_DIR) build
+	$(MAKE) -C $(SCHEDULER_DIR) build
 
 .PHONY: docker-build
 docker-build:
 	$(MAKE) -C $(SERVER_DIR) docker-build
 	$(MAKE) -C $(BOTRUNNER_DIR) docker-build
 	$(MAKE) -C $(TIMER_DIR) docker-build
+	$(MAKE) -C $(SCHEDULER_DIR) docker-build
 
 .PHONY: clean-ci
 clean-ci:
 	$(MAKE) -C $(SERVER_DIR) clean-ci
 	$(MAKE) -C $(BOTRUNNER_DIR) clean-ci
 	$(MAKE) -C $(TIMER_DIR) clean-ci
+	$(MAKE) -C $(SCHEDULER_DIR) clean-ci
 
 .PHONY: publish
 publish:
 	$(MAKE) -C $(SERVER_DIR) publish
 	$(MAKE) -C $(BOTRUNNER_DIR) publish
 	$(MAKE) -C $(TIMER_DIR) publish
+	$(MAKE) -C $(SCHEDULER_DIR) publish
 
 .PHONY: test
 test:
-	$(MAKE) -C gamescript test
-	$(MAKE) -C encryption test
-	$(MAKE) -C caching test
-	$(MAKE) -C logging test
-	$(MAKE) -C server test
+	$(MAKE) -C $(GAMESCRIPT_DIR) test
+	$(MAKE) -C $(ENCRYPTION_DIR) test
+	$(MAKE) -C $(CACHING_DIR) test
+	$(MAKE) -C $(LOGGING_DIR) test
+	$(MAKE) -C $(SERVER_DIR) test
 
 .PHONY: system-test
 system-test:

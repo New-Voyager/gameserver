@@ -6,12 +6,12 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
+	"voyager.com/logging"
 	"voyager.com/timer/internal/timer"
 )
 
 var (
-	restLogger        = log.With().Str("logger_name", "rest::rest").Logger()
+	restLogger        = logging.GetZeroLogger("rest::rest", nil)
 	timeoutController = timer.GetController()
 )
 
@@ -62,7 +62,11 @@ func startTimer(c *gin.Context) {
 		c.String(400, "Failed to parse timeout-at [%s] from start-time endpoint.", timeoutAtStr)
 	}
 
-	restLogger.Info().Msgf("start-timer game id: %s player id: %s purpose: %s timeout: %s (seconds)", gameIDStr, playerIDStr, purpose, timeoutAtStr)
+	restLogger.Info().
+		Uint64(logging.GameIDKey, gameID).
+		Uint64(logging.PlayerIDKey, playerID).
+		Str(logging.TimerPurposeKey, purpose).
+		Msgf("start-timer timeout: %s (seconds)", timeoutAtStr)
 
 	timeoutController.AddTimer(gameID, playerID, purpose, timeoutAt)
 }
@@ -89,7 +93,11 @@ func cancelTimer(c *gin.Context) {
 		c.String(400, "Failed to parse player-id [%s] from start-time endpoint.", playerIDStr)
 	}
 
-	restLogger.Info().Msgf("cancel-timer game id: %s player id: %s purpose: %s", gameIDStr, playerIDStr, purpose)
+	restLogger.Info().
+		Uint64(logging.GameIDKey, gameID).
+		Uint64(logging.PlayerIDKey, playerID).
+		Str(logging.TimerPurposeKey, purpose).
+		Msgf("cancel-timer")
 
 	timeoutController.CancelTimer(gameID, playerID, purpose)
 }

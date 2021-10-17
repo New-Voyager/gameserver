@@ -8,11 +8,11 @@ GCP_REGISTRY := gcr.io/$(GCP_PROJECT_ID)
 REGISTRY := $(GCP_REGISTRY)
 
 DEV_API_SERVER_INTERNAL_URL ?= http://localhost:9502
-DEV_LOG_LEVEL ?= info
+DEV_LOG_LEVEL ?= debug
 
 DOCKER_BUILDKIT ?= 1
-LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh timer)
-TIMER_IMAGE ?= $(LOCAL_IMAGE_NAME)
+LOCAL_IMAGE_NAME := $(shell $(BUILD_HELPER)/get_local_image_name.sh scheduler)
+SCHEDULER_IMAGE ?= $(LOCAL_IMAGE_NAME)
 
 .PHONY: docker-build
 docker-build:
@@ -22,16 +22,22 @@ docker-build:
 	else \
 		rsync -avu --delete $(PROJECT_ROOT)/logging/ build/logging; \
 	fi
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(TIMER_IMAGE)
+	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(SCHEDULER_IMAGE)
 	rm -rf build/
 
 .PHONY: build
 build:
-	go build -o timer
+	go build -o scheduler
 
 .PHONY: run
 run: export API_SERVER_INTERNAL_URL=$(DEV_API_SERVER_INTERNAL_URL)
 run: export LOG_LEVEL=$(DEV_LOG_LEVEL)
+run: export POST_PROCESSING_INTERVAL_SEC=600
+run: export POST_PROCESSING_TIMEOUT_SEC=120
+run: export EXPIRE_GAMES_INTERVAL_SEC=600
+run: export EXPIRE_GAMES_TIMEOUT_SEC=120
+run: export DATA_RETENTION_INTERVAL_MIN=60
+run: export DATA_RETENTION_TIMEOUT_MIN=10
 run:
 	go run ./main.go
 
@@ -40,22 +46,22 @@ publish: gcp-publish
 
 .PHONY: clean-ci
 clean-ci:
-	docker image rm $(TIMER_IMAGE) || true
+	docker image rm $(SCHEDULER_IMAGE) || true
 
 .PHONY: do-publish
 do-publish: export REGISTRY=$(DO_REGISTRY)
-do-publish: do-login publish-timer
+do-publish: do-login publish-scheduler
 
 .PHONY: gcp-publish
 gcp-publish: export REGISTRY=$(GCP_REGISTRY)
-gcp-publish: gcp-login publish-timer
+gcp-publish: gcp-login publish-scheduler
 
-.PHONY: publish-timer
-publish-timer:
-	docker tag $(TIMER_IMAGE) $(REGISTRY)/timer:$(BUILD_NO)
-	docker tag $(TIMER_IMAGE) $(REGISTRY)/timer:latest
-	docker push $(REGISTRY)/timer:$(BUILD_NO)
-	docker push $(REGISTRY)/timer:latest
+.PHONY: publish-scheduler
+publish-scheduler:
+	docker tag $(SCHEDULER_IMAGE) $(REGISTRY)/scheduler:$(BUILD_NO)
+	docker tag $(SCHEDULER_IMAGE) $(REGISTRY)/scheduler:latest
+	docker push $(REGISTRY)/scheduler:$(BUILD_NO)
+	docker push $(REGISTRY)/scheduler:latest
 
 .PHONY: do-login
 do-login:
@@ -64,3 +70,6 @@ do-login:
 .PHONY: gcp-login
 gcp-login:
 	@cat $(PROJECT_ROOT)/gcp_dev_image_push.json | docker login -u _json_key --password-stdin https://gcr.io
+
+.PHONE: debug-local
+debug-local: run

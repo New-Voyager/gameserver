@@ -8,14 +8,14 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"voyager.com/logging"
 	"voyager.com/timer/internal/util"
 	"voyager.com/timer/rest"
 )
 
 var (
 	cmdArgs    arg
-	mainLogger = log.With().Str("logger_name", "main::main").Logger()
+	mainLogger = logging.GetZeroLogger("main::main", nil)
 )
 
 type arg struct {
