@@ -7,14 +7,14 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"voyager.com/logging"
 )
 
 func init() {
 
 }
 
-var envLogger = log.With().Str("logger_name", "util::environment").Logger()
+var envLogger = logging.GetZeroLogger("util::environment", nil)
 
 type environment struct {
 	APIServerInternalURL      string

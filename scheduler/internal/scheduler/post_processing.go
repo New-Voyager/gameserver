@@ -3,12 +3,12 @@ package scheduler
 import (
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"voyager.com/logging"
 	"voyager.com/scheduler/internal/util"
 )
 
 var (
-	postProcessingLogger = log.With().Str("logger_name", "scheduler::post_processing").Logger()
+	postProcessingLogger = logging.GetZeroLogger("scheduler::post_processing", nil)
 )
 
 // GetController creates an instance of the Controller.
@@ -82,7 +82,9 @@ func (c *Controller) processGameID(gameID uint64) {
 	if !c.recentGameIDs.Exists(gameID) {
 		processedGameIDs, _, err := requestPostProcess(gameID)
 		if err != nil {
-			postProcessingLogger.Error().Msgf("Error while processing game ID %d: %s", gameID, err)
+			postProcessingLogger.Error().
+				Uint64(logging.GameIDKey, gameID).
+				Msgf("Error while processing game: %s", err)
 			return
 		}
 		for _, gameID := range processedGameIDs {

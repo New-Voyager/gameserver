@@ -8,17 +8,19 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
+	"voyager.com/logging"
 	"voyager.com/scheduler/internal/util"
 )
 
 var (
-	requestLogger = log.With().Str("logger_name", "scheduler::request").Logger()
+	requestLogger = logging.GetZeroLogger("scheduler::request", nil)
 	APIServerURL  = util.Env.GetAPIServerInternalURL()
 )
 
 func requestPostProcess(gameID uint64) ([]uint64, bool, error) {
-	requestLogger.Info().Msgf("Requesting post-processing. Trigger game ID: %d", gameID)
+	requestLogger.Info().
+		Uint64(logging.GameIDKey, gameID).
+		Msgf("Requesting post-processing")
 	httpClient := &http.Client{
 		Timeout: time.Duration(util.Env.GetPostProcessingTimeoutSec()) * time.Second,
 	}

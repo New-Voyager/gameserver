@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"voyager.com/logging"
 	"voyager.com/scheduler/internal/scheduler"
 	"voyager.com/scheduler/internal/util"
 	"voyager.com/scheduler/rest"
@@ -15,7 +15,7 @@ import (
 
 var (
 	cmdArgs    arg
-	mainLogger = log.With().Str("logger_name", "main::main").Logger()
+	mainLogger = logging.GetZeroLogger("main::main", nil)
 )
 
 type arg struct {
