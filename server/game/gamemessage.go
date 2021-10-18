@@ -272,14 +272,16 @@ func (g *Game) moveAPIServerToNextHandAndScheduleDealHand(handState *HandState) 
 		}
 	}
 
-	err = g.saveHandStateWithRetry(handState)
-	if err != nil {
-		msg := fmt.Sprintf("Could save hand state before moving to next hand")
-		g.logger.Error().
-			Uint32(logging.HandNumKey, handState.GetHandNum()).
-			Err(err).
-			Msgf(msg)
-		return errors.Wrap(err, msg)
+	if handState != nil {
+		err = g.saveHandStateWithRetry(handState)
+		if err != nil {
+			msg := fmt.Sprintf("Could save hand state before moving to next hand")
+			g.logger.Error().
+				Uint32(logging.HandNumKey, handState.GetHandNum()).
+				Err(err).
+				Msgf(msg)
+			return errors.Wrap(err, msg)
+		}
 	}
 
 	gameMessage := &GameMessage{
