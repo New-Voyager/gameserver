@@ -311,7 +311,7 @@ func (g *Game) runGame(handState *HandState) {
 }
 
 func (g *Game) crashHandler() {
-	g.manager.OnGameCrash(g.gameID)
+	g.manager.OnGameCrash(g.gameID, g.gameCode)
 }
 
 func (g *Game) initTestGameState() error {

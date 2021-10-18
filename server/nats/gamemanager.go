@@ -96,8 +96,11 @@ func (gm *GameManager) GetGames() ([]GameListItem, error) {
 	return games, nil
 }
 
-func (gm *GameManager) CrashCleanup(gameID uint64) {
-	natsGMLogger.Error().Uint64("gameID", gameID).Msgf("CrashCleanup called", gameID)
+func (gm *GameManager) CrashCleanup(gameID uint64, gameCode string) {
+	natsGMLogger.Error().
+		Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
+		Msgf("CrashCleanup called")
 	gm.EndNatsGame(gameID)
 }
 
