@@ -247,7 +247,7 @@ func (g *Game) runGame(handState *HandState) {
 
 			g.crashHandler()
 			g.logger.Info().Msg("Requesting to end game")
-			_, err2 := g.requestEndGame()
+			_, err2 := g.requestEndGame(true)
 			if err2 != nil {
 				g.logger.Error().Err(err2).Msgf("Error in requestEndGame in panic handler")
 			}
@@ -280,7 +280,7 @@ func (g *Game) runGame(handState *HandState) {
 			err = g.handleHandMessage(&handMessage)
 			if err != nil {
 				g.logger.Error().Err(err).Msgf("Could not process hand message. Requesting to end game")
-				_, err2 := g.requestEndGame()
+				_, err2 := g.requestEndGame(true)
 				if err2 != nil {
 					g.logger.Error().Err(err2).Msgf("Error in requestEndGame")
 				}

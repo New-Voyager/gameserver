@@ -143,8 +143,12 @@ func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) (moveToNextHand
 	return body, nil
 }
 
-func (g *Game) requestEndGame() (endGameResp, error) {
-	url := fmt.Sprintf("%s/internal/end-game/%s/force/1", g.apiServerURL, g.gameCode)
+func (g *Game) requestEndGame(force bool) (endGameResp, error) {
+	forceParam := 0
+	if force {
+		forceParam = 1
+	}
+	url := fmt.Sprintf("%s/internal/end-game/%s/force/%d", g.apiServerURL, g.gameCode, forceParam)
 
 	g.logger.Info().Msgf("Calling /end-game")
 	retries := 0
