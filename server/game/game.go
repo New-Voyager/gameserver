@@ -246,6 +246,11 @@ func (g *Game) runGame(handState *HandState) {
 				Msgf("runGame returning due to panic: %s\nStack Trace:\n%s", err, string(debug.Stack()))
 
 			g.crashHandler()
+			g.logger.Info().Msg("Requesting to end game")
+			_, err2 := g.requestEndGame()
+			if err2 != nil {
+				g.logger.Error().Err(err2).Msgf("Error in requestEndGame in panic handler")
+			}
 		}
 	}()
 
@@ -268,8 +273,17 @@ func (g *Game) runGame(handState *HandState) {
 		case message := <-g.chHand:
 			var handMessage HandMessage
 			err := proto.Unmarshal(message, &handMessage)
-			if err == nil {
-				g.handleHandMessage(&handMessage)
+			if err != nil {
+				g.logger.Error().Err(err).Msgf("Could not proto-unmarshal hand msg")
+				break
+			}
+			err = g.handleHandMessage(&handMessage)
+			if err != nil {
+				g.logger.Error().Err(err).Msgf("Could not process hand message. Requesting to end game")
+				_, err2 := g.requestEndGame()
+				if err2 != nil {
+					g.logger.Error().Err(err2).Msgf("Error in requestEndGame")
+				}
 			}
 		case message := <-g.chGame:
 			var gameMessage GameMessage
@@ -707,7 +721,15 @@ func (g *Game) dealNewHand() error {
 	g.broadcastHandMessage(&handMsg)
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_5, 0)
 
-	g.saveHandStateWithRetry(handState)
+	err = g.saveHandStateWithRetry(handState)
+	if err != nil {
+		msg := fmt.Sprintf("Could save hand state after dealing")
+		g.logger.Error().
+			Uint32(logging.HandNumKey, handState.GetHandNum()).
+			Err(err).
+			Msgf(msg)
+		return errors.Wrap(err, msg)
+	}
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_6, 0)
 	return nil
 }
@@ -721,6 +743,10 @@ func (g *Game) GenerateMsgID(prefix string, handNum uint32, handStatus HandStatu
 }
 
 func (g *Game) saveHandStateWithRetry(handState *HandState) error {
+	if handState == nil {
+		return fmt.Errorf("saveHandStateWithRetry called with nil")
+	}
+
 	err := g.saveHandState(handState)
 	if err == nil {
 		return nil

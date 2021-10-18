@@ -16,13 +16,16 @@ import (
 
 const MIN_FULLHOUSE_RANK = 322
 
-func (g *Game) handleHandMessage(message *HandMessage) {
+func (g *Game) handleHandMessage(message *HandMessage) error {
 	err := g.validateClientMsg(message)
 	if err != nil {
+		msg := "Client message validation failed"
 		g.logger.Error().
+			Uint64(logging.PlayerIDKey, message.PlayerId).
 			Uint32(logging.SeatNumKey, message.SeatNo).
-			Msgf(err.Error())
-		return
+			Err(err).
+			Msgf(msg)
+		return nil
 	}
 
 	msgItem := g.getClientMsgItem(message)
@@ -31,30 +34,54 @@ func (g *Game) handleHandMessage(message *HandMessage) {
 	case HandPlayerActed:
 		handState, err := g.loadHandState()
 		if err != nil {
-			g.logger.Error().Msgf("Unable to load hand state. Error: %s", err.Error())
-			break
+			errMsg := "Unable to load hand state"
+			g.logger.Error().Err(err).Msgf(errMsg)
+			return errors.Wrap(err, errMsg)
 		}
 
 		err = g.onPlayerActed(message, handState)
 		if err != nil {
-			g.logger.Error().Msgf("Error while processing %s message. Error: %s", HandPlayerActed, err.Error())
+			errMsg := "Error while processing message"
+			g.logger.Error().
+				Err(err).
+				Str(logging.MsgTypeKey, msgItem.MessageType).
+				Uint64(logging.PlayerIDKey, message.PlayerId).
+				Msgf(errMsg)
+			return errors.Wrap(err, errMsg)
 		}
 	case HandQueryCurrentHand:
 		err := g.onQueryCurrentHand(message)
 		if err != nil {
-			g.logger.Error().Msgf("Error while processing %s message. Error: %s", HandQueryCurrentHand, err.Error())
+			errMsg := "Error while processing message"
+			g.logger.Error().
+				Err(err).
+				Str(logging.MsgTypeKey, msgItem.MessageType).
+				Uint64(logging.PlayerIDKey, message.PlayerId).
+				Msgf(errMsg)
 		}
 	case HandExtendTimer:
 		err := g.onExtendTimer(message)
 		if err != nil {
-			g.logger.Error().Msgf("Error while processing %s message. Error: %s", HandExtendTimer, err.Error())
+			errMsg := "Error while processing message"
+			g.logger.Error().
+				Err(err).
+				Str(logging.MsgTypeKey, msgItem.MessageType).
+				Uint64(logging.PlayerIDKey, message.PlayerId).
+				Msgf(errMsg)
 		}
 	case HandResetTimer:
 		err := g.onResetCurrentTimer(message)
 		if err != nil {
-			g.logger.Error().Msgf("Error while processing %s message. Error: %s", HandResetTimer, err.Error())
+			errMsg := "Error while processing message"
+			g.logger.Error().
+				Err(err).
+				Str(logging.MsgTypeKey, msgItem.MessageType).
+				Uint64(logging.PlayerIDKey, message.PlayerId).
+				Msgf(errMsg)
 		}
 	}
+
+	return nil
 }
 
 func (g *Game) validateClientMsg(message *HandMessage) error {
@@ -259,6 +286,10 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 }
 
 func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error {
+	if handState == nil {
+		return fmt.Errorf("onPlayerActed called with nil handState")
+	}
+
 	if playerMsg == nil {
 		// Game server is replaying this code after a crash.
 		if handState.ActionMsgInProgress == nil {
@@ -289,6 +320,9 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		}
 		g.logger.Info().Msg("Restoring action message from hand state.")
 		playerMsg = handState.ActionMsgInProgress
+		if playerMsg == nil {
+			return fmt.Errorf("Could not restore action message from hand state. Stored message is nil")
+		}
 	}
 
 	actionMsg := g.getClientMsgItem(playerMsg)
@@ -296,9 +330,12 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_1, playerMsg.PlayerId)
 
-	if messageSeatNo == 0 && !g.isScriptTest {
-		errMsg := fmt.Sprintf("Invalid seat number [%d] for player ID %d. Ignoring the action message.", messageSeatNo, playerMsg.PlayerId)
-		return fmt.Errorf(errMsg)
+	if (messageSeatNo == 0 || playerMsg.PlayerId == 0) && !g.isScriptTest {
+		g.logger.Error().
+			Uint64(logging.PlayerIDKey, playerMsg.PlayerId).
+			Uint32(logging.SeatNumKey, messageSeatNo).
+			Msgf("Invalid seat number/player ID. Ignoring the action message")
+		return nil
 	}
 
 	actionMsgSeatNo := actionMsg.GetPlayerActed().GetSeatNo()
@@ -310,7 +347,9 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		// of the player. We are discarding whichever action that came last in that case.
 		errMsg := fmt.Sprintf("Invalid seat made action. Ignored. The next valid action seat is: %d",
 			handState.NextSeatAction.SeatNo)
+
 		g.logger.Error().
+			Uint64(logging.PlayerIDKey, playerMsg.PlayerId).
 			Uint32(logging.SeatNumKey, actionMsgSeatNo).
 			Uint32(logging.HandNumKey, handState.GetHandNum()).
 			Msg(errMsg)
@@ -318,7 +357,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 			// Acknowledge so that the client stops retrying.
 			g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
 		}
-		return fmt.Errorf("Invalid seat made action. Ignored")
+		return nil
 	}
 
 	if !actionMsg.GetPlayerActed().GetTimedOut() {
@@ -335,7 +374,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 				Uint64(logging.PlayerIDKey, playerMsg.PlayerId).
 				Uint32(logging.SeatNumKey, messageSeatNo).
 				Msgf(errMsg)
-			return fmt.Errorf("Missing message ID")
+			return nil
 		}
 	}
 
@@ -352,7 +391,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		// because the acnowledgement got lost in the network. Just acknowledge so that
 		// the client stops retrying.
 		g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
-		return fmt.Errorf(errMsg)
+		return nil
 	}
 
 	if err := validatePlayerAction(actionMsg.GetPlayerActed(), handState); err != nil {
@@ -364,7 +403,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 			Str(logging.MsgTypeKey, actionMsg.MessageType).
 			Msg(errMsg)
 
-		return fmt.Errorf(errMsg)
+		return nil
 	}
 
 	// is it run it twice prompt response?
@@ -386,7 +425,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		}
 		msgItems, err := g.runItTwiceConfirmation(handState, playerMsg)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Could not handle run-it-twice confirmation")
 		}
 		if !actionMsg.GetPlayerActed().GetTimedOut() {
 			// acknowledge so that player does not resend the message
@@ -409,7 +448,15 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		}
 
 		g.broadcastHandMessage(&msg)
-		g.saveHandStateWithRetry(handState)
+		err = g.saveHandStateWithRetry(handState)
+		if err != nil {
+			msg := fmt.Sprintf("Could save hand state after confirming run-it-twice")
+			g.logger.Error().
+				Uint32(logging.HandNumKey, handState.GetHandNum()).
+				Err(err).
+				Msgf(msg)
+			return errors.Wrap(err, msg)
+		}
 		g.handleHandEnded(handState, handState.TotalResultPauseTime, msgItems)
 
 		return nil
@@ -418,6 +465,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	if handState.NextSeatAction == nil {
 		errMsg := "Invalid action. There is no next action"
 		g.logger.Error().
+			Uint64(logging.PlayerIDKey, playerMsg.PlayerId).
 			Uint32(logging.SeatNumKey, messageSeatNo).
 			Str(logging.MsgTypeKey, actionMsg.MessageType).
 			Str("action", actionMsg.GetPlayerActed().Action.String()).
@@ -427,12 +475,13 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		// because the acnowledgement got lost in the network. Just acknowledge so that
 		// the client stops retrying.
 		g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
-		return fmt.Errorf(errMsg)
+		return nil
 	}
 
 	if handState.CurrentState == HandStatus_SHOW_DOWN {
 		errMsg := "Invalid action. Hand is in show-down state"
 		g.logger.Error().
+			Uint64(logging.PlayerIDKey, playerMsg.PlayerId).
 			Uint32(logging.SeatNumKey, messageSeatNo).
 			Str(logging.MsgTypeKey, actionMsg.MessageType).
 			Msg(errMsg)
@@ -441,13 +490,14 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		// because the acnowledgement got lost in the network. Just acknowledge so that
 		// the client stops retrying.
 		g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
-		return fmt.Errorf(errMsg)
+		return nil
 	}
 
 	expectedState := FlowState_WAIT_FOR_NEXT_ACTION
 	if handState.FlowState != expectedState {
 		errMsg := fmt.Sprintf("onPlayerActed called in wrong flow state. Ignoring message. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
 		g.logger.Error().
+			Uint64(logging.PlayerIDKey, playerMsg.PlayerId).
 			Uint32(logging.SeatNumKey, messageSeatNo).
 			Str(logging.MsgTypeKey, actionMsg.MessageType).
 			Msg(errMsg)
@@ -461,14 +511,30 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		g.pausePlayTimer(messageSeatNo)
 	}
 	handState.ActionMsgInProgress = playerMsg
-	g.saveHandStateWithRetry(handState)
+	err := g.saveHandStateWithRetry(handState)
+	if err != nil {
+		msg := fmt.Sprintf("Could save hand state after saving action msg")
+		g.logger.Error().
+			Uint32(logging.HandNumKey, handState.GetHandNum()).
+			Err(err).
+			Msgf(msg)
+		return errors.Wrap(err, msg)
+	}
 	g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_2, playerMsg.PlayerId)
 
 	handState.FlowState = FlowState_PREPARE_NEXT_ACTION
-	g.saveHandStateWithRetry(handState)
-	err := g.prepareNextAction(handState, uint64(actedSeconds))
+	err = g.saveHandStateWithRetry(handState)
+	if err != nil {
+		msg := fmt.Sprintf("Could save hand state before moving to prepareNextAction")
+		g.logger.Error().
+			Uint32(logging.HandNumKey, handState.GetHandNum()).
+			Err(err).
+			Msgf(msg)
+		return errors.Wrap(err, msg)
+	}
+	err = g.prepareNextAction(handState, uint64(actedSeconds))
 	if err != nil {
 		return err
 	}
@@ -497,6 +563,12 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	expectedState := FlowState_PREPARE_NEXT_ACTION
 	if handState.FlowState != expectedState {
 		return fmt.Errorf("prepareNextAction called in wrong flow state. Expected state: %s, Actual state: %s", expectedState, handState.FlowState)
+	}
+
+	if handState == nil {
+		errMsg := "Unable to prepare next action. handState is nil"
+		g.logger.Error().Msg(errMsg)
+		return fmt.Errorf(errMsg)
 	}
 
 	playerMsg := handState.ActionMsgInProgress
@@ -592,13 +664,12 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_2, playerMsg.PlayerId)
 	err = g.saveHandStateWithRetry(handState)
 	if err != nil {
+		msg := fmt.Sprintf("Could save hand state after sending next action")
 		g.logger.Error().
 			Uint32(logging.HandNumKey, handState.GetHandNum()).
 			Err(err).
-			Msgf("Cannot save hand state")
-
-		// Panic the goroutine for this game to trigger cleanup.
-		panic(fmt.Sprintf("Cannot save hand state for game %d:%s hand %d", g.gameID, g.gameCode, handState.GetHandNum()))
+			Msgf(msg)
+		return errors.Wrap(err, msg)
 	}
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3, playerMsg.PlayerId)
@@ -1217,7 +1288,7 @@ func (g *Game) allPlayersAllIn(handState *HandState) ([]*HandMessageItem, error)
 
 	msgItems, err = g.showdown(handState)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Error from showdown")
 	}
 	allMsgItems = append(allMsgItems, msgItems...)
 	return allMsgItems, nil

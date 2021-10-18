@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
 	"voyager.com/logging"
 	"voyager.com/server/poker"
 )
@@ -310,7 +311,7 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 
 		msgItems, err := g.showdown(h)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "Error from showdown")
 		}
 		for _, m := range msgItems {
 			allMsgItems = append(allMsgItems, m)
@@ -325,7 +326,7 @@ func (g *Game) handleRunItTwice(h *HandState) ([]*HandMessageItem, error) {
 		// run a single board
 		msgItems, err := g.allPlayersAllIn(h)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "Error from allPlayersAllIn")
 		}
 		for _, m := range msgItems {
 			allMsgItems = append(allMsgItems, m)
