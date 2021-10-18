@@ -14,7 +14,7 @@ type Manager struct {
 	handStatePersist   PersistHandState
 	handSetupPersist   *RedisHandsSetupTracker
 	activeGames        map[string]*Game
-	crashHandler       func(uint64)
+	crashHandler       func(uint64, string)
 	encryptionKeyCache *encryptionkey.Cache
 }
 
@@ -79,12 +79,12 @@ func (gm *Manager) InitializeTestGame(messageSender MessageSender, gameID uint64
 	return game, config.GameId, nil
 }
 
-func (gm *Manager) SetCrashHandler(handler func(uint64)) {
+func (gm *Manager) SetCrashHandler(handler func(uint64, string)) {
 	gm.crashHandler = handler
 }
 
-func (gm *Manager) OnGameCrash(gameID uint64) {
-	gm.crashHandler(gameID)
+func (gm *Manager) OnGameCrash(gameID uint64, gameCode string) {
+	gm.crashHandler(gameID, gameCode)
 }
 
 func (gm *Manager) gameEnded(game *Game) {

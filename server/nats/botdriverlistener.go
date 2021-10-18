@@ -1,25 +1,21 @@
 package nats
 
 import (
-	"fmt"
-
 	jsoniter "github.com/json-iterator/go"
 	"voyager.com/logging"
 	"voyager.com/server/game"
 
 	natsgo "github.com/nats-io/nats.go"
-	"github.com/rs/zerolog/log"
 )
-
-const BotDriverToGame = "driverbot.game"
-const GameToBotDriver = "game.driverpot"
-const botPlayerID = 0xFFFFFFFF
 
 // bot driver messages to game
 const (
+	BotDriverToGame    = "driverbot.game"
 	BotDriverStartGame = "B2GStartGame"
 	BotDriverSetupDeck = "B2GSetupDeck"
 )
+
+var natsTestDriverLogger = logging.GetZeroLogger("nats::botsdriverlistener", nil)
 
 type PlayerCard struct {
 	Seat  uint32   `json:"seat"`
@@ -77,8 +73,6 @@ type DriverBotMessage struct {
 	GameCode    string               `json:"game-code"`
 }
 
-var natsTestDriverLogger = logging.GetZeroLogger("nats::game", nil)
-
 func NewNatsDriverBotListener(nc *natsgo.Conn, gameManager *GameManager) (*NatsDriverBotListener, error) {
 	natsTestDriver := &NatsDriverBotListener{
 		stopped:     make(chan bool),
@@ -92,7 +86,7 @@ func NewNatsDriverBotListener(nc *natsgo.Conn, gameManager *GameManager) (*NatsD
 }
 
 func (n *NatsDriverBotListener) listenForMessages(msg *natsgo.Msg) {
-	fmt.Printf("msg: %s\n", string(msg.Data))
+	natsTestDriverLogger.Debug().Msgf("msg: %s", string(msg.Data))
 
 	var data map[string]interface{}
 	err := jsoniter.Unmarshal(msg.Data, &data)
@@ -101,12 +95,12 @@ func (n *NatsDriverBotListener) listenForMessages(msg *natsgo.Msg) {
 	}
 	messageType := data["message-type"].(string)
 	gameCode := data["game-code"].(string)
-	log.Debug().Msgf("Message type: %s Game code:- %s", messageType, gameCode)
+	natsTestDriverLogger.Debug().Msgf("Message type: %s Game code:- %s", messageType, gameCode)
 
 	switch messageType {
 	case BotDriverSetupDeck:
 		var handSetup HandSetup
-		fmt.Printf("Received setup deck message: %s", string(msg.Data))
+		natsTestDriverLogger.Debug().Msgf("Received setup deck message: %s", string(msg.Data))
 		err := jsoniter.Unmarshal(msg.Data, &handSetup)
 		if err != nil {
 			natsTestDriverLogger.Error().Msgf("Invalid setup deck message. %s", string(msg.Data))

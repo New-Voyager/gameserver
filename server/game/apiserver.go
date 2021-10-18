@@ -19,6 +19,11 @@ type moveToNextHandResp struct {
 	TableStatus TableStatus
 }
 
+type endGameResp struct {
+	Status string
+	Error  string
+}
+
 func (g *Game) saveHandResult2ToAPIServer(result2 *HandResultServer) (*SaveHandResult, error) {
 	// call the API server to save the hand result
 	var m protojson.MarshalOptions
@@ -133,6 +138,50 @@ func (g *Game) moveAPIServerToNextHand(gameServerHandNum uint32) (moveToNextHand
 	err = json.Unmarshal(bodyBytes, &body)
 	if err != nil {
 		return moveToNextHandResp{}, errors.Wrap(err, "Unable to unmarshal json body")
+	}
+
+	return body, nil
+}
+
+func (g *Game) requestEndGame(force bool) (endGameResp, error) {
+	forceParam := 0
+	if force {
+		forceParam = 1
+	}
+	url := fmt.Sprintf("%s/internal/end-game/%s/force/%d", g.apiServerURL, g.gameCode, forceParam)
+
+	g.logger.Info().Msgf("Calling /end-game")
+	retries := 0
+	resp, err := http.Post(url, "text/plain", bytes.NewBuffer([]byte{}))
+	for err != nil && retries < int(g.maxRetries) {
+		retries++
+		g.logger.Error().
+			Msgf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, g.maxRetries)
+		time.Sleep(time.Duration(g.retryDelayMillis) * time.Millisecond)
+		resp, err = http.Post(url, "text/plain", bytes.NewBuffer([]byte{}))
+	}
+
+	if err != nil {
+		return endGameResp{}, errors.Wrap(err, "Error from /end-game")
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		msg := "Cannot read response from /end-game"
+		g.logger.Error().Msgf(msg)
+		return endGameResp{}, errors.Wrap(err, msg)
+	}
+	g.logger.Info().Msgf("Response from /end-game: %s", string(bodyBytes))
+
+	if resp.StatusCode != http.StatusOK {
+		return endGameResp{}, fmt.Errorf("/end-game returned HTTP status %d", resp.StatusCode)
+	}
+
+	var body endGameResp
+	err = json.Unmarshal(bodyBytes, &body)
+	if err != nil {
+		return endGameResp{}, errors.Wrap(err, "Unable to unmarshal json body")
 	}
 
 	return body, nil
