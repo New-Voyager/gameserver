@@ -57,7 +57,7 @@ func NewGameManager(nc *natsgo.Conn) (*GameManager, error) {
 
 func (gm *GameManager) NewGame(gameID uint64, gameCode string) (*NatsGame, error) {
 	natsGMLogger.Info().
-		Uint64("gameID", gameID).Str("gameCode", gameCode).
+		Uint64(logging.GameIDKey, gameID).Str(logging.GameCodeKey, gameCode).
 		Msgf("New game %d:%s", gameID, gameCode)
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	game, err := newNatsGame(gm.nc, gameID, gameCode)
@@ -125,7 +125,9 @@ func (gm *GameManager) ResumeGame(gameID uint64) {
 	if g, ok := gm.activeGames.Get(gameIDStr); ok {
 		g.(*NatsGame).resumeGame()
 	} else {
-		natsGMLogger.Error().Uint64("gameId", gameID).Msgf("GameID: %d does not exist", gameID)
+		natsGMLogger.Error().
+			Uint64(logging.GameIDKey, gameID).
+			Msgf("Game ID does not exist")
 	}
 }
 
@@ -141,7 +143,9 @@ func (gm *GameManager) SetupHand(handSetup HandSetup) {
 	if ok {
 		natsGame = v.(*NatsGame)
 	} else {
-		natsGMLogger.Error().Str("gameId", handSetup.GameCode).Msgf("Game code: %s does not exist. Aborting setup-deck.", handSetup.GameCode)
+		natsGMLogger.Error().
+			Str(logging.GameCodeKey, handSetup.GameCode).
+			Msgf("Game code does not exist. Aborting setup-deck.")
 		return
 	}
 

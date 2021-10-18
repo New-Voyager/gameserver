@@ -168,8 +168,7 @@ func (g *Game) requestEndGame() (endGameResp, error) {
 		g.logger.Error().Msgf(msg)
 		return endGameResp{}, errors.Wrap(err, msg)
 	}
-	g.logger.Debug().
-		Msgf("Response from /end-game: %s", string(bodyBytes))
+	g.logger.Info().Msgf("Response from /end-game: %s", string(bodyBytes))
 
 	if resp.StatusCode != http.StatusOK {
 		return endGameResp{}, fmt.Errorf("/end-game returned HTTP status %d", resp.StatusCode)
@@ -179,13 +178,6 @@ func (g *Game) requestEndGame() (endGameResp, error) {
 	err = json.Unmarshal(bodyBytes, &body)
 	if err != nil {
 		return endGameResp{}, errors.Wrap(err, "Unable to unmarshal json body")
-	}
-
-	if body.Status != "" {
-		g.logger.Info().Msgf("Status from end-game response: %s", body.Status)
-	}
-	if body.Error != "" {
-		g.logger.Error().Msgf("Error from end-game response: %s", body.Error)
 	}
 
 	return body, nil

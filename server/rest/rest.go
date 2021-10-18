@@ -147,17 +147,16 @@ func newGame(c *gin.Context) {
 		return
 	}
 
-	restLogger.Debug().Msgf("new-game payload: %+v", gameConfig)
 	gameID := gameConfig.GameID
 	gameCode := gameConfig.GameCode
 
+	restLogger.Info().
+		Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
+		Msgf("New game is received: %+v", gameConfig)
+
 	caches.GameCodeCache.Add(gameID, gameCode)
 	util.Metrics.NewGameReceived()
-
-	restLogger.Debug().
-		Uint64("gameID", gameID).
-		Str("gameCode", gameCode).
-		Msgf("New game is received")
 
 	// initialize nats game
 	_, err = natsGameManager.NewGame(gameID, gameCode)
@@ -171,8 +170,8 @@ func newGame(c *gin.Context) {
 		// This game is being restarted due to game server crash, etc.
 		// Need to resume from where it left off.
 		restLogger.Debug().
-			Uint64("gameID", gameID).
-			Str("gameCode", gameCode).
+			Uint64(logging.GameIDKey, gameID).
+			Str(logging.GameCodeKey, gameCode).
 			Msgf("Resuming game due to restart")
 		natsGameManager.ResumeGame(gameID)
 	}
@@ -198,11 +197,11 @@ func resumeGame(c *gin.Context) {
 	if !ok {
 		// Should not get here.
 		gameCode = ""
-		restLogger.Warn().Uint64("gameID", gameID).Msgf("No game code found in cache while resuming game")
+		restLogger.Warn().Uint64(logging.GameIDKey, gameID).Msgf("No game code found in cache while resuming game")
 	}
 	restLogger.Debug().
-		Uint64("gameID", gameID).
-		Str("gameCode", gameCode).
+		Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
 		Msgf("Resuming game")
 	natsGameManager.ResumeGame(gameID)
 }
@@ -221,11 +220,11 @@ func endGame(c *gin.Context) {
 	if !ok {
 		// Should not get here.
 		gameCode = ""
-		restLogger.Warn().Uint64("gameID", gameID).Msgf("No game code found in cache while ending game")
+		restLogger.Warn().Uint64(logging.GameIDKey, gameID).Msgf("No game code found in cache while ending game")
 	}
 	restLogger.Debug().
-		Uint64("gameID", gameID).
-		Str("gameCode", gameCode).
+		Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
 		Msgf("Ending game")
 	natsGameManager.EndNatsGame(gameID)
 }

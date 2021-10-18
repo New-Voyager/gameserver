@@ -90,8 +90,8 @@ func NewPokerGame(
 	apiServerURL string) (*Game, error) {
 
 	logger := logging.GetZeroLogger("game::Game", nil).With().
-		Uint64("gameID", gameID).
-		Str("gameCode", gameCode).
+		Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
 		Logger()
 	g := Game{
 		logger:             &logger,
@@ -114,22 +114,22 @@ func NewPokerGame(
 	g.end = make(chan bool, 10)
 	g.chPlayTimedOut = make(chan timer.TimerMsg)
 	timer1Logger := logging.GetZeroLogger("timer::ActionTimer", nil).
-		With().Uint64("gameID", gameID).
-		Str("gameCode", gameCode).
-		Int("timerID", 1).
+		With().Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
+		Int(logging.TimerIDKey, 1).
 		Logger()
 	g.actionTimer = timer.NewActionTimer(&timer1Logger, g.queueActionTimeoutMsg, g.crashHandler)
 
 	// Timer 2 is used for run-it-twice player 2.
 	timer2Logger := logging.GetZeroLogger("timer::ActionTimer", nil).
-		With().Uint64("gameID", gameID).
-		Str("gameCode", gameCode).
-		Int("timerID", 2).
+		With().Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
+		Int(logging.TimerIDKey, 2).
 		Logger()
 	g.actionTimer2 = timer.NewActionTimer(&timer2Logger, g.queueActionTimeoutMsg, g.crashHandler)
 	networkCheckLogger := logging.GetZeroLogger("NetworkCheck", nil).
-		With().Uint64("gameID", gameID).
-		Str("gameCode", gameCode).
+		With().Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
 		Logger()
 	g.networkCheck = NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, messageSender, g.crashHandler)
 
@@ -153,8 +153,8 @@ func NewTestPokerGame(
 	apiServerURL string) (*Game, error) {
 
 	logger := logging.GetZeroLogger("game::Game", nil).With().
-		Uint64("gameID", gameID).
-		Str("gameCode", gameCode).
+		Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
 		Logger()
 	g := Game{
 		logger:             &logger,
@@ -177,22 +177,22 @@ func NewTestPokerGame(
 	g.end = make(chan bool, 10)
 	g.chPlayTimedOut = make(chan timer.TimerMsg)
 	timer1Logger := logging.GetZeroLogger("timer::ActionTimer", nil).
-		With().Uint64("gameID", gameID).
-		Str("gameCode", gameCode).
-		Int("timerID", 1).
+		With().Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
+		Int(logging.TimerIDKey, 1).
 		Logger()
 	g.actionTimer = timer.NewActionTimer(&timer1Logger, g.queueActionTimeoutMsg, g.crashHandler)
 
 	// Timer 2 is used for run-it-twice player 2.
 	timer2Logger := logging.GetZeroLogger("timer::ActionTimer", nil).
-		With().Uint64("gameID", gameID).
-		Str("gameCode", gameCode).
-		Int("timerID", 2).
+		With().Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
+		Int(logging.TimerIDKey, 2).
 		Logger()
 	g.actionTimer2 = timer.NewActionTimer(&timer2Logger, g.queueActionTimeoutMsg, g.crashHandler)
 	networkCheckLogger := logging.GetZeroLogger("game::NetworkCheck", nil).
-		With().Uint64("gameID", gameID).
-		Str("gameCode", gameCode).
+		With().Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
 		Logger()
 	g.networkCheck = NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, messageSender, g.crashHandler)
 
@@ -745,7 +745,7 @@ func (g *Game) GenerateMsgID(prefix string, handNum uint32, handStatus HandStatu
 func (g *Game) saveHandStateWithRetry(handState *HandState) error {
 	if handState == nil {
 		// We should never call it with nil. Panic for stack trace.
-		panic("saveHandStateWithRetry called with nil")
+		panic("saveHandStateWithRetry called with nil hand state")
 	}
 
 	err := g.saveHandState(handState)

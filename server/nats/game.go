@@ -70,8 +70,8 @@ type NatsGame struct {
 
 func newNatsGame(nc *natsgo.Conn, gameID uint64, gameCode string) (*NatsGame, error) {
 	logger := logging.GetZeroLogger("nats::NatsGame", nil).With().
-		Uint64("gameID", gameID).
-		Str("gameCode", gameCode).
+		Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
 		Logger()
 
 	// game subjects
