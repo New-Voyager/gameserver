@@ -744,7 +744,8 @@ func (g *Game) GenerateMsgID(prefix string, handNum uint32, handStatus HandStatu
 
 func (g *Game) saveHandStateWithRetry(handState *HandState) error {
 	if handState == nil {
-		return fmt.Errorf("saveHandStateWithRetry called with nil")
+		// We should never call it with nil. Panic for stack trace.
+		panic("saveHandStateWithRetry called with nil")
 	}
 
 	err := g.saveHandState(handState)
