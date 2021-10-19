@@ -12,7 +12,8 @@ import (
 )
 
 type RedisHandStateTracker struct {
-	rdclient *redis.Client
+	rdclient     *redis.Client
+	redisTimeout time.Duration
 }
 
 func NewRedisHandStateTracker(redisURL string, redisUser string, redisPW string, redisDB int, useSSL bool) (*RedisHandStateTracker, error) {
@@ -27,14 +28,17 @@ func NewRedisHandStateTracker(redisURL string, redisUser string, redisPW string,
 		DB:        redisDB,
 		TLSConfig: tlsConfig,
 	})
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+	redisTimeout := 10 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), redisTimeout)
 	defer cancel()
 	_, err := rdclient.Ping(ctx).Result()
 	if err != nil {
 		return nil, errors.Wrapf(err, "Unable to verify connection to Redis. Addr: %s", redisURL)
 	}
 	return &RedisHandStateTracker{
-		rdclient: rdclient,
+		rdclient:     rdclient,
+		redisTimeout: redisTimeout,
 	}, nil
 }
 
@@ -43,7 +47,9 @@ func (r *RedisHandStateTracker) Load(gameCode string) (*HandState, error) {
 }
 
 func (r *RedisHandStateTracker) load(key string) (*HandState, error) {
-	handStateBytes, err := r.rdclient.Get(context.Background(), key).Result()
+	ctx, cancel := context.WithTimeout(context.Background(), r.redisTimeout)
+	defer cancel()
+	handStateBytes, err := r.rdclient.Get(ctx, key).Result()
 	if err == redis.Nil {
 		return nil, fmt.Errorf("Hand state for Key: %s is not found", key)
 	} else if err != nil {
@@ -66,7 +72,9 @@ func (r *RedisHandStateTracker) save(key string, state *HandState) error {
 	if err != nil {
 		return err
 	}
-	err = r.rdclient.Set(context.Background(), key, stateInBytes, 0).Err()
+	ctx, cancel := context.WithTimeout(context.Background(), r.redisTimeout)
+	defer cancel()
+	err = r.rdclient.Set(ctx, key, stateInBytes, 0).Err()
 	return err
 }
 
@@ -75,6 +83,8 @@ func (r *RedisHandStateTracker) Remove(gameCode string) error {
 }
 
 func (r *RedisHandStateTracker) remove(key string) error {
-	err := r.rdclient.Del(context.Background(), key).Err()
+	ctx, cancel := context.WithTimeout(context.Background(), r.redisTimeout)
+	defer cancel()
+	err := r.rdclient.Del(ctx, key).Err()
 	return err
 }
