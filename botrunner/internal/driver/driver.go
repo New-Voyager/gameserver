@@ -148,6 +148,10 @@ func (br *BotRunner) Run() error {
 
 	// we need to set the server settings before the player is created
 	if br.botIsGameHost {
+		settings := &gamescript.ServerSettings{
+			MaxClubs: 200,
+		}
+		br.observerBot.SetupServerSettings(settings)
 		if br.script.ServerSettings != nil {
 			br.observerBot.SetupServerSettings(br.script.ServerSettings)
 		}
