@@ -58,6 +58,7 @@ type ServerSettings struct {
 	FreeTime             int `yaml:"free-time" json:"free-time"`
 	NewUserFreeCoins     int `yaml:"new-user-free-coins" json:"new-user-free-coins"`
 	IpGpsCheckInterval   int `yaml:"ip-gps-check-interval" json:"ip-gps-check-interval"`
+	MaxClubs             int `yaml:"max-clubs" json:"max-clubs"`
 }
 
 // Game contains game configuration in the game script.
