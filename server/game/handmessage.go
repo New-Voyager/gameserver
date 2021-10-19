@@ -149,7 +149,7 @@ func (g *Game) onResetCurrentTimer(playerMsg *HandMessage) error {
 func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 	// get hand state
 	handState, err := g.loadHandState()
-	if err != nil {
+	if err != nil && err != RedisKeyNotFound {
 		return errors.Wrap(err, "Unable to load hand state")
 	}
 
@@ -448,7 +448,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		}
 
 		g.broadcastHandMessage(&msg)
-		err = g.saveHandStateWithRetry(handState)
+		err = g.saveHandState(handState)
 		if err != nil {
 			msg := fmt.Sprintf("Could save hand state after confirming run-it-twice")
 			g.logger.Error().
@@ -511,7 +511,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		g.pausePlayTimer(messageSeatNo)
 	}
 	handState.ActionMsgInProgress = playerMsg
-	err := g.saveHandStateWithRetry(handState)
+	err := g.saveHandState(handState)
 	if err != nil {
 		msg := fmt.Sprintf("Could save hand state after saving action msg")
 		g.logger.Error().
@@ -525,7 +525,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_2, playerMsg.PlayerId)
 
 	handState.FlowState = FlowState_PREPARE_NEXT_ACTION
-	err = g.saveHandStateWithRetry(handState)
+	err = g.saveHandState(handState)
 	if err != nil {
 		msg := fmt.Sprintf("Could save hand state before moving to prepareNextAction")
 		g.logger.Error().
@@ -662,7 +662,7 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	handState.ActionMsgInProgress = nil
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_2, playerMsg.PlayerId)
-	err = g.saveHandStateWithRetry(handState)
+	err = g.saveHandState(handState)
 	if err != nil {
 		msg := fmt.Sprintf("Could save hand state after sending next action")
 		g.logger.Error().
@@ -749,6 +749,7 @@ func (g *Game) sendActionAck(handState *HandState, playerMsg *HandMessage, curre
 	g.sendHandMessageToPlayer(serverMsg, player.PlayerId)
 	g.logger.Debug().
 		Uint64(logging.PlayerIDKey, playerMsg.GetPlayerId()).
+		Uint32(logging.SeatNumKey, playerMsg.GetSeatNo()).
 		Msg(fmt.Sprintf("Acknowledgment sent to player. Message Id: %s", playerMsg.GetMessageId()))
 }
 
