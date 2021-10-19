@@ -217,12 +217,7 @@ func (g *Game) GameStarted() error {
 	g.actionTimer2.Run()
 	g.networkCheck.Run()
 
-	var handState *HandState
-	if !g.isScriptTest {
-		handState, _ = g.loadHandState()
-	}
-
-	go g.runGame(handState)
+	go g.runGame()
 	return nil
 }
 
@@ -237,7 +232,7 @@ func (g *Game) GameEnded() error {
 	return nil
 }
 
-func (g *Game) runGame(handState *HandState) {
+func (g *Game) runGame() {
 	defer func() {
 		if err := recover(); err != nil {
 			// Panic occurred.
@@ -721,7 +716,7 @@ func (g *Game) dealNewHand() error {
 	g.broadcastHandMessage(&handMsg)
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_5, 0)
 
-	err = g.saveHandStateWithRetry(handState)
+	err = g.saveHandState(handState)
 	if err != nil {
 		msg := fmt.Sprintf("Could save hand state after dealing")
 		g.logger.Error().
@@ -742,40 +737,12 @@ func (g *Game) GenerateMsgID(prefix string, handNum uint32, handStatus HandStatu
 	return g.generateMsgID(prefix, handNum, handStatus, playerID, originalMsgID, currentActionNum)
 }
 
-func (g *Game) saveHandStateWithRetry(handState *HandState) error {
+func (g *Game) saveHandState(handState *HandState) error {
 	if handState == nil {
 		// We should never call it with nil. Panic for stack trace.
-		panic("saveHandStateWithRetry called with nil hand state")
+		panic("saveHandState called with nil hand state")
 	}
 
-	err := g.saveHandState(handState)
-	if err == nil {
-		return nil
-	}
-
-	for i := 1; i <= int(g.maxRetries); i++ {
-		g.logger.Warn().
-			Uint32(logging.HandNumKey, handState.GetHandNum()).
-			Err(err).
-			Msgf("Failed to save hand state. Retrying (%d/%d)", i, g.maxRetries)
-		time.Sleep(time.Duration(g.retryDelayMillis) * time.Millisecond)
-		err = g.saveHandState(handState)
-		if err == nil {
-			g.logger.Info().
-				Uint32(logging.HandNumKey, handState.GetHandNum()).
-				Msg("Successfully saved hand state")
-			break
-		}
-	}
-
-	g.logger.Error().
-		Uint32(logging.HandNumKey, handState.GetHandNum()).
-		Err(err).
-		Msgf("Retry exhausted saving hand state.")
-	return err
-}
-
-func (g *Game) saveHandState(handState *HandState) error {
 	err := g.manager.handStatePersist.Save(
 		g.gameCode,
 		handState)

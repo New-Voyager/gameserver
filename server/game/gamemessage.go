@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -67,8 +66,8 @@ func (g *Game) onResume(message *GameMessage) (bool, error) {
 	var isPaused bool
 	handState, err := g.loadHandState()
 	if err != nil {
-		if handState != nil {
-			return isPaused, errors.Wrap(err, "Could not load hand state while resuming game")
+		if err != RedisKeyNotFound {
+			return isPaused, errors.Wrap(err, "Could not load hand state")
 		}
 
 		// There is no existing hand state. We should only get here during the initial
@@ -171,11 +170,11 @@ func (g *Game) onGetHandLog(message *GameMessage) error {
 
 	handState, err := g.loadHandState()
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if err == RedisKeyNotFound {
 			go g.sendGameMessageToPlayer(gameMessage)
 			return nil
 		}
-		return err
+		return errors.Wrap(err, "Could not load hand state")
 	}
 	logData, err := json.Marshal(handState)
 	if err != nil {
@@ -215,7 +214,7 @@ func (g *Game) moveToNextHand(handState *HandState) (bool, error) {
 	if pendingUpdates {
 		go g.processPendingUpdates(g.apiServerURL, g.gameID, g.gameCode, handState.GetHandNum())
 		handState.FlowState = FlowState_WAIT_FOR_PENDING_UPDATE
-		err := g.saveHandStateWithRetry(handState)
+		err := g.saveHandState(handState)
 		if err != nil {
 			msg := fmt.Sprintf("Could save hand state after requesting pending update")
 			g.logger.Error().
@@ -273,7 +272,7 @@ func (g *Game) moveAPIServerToNextHandAndScheduleDealHand(handState *HandState) 
 	}
 
 	if handState != nil {
-		err = g.saveHandStateWithRetry(handState)
+		err = g.saveHandState(handState)
 		if err != nil {
 			msg := fmt.Sprintf("Could save hand state before moving to next hand")
 			g.logger.Error().
