@@ -1188,7 +1188,7 @@ func (g *Game) moveToNextRound(handState *HandState) ([]*HandMessageItem, error)
 
 func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error) {
 	if handState.NextSeatAction == nil {
-		return nil, fmt.Errorf("moveToNextAct called when handState.NextSeatAction == nil")
+		return nil, fmt.Errorf("moveToNextAction called when handState.NextSeatAction == nil")
 	}
 
 	var allMsgItems []*HandMessageItem
