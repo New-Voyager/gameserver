@@ -129,7 +129,7 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 	case "WAITLIST_SEATING":
 		bp.seatWaitList(message)
 	case "GAME_ENDING":
-		break
+		bp.logger.Info().Msgf("%s: Received game ending notification", bp.logPrefix)
 	}
 }
 
