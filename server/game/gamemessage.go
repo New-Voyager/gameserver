@@ -20,7 +20,7 @@ func (g *Game) handleGameMessage(message *GameMessage) error {
 	case GameSetupNextHand:
 		err = g.onNextHandSetup(message)
 		if err != nil {
-			err = errors.Wrap(err, "Could not setup next hand")
+			return errors.Wrap(err, "Could not setup next hand")
 		}
 
 	case GameDealHand:
@@ -29,10 +29,11 @@ func (g *Game) handleGameMessage(message *GameMessage) error {
 			switch err.(type) {
 			case NotReadyToDealError:
 				// Wait for another resumeGame.
+				g.logger.Error().Err(err).
+					Str(logging.MsgTypeKey, message.MessageType).Msg("Ignoring game message")
 				g.isHandInProgress = false
-				err = nil
 			default:
-				err = errors.Wrap(err, "Could not deal hand")
+				return errors.Wrap(err, "Could not deal hand")
 			}
 		}
 
@@ -45,9 +46,8 @@ func (g *Game) handleGameMessage(message *GameMessage) error {
 				// Wait for a resumeGame.
 				g.logger.Error().Err(err).Msg("Not moving to next hand due to game status not being ready")
 				g.isHandInProgress = false
-				err = nil
 			default:
-				err = errors.Wrap(err, "Could not move to next hand")
+				return errors.Wrap(err, "Could not move to next hand")
 			}
 		} else {
 			if isPausedForPendingUpdates {
@@ -76,9 +76,8 @@ func (g *Game) handleGameMessage(message *GameMessage) error {
 				// Wait for another resumeGame.
 				g.logger.Error().Err(err).Msg("Not moving to next hand due to game status not being ready")
 				g.isHandInProgress = false
-				err = nil
 			default:
-				err = errors.Wrap(err, "Could not resume game")
+				return errors.Wrap(err, "Could not resume game")
 			}
 		} else {
 			if isPausedForPendingUpdates {
@@ -91,13 +90,11 @@ func (g *Game) handleGameMessage(message *GameMessage) error {
 		err = g.onGetHandLog(message)
 		if err != nil {
 			g.logger.Error().Err(err).Msg("Could not get hand log")
-
 			// Considering this not fatal for now. Just log the error and move on.
-			err = nil
 		}
 	}
 
-	return err
+	return nil
 }
 
 func (g *Game) onResume(message *GameMessage) (bool, error) {
@@ -237,7 +234,7 @@ func (g *Game) moveToNextHand(handState *HandState) (bool, error) {
 		handState.FlowState = FlowState_WAIT_FOR_PENDING_UPDATE
 		err := g.saveHandState(handState)
 		if err != nil {
-			msg := "Could save hand state after requesting pending update"
+			msg := "Could not save hand state after requesting pending update"
 			g.logger.Error().
 				Uint32(logging.HandNumKey, handState.GetHandNum()).
 				Err(err).
@@ -283,7 +280,7 @@ func (g *Game) moveAPIServerToNextHandAndScheduleDealHand(handState *HandState) 
 	if handState != nil {
 		err = g.saveHandState(handState)
 		if err != nil {
-			msg := fmt.Sprintf("Could save hand state before moving to next hand")
+			msg := fmt.Sprintf("Could not save hand state before moving to next hand")
 			g.logger.Error().
 				Uint32(logging.HandNumKey, handState.GetHandNum()).
 				Err(err).
@@ -310,8 +307,7 @@ func (g *Game) onNextHandSetup(message *GameMessage) error {
 }
 
 func (g *Game) onDealHand(message *GameMessage) error {
-	err := g.dealNewHand()
-	return err
+	return g.dealNewHand()
 }
 
 func (g *Game) broadcastTableState() error {

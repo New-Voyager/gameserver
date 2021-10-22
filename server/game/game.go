@@ -729,7 +729,7 @@ func (g *Game) dealNewHand() error {
 
 	err = g.saveHandState(handState)
 	if err != nil {
-		msg := fmt.Sprintf("Could save hand state after dealing")
+		msg := fmt.Sprintf("Could not save hand state after dealing")
 		g.logger.Error().
 			Uint32(logging.HandNumKey, handState.GetHandNum()).
 			Err(err).
