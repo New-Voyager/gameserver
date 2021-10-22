@@ -42,8 +42,7 @@ func (g *Game) handleHandMessage(message *HandMessage) error {
 		if err != nil {
 			switch err.(type) {
 			case InvalidMessageError:
-				// No need to raise this error up further. Just log it.
-				g.logger.Error().Err(err).Msg("Ignoring invalid player action")
+				// No need to raise this error up further.
 			default:
 				errMsg := "Could not process player action"
 				g.logger.Error().
