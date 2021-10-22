@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"time"
 
 	"voyager.com/server/game"
 )
@@ -94,8 +95,12 @@ func (g *TestGameScript) verifyTableResult(t *TestDriver, expectedPlayers []game
 }
 
 func (g *TestGameScript) dealHands(t *TestDriver) error {
-	for _, hand := range g.gameScript.Hands {
+	for i, hand := range g.gameScript.Hands {
 		testHand := NewTestHand(&hand, g)
+		if i > 0 {
+			// Wait for the server to finish processing the previous hand
+			time.Sleep(1000 * time.Millisecond)
+		}
 		err := testHand.run(t)
 		if err != nil {
 			return err
