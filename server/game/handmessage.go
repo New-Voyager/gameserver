@@ -349,64 +349,15 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 			Str(logging.ActionKey, actionMsg.GetPlayerActed().Action.String()).
 			Msg(errMsg)
 
+		// We could get invalid messages (duplicate message, wrong state, etc.)
+		// due to client retries. Just acknowlede them so that they stop retrying.
 		g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
 		return InvalidMessageError{Msg: errMsg}
 	}
 
 	// is it run it twice prompt response?
 	if handState.RunItTwicePrompt {
-		actionMsg := g.getClientMsgItem(playerMsg)
-		action := actionMsg.GetPlayerActed().Action
-		if !(action == ACTION_RUN_IT_TWICE_YES || action == ACTION_RUN_IT_TWICE_NO) {
-			return fmt.Errorf("Unexpected action %v. Was expecting %v or %v", action, ACTION_RUN_IT_TWICE_YES, ACTION_RUN_IT_TWICE_NO)
-		}
-		seatNo := actionMsg.GetPlayerActed().GetSeatNo()
-		runItTwiceState := handState.GetRunItTwice()
-		if (seatNo == runItTwiceState.Seat1 && runItTwiceState.Seat1Responded) ||
-			(seatNo == runItTwiceState.Seat2 && runItTwiceState.Seat2Responded) {
-			g.logger.Info().
-				Uint64(logging.PlayerIDKey, playerMsg.GetPlayerId()).
-				Uint32(logging.SeatNumKey, seatNo).
-				Msg("Received duplicate run-it-twice response. This can happen if the player acted too late and the timeout was triggered at the same time.")
-			return InvalidMessageError{Msg: "Duplicate run-it-twice response"}
-		}
-		msgItems, err := g.runItTwiceConfirmation(handState, playerMsg)
-		if err != nil {
-			return errors.Wrap(err, "Could not handle run-it-twice confirmation")
-		}
-		if !actionMsg.GetPlayerActed().GetTimedOut() {
-			// acknowledge so that player does not resend the message
-			g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
-		}
-
-		player := handState.PlayersInSeats[seatNo]
-		if actionMsg.GetPlayerActed().GetTimedOut() {
-			handState.TimeoutStats[player.PlayerId].ConsecutiveActionTimeouts++
-		} else {
-			handState.TimeoutStats[player.PlayerId].ConsecutiveActionTimeouts = 0
-			handState.TimeoutStats[player.PlayerId].ActedAtLeastOnce = true
-		}
-
-		msg := HandMessage{
-			HandNum:    handState.HandNum,
-			HandStatus: handState.CurrentState,
-			MessageId:  g.generateMsgID("RIT_CONFIRM", handState.HandNum, handState.CurrentState, playerMsg.PlayerId, playerMsg.MessageId, handState.CurrentActionNum),
-			Messages:   msgItems,
-		}
-
-		g.broadcastHandMessage(&msg)
-		err = g.saveHandState(handState)
-		if err != nil {
-			msg := fmt.Sprintf("Could not save hand state after confirming run-it-twice")
-			g.logger.Error().
-				Uint32(logging.HandNumKey, handState.GetHandNum()).
-				Err(err).
-				Msgf(msg)
-			return errors.Wrap(err, msg)
-		}
-		g.handleHandEnded(handState, handState.TotalResultPauseTime, msgItems)
-
-		return nil
+		return g.handleRITResponse(playerMsg, actionMsg, handState)
 	}
 
 	expectedState := FlowState_WAIT_FOR_NEXT_ACTION
@@ -458,21 +409,23 @@ func validatePlayerAction(playerMsg *HandMessage, actionMsg *HandMessageItem, ha
 	messageSeatNo := action.GetSeatNo()
 
 	if handState.NextSeatAction == nil {
-		errMsg := "Invalid action. There is no next action"
-		// This can happen if the action was already processed, but the client is retrying
-		// because the acnowledgement got lost in the network.
-		return InvalidMessageError{Msg: errMsg}
-	}
-
-	if handState.NextSeatAction != nil && (messageSeatNo != handState.NextSeatAction.SeatNo) {
-		// Unexpected seat acted.
-		// One scenario this can happen is when a player made a last-second action and the timeout
-		// was triggered at the same time. We get two actions in that case - one last-minute action
-		// from the player, and the other default action created by the timeout handler on behalf
-		// of the player. We are discarding whichever action that came last in that case.
-		errMsg := fmt.Sprintf("Invalid seat made action. The next valid action seat is: %d",
-			handState.NextSeatAction.SeatNo)
-		return InvalidMessageError{Msg: errMsg}
+		if !handState.RunItTwicePrompt {
+			errMsg := "Invalid action. There is no next action"
+			// This can happen if the action was already processed, but the client is retrying
+			// because the acnowledgement got lost in the network.
+			return InvalidMessageError{Msg: errMsg}
+		}
+	} else {
+		if messageSeatNo != handState.NextSeatAction.SeatNo {
+			// Unexpected seat acted.
+			// One scenario this can happen is when a player made a last-second action and the timeout
+			// was triggered at the same time. We get two actions in that case - one last-minute action
+			// from the player, and the other default action created by the timeout handler on behalf
+			// of the player. We are discarding whichever action that came last in that case.
+			errMsg := fmt.Sprintf("Invalid seat made action. The next valid action seat is: %d",
+				handState.NextSeatAction.SeatNo)
+			return InvalidMessageError{Msg: errMsg}
+		}
 	}
 
 	if (messageSeatNo == 0 || playerMsg.PlayerId == 0) && !isScriptTest {
@@ -517,6 +470,60 @@ func validatePlayerAction(playerMsg *HandMessage, actionMsg *HandMessageItem, ha
 			return fmt.Errorf("Invalid call amount %f. Expected amount: %f", action.Amount, expectedCallAmount)
 		}
 	}
+
+	if handState.RunItTwicePrompt {
+		if !(action.Action == ACTION_RUN_IT_TWICE_YES || action.Action == ACTION_RUN_IT_TWICE_NO) {
+			return InvalidMessageError{
+				Msg: fmt.Sprintf("Unexpected action. Was expecting %v or %v", ACTION_RUN_IT_TWICE_YES, ACTION_RUN_IT_TWICE_NO),
+			}
+		}
+
+		seatNo := actionMsg.GetPlayerActed().GetSeatNo()
+		runItTwiceState := handState.GetRunItTwice()
+		if (seatNo == runItTwiceState.Seat1 && runItTwiceState.Seat1Responded) ||
+			(seatNo == runItTwiceState.Seat2 && runItTwiceState.Seat2Responded) {
+			return InvalidMessageError{Msg: "Duplicate run-it-twice response"}
+		}
+	}
+
+	return nil
+}
+
+func (g *Game) handleRITResponse(playerMsg *HandMessage, actionMsg *HandMessageItem, handState *HandState) error {
+	seatNo := actionMsg.GetPlayerActed().GetSeatNo()
+	msgItems, err := g.runItTwiceConfirmation(handState, playerMsg)
+	if err != nil {
+		return errors.Wrap(err, "Could not handle run-it-twice confirmation")
+	}
+	g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
+
+	player := handState.PlayersInSeats[seatNo]
+	if actionMsg.GetPlayerActed().GetTimedOut() {
+		handState.TimeoutStats[player.PlayerId].ConsecutiveActionTimeouts++
+	} else {
+		handState.TimeoutStats[player.PlayerId].ConsecutiveActionTimeouts = 0
+		handState.TimeoutStats[player.PlayerId].ActedAtLeastOnce = true
+	}
+
+	msg := HandMessage{
+		HandNum:    handState.HandNum,
+		HandStatus: handState.CurrentState,
+		MessageId:  g.generateMsgID("RIT_CONFIRM", handState.HandNum, handState.CurrentState, playerMsg.PlayerId, playerMsg.MessageId, handState.CurrentActionNum),
+		Messages:   msgItems,
+	}
+
+	g.broadcastHandMessage(&msg)
+	err = g.saveHandState(handState)
+	if err != nil {
+		msg := fmt.Sprintf("Could not save hand state after confirming run-it-twice")
+		g.logger.Error().
+			Uint32(logging.HandNumKey, handState.GetHandNum()).
+			Err(err).
+			Msgf(msg)
+		return errors.Wrap(err, msg)
+	}
+	g.handleHandEnded(handState, handState.TotalResultPauseTime, msgItems)
+
 	return nil
 }
 
