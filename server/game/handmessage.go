@@ -332,86 +332,24 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		}
 	}
 
+	crashtest.Hit(g.gameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_1, playerMsg.PlayerId)
+
 	actionMsg := g.getClientMsgItem(playerMsg)
 	messageSeatNo := actionMsg.GetPlayerActed().GetSeatNo()
 
-	crashtest.Hit(g.gameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_1, playerMsg.PlayerId)
-
-	if (messageSeatNo == 0 || playerMsg.PlayerId == 0) && !g.isScriptTest {
-		errMsg := "Invalid seat number/player ID"
-		g.logger.Error().
-			Uint64(logging.PlayerIDKey, playerMsg.PlayerId).
-			Uint32(logging.SeatNumKey, messageSeatNo).
-			Msgf(errMsg)
-		return InvalidMessageError{Msg: errMsg}
-	}
-
-	actionMsgSeatNo := actionMsg.GetPlayerActed().GetSeatNo()
-	if handState.NextSeatAction != nil && (actionMsgSeatNo != handState.NextSeatAction.SeatNo) {
-		// Unexpected seat acted.
-		// One scenario this can happen is when a player made a last-second action and the timeout
-		// was triggered at the same time. We get two actions in that case - one last-minute action
-		// from the player, and the other default action created by the timeout handler on behalf
-		// of the player. We are discarding whichever action that came last in that case.
-		errMsg := fmt.Sprintf("Invalid seat made action. The next valid action seat is: %d",
-			handState.NextSeatAction.SeatNo)
-
-		g.logger.Error().
-			Uint64(logging.PlayerIDKey, playerMsg.PlayerId).
-			Uint32(logging.SeatNumKey, actionMsgSeatNo).
-			Uint32(logging.HandNumKey, handState.GetHandNum()).
-			Msg(errMsg)
-		if !actionMsg.GetPlayerActed().GetTimedOut() {
-			// Acknowledge so that the client stops retrying.
-			g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
-		}
-		return InvalidMessageError{Msg: errMsg}
-	}
-
-	if !actionMsg.GetPlayerActed().GetTimedOut() {
-		if playerMsg.MessageId == "" && !g.isScriptTest {
-			b, err := protojson.Marshal(actionMsg)
-			var msgStr string
-			if err == nil {
-				msgStr = string(b)
-			} else {
-				msgStr = playerMsg.String()
-			}
-			errMsg := fmt.Sprintf("Missing message ID. Msg: %s", msgStr)
-			g.logger.Error().
-				Uint64(logging.PlayerIDKey, playerMsg.PlayerId).
-				Uint32(logging.SeatNumKey, messageSeatNo).
-				Msgf(errMsg)
-			return InvalidMessageError{Msg: errMsg}
-		}
-	}
-
-	// if the hand number does not match, ignore the message
-	if playerMsg.HandNum != handState.HandNum {
-		errMsg := fmt.Sprintf("Invalid hand number: %d current hand number: %d", playerMsg.HandNum, handState.HandNum)
-		g.logger.Error().
-			Uint64(logging.PlayerIDKey, playerMsg.GetPlayerId()).
-			Uint32(logging.SeatNumKey, messageSeatNo).
-			Str(logging.MsgTypeKey, actionMsg.MessageType).
-			Msg(errMsg)
-
-		// This can happen if the action was already processed, but the client is retrying
-		// because the acnowledgement got lost in the network. Just acknowledge so that
-		// the client stops retrying.
-		g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
-		return InvalidMessageError{Msg: errMsg}
-	}
-
-	if err := validatePlayerAction(actionMsg.GetPlayerActed(), handState); err != nil {
+	if err := validatePlayerAction(playerMsg, actionMsg, handState, g.isScriptTest); err != nil {
 		// Ignore the action message.
 		errMsg := fmt.Sprintf("Invalid player action")
 		g.logger.Error().
 			Err(err).
+			Uint32(logging.HandNumKey, handState.GetHandNum()).
 			Uint64(logging.PlayerIDKey, playerMsg.GetPlayerId()).
 			Uint32(logging.SeatNumKey, messageSeatNo).
 			Str(logging.MsgTypeKey, actionMsg.MessageType).
+			Str(logging.ActionKey, actionMsg.GetPlayerActed().Action.String()).
 			Msg(errMsg)
 
+		g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
 		return InvalidMessageError{Msg: errMsg}
 	}
 
@@ -471,38 +409,6 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		return nil
 	}
 
-	if handState.NextSeatAction == nil {
-		errMsg := "Invalid action. There is no next action"
-		g.logger.Error().
-			Uint64(logging.PlayerIDKey, playerMsg.PlayerId).
-			Uint32(logging.SeatNumKey, messageSeatNo).
-			Str(logging.MsgTypeKey, actionMsg.MessageType).
-			Str("action", actionMsg.GetPlayerActed().Action.String()).
-			Msg(errMsg)
-
-		// This can happen if the action was already processed, but the client is retrying
-		// because the acnowledgement got lost in the network. Just acknowledge so that
-		// the client stops retrying.
-		g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
-		return InvalidMessageError{Msg: errMsg}
-	}
-
-	if handState.CurrentState == HandStatus_SHOW_DOWN {
-		errMsg := "Invalid action. Hand is in show-down state"
-		g.logger.Error().
-			Uint64(logging.PlayerIDKey, playerMsg.PlayerId).
-			Uint32(logging.SeatNumKey, messageSeatNo).
-			Str(logging.MsgTypeKey, actionMsg.MessageType).
-			Str("action", actionMsg.GetPlayerActed().Action.String()).
-			Msg(errMsg)
-
-		// This can happen if the action was already processed, but the client is retrying
-		// because the acnowledgement got lost in the network. Just acknowledge so that
-		// the client stops retrying.
-		g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
-		return InvalidMessageError{Msg: errMsg}
-	}
-
 	expectedState := FlowState_WAIT_FOR_NEXT_ACTION
 	if handState.FlowState != expectedState {
 		errMsg := fmt.Sprintf("onPlayerActed called in wrong flow state. Expected state: %s, Current state: %s", expectedState, handState.FlowState)
@@ -547,19 +453,68 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	return g.prepareNextAction(handState, uint64(actedSeconds))
 }
 
-func validatePlayerAction(actionMsg *HandAction, handState *HandState) error {
+func validatePlayerAction(playerMsg *HandMessage, actionMsg *HandMessageItem, handState *HandState, isScriptTest bool) error {
+	action := actionMsg.GetPlayerActed()
+	messageSeatNo := action.GetSeatNo()
 
-	// if handState.GetNextSeatAction() == nil {
-	// 	return fmt.Errorf("Invalid next seat action")
-	// }
+	if handState.NextSeatAction == nil {
+		errMsg := "Invalid action. There is no next action"
+		// This can happen if the action was already processed, but the client is retrying
+		// because the acnowledgement got lost in the network.
+		return InvalidMessageError{Msg: errMsg}
+	}
 
-	if actionMsg.Action == ACTION_CALL {
+	if handState.NextSeatAction != nil && (messageSeatNo != handState.NextSeatAction.SeatNo) {
+		// Unexpected seat acted.
+		// One scenario this can happen is when a player made a last-second action and the timeout
+		// was triggered at the same time. We get two actions in that case - one last-minute action
+		// from the player, and the other default action created by the timeout handler on behalf
+		// of the player. We are discarding whichever action that came last in that case.
+		errMsg := fmt.Sprintf("Invalid seat made action. The next valid action seat is: %d",
+			handState.NextSeatAction.SeatNo)
+		return InvalidMessageError{Msg: errMsg}
+	}
+
+	if (messageSeatNo == 0 || playerMsg.PlayerId == 0) && !isScriptTest {
+		errMsg := "Invalid seat number/player ID"
+		return InvalidMessageError{Msg: errMsg}
+	}
+
+	if !actionMsg.GetPlayerActed().GetTimedOut() {
+		if playerMsg.MessageId == "" && !isScriptTest {
+			b, err := protojson.Marshal(actionMsg)
+			var msgStr string
+			if err == nil {
+				msgStr = string(b)
+			} else {
+				msgStr = playerMsg.String()
+			}
+			errMsg := fmt.Sprintf("Missing message ID. Msg: %s", msgStr)
+			return InvalidMessageError{Msg: errMsg}
+		}
+	}
+
+	if playerMsg.HandNum != handState.HandNum {
+		errMsg := fmt.Sprintf("Invalid hand number: %d current hand number: %d", playerMsg.HandNum, handState.HandNum)
+		// This can happen if the action was already processed, but the client is retrying
+		// through the next hand because the acnowledgement got lost in the network.
+		return InvalidMessageError{Msg: errMsg}
+	}
+
+	if handState.CurrentState == HandStatus_SHOW_DOWN {
+		errMsg := "Unexpected player action. Hand is in show-down state"
+		// This can happen if the action was already processed, but the client is retrying
+		// because the acnowledgement got lost in the network.
+		return InvalidMessageError{Msg: errMsg}
+	}
+
+	if action.Action == ACTION_CALL {
 		if handState.GetNextSeatAction() == nil {
 			return fmt.Errorf("handState.NextSeatAction is nil")
 		}
 		expectedCallAmount := handState.GetNextSeatAction().CallAmount
-		if actionMsg.Amount != expectedCallAmount {
-			return fmt.Errorf("Invalid call amount %f. Expected amount: %f", actionMsg.Amount, expectedCallAmount)
+		if action.Amount != expectedCallAmount {
+			return fmt.Errorf("Invalid call amount %f. Expected amount: %f", action.Amount, expectedCallAmount)
 		}
 	}
 	return nil
