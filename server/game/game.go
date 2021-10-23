@@ -748,13 +748,13 @@ func (g *Game) GenerateMsgID(prefix string, handNum uint32, handStatus HandStatu
 	return g.generateMsgID(prefix, handNum, handStatus, playerID, originalMsgID, currentActionNum)
 }
 
-func (g *Game) saveHandState(handState *HandState, flowState FlowState) error {
+func (g *Game) saveHandState(handState *HandState, nextFlowState FlowState) error {
 	if handState == nil {
 		// We should never call it with nil. Panic for stack trace.
 		panic("saveHandState called with nil hand state")
 	}
 
-	handState.FlowState = flowState
+	handState.FlowState = nextFlowState
 
 	err := g.manager.handStatePersist.Save(
 		g.gameCode,

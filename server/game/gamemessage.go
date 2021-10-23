@@ -68,8 +68,7 @@ func (g *Game) handleGameMessage(message *GameMessage) error {
 		}
 
 		g.isHandInProgress = true
-		var isPausedForPendingUpdates bool
-		isPausedForPendingUpdates, err = g.onResume(message)
+		err = g.onResume(message)
 		if err != nil {
 			switch err.(type) {
 			case UnexpectedGameStatusError:
@@ -78,11 +77,6 @@ func (g *Game) handleGameMessage(message *GameMessage) error {
 				g.isHandInProgress = false
 			default:
 				return errors.Wrap(err, "Could not resume game")
-			}
-		} else {
-			if isPausedForPendingUpdates {
-				// Wait for resumeGame once pending updates are done
-				g.isHandInProgress = false
 			}
 		}
 
@@ -97,13 +91,12 @@ func (g *Game) handleGameMessage(message *GameMessage) error {
 	return nil
 }
 
-func (g *Game) onResume(message *GameMessage) (bool, error) {
+func (g *Game) onResume(message *GameMessage) error {
 	var err error
-	var isPaused bool
 	handState, err := g.loadHandState()
 	if err != nil {
 		if err != RedisKeyNotFound {
-			return isPaused, errors.Wrap(err, "Could not load hand state")
+			return errors.Wrap(err, "Could not load hand state")
 		}
 
 		// There is no existing hand state. We should only get here during the initial
@@ -114,7 +107,7 @@ func (g *Game) onResume(message *GameMessage) (bool, error) {
 
 		// Move the api server to the first hand (hand number 1).
 		err = g.moveAPIServerToNextHandAndScheduleDealHand(nil)
-		return isPaused, err
+		return err
 	}
 
 	g.logger.Debug().
@@ -133,13 +126,13 @@ func (g *Game) onResume(message *GameMessage) (bool, error) {
 	case FlowState_PREPARE_NEXT_ACTION:
 		err = g.prepareNextAction(handState, 0)
 	case FlowState_MOVE_TO_NEXT_HAND:
-		isPaused, err = g.moveToNextHand(handState)
+		g.queueMoveToNextHand()
 	case FlowState_WAIT_FOR_PENDING_UPDATE:
 		err = g.moveAPIServerToNextHandAndScheduleDealHand(handState)
 	default:
 		err = fmt.Errorf("unhandled flow state in resumeGame: %s", handState.FlowState)
 	}
-	return isPaused, err
+	return err
 }
 
 func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCode string, handNum uint32) {

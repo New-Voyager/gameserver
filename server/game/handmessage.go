@@ -688,12 +688,16 @@ func (g *Game) handleHandEnded(handState *HandState, totalPauseTime uint32, allM
 
 		handState.CurrentState = HandStatus_HAND_CLOSED
 
-		gameMessage := &GameMessage{
-			GameId:      g.gameID,
-			MessageType: GameMoveToNextHand,
-		}
-		g.QueueGameMessage(gameMessage)
+		g.queueMoveToNextHand()
 	}
+}
+
+func (g *Game) queueMoveToNextHand() {
+	gameMessage := &GameMessage{
+		GameId:      g.gameID,
+		MessageType: GameMoveToNextHand,
+	}
+	g.QueueGameMessage(gameMessage)
 }
 
 func (g *Game) sendActionAck(handState *HandState, playerMsg *HandMessage, currentActionNum uint32) {
