@@ -362,6 +362,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 			Uint32(logging.SeatNumKey, messageSeatNo).
 			Str(logging.MsgTypeKey, actionMsg.MessageType).
 			Msg(errMsg)
+		g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
 		return InvalidMessageError{Msg: errMsg}
 	}
 
@@ -692,6 +693,21 @@ func (g *Game) sendActionAck(handState *HandState, playerMsg *HandMessage, curre
 		return
 	}
 
+	if playerMsg.SeatNo > uint32(len(handState.PlayersInSeats)) {
+		g.logger.Warn().Msgf("Not sending ack. Invalid seat number %d", playerMsg.SeatNo)
+		return
+	}
+
+	player := handState.PlayersInSeats[playerMsg.SeatNo]
+	if player == nil {
+		g.logger.Warn().Msg("Not sending ack. Player in seat is nil")
+		return
+	}
+	if player.PlayerId == 0 {
+		g.logger.Warn().Msg("Not sending ack. Player ID is 0")
+		return
+	}
+
 	ack := &HandMessageItem{
 		MessageType: HandMsgAck,
 		Content: &HandMessageItem_MsgAck{
@@ -701,7 +717,6 @@ func (g *Game) sendActionAck(handState *HandState, playerMsg *HandMessage, curre
 			},
 		},
 	}
-	player := handState.PlayersInSeats[playerMsg.SeatNo]
 
 	serverMsg := &HandMessage{
 		PlayerId:   player.PlayerId,
@@ -715,7 +730,7 @@ func (g *Game) sendActionAck(handState *HandState, playerMsg *HandMessage, curre
 	g.logger.Debug().
 		Uint64(logging.PlayerIDKey, playerMsg.GetPlayerId()).
 		Uint32(logging.SeatNumKey, playerMsg.GetSeatNo()).
-		Msg(fmt.Sprintf("Acknowledgment sent to player. Message Id: %s", playerMsg.GetMessageId()))
+		Msgf("Acknowledgment sent to player. Message Id: %s", playerMsg.GetMessageId())
 }
 
 func (g *Game) getPots(handState *HandState) ([]float32, []*SeatsInPots) {
