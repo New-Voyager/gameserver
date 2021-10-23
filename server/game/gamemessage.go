@@ -278,6 +278,7 @@ func (g *Game) moveAPIServerToNextHandAndScheduleDealHand(handState *HandState) 
 	}
 
 	if handState != nil {
+		handState.FlowState = FlowState_DEAL_HAND
 		err = g.saveHandState(handState)
 		if err != nil {
 			msg := fmt.Sprintf("Could not save hand state before moving to next hand")

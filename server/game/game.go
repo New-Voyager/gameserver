@@ -727,6 +727,7 @@ func (g *Game) dealNewHand() error {
 	g.broadcastHandMessage(&handMsg)
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_5, 0)
 
+	handState.FlowState = FlowState_WAIT_FOR_NEXT_ACTION
 	err = g.saveHandState(handState)
 	if err != nil {
 		msg := fmt.Sprintf("Could not save hand state after dealing")
