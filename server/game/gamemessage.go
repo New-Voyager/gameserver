@@ -231,8 +231,7 @@ func (g *Game) moveToNextHand(handState *HandState) (bool, error) {
 	pendingUpdates, _ := g.anyPendingUpdates(g.apiServerURL, g.gameID, g.delays.PendingUpdatesRetry)
 	if pendingUpdates {
 		go g.processPendingUpdates(g.apiServerURL, g.gameID, g.gameCode, handState.GetHandNum())
-		handState.FlowState = FlowState_WAIT_FOR_PENDING_UPDATE
-		err := g.saveHandState(handState)
+		err := g.saveHandState(handState, FlowState_WAIT_FOR_PENDING_UPDATE)
 		if err != nil {
 			msg := "Could not save hand state after requesting pending update"
 			g.logger.Error().
@@ -278,8 +277,7 @@ func (g *Game) moveAPIServerToNextHandAndScheduleDealHand(handState *HandState) 
 	}
 
 	if handState != nil {
-		handState.FlowState = FlowState_DEAL_HAND
-		err = g.saveHandState(handState)
+		err = g.saveHandState(handState, FlowState_DEAL_HAND)
 		if err != nil {
 			msg := fmt.Sprintf("Could not save hand state before moving to next hand")
 			g.logger.Error().

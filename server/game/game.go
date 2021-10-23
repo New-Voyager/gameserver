@@ -727,8 +727,7 @@ func (g *Game) dealNewHand() error {
 	g.broadcastHandMessage(&handMsg)
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_5, 0)
 
-	handState.FlowState = FlowState_WAIT_FOR_NEXT_ACTION
-	err = g.saveHandState(handState)
+	err = g.saveHandState(handState, FlowState_WAIT_FOR_NEXT_ACTION)
 	if err != nil {
 		msg := fmt.Sprintf("Could not save hand state after dealing")
 		g.logger.Error().
@@ -749,11 +748,13 @@ func (g *Game) GenerateMsgID(prefix string, handNum uint32, handStatus HandStatu
 	return g.generateMsgID(prefix, handNum, handStatus, playerID, originalMsgID, currentActionNum)
 }
 
-func (g *Game) saveHandState(handState *HandState) error {
+func (g *Game) saveHandState(handState *HandState, flowState FlowState) error {
 	if handState == nil {
 		// We should never call it with nil. Panic for stack trace.
 		panic("saveHandState called with nil hand state")
 	}
+
+	handState.FlowState = flowState
 
 	err := g.manager.handStatePersist.Save(
 		g.gameCode,

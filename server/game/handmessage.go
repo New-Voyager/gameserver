@@ -381,8 +381,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	}
 
 	handState.ActionMsgInProgress = playerMsg
-	handState.FlowState = FlowState_PREPARE_NEXT_ACTION
-	err := g.saveHandState(handState)
+	err := g.saveHandState(handState, FlowState_PREPARE_NEXT_ACTION)
 	if err != nil {
 		msg := fmt.Sprintf("Could not save hand state after saving action msg")
 		g.logger.Error().
@@ -395,16 +394,6 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_2, playerMsg.PlayerId)
 
-	// handState.FlowState = FlowState_PREPARE_NEXT_ACTION
-	// err = g.saveHandState(handState)
-	// if err != nil {
-	// 	msg := fmt.Sprintf("Could not save hand state before moving to prepareNextAction")
-	// 	g.logger.Error().
-	// 		Uint32(logging.HandNumKey, handState.GetHandNum()).
-	// 		Err(err).
-	// 		Msgf(msg)
-	// 	return errors.Wrap(err, msg)
-	// }
 	return g.prepareNextAction(handState, uint64(actedSeconds))
 }
 
@@ -518,14 +507,15 @@ func (g *Game) handleRITResponse(playerMsg *HandMessage, actionMsg *HandMessageI
 
 	g.broadcastHandMessage(&msg)
 	rit := handState.GetRunItTwice()
+	var nextFlowState FlowState
 	if rit.Seat1Responded && rit.Seat2Responded {
 		// Both players responded.
-		handState.FlowState = FlowState_MOVE_TO_NEXT_HAND
+		nextFlowState = FlowState_MOVE_TO_NEXT_HAND
 	} else {
 		// Need to wait for the other player to respond.
-		handState.FlowState = FlowState_WAIT_FOR_NEXT_ACTION
+		nextFlowState = FlowState_WAIT_FOR_NEXT_ACTION
 	}
-	err = g.saveHandState(handState)
+	err = g.saveHandState(handState, nextFlowState)
 	if err != nil {
 		msg := fmt.Sprintf("Could not save hand state after confirming run-it-twice")
 		g.logger.Error().
@@ -648,8 +638,7 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_2, playerMsg.PlayerId)
 
-	handState.FlowState = nextFlowState
-	err = g.saveHandState(handState)
+	err = g.saveHandState(handState, nextFlowState)
 	if err != nil {
 		msg := fmt.Sprintf("Could not save hand state after sending next action")
 		g.logger.Error().
@@ -1246,8 +1235,6 @@ func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error
 	}
 
 	allMsgItems = append(allMsgItems, nextActionMsg)
-
-	handState.FlowState = FlowState_WAIT_FOR_NEXT_ACTION
 
 	return allMsgItems, nil
 }
