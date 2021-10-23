@@ -37,7 +37,9 @@ func (g *Game) handleHandMessage(message *HandMessage) error {
 			errMsg := "Could not load hand state before processing player action message"
 			return errors.Wrap(err, errMsg)
 		}
-
+		if handState == nil {
+			return fmt.Errorf("Action received when handState == nil")
+		}
 		err = g.onPlayerActed(message, handState)
 		if err != nil {
 			switch err.(type) {
@@ -49,6 +51,7 @@ func (g *Game) handleHandMessage(message *HandMessage) error {
 					Err(err).
 					Str(logging.MsgTypeKey, msgItem.MessageType).
 					Uint64(logging.PlayerIDKey, message.PlayerId).
+					Uint32(logging.HandNumKey, handState.GetHandNum()).
 					Msgf(errMsg)
 				return errors.Wrap(err, errMsg)
 			}
@@ -292,10 +295,6 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 }
 
 func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error {
-	if handState == nil {
-		return fmt.Errorf("onPlayerActed called with nil handState")
-	}
-
 	if playerMsg == nil {
 		// Game server is replaying this code after a crash.
 		if handState.ActionMsgInProgress == nil {
@@ -355,11 +354,6 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		return InvalidMessageError{Msg: errMsg}
 	}
 
-	// is it run it twice prompt response?
-	if handState.RunItTwicePrompt {
-		return g.handleRITResponse(playerMsg, actionMsg, handState)
-	}
-
 	expectedState := FlowState_WAIT_FOR_NEXT_ACTION
 	if handState.FlowState != expectedState {
 		errMsg := fmt.Sprintf("onPlayerActed called in wrong flow state. Expected state: %s, Current state: %s", expectedState, handState.FlowState)
@@ -369,6 +363,11 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 			Str(logging.MsgTypeKey, actionMsg.MessageType).
 			Msg(errMsg)
 		return InvalidMessageError{Msg: errMsg}
+	}
+
+	// is it run it twice prompt response?
+	if handState.RunItTwicePrompt {
+		return g.handleRITResponse(playerMsg, actionMsg, handState)
 	}
 
 	actionResponseTime := g.actionTimer.GetElapsedTime()
