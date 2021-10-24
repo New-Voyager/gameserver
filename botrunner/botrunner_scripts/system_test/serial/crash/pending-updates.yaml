@@ -1,4 +1,4 @@
-# SYSTEM_TEST_TIMEOUT_SEC:120
+# SYSTEM_TEST_TIMEOUT_SEC:180
 
 club:
   name: Crash Testing Club
@@ -77,13 +77,13 @@ hands:
       auto: true
       leave-game:
         - seat: 5
-      pre-deal:
-        - setup-server-crash:
-            crash-point: PENDING_UPDATES_1
 
   - setup:
       pause: 3
       auto: true
+      pre-deal:
+        - setup-server-crash:
+            crash-point: PENDING_UPDATES_1
       verify:
         seats:
           - seat: 1
@@ -100,6 +100,72 @@ hands:
             player: rich
           - seat: 7
             player: josh
+          - seat: 8
+            player: chris
+          - seat: 9
+            player: michael
+
+  - setup:
+      pause: 3
+      auto: true
+      leave-game:
+        - seat: 6
+
+  - setup:
+      pause: 3
+      auto: true
+      pre-deal:
+        - setup-server-crash:
+            crash-point: PENDING_UPDATES_2
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+          - seat: 2
+            player: brian
+          - seat: 3
+            player: tom
+          - seat: 4
+            player: jim
+          - seat: 5
+            player: david
+          - seat: 6
+            player: olivia
+          - seat: 7
+            player: josh
+          - seat: 8
+            player: chris
+          - seat: 9
+            player: michael
+
+  - setup:
+      pause: 3
+      auto: true
+      leave-game:
+        - seat: 7
+
+  - setup:
+      pause: 3
+      auto: true
+      pre-deal:
+        - setup-server-crash:
+            crash-point: PENDING_UPDATES_3
+      verify:
+        seats:
+          - seat: 1
+            player: yong
+          - seat: 2
+            player: brian
+          - seat: 3
+            player: tom
+          - seat: 4
+            player: jim
+          - seat: 5
+            player: david
+          - seat: 6
+            player: olivia
+          - seat: 7
+            player: emma
           - seat: 8
             player: chris
           - seat: 9

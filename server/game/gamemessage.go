@@ -224,6 +224,7 @@ func (g *Game) moveToNextHand(handState *HandState) (bool, error) {
 	pendingUpdates, _ := g.anyPendingUpdates(g.apiServerURL, g.gameID, g.delays.PendingUpdatesRetry)
 	if pendingUpdates {
 		go g.processPendingUpdates(g.apiServerURL, g.gameID, g.gameCode, handState.GetHandNum())
+		crashtest.Hit(g.gameCode, crashtest.CrashPoint_PENDING_UPDATES_2, 0)
 		err := g.saveHandState(handState, FlowState_WAIT_FOR_PENDING_UPDATE)
 		if err != nil {
 			msg := "Could not save hand state after requesting pending update"
@@ -268,6 +269,8 @@ func (g *Game) moveAPIServerToNextHandAndQueueDeal(handState *HandState) error {
 			TableStatus: resp.TableStatus,
 		}
 	}
+
+	crashtest.Hit(g.gameCode, crashtest.CrashPoint_PENDING_UPDATES_3, 0)
 
 	if handState != nil {
 		err = g.saveHandState(handState, FlowState_DEAL_HAND)
