@@ -106,7 +106,7 @@ func (g *Game) onResume(message *GameMessage) error {
 		// Go ahead and start the first hand.
 
 		// Move the api server to the first hand (hand number 1).
-		err = g.moveAPIServerToNextHandAndScheduleDealHand(nil)
+		err = g.moveAPIServerToNextHandAndQueueDeal(nil)
 		return err
 	}
 
@@ -128,7 +128,7 @@ func (g *Game) onResume(message *GameMessage) error {
 	case FlowState_MOVE_TO_NEXT_HAND:
 		g.queueMoveToNextHand()
 	case FlowState_WAIT_FOR_PENDING_UPDATE:
-		err = g.moveAPIServerToNextHandAndScheduleDealHand(handState)
+		err = g.moveAPIServerToNextHandAndQueueDeal(handState)
 	default:
 		err = fmt.Errorf("unhandled flow state in resumeGame: %s", handState.FlowState)
 	}
@@ -239,14 +239,14 @@ func (g *Game) moveToNextHand(handState *HandState) (bool, error) {
 		isPausedForPendingUpdates = true
 	} else {
 		// No pending updates. Move straight on to the next hand.
-		err := g.moveAPIServerToNextHandAndScheduleDealHand(handState)
+		err := g.moveAPIServerToNextHandAndQueueDeal(handState)
 		return isPausedForPendingUpdates, err
 	}
 
 	return isPausedForPendingUpdates, nil
 }
 
-func (g *Game) moveAPIServerToNextHandAndScheduleDealHand(handState *HandState) error {
+func (g *Game) moveAPIServerToNextHandAndQueueDeal(handState *HandState) error {
 	var currentHandNum uint32
 	if handState == nil {
 		currentHandNum = 0
