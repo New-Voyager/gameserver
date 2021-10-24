@@ -269,27 +269,34 @@ func (g *Game) runGame() {
 			var handMessage HandMessage
 			err := proto.Unmarshal(message, &handMessage)
 			if err != nil {
-				g.logger.Error().Err(err).Msgf("Could not proto-unmarshal hand msg")
+				g.logger.Error().Err(err).Msgf("Could not proto-unmarshal hand msg. Ignoring the msg")
 				break
 			}
 			err = g.handleHandMessage(&handMessage)
 			if err != nil {
-				g.logger.Error().Err(err).Msgf("Could not process hand message. Requesting to end game")
-				_, err2 := g.requestEndGame(true)
-				if err2 != nil {
-					g.logger.Error().Err(err2).Msgf("Error in requestEndGame")
-				}
+				g.logger.Error().Err(err).Msgf("Could not process hand msg")
+				panic("Could not process hand message.")
 			}
 		case message := <-g.chGame:
 			var gameMessage GameMessage
 			err := proto.Unmarshal(message, &gameMessage)
-			if err == nil {
-				g.handleGameMessage(&gameMessage)
+			if err != nil {
+				g.logger.Error().Err(err).Msg("Could not proto-unmarshal game msg. Ignoring the msg")
+				break
+			}
+			err = g.handleGameMessage(&gameMessage)
+			if err != nil {
+				g.logger.Error().
+					Err(err).
+					Str(logging.MsgTypeKey, gameMessage.MessageType).
+					Msg("Could not process game msg")
+				panic("Could not process game msg")
 			}
 		case timeoutMsg := <-g.chPlayTimedOut:
 			err := g.handlePlayTimeout(timeoutMsg)
 			if err != nil {
-				g.logger.Error().Msgf("Error while handling player timeout %+v", err)
+				g.logger.Error().Err(err).Msgf("Could not process player timeout")
+				panic("Could not process player timeout")
 			}
 		default:
 			if g.isScriptTest && !g.running {
@@ -531,8 +538,12 @@ func (g *Game) dealNewHand() error {
 		return errors.Wrapf(err, "Error while initializing hand state")
 	}
 	if handState.GetNoActiveSeats() < 2 {
-		// Shouldn't get here. Just being defensive.
-		return fmt.Errorf("Not dealing hand due to not enough active seats (%d). Players In Seats: %+v", handState.GetNoActiveSeats(), handState.GetPlayersInSeats())
+		// Shouldn't get here. Just being resilient against api server.
+		g.logger.Warn().Msgf("Aborting dealing due to not enough active seats (%d). Players In Seats: %+v", handState.GetNoActiveSeats(), handState.GetPlayersInSeats())
+
+		return NotReadyToDealError{
+			Msg: "Not enough active seats",
+		}
 	}
 
 	if testHandSetup != nil {
@@ -716,9 +727,9 @@ func (g *Game) dealNewHand() error {
 	g.broadcastHandMessage(&handMsg)
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_5, 0)
 
-	err = g.saveHandState(handState)
+	err = g.saveHandState(handState, FlowState_WAIT_FOR_NEXT_ACTION)
 	if err != nil {
-		msg := fmt.Sprintf("Could save hand state after dealing")
+		msg := fmt.Sprintf("Could not save hand state after dealing")
 		g.logger.Error().
 			Uint32(logging.HandNumKey, handState.GetHandNum()).
 			Err(err).
@@ -737,11 +748,13 @@ func (g *Game) GenerateMsgID(prefix string, handNum uint32, handStatus HandStatu
 	return g.generateMsgID(prefix, handNum, handStatus, playerID, originalMsgID, currentActionNum)
 }
 
-func (g *Game) saveHandState(handState *HandState) error {
+func (g *Game) saveHandState(handState *HandState, nextFlowState FlowState) error {
 	if handState == nil {
 		// We should never call it with nil. Panic for stack trace.
 		panic("saveHandState called with nil hand state")
 	}
+
+	handState.FlowState = nextFlowState
 
 	err := g.manager.handStatePersist.Save(
 		g.gameCode,

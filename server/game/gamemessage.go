@@ -11,7 +11,7 @@ import (
 	"voyager.com/server/crashtest"
 )
 
-func (g *Game) handleGameMessage(message *GameMessage) {
+func (g *Game) handleGameMessage(message *GameMessage) error {
 	g.logger.Trace().
 		Msgf("Game message: %s. %v", message.MessageType, message)
 
@@ -19,18 +19,41 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 	switch message.MessageType {
 	case GameSetupNextHand:
 		err = g.onNextHandSetup(message)
+		if err != nil {
+			return errors.Wrap(err, "Could not setup next hand")
+		}
 
 	case GameDealHand:
 		err = g.onDealHand(message)
 		if err != nil {
-			g.isHandInProgress = false
+			switch err.(type) {
+			case NotReadyToDealError:
+				// Wait for another resumeGame.
+				g.logger.Error().Err(err).
+					Str(logging.MsgTypeKey, message.MessageType).Msg("Ignoring game message")
+				g.isHandInProgress = false
+			default:
+				return errors.Wrap(err, "Could not deal hand")
+			}
 		}
 
 	case GameMoveToNextHand:
 		var isPausedForPendingUpdates bool
 		isPausedForPendingUpdates, err = g.onMoveToNextHand(message)
-		if err != nil || isPausedForPendingUpdates {
-			g.isHandInProgress = false
+		if err != nil {
+			switch err.(type) {
+			case UnexpectedGameStatusError:
+				// Wait for a resumeGame.
+				g.logger.Error().Err(err).Msg("Not moving to next hand due to game status not being ready")
+				g.isHandInProgress = false
+			default:
+				return errors.Wrap(err, "Could not move to next hand")
+			}
+		} else {
+			if isPausedForPendingUpdates {
+				// Wait for resumeGame once pending updates are done
+				g.isHandInProgress = false
+			}
 		}
 
 	case GameResume:
@@ -45,29 +68,35 @@ func (g *Game) handleGameMessage(message *GameMessage) {
 		}
 
 		g.isHandInProgress = true
-		var isPausedForPendingUpdates bool
-		isPausedForPendingUpdates, err = g.onResume(message)
-		if err != nil || isPausedForPendingUpdates {
-			g.isHandInProgress = false
+		err = g.onResume(message)
+		if err != nil {
+			switch err.(type) {
+			case UnexpectedGameStatusError:
+				// Wait for another resumeGame.
+				g.logger.Error().Err(err).Msg("Not moving to next hand due to game status not being ready")
+				g.isHandInProgress = false
+			default:
+				return errors.Wrap(err, "Could not resume game")
+			}
 		}
 
 	case GetHandLog:
 		err = g.onGetHandLog(message)
+		if err != nil {
+			g.logger.Error().Err(err).Msg("Could not get hand log")
+			// Considering this not fatal for now. Just log the error and move on.
+		}
 	}
 
-	if err != nil {
-		err = errors.Wrapf(err, "Error while handling %s", message.MessageType)
-		g.logger.Error().Msg(err.Error())
-	}
+	return nil
 }
 
-func (g *Game) onResume(message *GameMessage) (bool, error) {
+func (g *Game) onResume(message *GameMessage) error {
 	var err error
-	var isPaused bool
 	handState, err := g.loadHandState()
 	if err != nil {
 		if err != RedisKeyNotFound {
-			return isPaused, errors.Wrap(err, "Could not load hand state")
+			return errors.Wrap(err, "Could not load hand state")
 		}
 
 		// There is no existing hand state. We should only get here during the initial
@@ -77,18 +106,8 @@ func (g *Game) onResume(message *GameMessage) (bool, error) {
 		// Go ahead and start the first hand.
 
 		// Move the api server to the first hand (hand number 1).
-		err = g.moveAPIServerToNextHandAndScheduleDealHand(nil)
-		if err != nil {
-			ugse, ok := err.(*UnexpectedGameStatusError)
-			if ok {
-				// API server has a bug where it sometimes calls resumeGame when the game
-				// isn't ready. This is a guard against that. In this case we do nothing and
-				// wait for another resumeGame from the api server when the game is actually ready.
-				return isPaused, errors.Wrap(ugse, "Unable to start game due to invalid game/table status. Doing nothing.")
-			}
-			return isPaused, errors.Wrap(err, "Error while starting game")
-		}
-		return isPaused, nil
+		err = g.moveAPIServerToNextHandAndQueueDeal(nil)
+		return err
 	}
 
 	g.logger.Debug().
@@ -107,25 +126,13 @@ func (g *Game) onResume(message *GameMessage) (bool, error) {
 	case FlowState_PREPARE_NEXT_ACTION:
 		err = g.prepareNextAction(handState, 0)
 	case FlowState_MOVE_TO_NEXT_HAND:
-		isPaused, err = g.moveToNextHand(handState)
+		g.queueMoveToNextHand()
 	case FlowState_WAIT_FOR_PENDING_UPDATE:
-		e := g.moveAPIServerToNextHandAndScheduleDealHand(handState)
-		if e != nil {
-			ugse, ok := e.(*UnexpectedGameStatusError)
-			if ok {
-				// API server has a bug where it calls resumeGame when one player is in break
-				// and the other player is the only remaining player (game can't continue).
-				// This is a guard against that. In this case we do nothing and wait for another
-				// resumeGame from the api server when the game is actually ready.
-				err = errors.Wrap(ugse, "Unable to resume game due to invalid game/table status. Doing nothing.")
-			} else {
-				err = e
-			}
-		}
+		err = g.moveAPIServerToNextHandAndQueueDeal(handState)
 	default:
 		err = fmt.Errorf("unhandled flow state in resumeGame: %s", handState.FlowState)
 	}
-	return isPaused, err
+	return err
 }
 
 func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCode string, handNum uint32) {
@@ -194,6 +201,10 @@ func (g *Game) onMoveToNextHand(message *GameMessage) (bool, error) {
 }
 
 func (g *Game) moveToNextHand(handState *HandState) (bool, error) {
+	if handState == nil {
+		return false, fmt.Errorf("Hand state is nil in moveToNextHand")
+	}
+
 	isPausedForPendingUpdates := false
 
 	expectedState := FlowState_MOVE_TO_NEXT_HAND
@@ -213,10 +224,10 @@ func (g *Game) moveToNextHand(handState *HandState) (bool, error) {
 	pendingUpdates, _ := g.anyPendingUpdates(g.apiServerURL, g.gameID, g.delays.PendingUpdatesRetry)
 	if pendingUpdates {
 		go g.processPendingUpdates(g.apiServerURL, g.gameID, g.gameCode, handState.GetHandNum())
-		handState.FlowState = FlowState_WAIT_FOR_PENDING_UPDATE
-		err := g.saveHandState(handState)
+		crashtest.Hit(g.gameCode, crashtest.CrashPoint_PENDING_UPDATES_2, 0)
+		err := g.saveHandState(handState, FlowState_WAIT_FOR_PENDING_UPDATE)
 		if err != nil {
-			msg := fmt.Sprintf("Could save hand state after requesting pending update")
+			msg := "Could not save hand state after requesting pending update"
 			g.logger.Error().
 				Uint32(logging.HandNumKey, handState.GetHandNum()).
 				Err(err).
@@ -229,26 +240,14 @@ func (g *Game) moveToNextHand(handState *HandState) (bool, error) {
 		isPausedForPendingUpdates = true
 	} else {
 		// No pending updates. Move straight on to the next hand.
-		err := g.moveAPIServerToNextHandAndScheduleDealHand(handState)
-		if err == nil {
-			return isPausedForPendingUpdates, nil
-		}
-
-		// Some error happened and we can't continue to the next hand.
-		ugse, ok := err.(*UnexpectedGameStatusError)
-		if ok {
-			// API server has a bug where it sometimes calls resumeGame when the game
-			// isn't ready. This is a guard against that. In this case we do nothing and
-			// wait for another resumeGame from the api server when the game is actually ready.
-			return isPausedForPendingUpdates, errors.Wrap(ugse, "Unable to continue to the next hand due to invalid game/table status received from api server. Doing nothing.")
-		}
+		err := g.moveAPIServerToNextHandAndQueueDeal(handState)
 		return isPausedForPendingUpdates, err
 	}
 
 	return isPausedForPendingUpdates, nil
 }
 
-func (g *Game) moveAPIServerToNextHandAndScheduleDealHand(handState *HandState) error {
+func (g *Game) moveAPIServerToNextHandAndQueueDeal(handState *HandState) error {
 	var currentHandNum uint32
 	if handState == nil {
 		currentHandNum = 0
@@ -265,16 +264,18 @@ func (g *Game) moveAPIServerToNextHandAndScheduleDealHand(handState *HandState) 
 	}
 
 	if resp.GameStatus != GameStatus_ACTIVE || resp.TableStatus != TableStatus_GAME_RUNNING {
-		return &UnexpectedGameStatusError{
+		return UnexpectedGameStatusError{
 			GameStatus:  resp.GameStatus,
 			TableStatus: resp.TableStatus,
 		}
 	}
 
+	crashtest.Hit(g.gameCode, crashtest.CrashPoint_PENDING_UPDATES_3, 0)
+
 	if handState != nil {
-		err = g.saveHandState(handState)
+		err = g.saveHandState(handState, FlowState_DEAL_HAND)
 		if err != nil {
-			msg := fmt.Sprintf("Could save hand state before moving to next hand")
+			msg := fmt.Sprintf("Could not save hand state before moving to next hand")
 			g.logger.Error().
 				Uint32(logging.HandNumKey, handState.GetHandNum()).
 				Err(err).
@@ -301,8 +302,7 @@ func (g *Game) onNextHandSetup(message *GameMessage) error {
 }
 
 func (g *Game) onDealHand(message *GameMessage) error {
-	err := g.dealNewHand()
-	return err
+	return g.dealNewHand()
 }
 
 func (g *Game) broadcastTableState() error {

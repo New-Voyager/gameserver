@@ -17,6 +17,7 @@ const (
 	PlayerNameKey   string = "playerName"
 	PlayerIDKey     string = "playerID"
 	MsgTypeKey      string = "msgType"
+	ActionKey       string = "action"
 	TimerIDKey      string = "timerID"
 	TimerPurposeKey string = "purpose"
 )
