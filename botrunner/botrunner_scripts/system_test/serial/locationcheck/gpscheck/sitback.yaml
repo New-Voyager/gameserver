@@ -29,7 +29,7 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
     gps:
       lat: 40.730610
@@ -57,7 +57,7 @@ starting-seats:
     ignore-error: true
 
   - seat: 5
-    player: brian
+    player: carol
     buy-in: 100
     gps:
       lat: 42.361145
@@ -72,7 +72,7 @@ starting-seats:
     ignore-error: true
 
   - seat: 8
-    player: tom
+    player: matt
     buy-in: 100
     gps:
       lat: 51.509865
@@ -89,7 +89,7 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
           - seat: 2
             player: rich
           - seat: 3
@@ -97,11 +97,11 @@ hands:
           - seat: 4
             player: josh
           - seat: 5
-            player: brian
+            player: carol
           - seat: 6
             player: david
           - seat: 8
-            player: tom
+            player: matt
       take-break:
         - seat: 8
 
@@ -110,7 +110,7 @@ hands:
       sit-back:
         - seat: 8
       players-config:
-        - player: tom
+        - player: matt
           gps:
             lat: 40.361145
             long: -73.057083
@@ -118,7 +118,7 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
             inhand: true
           - seat: 2
             player: rich
@@ -130,13 +130,13 @@ hands:
             player: josh
             inhand: true
           - seat: 5
-            player: brian
+            player: carol
             inhand: true
           - seat: 6
             inhand: true
             player: david
           - seat: 8
-            player: tom
+            player: matt
             inhand: false
 
   - setup:
@@ -144,7 +144,7 @@ hands:
       sit-back:
         - seat: 8
       players-config:
-        - player: tom
+        - player: matt
           gps:
             lat: 44.361145
             long: -73.456083
@@ -152,7 +152,7 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
             inhand: true
           - seat: 2
             player: rich
@@ -164,13 +164,13 @@ hands:
             player: josh
             inhand: true
           - seat: 5
-            player: brian
+            player: carol
             inhand: true
           - seat: 6
             inhand: true
             player: david
           - seat: 8
-            player: tom
+            player: matt
             inhand: false
 
   - setup:
@@ -178,7 +178,7 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
             inhand: true
           - seat: 2
             player: rich
@@ -190,12 +190,12 @@ hands:
             player: josh
             inhand: true
           - seat: 5
-            player: brian
+            player: carol
             inhand: true
           - seat: 6
             inhand: true
             player: david
           - seat: 8
-            player: tom
+            player: matt
             inhand: true
 

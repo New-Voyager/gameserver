@@ -1,24 +1,24 @@
 players:
-  - name: yong
+  - name: young
     deviceId: c2dc2c3d-13da-46cc-8c66-caa0c77459de
-    email: yong@gmail.com
+    email: young@gmail.com
     password: 340k7n0p
     gps:
       lat: 40.730610
       long: -73.935242    
     ip: 192.168.0.2
-  - name: brian
+  - name: carol
     deviceId: 4b93e2be-7992-45c3-a2dd-593c2f708cb7
-    email: brian@hotmail.com
+    email: carol@hotmail.com
     password: 0x44m89w
     gps:
       lat: 42.714992
       long: -71.496454
     ip: 192.168.0.3
-  - name: tom
+  - name: matt
     deviceId: 371e8c15-39cb-4bd9-a932-ced7a9dd6aac
-    email: tom@yahoo.com
-    password: tom
+    email: matt@yahoo.com
+    password: matt
     gps:
       lat: 42.361145
       long: -71.057083

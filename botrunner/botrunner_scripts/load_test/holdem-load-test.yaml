@@ -34,13 +34,13 @@ bot-config:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 2000000
   - seat: 2
-    player: brian
+    player: carol
     buy-in: 2000000
   - seat: 3
-    player: tom
+    player: matt
     buy-in: 2000000
   - seat: 4
     player: jim

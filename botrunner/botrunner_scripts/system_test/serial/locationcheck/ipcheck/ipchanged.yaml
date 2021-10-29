@@ -42,15 +42,15 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
     ip-address: 10.1.1.1
   - seat: 5
-    player: brian
+    player: carol
     buy-in: 100
     ip-address: 10.1.1.2
   - seat: 8
-    player: tom
+    player: matt
     buy-in: 100
     ip-address: 10.1.1.4
 
@@ -65,27 +65,27 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
           - seat: 5
-            player: brian
+            player: carol
           - seat: 8
-            player: tom
+            player: matt
 
   - setup:
       auto: true
       players-config:
-        - player: brian
+        - player: carol
           ip-address: 10.1.1.1
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
             inhand: true
           - seat: 5
-            player: brian
+            player: carol
             inhand: true
           - seat: 8
-            player: tom
+            player: matt
             inhand: true
 
   - setup:
@@ -93,13 +93,13 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
             inhand: true
           - seat: 5
-            player: brian
+            player: carol
             inhand: false
           - seat: 8
-            player: tom
+            player: matt
             inhand: true
 
   - setup:
@@ -107,13 +107,13 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
             inhand: true
           - seat: 5
-            player: brian
+            player: carol
             inhand: false
           - seat: 8
-            player: tom
+            player: matt
             inhand: true
 
   - setup:
@@ -121,18 +121,18 @@ hands:
       sit-back:
         - seat: 5
       players-config:
-        - player: brian
+        - player: carol
           ip-address: 10.1.1.2
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
             inhand: true
           - seat: 5
-            player: brian
+            player: carol
             inhand: false
           - seat: 8
-            player: tom
+            player: matt
             inhand: true
 
   - setup:
@@ -140,11 +140,11 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
             inhand: true
           - seat: 5
-            player: brian
+            player: carol
             inhand: false       # the player missed blind. needs to post blind
           - seat: 8
-            player: tom
+            player: matt
             inhand: true

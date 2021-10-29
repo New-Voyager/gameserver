@@ -22,17 +22,17 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
   - seat: 5
-    player: brian
+    player: carol
     buy-in: 100
   - seat: 8
-    player: tom
+    player: matt
     buy-in: 100
 
 # Human plays this user.
-tester: tom
+tester: matt
 
 # deal the following hands in the table
 hands:

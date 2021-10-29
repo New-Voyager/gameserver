@@ -22,13 +22,13 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
   - seat: 5
-    player: brian
+    player: carol
     buy-in: 100
   - seat: 8
-    player: tom
+    player: matt
     buy-in: 100
 
 tester:
@@ -104,19 +104,19 @@ hands:
 
     api:
       game-result-table:
-        - player-name: yong
+        - player-name: young
           hands-played: 1
           buy-in: 100
           profit: 28
           stack: 128
           rake-paid: 2
-        - player-name: brian
+        - player-name: carol
           hands-played: 1
           buy-in: 100
           profit: -26
           stack: 74
           rake-paid: 0
-        - player-name: tom
+        - player-name: matt
           hands-played: 1
           buy-in: 100
           profit: -4
@@ -191,19 +191,19 @@ hands:
 
     api:
       game-result-table:
-        - player-name: yong
+        - player-name: young
           hands-played: 2
           buy-in: 100
           profit: 24
           stack: 124
           rake-paid: 2
-        - player-name: brian
+        - player-name: carol
           hands-played: 2
           buy-in: 100
           profit: 2
           stack: 102
           rake-paid: 2
-        - player-name: tom
+        - player-name: matt
           hands-played: 2
           buy-in: 100
           profit: -30
@@ -214,19 +214,19 @@ after-game:
   verify:
     api:
       game-result-table:
-        - player-name: yong
+        - player-name: young
           hands-played: 2
           buy-in: 100
           profit: 24
           stack: 124
           rake-paid: 2
-        - player-name: brian
+        - player-name: carol
           hands-played: 2
           buy-in: 100
           profit: 2
           stack: 102
           rake-paid: 2
-        - player-name: tom
+        - player-name: matt
           hands-played: 2
           buy-in: 100
           profit: -30
