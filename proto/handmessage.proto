@@ -155,6 +155,7 @@ message HandLog {
   repeated SeatsInPots seats_pots_showdown = 14; // pots and associated seats at showdown
   repeated Board boards = 15;
   map <uint32, PotWinnersV2> pot_winners_2 = 16; // pot winners for each board
+  repeated uint64 headsup_players = 17;
 }
 
 message PlayerInfo {

@@ -616,6 +616,10 @@ func (h *HandState) acted(seatNo uint32, action ACTION, amount float32) {
 	}
 
 	if activeSeats == 2 {
+		h.HeadsupPlayers = make([]uint64, 0)
+		h.HeadsupPlayers = append(h.HeadsupPlayers, player2)
+		h.HeadsupPlayers = append(h.HeadsupPlayers, player1)
+
 		// headsup
 		h.PlayerStats[player1].Headsup = true
 		h.PlayerStats[player1].HeadsupPlayer = player2
@@ -1563,6 +1567,10 @@ func (h *HandState) getLog() *HandLog {
 	handResult.HandStartedAt = h.HandStartedAt
 	handResult.HandEndedAt = h.HandEndedAt
 	handResult.HandEndedAt = uint64(time.Now().Unix())
+	if h.HeadsupPlayers != nil {
+		handResult.HeadsupPlayers = make([]uint64, 0)
+		handResult.HeadsupPlayers = append(handResult.HeadsupPlayers, h.HeadsupPlayers...)
+	}
 
 	if h.RunItTwiceConfirmed {
 		handResult.RunItTwice = true
