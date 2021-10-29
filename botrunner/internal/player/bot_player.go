@@ -2346,7 +2346,7 @@ func (bp *BotPlayer) RequestEndGame(gameCode string) error {
 
 	status, err := bp.gqlHelper.EndGame(gameCode)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Error while requesting to end the game [%s]", bp.logPrefix, gameCode))
+		return errors.Wrapf(err, "Error while requesting to end the game")
 	}
 
 	bp.logger.Info().Msgf("%s: Successfully requested to end the game [%s]. Status: [%s]", bp.logPrefix, gameCode, status)
