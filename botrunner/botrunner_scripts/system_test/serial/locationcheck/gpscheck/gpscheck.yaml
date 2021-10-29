@@ -29,20 +29,20 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
     gps:
       lat: 40.730610
       long: -73.935242
   - seat: 5
-    player: brian
+    player: carol
     buy-in: 100
     gps:
       lat: 40.730610
       long: -73.935242
     ignore-error: true
   - seat: 8
-    player: tom
+    player: matt
     buy-in: 100
     gps:
       lat: 51.509865
@@ -59,15 +59,15 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
           - seat: 8
-            player: tom
+            player: matt
 
   - setup:
       auto: true
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
           - seat: 8
-            player: tom
+            player: matt

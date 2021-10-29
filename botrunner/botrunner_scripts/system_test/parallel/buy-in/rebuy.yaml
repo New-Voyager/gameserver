@@ -22,13 +22,13 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
   - seat: 5
-    player: brian
+    player: carol
     buy-in: 100
   - seat: 8
-    player: tom
+    player: matt
     buy-in: 100
 
 tester:
@@ -63,13 +63,13 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
             inhand: true
           - seat: 5
-            player: brian
+            player: carol
             inhand: false
           - seat: 8
-            player: tom
+            player: matt
             inhand: true
 
   - setup:
@@ -77,11 +77,11 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
             inhand: true
           - seat: 5
-            player: brian
+            player: carol
             inhand: true
           - seat: 8
-            player: tom
+            player: matt
             inhand: true

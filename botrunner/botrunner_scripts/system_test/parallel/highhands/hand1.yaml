@@ -29,13 +29,13 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 300
   - seat: 2
-    player: brian
+    player: carol
     buy-in: 300
   - seat: 3
-    player: tom
+    player: matt
     buy-in: 300
 
 tester:
@@ -92,7 +92,7 @@ hands:
         - seat: 2
           hhRank: 127
       high-hands:
-          - playerName: brian
+          - playerName: carol
             playerCards: [56, 72]
             hhCards: [52, 49, 50, 56, 72]
 
@@ -139,6 +139,6 @@ hands:
 
     result:
       high-hands:
-          - playerName: brian
+          - playerName: carol
             playerCards: [56, 72]
             hhCards: [68, 65, 66, 56, 72]

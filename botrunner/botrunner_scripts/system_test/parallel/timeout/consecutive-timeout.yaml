@@ -26,13 +26,13 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
   - seat: 2
-    player: brian
+    player: carol
     buy-in: 200
   - seat: 3
-    player: tom
+    player: matt
     buy-in: 300
   - seat: 4
     player: rich
@@ -362,20 +362,20 @@ after-game:
   verify:
     api:
       game-result-table:
-        - player-name: yong
+        - player-name: young
           hands-played: 4
           buy-in: 100
           profit: 197
           stack: 297
           rake-paid: 6
-        - player-name: brian
+        - player-name: carol
           hands-played: 4
           buy-in: 200
           profit: -106
           stack: 94
           rake-paid: 0
-        - player-name: tom
-          # Tom only played 3/4 hands due to consecutive timeouts and being put in break.
+        - player-name: matt
+          # matt only played 3/4 hands due to consecutive timeouts and being put in break.
           hands-played: 3
           buy-in: 300
           profit: -3

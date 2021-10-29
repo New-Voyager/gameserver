@@ -30,13 +30,13 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 1000
   - seat: 2
-    player: brian
+    player: carol
     buy-in: 1000
   - seat: 3
-    player: tom
+    player: matt
     buy-in: 1000
   - seat: 4
     player: jim
@@ -85,11 +85,11 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
           - seat: 2
-            player: brian
+            player: carol
           - seat: 3
-            player: tom
+            player: matt
           - seat: 4
             player: jim
           - seat: 5
@@ -111,9 +111,9 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
           - seat: 2
-            player: brian
+            player: carol
           - seat: 3
             player: olivia
           - seat: 4
@@ -137,7 +137,7 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
           - seat: 2
             player: emma
           - seat: 3

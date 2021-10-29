@@ -26,11 +26,11 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
     run-it-twice: true
   - seat: 2
-    player: brian
+    player: carol
     buy-in: 100
     run-it-twice: true
   - seat: 3
@@ -38,7 +38,7 @@ starting-seats:
     buy-in: 100
     run-it-twice: true
   - seat: 4
-    player: tom
+    player: matt
     buy-in: 100
     run-it-twice: true
 

@@ -28,13 +28,13 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 1000
   - seat: 2
-    player: brian
+    player: carol
     buy-in: 600
   - seat: 3
-    player: tom
+    player: matt
     buy-in: 1000
   - seat: 4
     player: jim
@@ -55,7 +55,7 @@ after-game:
     game-messages:
       - type: STACK_RELOADED
         subType: APPROVED
-        playerName: brian
+        playerName: carol
 
 # deal the following hands in the table
 hands:
@@ -72,11 +72,11 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
           - seat: 2
-            player: brian
+            player: carol
           - seat: 3
-            player: tom
+            player: matt
           - seat: 4
             player: jim
           - seat: 5

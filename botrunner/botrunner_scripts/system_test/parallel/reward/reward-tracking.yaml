@@ -32,13 +32,13 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
   - seat: 2
-    player: brian
+    player: carol
     buy-in: 100
   - seat: 3
-    player: tom
+    player: matt
     buy-in: 100
 
 # deal the following hands in the table
