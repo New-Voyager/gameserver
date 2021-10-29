@@ -130,7 +130,8 @@ message HandState {
 
   map<uint64, string> encryption_keys = 74;
 
-  bool high_hand_tracked = 76;
   // current high hand rank
   uint32 high_hand_rank = 75;
+  bool high_hand_tracked = 76;
+  repeated uint64 headsup_players = 77;
 }
