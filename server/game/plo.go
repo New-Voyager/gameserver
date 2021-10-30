@@ -83,6 +83,12 @@ func (h *PloWinnerEvaluate) Evaluate2(seatCards []byte, board []byte) EvaluatedC
 		playerCards: poker.CardsToByteCards(hiPlayerCards),
 		boardCards:  poker.CardsToByteCards(hiBoardCards),
 		loFound:     result.LowFound,
+
+		// hh cards
+		hhRank:        result.HiRank,
+		hhPlayerCards: poker.CardsToByteCards(hiPlayerCards),
+		hhBoardCards:  poker.CardsToByteCards(hiBoardCards),
+		hhCards:       poker.CardsToByteCards(result.HiCards),
 	}
 	eval.loRank = int32(0x7fffffff)
 	if result.LowFound {

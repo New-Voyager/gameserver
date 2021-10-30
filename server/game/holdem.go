@@ -49,10 +49,48 @@ func (h *HoldemWinnerEvaluate) Evaluate2(seatCards []byte, board []byte) Evaluat
 			boardCards = append(boardCards, card)
 		}
 	}
+
+	// determine high hands
+	// we will use omaha evaluator to do this
+	// 2 cards from player, 3 card combo from board
+	playerCardsEval := poker.FromByteCards(seatCards)
+	boardCardsEval := poker.FromByteCards(board)
+	result := poker.EvaluateOmaha(playerCardsEval, boardCardsEval)
+
+	// the hh rank must be better than or equal board rank
+	// for example, player holds 5, 8
+	// board is: 5, 5, 5, 3, A
+	// best combo: 5, 5, 5, 5, A
+	// player hh rank: 5, 5, 5, 5, 8
+	hhPlayerCards := make([]poker.Card, 0)
+	hhBoardCards := make([]poker.Card, 0)
+	hhRank := int32(0)
+	if result.HiRank <= rank {
+		hhRank = result.HiRank
+		for _, card := range result.HiCards {
+			isPlayerCard := false
+			for _, playerCard := range seatCardsInCard {
+				if playerCard == card {
+					isPlayerCard = true
+					break
+				}
+			}
+			if isPlayerCard {
+				hhPlayerCards = append(hhPlayerCards, card)
+			} else {
+				hhBoardCards = append(hhBoardCards, card)
+			}
+		}
+	}
+
 	return EvaluatedCards{
-		cards:       poker.CardsToByteCards(playerBestCards), // best combo
-		playerCards: poker.CardsToByteCards(playerCards),     // players cards used to make the combo
-		boardCards:  poker.CardsToByteCards(boardCards),      // board cards used to make the combo
-		rank:        rank,
+		cards:         poker.CardsToByteCards(playerBestCards), // best combo
+		playerCards:   poker.CardsToByteCards(playerCards),     // players cards used to make the combo
+		boardCards:    poker.CardsToByteCards(boardCards),      // board cards used to make the combo
+		rank:          rank,
+		hhRank:        hhRank,
+		hhPlayerCards: poker.CardsToByteCards(hhPlayerCards),
+		hhBoardCards:  poker.CardsToByteCards(hhBoardCards),
+		hhCards:       poker.CardsToByteCards(result.HiCards),
 	}
 }
