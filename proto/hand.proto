@@ -264,9 +264,9 @@ message BoardCardRank {
   repeated uint32 hi_cards = 4;
   bool low_found = 5;
   uint32 lo_rank = 6;
-  repeated uint32 lo_cards = 7;   // best_cards
-  uint32 best_rank = 8;   // for high hand
-  repeated uint32 best_cards = 9;   // best_cards
+  repeated uint32 lo_cards = 7;   
+  uint32 hh_rank = 8;   // for high hand
+  repeated uint32 hh_cards = 9;   // best_cards
 }
 
 message Board {

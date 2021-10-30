@@ -11,6 +11,12 @@ type EvaluatedCards struct {
 	locards       []byte
 	loPlayerCards []byte
 	loBoardCards  []byte
+
+	// high hand cards
+	hhRank        int32
+	hhCards       []byte
+	hhPlayerCards []byte
+	hhBoardCards  []byte
 }
 
 func (e EvaluatedCards) GetCards() []uint32 {
@@ -57,6 +63,22 @@ func (e EvaluatedCards) GetBoardCards() []uint32 {
 	cards := make([]uint32, len(e.boardCards))
 	for i := range e.boardCards {
 		cards[i] = uint32(e.boardCards[i])
+	}
+	return cards
+}
+
+func (e EvaluatedCards) GetHHBoardCards() []uint32 {
+	cards := make([]uint32, len(e.hhBoardCards))
+	for i := range e.hhBoardCards {
+		cards[i] = uint32(e.hhBoardCards[i])
+	}
+	return cards
+}
+
+func (e EvaluatedCards) GetHHPlayerCards() []uint32 {
+	cards := make([]uint32, len(e.hhPlayerCards))
+	for i := range e.hhPlayerCards {
+		cards[i] = uint32(e.hhPlayerCards[i])
 	}
 	return cards
 }

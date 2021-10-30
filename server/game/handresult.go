@@ -58,6 +58,8 @@ func (hr *HandResultProcessor) evaluateRank() {
 				LowFound: lowFound,
 				LoRank:   uint32(eval.loRank),
 				LoCards:  poker.ByteCardsToUint32Cards(eval.locards),
+				HhCards:  poker.ByteCardsToUint32Cards(eval.hhCards),
+				HhRank:   uint32(eval.hhRank),
 			}
 		}
 	}

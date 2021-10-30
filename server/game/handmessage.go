@@ -1098,14 +1098,14 @@ func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([
 		highRank := uint32(0)
 		for _, board := range handResultClient.Boards {
 			for _, playerRank := range board.PlayerRank {
-				if playerRank.HiRank > MIN_FULLHOUSE_RANK {
+				if playerRank.HhRank > MIN_FULLHOUSE_RANK {
 					continue
 				}
 				if hs.HighHandRank == 0 {
 					highRankFound = true
-					highRank = playerRank.HiRank
+					highRank = playerRank.HhRank
 				}
-				if playerRank.HiRank <= hs.HighHandRank {
+				if playerRank.HhRank <= hs.HighHandRank {
 					highRankFound = true
 					highRank = playerRank.HiRank
 				}
@@ -1115,14 +1115,14 @@ func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([
 		if highRankFound {
 			for _, board := range handResultClient.Boards {
 				for seatNo, playerRank := range board.PlayerRank {
-					if playerRank.HiRank == highRank {
+					if playerRank.HhRank == highRank {
 						player := hs.PlayersInSeats[seatNo]
 						winner := &HighHandWinner{
 							PlayerId:    player.PlayerId,
 							PlayerName:  player.Name,
 							SeatNo:      seatNo,
-							HhRank:      playerRank.HiRank,
-							HhCards:     playerRank.HiCards,
+							HhRank:      playerRank.HhRank,
+							HhCards:     playerRank.HhCards,
 							BoardNo:     board.BoardNo,
 							PlayerCards: poker.ByteCardsToUint32Cards(hs.PlayersCards[seatNo]),
 						}
