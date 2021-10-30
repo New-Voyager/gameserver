@@ -17,7 +17,7 @@ game:
   straddle-bet: 4.0
   min-players: 2
   max-players: 9
-  game-length: 10080 # 1 week
+  game-length: 1440 # 1 day
   buy-in-approval: true
   rake-percentage: 5.0
   rake-cap: 5.0
@@ -34,13 +34,13 @@ bot-config:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 2000000
   - seat: 2
-    player: brian
+    player: carol
     buy-in: 2000000
   - seat: 3
-    player: tom
+    player: matt
     buy-in: 2000000
   - seat: 4
     player: jim

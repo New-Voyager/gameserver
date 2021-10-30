@@ -175,6 +175,14 @@ func (br *BotRunner) Run() error {
 	for i := 1; maxGames == 0 || i <= maxGames; i++ {
 		br.logger.Info().Msgf("Running game %d/%d", i, maxGames)
 		br.ResetBots()
+		if maxGames == 0 && i > 1 {
+			// Jwt expires for long-running botrunner session (3 days).
+			// Renew the login between games to prevent this.
+			err = br.BotsSignIn()
+			if err != nil {
+				return errors.Wrap(err, "Bots could not renew login")
+			}
+		}
 		err = br.RunOneGame()
 		if err != nil {
 			return err

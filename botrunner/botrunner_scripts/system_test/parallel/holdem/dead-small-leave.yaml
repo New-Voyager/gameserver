@@ -23,15 +23,15 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 300
     auto-reload: false
   - seat: 2
-    player: brian
+    player: carol
     buy-in: 40
     auto-reload: false
   - seat: 3
-    player: tom
+    player: matt
     buy-in: 300
   - seat: 4
     player: emma

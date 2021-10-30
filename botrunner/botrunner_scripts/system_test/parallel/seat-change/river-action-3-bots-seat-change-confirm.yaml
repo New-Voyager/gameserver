@@ -22,13 +22,13 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
   - seat: 5
-    player: brian
+    player: carol
     buy-in: 100
   - seat: 8
-    player: tom
+    player: matt
     buy-in: 100
 
 tester:
@@ -117,9 +117,9 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
           - seat: 5
-            player: tom
+            player: matt
           - seat: 8
 
     # simulate pre-flop action
@@ -155,11 +155,11 @@ after-game:
     # verify game messages
     game-messages:
       - type: PLAYER_SEAT_CHANGE_PROMPT
-        playerName: tom
+        playerName: matt
         openedSeat: 5
         promptSecs: 30
       - type: PLAYER_SEAT_MOVE
-        playerName: tom
+        playerName: matt
         oldSeatNo: 8
         newSeatNo: 5
       - type: PLAYER_SEAT_CHANGE_DONE

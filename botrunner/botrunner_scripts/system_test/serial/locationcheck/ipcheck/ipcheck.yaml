@@ -29,16 +29,16 @@ game:
 
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 100
     ip-address: 10.1.1.1
   - seat: 5
-    player: brian
+    player: carol
     buy-in: 100
     ip-address: 10.1.1.1
     ignore-error: true
   - seat: 8
-    player: tom
+    player: matt
     buy-in: 100
     ip-address: 10.1.1.4
 
@@ -53,15 +53,15 @@ hands:
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
           - seat: 8
-            player: tom
+            player: matt
 
   - setup:
       auto: true
       verify:
         seats:
           - seat: 1
-            player: yong
+            player: young
           - seat: 8
-            player: tom
+            player: matt

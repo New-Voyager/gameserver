@@ -16,13 +16,13 @@ game:
   action-time: 30
 starting-seats:
   - seat: 1
-    player: yong
+    player: young
     buy-in: 24
   - seat: 2
-    player: brian
+    player: carol
     buy-in: 6
   - seat: 3
-    player: tom
+    player: matt
     buy-in: 6
   - seat: 4
     player: jim
