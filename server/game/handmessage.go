@@ -1098,7 +1098,8 @@ func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([
 		highRank := uint32(0)
 		for _, board := range handResultClient.Boards {
 			for _, playerRank := range board.PlayerRank {
-				if playerRank.HhRank > MIN_FULLHOUSE_RANK {
+				if playerRank.HhRank == 0 ||
+					playerRank.HhRank > MIN_FULLHOUSE_RANK {
 					continue
 				}
 				if hs.HighHandRank == 0 {

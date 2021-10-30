@@ -1364,7 +1364,7 @@ func (bp *BotPlayer) verifyResult2() {
 			}
 			expectedHhRank := scriptResultPlayer.HhRank
 			if expectedHhRank != nil {
-				actualRank := actualResult.Boards[0].PlayerRank[seatNo].HiRank
+				actualRank := actualResult.Boards[0].PlayerRank[seatNo].HhRank
 				//actualHhRank := resultPlayers[seatNo].GetHhRank()
 				if actualRank != *expectedHhRank {
 					bp.logger.Error().Msgf("%s: Hand %d result verify failed. HhRank for seat# %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, actualRank, *expectedHhRank)
@@ -1401,6 +1401,10 @@ func (bp *BotPlayer) verifyResult2() {
 		} else {
 			for idx, expectedHHWinner := range scriptResult.HighHands {
 				actualHHWinner := actualResult.HighHandWinners[idx]
+
+				sort.Slice(expectedHHWinner.HhCards, func(i, j int) bool { return expectedHHWinner.HhCards[i] < expectedHHWinner.HhCards[j] })
+				sort.Slice(actualHHWinner.HhCards, func(i, j int) bool { return actualHHWinner.HhCards[i] < actualHHWinner.HhCards[j] })
+
 				if expectedHHWinner.PlayerName != actualHHWinner.PlayerName ||
 					!cmp.Equal(expectedHHWinner.HhCards, actualHHWinner.HhCards) ||
 					!cmp.Equal(expectedHHWinner.PlayerCards, actualHHWinner.PlayerCards) {
