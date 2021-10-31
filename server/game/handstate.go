@@ -1006,7 +1006,7 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 			h.BetBeforeRaise = h.CurrentRaise
 			h.CurrentRaiseDiff = action.Amount - h.CurrentRaise
 			if h.CurrentState == HandStatus_PREFLOP && h.CurrentRaiseDiff < h.BigBlind {
-				h.CurrentRaiseDiff = h.BigBlind
+				h.CurrentRaiseDiff = action.Amount
 				h.BetBeforeRaise = 0
 			}
 			h.CurrentRaise = action.Amount
@@ -1338,7 +1338,7 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 			} else if actedState.Amount == h.CurrentRaise {
 				canCheck = true
 			} else {
-				availableActions = append(availableActions, ACTION_CALL)
+				canCall = true
 			}
 			nextAction.CallAmount = h.CurrentRaiseDiff + h.BetBeforeRaise
 
@@ -1505,8 +1505,13 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 			if h.CurrentRaiseDiff > playerBalance {
 				allInAvailable = true
 			} else {
-				availableActions = append(availableActions, ACTION_CALL)
-				nextAction.CallAmount = h.CurrentRaiseDiff + h.BetBeforeRaise
+				actedState := h.PlayersActed[actionSeat]
+				if playerBalance+actedState.Amount == h.CurrentRaise {
+					allInAvailable = true
+				} else {
+					availableActions = append(availableActions, ACTION_CALL)
+					nextAction.CallAmount = h.CurrentRaiseDiff + h.BetBeforeRaise
+				}
 			}
 		}
 	}
