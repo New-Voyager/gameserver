@@ -1,3 +1,10 @@
+#
+# This is a bizarre scenario and can happen
+# big blind pos stack is less than big blind (1)
+# under the gun has the same amount as big blind  (1)
+# the small blind cannot check or flop in this case
+# action ends at button
+#
 disabled: false
 game-config:
   type: PLO
@@ -123,22 +130,19 @@ hands:
     # simulate pre-flop action
     preflop-action:
       seat-actions:
-        - 3, CALL, 2
-        - 4, CALL, 2
-        - 6, CALL, 2
-        - 7, CALL, 2
-        - 8, CALL, 2
-        - 1, CALL, 2
+        - 3, ALLIN, 1
+        - 4, CALL, 1
+        - 6, CALL, 1
+        - 7, CALL, 1
+        - 8, CALL, 1
     flop-action:
       seat-actions:
         - 1, CHECK
-        - 3, CHECK
         - 4, BET, 12
         - 6, FOLD
         - 7, CALL, 12
         - 8, CALL, 12
         - 1, CALL, 12
-        - 3, FOLD
 
     turn-action:
       seat-actions:
