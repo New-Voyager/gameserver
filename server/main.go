@@ -36,7 +36,7 @@ var mainLogger = logging.GetZeroLogger("main::main", nil)
 func init() {
 	runServer = flag.Bool("server", true, "runs game server")
 	runGameScriptTests = flag.Bool("script-tests", false, "runs script tests")
-	gameScriptsFileOrDir = flag.String("game-script", "test/game-scripts/bugs", "runs tests with game script files")
+	gameScriptsFileOrDir = flag.String("game-script", "test/game-scripts", "runs tests with game script files")
 	delayConfigFile = flag.String("delays", "delays.yaml", "YAML file containing pause times")
 	testName = flag.String("testname", "", "runs a specific test")
 	testDeal = flag.Bool("test-deal", false, "deals and counts ranks")
@@ -180,7 +180,7 @@ func testScripts() error {
 func dealTest() error {
 	numDeals := 100000
 	randSeed := poker.NewSeed()
-	gameType := game.GameType_PLO
+	gameType := game.GameType_HOLDEM
 	numPlayers := 9
 	numCardsPerPlayer := -1
 	switch gameType {
