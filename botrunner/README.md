@@ -6,24 +6,22 @@ Run below command to generate go code from the protobuf files. This
 should be done once initially and whenever the proto files are updated.
 
 ```
-botrunner git:(master) make compile-proto
+game-server git:(master) make compile-proto
 ```
 
 ## Run (bots only)
 
 ### Start the servers.
 
-First run the other services (nats, redis, api server, game server).
+First run the other services (nats, redis, api server, game server, timer, scheduler).
 
 ```
-gameserver git:(master) make build
-gameserver git:(master) make run-nats
-gameserver git:(master) make run-redis
+apiserver git:(master) make run-all
+apiserver git:(master) make debug
 
-apiserver git:(master) npx yarn run-pg
-apiserver git:(master) npx yarn watch-debug-nats
-
-gameserver git:(master) make run-server
+timer git:(master) make run
+scheduler git:(master) make run
+server git:(master) make run-server
 ```
 
 ### Botrunner (bots only)
@@ -31,7 +29,7 @@ gameserver git:(master) make run-server
 Once the server are running, use below command to run the bot runner.
 
 ```
-botrunner git:(master) make run
+botrunner git:(master) BOTRUNNER_SCRIPT=./botrunner_scripts/system_test/parallel/basic/river-action-3-bots.yaml make run
 ```
 
 You can override the api server and nats host, I.e., for Kubernetes.
