@@ -172,7 +172,7 @@ docker-test-generate-env:
 
 .PHONY: docker-test
 docker-test: docker-test-up
-	docker run -t --rm \
+	timeout 300 docker run -t --rm \
 		--name $(shell $(BUILD_HELPER)/get_local_container_name.sh gameserver) \
 		--network $(TEST_DOCKER_NET) \
 		-e PERSIST_METHOD=redis \
