@@ -30,6 +30,7 @@ var gameScriptsFileOrDir *string
 var delayConfigFile *string
 var testName *string
 var testDeal *bool
+var numDeals *uint
 var exit bool
 var mainLogger = logging.GetZeroLogger("main::main", nil)
 
@@ -40,6 +41,7 @@ func init() {
 	delayConfigFile = flag.String("delays", "delays.yaml", "YAML file containing pause times")
 	testName = flag.String("testname", "", "runs a specific test")
 	testDeal = flag.Bool("test-deal", false, "deals and counts ranks")
+	numDeals = flag.Uint("num-deals", 100000, "number of test deals when -test-deal is set")
 }
 
 func main() {
@@ -56,7 +58,7 @@ func run() error {
 	zerolog.SetGlobalLevel(logLevel)
 	flag.Parse()
 	if *testDeal {
-		return dealTest()
+		return dealTest(int(*numDeals))
 	}
 
 	delays, err := game.ParseDelayConfig(*delayConfigFile)
@@ -177,8 +179,7 @@ func testScripts() error {
 	return nil
 }
 
-func dealTest() error {
-	numDeals := 100000
+func dealTest(numDeals int) error {
 	randSeed := poker.NewSeed()
 	gameType := game.GameType_HOLDEM
 	numPlayers := 9
@@ -206,6 +207,7 @@ func dealTest() error {
 	numEval := 0
 	numBoards := 0
 	numPairedBoards := 0
+	numOnePairBoards := 0
 	for i := 0; i < numDeals; i++ {
 		if i > 0 && i%10000 == 0 {
 			fmt.Printf("Deal %d\n", i)
@@ -245,6 +247,9 @@ func dealTest() error {
 		if isBoardPaired(communityCards) {
 			numPairedBoards++
 		}
+		if isBoardOnePair(communityCards) {
+			numOnePairBoards++
+		}
 	}
 
 	fmt.Printf("%d deals completed\n\nResult:\n", numDeals)
@@ -267,6 +272,7 @@ func dealTest() error {
 	fmt.Printf("Straight Flushes : %d/%d (%f)\n", numStraightFlushes, numEval, float32(numStraightFlushes)/float32(numEval))
 	fmt.Printf("Four Of A Kind   : %d/%d (%f)\n", numfourOfAKind, numEval, float32(numfourOfAKind)/float32(numEval))
 	fmt.Printf("Paired Boards    : %d/%d (%f)\n", numPairedBoards, numBoards, float32(numPairedBoards)/float32(numBoards))
+	fmt.Printf("One-pair Boards  : %d/%d (%f)\n", numOnePairBoards, numBoards, float32(numOnePairBoards)/float32(numBoards))
 
 	return nil
 }
@@ -282,6 +288,11 @@ func isBoardPaired(cards []poker.Card) bool {
 		m[rank] = 1
 	}
 	return false
+}
+
+func isBoardOnePair(cards []poker.Card) bool {
+	rank, _ := poker.Evaluate(cards)
+	return rank > 3325 && rank <= 6185
 }
 
 func dealCards(randSeed rand.Source, deck *poker.Deck, numCardsPerPlayer int, numPlayers int) (map[int][]poker.Card, []poker.Card, error) {
