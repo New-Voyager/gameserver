@@ -2,9 +2,10 @@ package poker
 
 import (
 	crypto_rand "crypto/rand"
-	"encoding/binary"
 	"fmt"
+	"math/big"
 	"math/rand"
+	"sort"
 )
 
 var fullDeck *Deck
@@ -20,12 +21,21 @@ type Deck struct {
 }
 
 func NewSeed() rand.Source {
-	var b [8]byte
-	_, err := crypto_rand.Read(b[:])
+	// var b [8]byte
+	// _, err := crypto_rand.Read(b[:])
+	// if err != nil {
+	// 	panic("cannot seed math/rand package with cryptographically secure random number generator")
+	// }
+
+	const MaxUint = ^uint(0)
+	const MaxInt = int(MaxUint >> 1)
+	nBig, err := crypto_rand.Int(crypto_rand.Reader, big.NewInt(int64(MaxInt)))
 	if err != nil {
 		panic("cannot seed math/rand package with cryptographically secure random number generator")
 	}
-	source := rand.NewSource(int64(binary.LittleEndian.Uint64(b[:])))
+
+	// source := rand.NewSource(int64(binary.LittleEndian.Uint64(b[:])))
+	source := rand.NewSource(nBig.Int64())
 	return source
 }
 
@@ -59,9 +69,25 @@ func NewDeckFromBytes(cards []byte, deckIndex int) *Deck {
 	return deck
 }
 
+func CopyDeck(original *Deck) *Deck {
+	deck := &Deck{}
+	deck.cards = make([]Card, len(original.cards))
+	copy(deck.cards, original.cards)
+	return deck
+}
+
 func (deck *Deck) Shuffle() *Deck {
 	deck.cards = make([]Card, len(fullDeck.cards))
 	copy(deck.cards, fullDeck.cards)
+	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
+	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
+	deck.box()
+	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
+
+	return deck
+}
+
+func (deck *Deck) ShuffleWithoutReset() *Deck {
 	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
 	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
 	deck.box()
@@ -146,6 +172,10 @@ func (deck *Deck) GetBytes() []uint8 {
 		cards[i] = card.GetByte()
 	}
 	return cards
+}
+
+func (deck *Deck) AddCards(cards []Card) {
+	deck.cards = append(deck.cards, cards...)
 }
 
 func DeckFromBytes(cardsInByte []byte) *Deck {
@@ -339,4 +369,79 @@ func (deck *Deck) getCardLoc(cardToLocate Card) int {
 		}
 	}
 	return -1
+}
+
+func HasSameHoleCards(playerCards map[uint32][]Card) bool {
+	sameHoldCardsFound := false
+	matchesFound := 0
+	for i := 0; i < len(playerCards); i++ {
+		for j := 0; j < len(playerCards); j++ {
+			if i == j {
+				// Same Player
+				continue
+			}
+
+			matchesFound = 0
+			p1Cards := playerCards[uint32(i)]
+			p2Cards := playerCards[uint32(j)]
+			p1CardRanks := make([]int32, 0)
+			p2CardRanks := make([]int32, 0)
+			for _, c := range p1Cards {
+				p1CardRanks = append(p1CardRanks, c.Rank())
+			}
+			for _, c := range p2Cards {
+				p2CardRanks = append(p2CardRanks, c.Rank())
+			}
+			sort.Slice(p1CardRanks, func(a, b int) bool { return p1CardRanks[a] < p1CardRanks[b] })
+			sort.Slice(p2CardRanks, func(a, b int) bool { return p2CardRanks[a] < p2CardRanks[b] })
+
+			seenCards := make(map[int32]bool)
+			for _, p1c := range p1CardRanks {
+				if _, ok := seenCards[p1c]; ok {
+					continue
+				}
+				seenCards[p1c] = true
+				for _, p2c := range p2CardRanks {
+					if p1c == p2c {
+						matchesFound++
+						break
+					}
+				}
+			}
+
+			if matchesFound >= 2 {
+				sameHoldCardsFound = true
+				break
+			}
+		}
+		if sameHoldCardsFound {
+			break
+		}
+	}
+
+	return sameHoldCardsFound
+}
+
+// Returns
+// 0   : not paired
+// 1-3 : paired at flop
+// 4   : paired at turn
+// 5   : paired at river
+func PairedAt(board []Card) int {
+	m := make(map[int32]int)
+	pairedAtIdx := 0
+	for i := 0; i < 5; i++ {
+		rank := board[i].Rank()
+		_, exists := m[rank]
+		if exists {
+			pairedAtIdx = i + 1
+			break
+		}
+		m[rank] = 1
+	}
+	return pairedAtIdx
+}
+
+func QuickShuffleCards(cards []Card) {
+	rand.Shuffle(len(cards), func(i, j int) { cards[i], cards[j] = cards[j], cards[i] })
 }

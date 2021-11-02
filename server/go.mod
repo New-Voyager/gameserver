@@ -4,7 +4,6 @@ go 1.14
 
 require (
 	github.com/MichaelTJones/walk v0.0.0-20161122175330-4748e29d5718 // indirect
-	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e // indirect
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/go-redis/redis/v8 v8.3.3
@@ -34,6 +33,8 @@ require (
 )
 
 replace voyager.com/server/internal => ./internal
+
+replace voyager.com/server/util => ./util
 
 replace voyager.com/server/poker => ./poker
 
