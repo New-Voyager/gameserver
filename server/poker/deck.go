@@ -2,8 +2,8 @@ package poker
 
 import (
 	crypto_rand "crypto/rand"
-	"encoding/binary"
 	"fmt"
+	"math/big"
 	"math/rand"
 )
 
@@ -20,12 +20,21 @@ type Deck struct {
 }
 
 func NewSeed() rand.Source {
-	var b [8]byte
-	_, err := crypto_rand.Read(b[:])
+	// var b [8]byte
+	// _, err := crypto_rand.Read(b[:])
+	// if err != nil {
+	// 	panic("cannot seed math/rand package with cryptographically secure random number generator")
+	// }
+
+	const MaxUint = ^uint(0)
+	const MaxInt = int(MaxUint >> 1)
+	nBig, err := crypto_rand.Int(crypto_rand.Reader, big.NewInt(int64(MaxInt)))
 	if err != nil {
 		panic("cannot seed math/rand package with cryptographically secure random number generator")
 	}
-	source := rand.NewSource(int64(binary.LittleEndian.Uint64(b[:])))
+
+	// source := rand.NewSource(int64(binary.LittleEndian.Uint64(b[:])))
+	source := rand.NewSource(nBig.Int64())
 	return source
 }
 
@@ -62,6 +71,15 @@ func NewDeckFromBytes(cards []byte, deckIndex int) *Deck {
 func (deck *Deck) Shuffle() *Deck {
 	deck.cards = make([]Card, len(fullDeck.cards))
 	copy(deck.cards, fullDeck.cards)
+	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
+	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
+	deck.box()
+	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
+
+	return deck
+}
+
+func (deck *Deck) ShuffleWithoutReset() *Deck {
 	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
 	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
 	deck.box()
@@ -146,6 +164,10 @@ func (deck *Deck) GetBytes() []uint8 {
 		cards[i] = card.GetByte()
 	}
 	return cards
+}
+
+func (deck *Deck) AddCards(cards []Card) {
+	deck.cards = append(deck.cards, cards...)
 }
 
 func DeckFromBytes(cardsInByte []byte) *Deck {
