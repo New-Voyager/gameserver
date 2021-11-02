@@ -2,8 +2,6 @@ package simulation
 
 import (
 	"fmt"
-	"math/rand"
-	"sort"
 
 	"voyager.com/server/game"
 	"voyager.com/server/poker"
@@ -80,12 +78,12 @@ func Run(numDeals int) error {
 			}
 		}
 
-		sameHoldCardsFound := hasSameHoleCards(playerCards)
+		sameHoldCardsFound := poker.HasSameHoleCards(playerCards)
 		if sameHoldCardsFound {
 			numDealsWithSameHoleCards++
 		}
 
-		pairedAtIdx := pairedAt(communityCards)
+		pairedAtIdx := poker.PairedAt(communityCards)
 		if pairedAtIdx > 0 {
 			numPairedBoards++
 			if pairedAtIdx <= 3 {
@@ -135,89 +133,18 @@ func Run(numDeals int) error {
 	return nil
 }
 
-// Returns
-// 0   : not paired
-// 1-3 : paired at flop
-// 4   : paired at turn
-// 5   : paired at river
-func pairedAt(cards []poker.Card) int {
-	m := make(map[int32]int)
-	pairedAtIdx := 0
-	for i := 0; i < 5; i++ {
-		rank := cards[i].Rank()
-		_, exists := m[rank]
-		if exists {
-			pairedAtIdx = i + 1
-			break
-		}
-		m[rank] = 1
-	}
-	return pairedAtIdx
-}
-
 func isBoardOnePair(cards []poker.Card) bool {
 	rank, _ := poker.Evaluate(cards)
 	return rank > 3325 && rank <= 6185
 }
 
-func hasSameHoleCards(playerCards map[int][]poker.Card) bool {
-	sameHoldCardsFound := false
-	matchesFound := 0
-	for i := 0; i < len(playerCards); i++ {
-		for j := 0; j < len(playerCards); j++ {
-			if i == j {
-				// Same Player
-				continue
-			}
-
-			matchesFound = 0
-			p1Cards := playerCards[i]
-			p2Cards := playerCards[j]
-			p1CardRanks := make([]int32, 0)
-			p2CardRanks := make([]int32, 0)
-			for _, c := range p1Cards {
-				p1CardRanks = append(p1CardRanks, c.Rank())
-			}
-			for _, c := range p2Cards {
-				p2CardRanks = append(p2CardRanks, c.Rank())
-			}
-			sort.Slice(p1CardRanks, func(a, b int) bool { return p1CardRanks[a] < p1CardRanks[b] })
-			sort.Slice(p2CardRanks, func(a, b int) bool { return p2CardRanks[a] < p2CardRanks[b] })
-
-			seenCards := make(map[int32]bool)
-			for _, p1c := range p1CardRanks {
-				if _, ok := seenCards[p1c]; ok {
-					continue
-				}
-				seenCards[p1c] = true
-				for _, p2c := range p2CardRanks {
-					if p1c == p2c {
-						matchesFound++
-						break
-					}
-				}
-			}
-
-			if matchesFound >= 2 {
-				sameHoldCardsFound = true
-				break
-			}
-		}
-		if sameHoldCardsFound {
-			break
-		}
-	}
-
-	return sameHoldCardsFound
-}
-
-func shuffleAndDeal(deck *poker.Deck, numCardsPerPlayer int, numPlayers int) (map[int][]poker.Card, []poker.Card, error) {
+func shuffleAndDeal(deck *poker.Deck, numCardsPerPlayer int, numPlayers int) (map[uint32][]poker.Card, []poker.Card, error) {
 	deck.Shuffle()
 	playerCards, communityCards, err := dealCards(deck, numCardsPerPlayer, numPlayers)
 	if err != nil {
 		return nil, nil, err
 	}
-	if hasSameHoleCards(playerCards) {
+	if poker.HasSameHoleCards(playerCards) {
 		// Redeal if has 2 players with the same hole cards.
 		deck.Shuffle()
 		playerCards, communityCards, err = dealCards(deck, numCardsPerPlayer, numPlayers)
@@ -226,35 +153,31 @@ func shuffleAndDeal(deck *poker.Deck, numCardsPerPlayer int, numPlayers int) (ma
 		}
 	}
 
-	pairedAt := pairedAt(communityCards)
+	pairedAt := poker.PairedAt(communityCards)
 	if pairedAt >= 1 && pairedAt <= 3 {
 		// Flop has a pair.
 		// communityCards, err = reDealCommunity(deck, communityCards)
 		// if err != nil {
 		// 	return nil, nil, err
 		// }
-		shuffleCards(communityCards)
+		poker.QuickShuffleCards(communityCards)
 	}
 
 	return playerCards, communityCards, nil
 }
 
-func shuffleCards(cards []poker.Card) {
-	rand.Shuffle(len(cards), func(i, j int) { cards[i], cards[j] = cards[j], cards[i] })
-}
-
-func dealCards(deck *poker.Deck, numCardsPerPlayer int, numPlayers int) (map[int][]poker.Card, []poker.Card, error) {
+func dealCards(deck *poker.Deck, numCardsPerPlayer int, numPlayers int) (map[uint32][]poker.Card, []poker.Card, error) {
 	shouldBurnCards := false
-	playerCards := make(map[int][]poker.Card)
+	playerCards := make(map[uint32][]poker.Card)
 	communityCards := make([]poker.Card, 0)
 	for i := 0; i < numPlayers; i++ {
-		playerCards[i] = make([]poker.Card, numCardsPerPlayer)
+		playerCards[uint32(i)] = make([]poker.Card, numCardsPerPlayer)
 	}
 
 	for cardIdx := 0; cardIdx < numCardsPerPlayer; cardIdx++ {
 		for player := 0; player < numPlayers; player++ {
 			c := deck.Draw(1)[0]
-			playerCards[player][cardIdx] = c
+			playerCards[uint32(player)][cardIdx] = c
 		}
 	}
 
