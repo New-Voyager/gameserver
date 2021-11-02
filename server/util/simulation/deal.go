@@ -8,7 +8,6 @@ import (
 )
 
 func Run(numDeals int) error {
-	randSeed := poker.NewSeed()
 	gameType := game.GameType_HOLDEM
 	numPlayers := 9
 	numCardsPerPlayer := -1
@@ -30,7 +29,7 @@ func Run(numDeals int) error {
 		hitsPerRank[i] = 0
 	}
 
-	deck := poker.NewDeck(randSeed)
+	deck := poker.NewDeck()
 
 	numEval := 0
 	numPairedBoards := 0
@@ -42,10 +41,6 @@ func Run(numDeals int) error {
 	for i := 0; i < numDeals; i++ {
 		if i > 0 && i%10000 == 0 {
 			fmt.Printf("Deal %d\n", i)
-		}
-
-		if i > 0 && i%100 == 0 {
-			deck = poker.NewDeck(poker.NewSeed())
 		}
 
 		playerCards, communityCards, err := shuffleAndDeal(deck, numCardsPerPlayer, numPlayers)

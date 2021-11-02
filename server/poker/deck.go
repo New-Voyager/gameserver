@@ -1,9 +1,7 @@
 package poker
 
 import (
-	crypto_rand "crypto/rand"
 	"fmt"
-	"math/big"
 	"math/rand"
 	"sort"
 )
@@ -17,34 +15,10 @@ func init() {
 type Deck struct {
 	cards               []Card
 	scriptedCardsBySeat map[uint32]CardsInAscii
-	randGen             *rand.Rand
 }
 
-func NewSeed() rand.Source {
-	// var b [8]byte
-	// _, err := crypto_rand.Read(b[:])
-	// if err != nil {
-	// 	panic("cannot seed math/rand package with cryptographically secure random number generator")
-	// }
-
-	const MaxUint = ^uint(0)
-	const MaxInt = int(MaxUint >> 1)
-	nBig, err := crypto_rand.Int(crypto_rand.Reader, big.NewInt(int64(MaxInt)))
-	if err != nil {
-		panic("cannot seed math/rand package with cryptographically secure random number generator")
-	}
-
-	// source := rand.NewSource(int64(binary.LittleEndian.Uint64(b[:])))
-	source := rand.NewSource(nBig.Int64())
-	return source
-}
-
-func NewDeck(source rand.Source) *Deck {
-	if source == nil {
-		source = NewSeed()
-	}
-	randGen := rand.New(source)
-	deck := &Deck{randGen: randGen}
+func NewDeck() *Deck {
+	deck := &Deck{}
 	deck.Shuffle()
 	return deck
 }
@@ -198,7 +172,7 @@ type CardsInAscii []string
 
 func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, river Card, burnCard bool) *Deck {
 	// first we are going to create a deck
-	deck := NewDeck(nil)
+	deck := NewDeck()
 	noOfPlayers := len(playerCards)
 	for i, playerCards := range playerCards {
 		for j, cardStr := range playerCards {
@@ -256,7 +230,7 @@ func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, ri
 // DeckFromBoard used for setting up player cards board cards (run it twice tests)
 func DeckFromBoard(playerCards []CardsInAscii, board CardsInAscii, board2 CardsInAscii, burnCard bool) *Deck {
 	// first we are going to create a deck
-	deck := NewDeck(nil)
+	deck := NewDeck()
 	noOfPlayers := len(playerCards)
 	for i, playerCards := range playerCards {
 		for j, cardStr := range playerCards {
