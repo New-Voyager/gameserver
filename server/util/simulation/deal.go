@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"fmt"
+	"math/rand"
 
 	"voyager.com/server/game"
 	"voyager.com/server/poker"
@@ -144,16 +145,18 @@ func shuffleAndDeal(deck *poker.Deck, numCardsPerPlayer int, numPlayers int, gam
 		return nil, nil, err
 	}
 	if !game.AnyoneHasHighHand(playerCards, communityCards, gameType) {
-		maxReshuffleAllowed := 1
-		reshuffles := 0
-		for game.AnyoneHasHighHand(playerCards, communityCards, gameType) ||
-			(reshuffles < maxReshuffleAllowed && game.NeedReshuffle(playerCards, communityCards, nil, gameType)) {
-			deck.Shuffle()
-			playerCards, communityCards, err = dealCards(deck, numCardsPerPlayer, numPlayers)
-			if err != nil {
-				return nil, nil, err
+		if rand.Int()%2 == 0 {
+			maxReshuffleAllowed := 1
+			reshuffles := 0
+			for game.AnyoneHasHighHand(playerCards, communityCards, gameType) ||
+				(reshuffles < maxReshuffleAllowed && game.NeedReshuffle(playerCards, communityCards, nil, gameType)) {
+				deck.Shuffle()
+				playerCards, communityCards, err = dealCards(deck, numCardsPerPlayer, numPlayers)
+				if err != nil {
+					return nil, nil, err
+				}
+				reshuffles++
 			}
-			reshuffles++
 		}
 	}
 
