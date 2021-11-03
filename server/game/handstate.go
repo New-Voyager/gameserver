@@ -394,31 +394,21 @@ func (h *HandState) shuffleAndPickCards() (map[uint32][]poker.Card, []poker.Card
 	deck := poker.NewDeck().Shuffle()
 	playerCardsMap, b1Cards, b2Cards, numCardsUsed := h.getCardsFromDeck(deck, nil)
 
-	if AnyoneHasFullHouseOr4OK(playerCardsMap, b1Cards, h.GameType) {
+	if AnyoneHasHighHand(playerCardsMap, b1Cards, h.GameType) {
 		return playerCardsMap, b1Cards, b2Cards, deck, numCardsUsed
 	}
 
-	if AnyoneHasFullHouseOr4OK(playerCardsMap, b2Cards, h.GameType) {
+	if AnyoneHasHighHand(playerCardsMap, b2Cards, h.GameType) {
 		return playerCardsMap, b1Cards, b2Cards, deck, numCardsUsed
 	}
 
-	maxReshuffleAllowed := 3
+	maxReshuffleAllowed := 1
 	reshuffles := 0
-	for reshuffles < maxReshuffleAllowed {
-		if AnyoneHasFullHouseOr4OK(playerCardsMap, b1Cards, h.GameType) ||
-			AnyoneHasFullHouseOr4OK(playerCardsMap, b2Cards, h.GameType) {
-			// Allowing Full House or Four of a Kind from reshuffling will
-			// skew their odds. Make sure we suppress them.
-			deck.Shuffle()
-			playerCardsMap, b1Cards, b2Cards, numCardsUsed = h.getCardsFromDeck(deck, nil)
-		}
-
-		if !ShouldReshuffle(playerCardsMap, b1Cards, b2Cards, h.GameType) {
-			break
-		}
-		reshuffles++
+	for AnyoneHasHighHand(playerCardsMap, b2Cards, h.GameType) ||
+		(reshuffles < maxReshuffleAllowed && NeedReshuffle(playerCardsMap, b1Cards, b2Cards, h.GameType)) {
 		deck.Shuffle()
 		playerCardsMap, b1Cards, b2Cards, numCardsUsed = h.getCardsFromDeck(deck, nil)
+		reshuffles++
 	}
 
 	// Check for board pairing in FLOP.
@@ -437,7 +427,7 @@ func (h *HandState) shuffleAndPickCards() (map[uint32][]poker.Card, []poker.Card
 	return playerCardsMap, b1Cards, b2Cards, deck, numCardsUsed
 }
 
-func ShouldReshuffle(playerCardsMap map[uint32][]poker.Card, board1 []poker.Card, board2 []poker.Card, gameType GameType) bool {
+func NeedReshuffle(playerCardsMap map[uint32][]poker.Card, board1 []poker.Card, board2 []poker.Card, gameType GameType) bool {
 	shouldReshuffle := false
 	if HasSameHoleCards(playerCardsMap) ||
 		IsBoardPaired(board1) ||

@@ -100,7 +100,7 @@ type HandEvaluator interface {
 	// GetBoard2Winners() map[uint32]*PotWinners
 }
 
-func AnyoneHasFullHouseOr4OK(playerCards map[uint32][]poker.Card, board []poker.Card, gameType GameType) bool {
+func AnyoneHasHighHand(playerCards map[uint32][]poker.Card, board []poker.Card, gameType GameType) bool {
 	if board == nil {
 		return false
 	}
@@ -116,7 +116,7 @@ func AnyoneHasFullHouseOr4OK(playerCards map[uint32][]poker.Card, board []poker.
 			result := poker.EvaluateOmaha(pc, board)
 			rank = result.HiRank
 		}
-		if rank >= 11 && rank <= 322 {
+		if rank <= 322 {
 			return true
 		}
 	}
