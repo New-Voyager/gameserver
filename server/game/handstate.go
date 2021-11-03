@@ -394,7 +394,7 @@ func (h *HandState) shuffleAndPickCards() (map[uint32][]poker.Card, []poker.Card
 	deck := poker.NewDeck().Shuffle()
 	playerCardsMap, b1Cards, b2Cards, numCardsUsed := h.getCardsFromDeck(deck, nil)
 
-	if poker.HasSameHoleCards(playerCardsMap) || poker.IsBoardPaired(b1Cards) || poker.IsBoardPaired(b2Cards) {
+	if ShouldReshuffle(playerCardsMap, b1Cards, b2Cards, h.GameType) {
 		deck.Shuffle()
 		playerCardsMap, b1Cards, b2Cards, numCardsUsed = h.getCardsFromDeck(deck, nil)
 	}
@@ -405,14 +405,26 @@ func (h *HandState) shuffleAndPickCards() (map[uint32][]poker.Card, []poker.Card
 		if board == nil {
 			continue
 		}
-		pairedAt = poker.PairedAt(board)
+		pairedAt = PairedAt(board)
 		if pairedAt >= 1 && pairedAt <= 3 {
 			// Flop pairs the board. Shuffle the board.
-			poker.QuickShuffleCards(board)
+			QuickShuffleCards(board)
 		}
 	}
 
 	return playerCardsMap, b1Cards, b2Cards, deck, numCardsUsed
+}
+
+func ShouldReshuffle(playerCardsMap map[uint32][]poker.Card, board1 []poker.Card, board2 []poker.Card, gameType GameType) bool {
+	shouldReshuffle := false
+	if HasSameHoleCards(playerCardsMap) || IsBoardPaired(board1) || IsBoardPaired(board2) {
+		if !AnyoneHasFullHouseOr4OK(playerCardsMap, board1, gameType) &&
+			!AnyoneHasFullHouseOr4OK(playerCardsMap, board2, gameType) {
+			shouldReshuffle = true
+		}
+		shouldReshuffle = true
+	}
+	return shouldReshuffle
 }
 
 func (h *HandState) getCardsFromDeck(deck *poker.Deck, preAssignedCards map[uint32]*GameSetupSeatCards) (map[uint32][]poker.Card, []poker.Card, []poker.Card, int) {
@@ -428,26 +440,6 @@ func (h *HandState) getCardsFromDeck(deck *poker.Deck, preAssignedCards map[uint
 	}
 
 	return playerCardsMap, b1Cards, b2Cards, numCardsUsed
-}
-
-func AnyoneHasTrackedRank(playerCards map[uint32][]poker.Card, board []poker.Card, gameType GameType) bool {
-	for _, pc := range playerCards {
-		var rank int32 = -1
-		if gameType == GameType_HOLDEM {
-			cards := make([]poker.Card, 0)
-			cards = append(cards, pc...)
-			cards = append(cards, board...)
-			rank, _ = poker.Evaluate(cards)
-		} else {
-			result := poker.EvaluateOmaha(pc, board)
-			rank = result.HiRank
-		}
-		if rank <= 322 {
-			return true
-		}
-	}
-
-	return false
 }
 
 func (h *HandState) setupRound(state HandStatus) {

@@ -43,7 +43,7 @@ func Run(numDeals int) error {
 			fmt.Printf("Deal %d\n", i)
 		}
 
-		playerCards, communityCards, err := shuffleAndDeal(deck, numCardsPerPlayer, numPlayers)
+		playerCards, communityCards, err := shuffleAndDeal(deck, numCardsPerPlayer, numPlayers, gameType)
 		if err != nil {
 			return err
 		}
@@ -73,12 +73,12 @@ func Run(numDeals int) error {
 			}
 		}
 
-		sameHoldCardsFound := poker.HasSameHoleCards(playerCards)
+		sameHoldCardsFound := game.HasSameHoleCards(playerCards)
 		if sameHoldCardsFound {
 			numDealsWithSameHoleCards++
 		}
 
-		pairedAtIdx := poker.PairedAt(communityCards)
+		pairedAtIdx := game.PairedAt(communityCards)
 		if pairedAtIdx > 0 {
 			numPairedBoards++
 			if pairedAtIdx <= 3 {
@@ -133,14 +133,13 @@ func isBoardOnePair(cards []poker.Card) bool {
 	return rank > 3325 && rank <= 6185
 }
 
-func shuffleAndDeal(deck *poker.Deck, numCardsPerPlayer int, numPlayers int) (map[uint32][]poker.Card, []poker.Card, error) {
+func shuffleAndDeal(deck *poker.Deck, numCardsPerPlayer int, numPlayers int, gameType game.GameType) (map[uint32][]poker.Card, []poker.Card, error) {
 	deck.Shuffle()
 	playerCards, communityCards, err := dealCards(deck, numCardsPerPlayer, numPlayers)
 	if err != nil {
 		return nil, nil, err
 	}
-	if poker.HasSameHoleCards(playerCards) || poker.IsBoardPaired(communityCards) {
-		// Redeal if has 2 players with the same hole cards.
+	if game.ShouldReshuffle(playerCards, communityCards, nil, gameType) {
 		deck.Shuffle()
 		playerCards, communityCards, err = dealCards(deck, numCardsPerPlayer, numPlayers)
 		if err != nil {
@@ -148,9 +147,9 @@ func shuffleAndDeal(deck *poker.Deck, numCardsPerPlayer int, numPlayers int) (ma
 		}
 	}
 
-	pairedAt := poker.PairedAt(communityCards)
+	pairedAt := game.PairedAt(communityCards)
 	if pairedAt >= 1 && pairedAt <= 3 {
-		poker.QuickShuffleCards(communityCards)
+		game.QuickShuffleCards(communityCards)
 	}
 
 	return playerCards, communityCards, nil
