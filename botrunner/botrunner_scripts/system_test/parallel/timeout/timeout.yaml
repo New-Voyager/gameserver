@@ -99,7 +99,7 @@ hands:
     result:
       winners:
         - seat: 4
-          receive: 398
+          receive: 395
           rank: Two Pair
           rake-paid: 5
       action-ended: SHOW_DOWN
