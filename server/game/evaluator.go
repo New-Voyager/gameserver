@@ -175,6 +175,15 @@ func HasSameHoleCards(playerCards map[uint32][]poker.Card) bool {
 	return sameHoldCardsFound
 }
 
+func IsBoardPaired(board []poker.Card) bool {
+	if board == nil {
+		return false
+	}
+
+	pairedAt := PairedAt(board)
+	return pairedAt > 0
+}
+
 // Returns
 // 0   : not paired
 // 1-3 : paired at flop
@@ -193,15 +202,6 @@ func PairedAt(board []poker.Card) int {
 		m[rank] = 1
 	}
 	return pairedAtIdx
-}
-
-func IsBoardPaired(board []poker.Card) bool {
-	if board == nil {
-		return false
-	}
-
-	pairedAt := PairedAt(board)
-	return pairedAt > 0
 }
 
 func QuickShuffleCards(cards []poker.Card) {

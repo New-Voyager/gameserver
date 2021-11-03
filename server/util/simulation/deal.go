@@ -25,7 +25,7 @@ func Run(numDeals int) error {
 	}
 
 	hitsPerRank := make(map[int]int)
-	for i := 0; i <= 166; i++ {
+	for i := 0; i <= 322; i++ {
 		hitsPerRank[i] = 0
 	}
 
@@ -68,7 +68,7 @@ func Run(numDeals int) error {
 			numEval++
 
 			// fmt.Printf("%s: %d (%s)\n", poker.CardsToString(cards), rank, poker.RankString(rank))
-			if rank <= 166 {
+			if rank <= 322 {
 				hitsPerRank[int(rank)]++
 			}
 		}
@@ -101,7 +101,8 @@ func Run(numDeals int) error {
 	numRotalFlushes := 0
 	numStraightFlushes := 0
 	numfourOfAKind := 0
-	for rank := 0; rank <= 166; rank++ {
+	numFullHouse := 0
+	for rank := 0; rank <= 322; rank++ {
 		count := hitsPerRank[rank]
 		// fmt.Printf("%3d (%s): %d\n", rank, poker.RankString(int32(rank)), count)
 		if rank == 1 {
@@ -110,12 +111,15 @@ func Run(numDeals int) error {
 			numStraightFlushes += count
 		} else if rank <= 166 {
 			numfourOfAKind += count
+		} else if rank <= 322 {
+			numFullHouse += count
 		}
 	}
 
 	fmt.Printf("Royal Flushes         : %d/%d (%f)\n", numRotalFlushes, numEval, float32(numRotalFlushes)/float32(numEval))
 	fmt.Printf("Straight Flushes      : %d/%d (%f)\n", numStraightFlushes, numEval, float32(numStraightFlushes)/float32(numEval))
 	fmt.Printf("Four Of A Kind        : %d/%d (%f)\n", numfourOfAKind, numEval, float32(numfourOfAKind)/float32(numEval))
+	fmt.Printf("Full House            : %d/%d (%f)\n", numFullHouse, numEval, float32(numFullHouse)/float32(numEval))
 	fmt.Printf("Paired Boards         : %d/%d (%f)\n", numPairedBoards, numDeals, float32(numPairedBoards)/float32(numDeals))
 	fmt.Printf("Paired Boards (F)     : %d/%d (%f)\n", numFlopPairedBoards, numDeals, float32(numFlopPairedBoards)/float32(numDeals))
 	fmt.Printf("Paired Boards (T)     : %d/%d (%f)\n", numTurnPairedBoards, numDeals, float32(numTurnPairedBoards)/float32(numDeals))
@@ -139,7 +143,25 @@ func shuffleAndDeal(deck *poker.Deck, numCardsPerPlayer int, numPlayers int, gam
 	if err != nil {
 		return nil, nil, err
 	}
-	if game.ShouldReshuffle(playerCards, communityCards, nil, gameType) {
+	if game.AnyoneHasFullHouseOr4OK(playerCards, communityCards, gameType) {
+		return playerCards, communityCards, nil
+	}
+
+	maxReshuffleAllowed := 3
+	reshuffles := 0
+	for reshuffles < maxReshuffleAllowed {
+		if game.AnyoneHasFullHouseOr4OK(playerCards, communityCards, gameType) {
+			deck.Shuffle()
+			playerCards, communityCards, err = dealCards(deck, numCardsPerPlayer, numPlayers)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+		if !game.ShouldReshuffle(playerCards, communityCards, nil, gameType) {
+			break
+		}
+
+		reshuffles++
 		deck.Shuffle()
 		playerCards, communityCards, err = dealCards(deck, numCardsPerPlayer, numPlayers)
 		if err != nil {

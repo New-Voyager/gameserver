@@ -394,7 +394,29 @@ func (h *HandState) shuffleAndPickCards() (map[uint32][]poker.Card, []poker.Card
 	deck := poker.NewDeck().Shuffle()
 	playerCardsMap, b1Cards, b2Cards, numCardsUsed := h.getCardsFromDeck(deck, nil)
 
-	if ShouldReshuffle(playerCardsMap, b1Cards, b2Cards, h.GameType) {
+	if AnyoneHasFullHouseOr4OK(playerCardsMap, b1Cards, h.GameType) {
+		return playerCardsMap, b1Cards, b2Cards, deck, numCardsUsed
+	}
+
+	if AnyoneHasFullHouseOr4OK(playerCardsMap, b2Cards, h.GameType) {
+		return playerCardsMap, b1Cards, b2Cards, deck, numCardsUsed
+	}
+
+	maxReshuffleAllowed := 3
+	reshuffles := 0
+	for reshuffles < maxReshuffleAllowed {
+		if AnyoneHasFullHouseOr4OK(playerCardsMap, b1Cards, h.GameType) ||
+			AnyoneHasFullHouseOr4OK(playerCardsMap, b2Cards, h.GameType) {
+			// Allowing Full House or Four of a Kind from reshuffling will
+			// skew their odds. Make sure we suppress them.
+			deck.Shuffle()
+			playerCardsMap, b1Cards, b2Cards, numCardsUsed = h.getCardsFromDeck(deck, nil)
+		}
+
+		if !ShouldReshuffle(playerCardsMap, b1Cards, b2Cards, h.GameType) {
+			break
+		}
+		reshuffles++
 		deck.Shuffle()
 		playerCardsMap, b1Cards, b2Cards, numCardsUsed = h.getCardsFromDeck(deck, nil)
 	}
@@ -417,11 +439,9 @@ func (h *HandState) shuffleAndPickCards() (map[uint32][]poker.Card, []poker.Card
 
 func ShouldReshuffle(playerCardsMap map[uint32][]poker.Card, board1 []poker.Card, board2 []poker.Card, gameType GameType) bool {
 	shouldReshuffle := false
-	if HasSameHoleCards(playerCardsMap) || IsBoardPaired(board1) || IsBoardPaired(board2) {
-		if !AnyoneHasFullHouseOr4OK(playerCardsMap, board1, gameType) &&
-			!AnyoneHasFullHouseOr4OK(playerCardsMap, board2, gameType) {
-			shouldReshuffle = true
-		}
+	if HasSameHoleCards(playerCardsMap) ||
+		IsBoardPaired(board1) ||
+		IsBoardPaired(board2) {
 		shouldReshuffle = true
 	}
 	return shouldReshuffle
