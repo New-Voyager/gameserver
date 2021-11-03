@@ -309,37 +309,39 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	}
 
 	var deck *poker.Deck
-	if testHandSetup != nil && testHandSetup.PlayerCards != nil {
-		// We're preconfiguring the deck for script test, botrunner script, etc.
-		playerCards := make([]poker.CardsInAscii, 0)
-		for _, seatCards := range testHandSetup.PlayerCards {
-			playerCards = append(playerCards, seatCards.Cards)
-		}
-		if testHandSetup.Board != nil {
-			deck = poker.DeckFromBoard(playerCards, testHandSetup.Board, testHandSetup.Board2, false)
-		} else {
-			// arrange deck
-			deck = poker.DeckFromScript(
-				playerCards,
-				testHandSetup.Flop,
-				poker.NewCard(testHandSetup.Turn),
-				poker.NewCard(testHandSetup.River),
-				false /* burn card */)
-		}
-	}
-
 	var b1Cards, b2Cards []poker.Card
 	var playerCardsMap map[uint32][]poker.Card
 	var numCardsUsed int
 
 	if testHandSetup == nil {
 		playerCardsMap, b1Cards, b2Cards, deck, numCardsUsed = h.shuffleAndPickCards()
+		h.Deck = deck.GetBytes()
 	} else {
-		// running script test, botrunner script, etc. where preset deck is used.
+		// running script test, botrunner script, etc.
+		if testHandSetup.PlayerCards == nil {
+			deck = poker.NewDeck().Shuffle()
+		} else {
+			// We're preconfiguring the deck according to the test script.
+			playerCards := make([]poker.CardsInAscii, 0)
+			for _, seatCards := range testHandSetup.PlayerCards {
+				playerCards = append(playerCards, seatCards.Cards)
+			}
+			if testHandSetup.Board != nil {
+				deck = poker.DeckFromBoard(playerCards, testHandSetup.Board, testHandSetup.Board2, false)
+			} else {
+				// arrange deck
+				deck = poker.DeckFromScript(
+					playerCards,
+					testHandSetup.Flop,
+					poker.NewCard(testHandSetup.Turn),
+					poker.NewCard(testHandSetup.River),
+					false /* burn card */)
+			}
+		}
+		h.Deck = deck.GetBytes()
 		playerCardsMap, b1Cards, b2Cards, numCardsUsed = h.getCardsFromDeck(deck, testHandSetup.PlayerCardsBySeat)
 	}
 
-	h.Deck = deck.GetBytes()
 	h.DeckIndex = uint32(numCardsUsed)
 
 	h.PlayersCards = make(map[uint32][]byte)
@@ -392,14 +394,15 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 
 func (h *HandState) shuffleAndPickCards() (map[uint32][]poker.Card, []poker.Card, []poker.Card, *poker.Deck, int) {
 	deck := poker.NewDeck().Shuffle()
+	deckCopy := poker.CopyDeck(deck)
 	playerCardsMap, b1Cards, b2Cards, numCardsUsed := h.getCardsFromDeck(deck, nil)
 
 	if AnyoneHasHighHand(playerCardsMap, b1Cards, h.GameType) {
-		return playerCardsMap, b1Cards, b2Cards, deck, numCardsUsed
+		return playerCardsMap, b1Cards, b2Cards, deckCopy, numCardsUsed
 	}
 
 	if AnyoneHasHighHand(playerCardsMap, b2Cards, h.GameType) {
-		return playerCardsMap, b1Cards, b2Cards, deck, numCardsUsed
+		return playerCardsMap, b1Cards, b2Cards, deckCopy, numCardsUsed
 	}
 
 	maxReshuffleAllowed := 1
@@ -407,6 +410,7 @@ func (h *HandState) shuffleAndPickCards() (map[uint32][]poker.Card, []poker.Card
 	for AnyoneHasHighHand(playerCardsMap, b2Cards, h.GameType) ||
 		(reshuffles < maxReshuffleAllowed && NeedReshuffle(playerCardsMap, b1Cards, b2Cards, h.GameType)) {
 		deck.Shuffle()
+		deckCopy = poker.CopyDeck(deck)
 		playerCardsMap, b1Cards, b2Cards, numCardsUsed = h.getCardsFromDeck(deck, nil)
 		reshuffles++
 	}
@@ -424,7 +428,7 @@ func (h *HandState) shuffleAndPickCards() (map[uint32][]poker.Card, []poker.Card
 		}
 	}
 
-	return playerCardsMap, b1Cards, b2Cards, deck, numCardsUsed
+	return playerCardsMap, b1Cards, b2Cards, deckCopy, numCardsUsed
 }
 
 func NeedReshuffle(playerCardsMap map[uint32][]poker.Card, board1 []poker.Card, board2 []poker.Card, gameType GameType) bool {
