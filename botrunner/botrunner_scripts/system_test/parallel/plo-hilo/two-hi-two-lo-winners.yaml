@@ -87,31 +87,31 @@ hands:
 
     result:
       # This randomly fails with the winner 1 rake value being either 1.0 or 2.0.
-      # winners:
-      #   - seat: 1
-      #     receive: 19.0
-      #     rank: Full House
-      #     # rake-paid: 2.0
-      #   - seat: 3
-      #     receive: 18.0
-      #     rank: Full House
-      #     rake-paid: 1.0
+      winners:
+        - seat: 1
+          receive: 19.0
+          rank: Full House
+          rake-paid: 1.0
+        - seat: 3
+          receive: 18.0
+          rank: Full House
+          rake-paid: 1.0
 
       lo-winners:
         - seat: 1
-          receive: 19.0
+          receive: 20.0
         - seat: 2
-          receive: 19.0
+          receive: 18.0
 
           action-ended: SHOW_DOWN
 
       players:
         - seat: 1
           balance:
-            after: 112
+            after: 113
         - seat: 2
           balance:
-            after: 93
+            after: 92
         - seat: 3
           balance:
             after: 92
