@@ -404,7 +404,7 @@ func HasSameHoleCards(playerCards map[uint32][]Card) bool {
 func PairedAt(board []Card) int {
 	m := make(map[int32]int)
 	pairedAtIdx := 0
-	for i := 0; i < 5; i++ {
+	for i := 0; i < len(board); i++ {
 		rank := board[i].Rank()
 		_, exists := m[rank]
 		if exists {
@@ -414,6 +414,15 @@ func PairedAt(board []Card) int {
 		m[rank] = 1
 	}
 	return pairedAtIdx
+}
+
+func IsBoardPaired(board []Card) bool {
+	if board == nil {
+		return false
+	}
+
+	pairedAt := PairedAt(board)
+	return pairedAt > 0
 }
 
 func QuickShuffleCards(cards []Card) {

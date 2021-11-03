@@ -58,98 +58,87 @@ func (h *HandState) initializeBettingRound() {
 	h.resetPlayerActions()
 }
 
-func (h *HandState) boardOld(deck *poker.Deck) []byte {
-	board := make([]byte, 5)
-	// setup board 1
-	if h.BurnCards {
-		deck.Draw(1)
-		h.DeckIndex++
-	}
+// func (h *HandState) boardOld(deck *poker.Deck) []byte {
+// 	board := make([]byte, 5)
+// 	// setup board 1
+// 	if h.BurnCards {
+// 		deck.Draw(1)
+// 		h.DeckIndex++
+// 	}
 
-	cards := deck.Draw(3)
-	h.DeckIndex += 3
-	//fmt.Printf("Flop Cards: ")
-	for i, card := range cards {
-		board[i] = card.GetByte()
-		// fmt.Printf("%s", poker.CardToString(uint32(card.GetByte())))
-	}
-	// fmt.Printf("\n")
+// 	cards := deck.Draw(3)
+// 	h.DeckIndex += 3
+// 	//fmt.Printf("Flop Cards: ")
+// 	for i, card := range cards {
+// 		board[i] = card.GetByte()
+// 		// fmt.Printf("%s", poker.CardToString(uint32(card.GetByte())))
+// 	}
+// 	// fmt.Printf("\n")
 
-	// var burnCard uint32
-	if h.BurnCards {
-		// burn card
-		cards = deck.Draw(1)
-		// burnCard = uint32(cards[0].GetByte())
-		// fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
-		h.DeckIndex++
-	}
+// 	// var burnCard uint32
+// 	if h.BurnCards {
+// 		// burn card
+// 		cards = deck.Draw(1)
+// 		// burnCard = uint32(cards[0].GetByte())
+// 		// fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
+// 		h.DeckIndex++
+// 	}
 
-	// turn card
-	cards = deck.Draw(1)
-	h.DeckIndex++
-	board[3] = cards[0].GetByte()
-	//fmt.Printf("Turn card: %s\n", poker.CardToString(cards[0]))
+// 	// turn card
+// 	cards = deck.Draw(1)
+// 	h.DeckIndex++
+// 	board[3] = cards[0].GetByte()
+// 	//fmt.Printf("Turn card: %s\n", poker.CardToString(cards[0]))
 
-	// burn card
-	if h.BurnCards {
-		cards = deck.Draw(1)
-		h.DeckIndex++
-		// burnCard = uint32(cards[0].GetByte())
-		// fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
-	}
+// 	// burn card
+// 	if h.BurnCards {
+// 		cards = deck.Draw(1)
+// 		h.DeckIndex++
+// 		// burnCard = uint32(cards[0].GetByte())
+// 		// fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
+// 	}
 
-	// river card
-	cards = deck.Draw(1)
-	h.DeckIndex++
-	board[4] = cards[0].GetByte()
-	//fmt.Printf("River card: %s\n", poker.CardToString(board[4]))
+// 	// river card
+// 	cards = deck.Draw(1)
+// 	h.DeckIndex++
+// 	board[4] = cards[0].GetByte()
+// 	//fmt.Printf("River card: %s\n", poker.CardToString(board[4]))
 
-	return board
-}
+// 	return board
+// }
 
-func (h *HandState) board(deck *poker.Deck, optimize bool) []byte {
+// WARNING: Keep this method idempotent (no mutate HandState). It could get retried in case of reshuffle.
+func (h *HandState) board(deck *poker.Deck) ([]poker.Card, int) {
+	numCardsUsed := 0
 	boardCards := make([]poker.Card, 0)
 	if h.BurnCards {
 		deck.Draw(1)
-		h.DeckIndex++
+		numCardsUsed++
 	}
 
 	// FLOP
 	boardCards = append(boardCards, deck.Draw(3)...)
-	h.DeckIndex += 3
+	numCardsUsed += 3
 
 	if h.BurnCards {
 		deck.Draw(1)
-		h.DeckIndex++
+		numCardsUsed++
 	}
 
 	// TURN
 	boardCards = append(boardCards, deck.Draw(1)...)
-	h.DeckIndex++
+	numCardsUsed++
 
 	if h.BurnCards {
 		deck.Draw(1)
-		h.DeckIndex++
+		numCardsUsed++
 	}
 
 	// RIVER
 	boardCards = append(boardCards, deck.Draw(1)...)
-	h.DeckIndex++
+	numCardsUsed++
 
-	if optimize {
-		pairedAt := poker.PairedAt(boardCards)
-		if pairedAt >= 1 && pairedAt <= 3 {
-			// Flop pairs the board. Reshuffle the board.
-			poker.QuickShuffleCards(boardCards)
-		}
-	}
-
-	board := make([]byte, 5)
-	for i := 0; i < 5; i++ {
-		board[i] = boardCards[i].GetByte()
-	}
-
-	return board
+	return boardCards, numCardsUsed
 }
 
 func (h *HandState) initialize(testGameConfig *TestGameConfig,
@@ -320,9 +309,8 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	}
 
 	var deck *poker.Deck
-	if testHandSetup == nil || testHandSetup.PlayerCards == nil {
-		deck = poker.NewDeck().Shuffle()
-	} else {
+	if testHandSetup != nil && testHandSetup.PlayerCards != nil {
+		// We're preconfiguring the deck for script test, botrunner script, etc.
 		playerCards := make([]poker.CardsInAscii, 0)
 		for _, seatCards := range testHandSetup.PlayerCards {
 			playerCards = append(playerCards, seatCards.Cards)
@@ -340,23 +328,19 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 		}
 	}
 
-	h.Deck = deck.GetBytes()
-
-	var playerCardsBySeat map[uint32]*GameSetupSeatCards
-	if testHandSetup != nil {
-		playerCardsBySeat = testHandSetup.PlayerCardsBySeat
-	}
-	playerCardsMap, deckIndex := h.getPlayersCards(deck, playerCardsBySeat)
+	var b1Cards, b2Cards []poker.Card
+	var playerCardsMap map[uint32][]poker.Card
+	var numCardsUsed int
 
 	if testHandSetup == nil {
-		// Real game not test.
-		if poker.HasSameHoleCards(playerCardsMap) {
-			// Two players have the same hole cards. Redeal.
-			deck = poker.NewDeck().Shuffle()
-			h.Deck = deck.GetBytes()
-			playerCardsMap, deckIndex = h.getPlayersCards(deck, nil)
-		}
+		playerCardsMap, b1Cards, b2Cards, deck, numCardsUsed = h.shuffleAndPickCards()
+	} else {
+		// running script test, botrunner script, etc. where preset deck is used.
+		playerCardsMap, b1Cards, b2Cards, numCardsUsed = h.getCardsFromDeck(deck, testHandSetup.PlayerCardsBySeat)
 	}
+
+	h.Deck = deck.GetBytes()
+	h.DeckIndex = uint32(numCardsUsed)
 
 	h.PlayersCards = make(map[uint32][]byte)
 	for seatNo, cards := range playerCardsMap {
@@ -366,25 +350,14 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 		}
 		h.PlayersCards[seatNo] = cardsInBytes
 	}
-	h.DeckIndex = deckIndex
 
-	// h.PlayersCards, h.DeckIndex = h.getPlayersCards(deck, playerCardsBySeat)
-
-	// setup main pot
-	h.Pots = make([]*SeatsInPots, 0)
-	mainPot := initializePot(int(h.MaxSeats) + 1)
-	h.Pots = append(h.Pots, mainPot)
-	h.RakePaid = make(map[uint64]float32)
-
-	// board cards
-	optimizeBoard := (testGameConfig == nil && testHandSetup == nil)
-	cards := h.board(deck, optimizeBoard)
-	h.BoardCards = cards
+	b1ByteCards := poker.CardsToByteCards(b1Cards)
+	h.BoardCards = b1ByteCards
 	h.NoOfBoards = 1
 	h.Boards = make([]*Board, 0)
 	board1 := &Board{
 		BoardNo: 1,
-		Cards:   poker.ByteCardsToUint32Cards(cards),
+		Cards:   poker.ByteCardsToUint32Cards(b1ByteCards),
 	}
 	h.Boards = append(h.Boards, board1)
 	handLogger.Debug().
@@ -394,21 +367,87 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 
 	if h.DoubleBoard {
 		h.NoOfBoards = 2
-		cards := h.board(deck, optimizeBoard)
+		b2ByteCards := poker.CardsToByteCards(b2Cards)
 		board2 := &Board{
 			BoardNo: 2,
-			Cards:   poker.ByteCardsToUint32Cards(cards),
+			Cards:   poker.ByteCardsToUint32Cards(b2ByteCards),
 		}
 		h.Boards = append(h.Boards, board2)
 		handLogger.Debug().
 			Uint64(logging.GameIDKey, h.GetGameId()).
 			Uint32(logging.HandNumKey, h.GetHandNum()).
-			Msgf("Board2: %s", poker.CardsToString(cards))
+			Msgf("Board2: %s", poker.CardsToString(b2ByteCards))
 	}
+
+	// setup main pot
+	h.Pots = make([]*SeatsInPots, 0)
+	mainPot := initializePot(int(h.MaxSeats) + 1)
+	h.Pots = append(h.Pots, mainPot)
+	h.RakePaid = make(map[uint64]float32)
 
 	// setup hand for preflop
 	h.setupPreflop(postedBlinds)
 	return nil
+}
+
+func (h *HandState) shuffleAndPickCards() (map[uint32][]poker.Card, []poker.Card, []poker.Card, *poker.Deck, int) {
+	deck := poker.NewDeck().Shuffle()
+	playerCardsMap, b1Cards, b2Cards, numCardsUsed := h.getCardsFromDeck(deck, nil)
+
+	if poker.HasSameHoleCards(playerCardsMap) || poker.IsBoardPaired(b1Cards) || poker.IsBoardPaired(b2Cards) {
+		deck.Shuffle()
+		playerCardsMap, b1Cards, b2Cards, numCardsUsed = h.getCardsFromDeck(deck, nil)
+	}
+
+	// Check for board pairing in FLOP.
+	var pairedAt int
+	for _, board := range [][]poker.Card{b1Cards, b2Cards} {
+		if board == nil {
+			continue
+		}
+		pairedAt = poker.PairedAt(board)
+		if pairedAt >= 1 && pairedAt <= 3 {
+			// Flop pairs the board. Shuffle the board.
+			poker.QuickShuffleCards(board)
+		}
+	}
+
+	return playerCardsMap, b1Cards, b2Cards, deck, numCardsUsed
+}
+
+func (h *HandState) getCardsFromDeck(deck *poker.Deck, preAssignedCards map[uint32]*GameSetupSeatCards) (map[uint32][]poker.Card, []poker.Card, []poker.Card, int) {
+	var playerCardsMap map[uint32][]poker.Card
+	var b1Cards, b2Cards []poker.Card
+	var numCardsUsed, n int
+	playerCardsMap, numCardsUsed = h.getPlayersCards(deck, preAssignedCards)
+	b1Cards, n = h.board(deck)
+	numCardsUsed += n
+	if h.DoubleBoard {
+		b2Cards, n = h.board(deck)
+		numCardsUsed += n
+	}
+
+	return playerCardsMap, b1Cards, b2Cards, numCardsUsed
+}
+
+func AnyoneHasTrackedRank(playerCards map[uint32][]poker.Card, board []poker.Card, gameType GameType) bool {
+	for _, pc := range playerCards {
+		var rank int32 = -1
+		if gameType == GameType_HOLDEM {
+			cards := make([]poker.Card, 0)
+			cards = append(cards, pc...)
+			cards = append(cards, board...)
+			rank, _ = poker.Evaluate(cards)
+		} else {
+			result := poker.EvaluateOmaha(pc, board)
+			rank = result.HiRank
+		}
+		if rank <= 322 {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (h *HandState) setupRound(state HandStatus) {
@@ -740,7 +779,7 @@ func (h *HandState) getBlindPos() (uint32, uint32, error) {
 }
 
 // WARNING: Keep this method idempotent (no mutate HandState). It could get retried in case of reshuffle.
-func (h *HandState) getPlayersCards(deck *poker.Deck, scriptedCardsBySeat map[uint32]*GameSetupSeatCards) (map[uint32][]poker.Card, uint32) {
+func (h *HandState) getPlayersCards(deck *poker.Deck, scriptedCardsBySeat map[uint32]*GameSetupSeatCards) (map[uint32][]poker.Card, int) {
 	noOfCards := 2
 
 	switch h.GetGameType() {
@@ -760,31 +799,31 @@ func (h *HandState) getPlayersCards(deck *poker.Deck, scriptedCardsBySeat map[ui
 	totalCards := activeSeats * noOfCards
 
 	var playerCards map[uint32][]poker.Card
-	var deckIdx uint32
+	var numCardsUsed int
 	if scriptedCardsBySeat == nil {
 		// Draw cards normally.
-		playerCards, deckIdx = h.drawPlayerCards(deck, noOfCards, totalCards)
+		playerCards, numCardsUsed = h.drawPlayerCards(deck, noOfCards, totalCards)
 	} else {
 		// We are running a botrunner test that wants to specify player cards by seat.
 		// Make sure each seat gets the cards they are supposed to get.
-		playerCards, deckIdx = h.drawPlayerCardsForTesting(deck, noOfCards, totalCards, scriptedCardsBySeat)
+		playerCards, numCardsUsed = h.drawPlayerCardsForTesting(deck, noOfCards, totalCards, scriptedCardsBySeat)
 	}
 
-	return playerCards, deckIdx
+	return playerCards, numCardsUsed
 }
 
 // WARNING: Keep this method idempotent (no mutate HandState). It could get retried in case of reshuffle.
-func (h *HandState) drawPlayerCards(deck *poker.Deck, numCardsPerPlayer int, numTotalCards int) (map[uint32][]poker.Card, uint32) {
+func (h *HandState) drawPlayerCards(deck *poker.Deck, numCardsPerPlayer int, numTotalCards int) (map[uint32][]poker.Card, int) {
 	numRemainingCards := numTotalCards
 	playerCards := make(map[uint32][]poker.Card)
-	deckIdx := h.DeckIndex
+	numCardsUsed := 0
 	for i := 0; i < numCardsPerPlayer; i++ {
 		seatNo := h.ButtonPos
 		for {
 			seatNo = h.getNextActivePlayer(seatNo)
 			cards := deck.Draw(1)
 			numRemainingCards--
-			deckIdx++
+			numCardsUsed++
 			if playerCards[seatNo] == nil {
 				playerCards[seatNo] = make([]poker.Card, 0, numCardsPerPlayer)
 			}
@@ -798,16 +837,16 @@ func (h *HandState) drawPlayerCards(deck *poker.Deck, numCardsPerPlayer int, num
 			break
 		}
 	}
-	return playerCards, deckIdx
+	return playerCards, numCardsUsed
 }
 
 // Draw player cards and make sure each seat gets the scripted cards.
-func (h *HandState) drawPlayerCardsForTesting(deck *poker.Deck, numCardsPerPlayer int, numTotalCards int, scriptedCards map[uint32]*GameSetupSeatCards) (map[uint32][]poker.Card, uint32) {
+func (h *HandState) drawPlayerCardsForTesting(deck *poker.Deck, numCardsPerPlayer int, numTotalCards int, scriptedCards map[uint32]*GameSetupSeatCards) (map[uint32][]poker.Card, int) {
 	if scriptedCards == nil {
 		panic("scriptedCards == nil in drawPlayerCardsForTesting")
 	}
 
-	deckIdx := h.DeckIndex
+	numCardsUsed := 0
 	numRemainingCards := numTotalCards
 	playerCards := make(map[uint32][]poker.Card)
 	seatNo := h.ButtonPos
@@ -827,7 +866,7 @@ func (h *HandState) drawPlayerCardsForTesting(deck *poker.Deck, numCardsPerPlaye
 				drawnCard = wantedCard
 			}
 			numRemainingCards--
-			deckIdx++
+			numCardsUsed++
 			if playerCards[seatNo] == nil {
 				playerCards[seatNo] = make([]poker.Card, 0, numCardsPerPlayer)
 			}
@@ -840,7 +879,7 @@ func (h *HandState) drawPlayerCardsForTesting(deck *poker.Deck, numCardsPerPlaye
 			break
 		}
 	}
-	return playerCards, deckIdx
+	return playerCards, numCardsUsed
 }
 
 /**

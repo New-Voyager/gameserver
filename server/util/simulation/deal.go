@@ -139,7 +139,7 @@ func shuffleAndDeal(deck *poker.Deck, numCardsPerPlayer int, numPlayers int) (ma
 	if err != nil {
 		return nil, nil, err
 	}
-	if poker.HasSameHoleCards(playerCards) {
+	if poker.HasSameHoleCards(playerCards) || poker.IsBoardPaired(communityCards) {
 		// Redeal if has 2 players with the same hole cards.
 		deck.Shuffle()
 		playerCards, communityCards, err = dealCards(deck, numCardsPerPlayer, numPlayers)
@@ -150,11 +150,6 @@ func shuffleAndDeal(deck *poker.Deck, numCardsPerPlayer int, numPlayers int) (ma
 
 	pairedAt := poker.PairedAt(communityCards)
 	if pairedAt >= 1 && pairedAt <= 3 {
-		// Flop has a pair.
-		// communityCards, err = reDealCommunity(deck, communityCards)
-		// if err != nil {
-		// 	return nil, nil, err
-		// }
 		poker.QuickShuffleCards(communityCards)
 	}
 
