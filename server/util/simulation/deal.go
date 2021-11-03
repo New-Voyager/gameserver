@@ -143,25 +143,18 @@ func shuffleAndDeal(deck *poker.Deck, numCardsPerPlayer int, numPlayers int, gam
 	if err != nil {
 		return nil, nil, err
 	}
-	if game.AnyoneHasHighHand(playerCards, communityCards, gameType) {
-		return playerCards, communityCards, nil
-	}
-
-	maxReshuffleAllowed := 1
-	reshuffles := 0
-	for game.AnyoneHasHighHand(playerCards, communityCards, gameType) ||
-		(reshuffles < maxReshuffleAllowed && game.NeedReshuffle(playerCards, communityCards, nil, gameType)) {
-		deck.Shuffle()
-		playerCards, communityCards, err = dealCards(deck, numCardsPerPlayer, numPlayers)
-		if err != nil {
-			return nil, nil, err
+	if !game.AnyoneHasHighHand(playerCards, communityCards, gameType) {
+		maxReshuffleAllowed := 1
+		reshuffles := 0
+		for game.AnyoneHasHighHand(playerCards, communityCards, gameType) ||
+			(reshuffles < maxReshuffleAllowed && game.NeedReshuffle(playerCards, communityCards, nil, gameType)) {
+			deck.Shuffle()
+			playerCards, communityCards, err = dealCards(deck, numCardsPerPlayer, numPlayers)
+			if err != nil {
+				return nil, nil, err
+			}
+			reshuffles++
 		}
-		reshuffles++
-	}
-
-	pairedAt := game.PairedAt(communityCards)
-	if pairedAt >= 1 && pairedAt <= 3 {
-		game.QuickShuffleCards(communityCards)
 	}
 
 	return playerCards, communityCards, nil

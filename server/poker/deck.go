@@ -96,6 +96,17 @@ func (deck *Deck) Draw(n int) []Card {
 	return cards
 }
 
+func (deck *Deck) InsertLeft(cards []Card) {
+	newDeckCards := make([]Card, 0, len(cards)+len(deck.cards))
+	newDeckCards = append(newDeckCards, cards...)
+	newDeckCards = append(newDeckCards, deck.cards...)
+	deck.cards = newDeckCards
+}
+
+func (deck *Deck) Size() int {
+	return len(deck.cards)
+}
+
 func (deck *Deck) FindAndReplace(cardInDeck Card, newCard Card) {
 	idx := deck.getCardLoc(cardInDeck)
 	if idx < 0 {
