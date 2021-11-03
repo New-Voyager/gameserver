@@ -17,6 +17,7 @@ import (
 	"voyager.com/server/nats"
 	"voyager.com/server/rest"
 	"voyager.com/server/util"
+	"voyager.com/server/util/random"
 	"voyager.com/server/util/simulation"
 
 	"github.com/rs/zerolog"
@@ -46,6 +47,9 @@ func init() {
 }
 
 func main() {
+	// Global random seed that is used by all games.
+	rand.Seed(random.NewSeed())
+
 	err := run()
 	if err != nil {
 		mainLogger.Error().Msg(err.Error())

@@ -204,7 +204,7 @@ type PokerTable struct {
 func NewHoldemTable(players []Player, noOfDecks int) *PokerTable {
 	decks := make([]*Deck, noOfDecks)
 	for i := 0; i < noOfDecks; i++ {
-		decks[i] = NewDeck(nil)
+		decks[i] = NewDeck()
 	}
 
 	return &PokerTable{
@@ -218,7 +218,7 @@ func NewHoldemTable(players []Player, noOfDecks int) *PokerTable {
 func NewOmahaTable(players []Player, noOfDecks int) *PokerTable {
 	decks := make([]*Deck, noOfDecks)
 	for i := 0; i < noOfDecks; i++ {
-		decks[i] = NewDeck(nil)
+		decks[i] = NewDeck()
 	}
 
 	return &PokerTable{
@@ -232,7 +232,7 @@ func NewOmahaTable(players []Player, noOfDecks int) *PokerTable {
 func NewOmahaHiLoTable(players []Player, noOfDecks int) *PokerTable {
 	decks := make([]*Deck, noOfDecks)
 	for i := 0; i < noOfDecks; i++ {
-		decks[i] = NewDeck(nil)
+		decks[i] = NewDeck()
 	}
 
 	return &PokerTable{

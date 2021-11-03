@@ -1,11 +1,8 @@
 package poker
 
 import (
-	crypto_rand "crypto/rand"
 	"fmt"
-	"math/big"
 	"math/rand"
-	"sort"
 )
 
 var fullDeck *Deck
@@ -17,34 +14,10 @@ func init() {
 type Deck struct {
 	cards               []Card
 	scriptedCardsBySeat map[uint32]CardsInAscii
-	randGen             *rand.Rand
 }
 
-func NewSeed() rand.Source {
-	// var b [8]byte
-	// _, err := crypto_rand.Read(b[:])
-	// if err != nil {
-	// 	panic("cannot seed math/rand package with cryptographically secure random number generator")
-	// }
-
-	const MaxUint = ^uint(0)
-	const MaxInt = int(MaxUint >> 1)
-	nBig, err := crypto_rand.Int(crypto_rand.Reader, big.NewInt(int64(MaxInt)))
-	if err != nil {
-		panic("cannot seed math/rand package with cryptographically secure random number generator")
-	}
-
-	// source := rand.NewSource(int64(binary.LittleEndian.Uint64(b[:])))
-	source := rand.NewSource(nBig.Int64())
-	return source
-}
-
-func NewDeck(source rand.Source) *Deck {
-	if source == nil {
-		source = NewSeed()
-	}
-	randGen := rand.New(source)
-	deck := &Deck{randGen: randGen}
+func NewDeck() *Deck {
+	deck := &Deck{}
 	deck.Shuffle()
 	return deck
 }
@@ -123,6 +96,17 @@ func (deck *Deck) Draw(n int) []Card {
 	return cards
 }
 
+func (deck *Deck) InsertLeft(cards []Card) {
+	newDeckCards := make([]Card, 0, len(cards)+len(deck.cards))
+	newDeckCards = append(newDeckCards, cards...)
+	newDeckCards = append(newDeckCards, deck.cards...)
+	deck.cards = newDeckCards
+}
+
+func (deck *Deck) Size() int {
+	return len(deck.cards)
+}
+
 func (deck *Deck) FindAndReplace(cardInDeck Card, newCard Card) {
 	idx := deck.getCardLoc(cardInDeck)
 	if idx < 0 {
@@ -198,7 +182,7 @@ type CardsInAscii []string
 
 func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, river Card, burnCard bool) *Deck {
 	// first we are going to create a deck
-	deck := NewDeck(nil)
+	deck := NewDeck()
 	noOfPlayers := len(playerCards)
 	for i, playerCards := range playerCards {
 		for j, cardStr := range playerCards {
@@ -256,7 +240,7 @@ func DeckFromScript(playerCards []CardsInAscii, flop CardsInAscii, turn Card, ri
 // DeckFromBoard used for setting up player cards board cards (run it twice tests)
 func DeckFromBoard(playerCards []CardsInAscii, board CardsInAscii, board2 CardsInAscii, burnCard bool) *Deck {
 	// first we are going to create a deck
-	deck := NewDeck(nil)
+	deck := NewDeck()
 	noOfPlayers := len(playerCards)
 	for i, playerCards := range playerCards {
 		for j, cardStr := range playerCards {
@@ -369,79 +353,4 @@ func (deck *Deck) getCardLoc(cardToLocate Card) int {
 		}
 	}
 	return -1
-}
-
-func HasSameHoleCards(playerCards map[uint32][]Card) bool {
-	sameHoldCardsFound := false
-	matchesFound := 0
-	for i := 0; i < len(playerCards); i++ {
-		for j := 0; j < len(playerCards); j++ {
-			if i == j {
-				// Same Player
-				continue
-			}
-
-			matchesFound = 0
-			p1Cards := playerCards[uint32(i)]
-			p2Cards := playerCards[uint32(j)]
-			p1CardRanks := make([]int32, 0)
-			p2CardRanks := make([]int32, 0)
-			for _, c := range p1Cards {
-				p1CardRanks = append(p1CardRanks, c.Rank())
-			}
-			for _, c := range p2Cards {
-				p2CardRanks = append(p2CardRanks, c.Rank())
-			}
-			sort.Slice(p1CardRanks, func(a, b int) bool { return p1CardRanks[a] < p1CardRanks[b] })
-			sort.Slice(p2CardRanks, func(a, b int) bool { return p2CardRanks[a] < p2CardRanks[b] })
-
-			seenCards := make(map[int32]bool)
-			for _, p1c := range p1CardRanks {
-				if _, ok := seenCards[p1c]; ok {
-					continue
-				}
-				seenCards[p1c] = true
-				for _, p2c := range p2CardRanks {
-					if p1c == p2c {
-						matchesFound++
-						break
-					}
-				}
-			}
-
-			if matchesFound >= 2 {
-				sameHoldCardsFound = true
-				break
-			}
-		}
-		if sameHoldCardsFound {
-			break
-		}
-	}
-
-	return sameHoldCardsFound
-}
-
-// Returns
-// 0   : not paired
-// 1-3 : paired at flop
-// 4   : paired at turn
-// 5   : paired at river
-func PairedAt(board []Card) int {
-	m := make(map[int32]int)
-	pairedAtIdx := 0
-	for i := 0; i < 5; i++ {
-		rank := board[i].Rank()
-		_, exists := m[rank]
-		if exists {
-			pairedAtIdx = i + 1
-			break
-		}
-		m[rank] = 1
-	}
-	return pairedAtIdx
-}
-
-func QuickShuffleCards(cards []Card) {
-	rand.Shuffle(len(cards), func(i, j int) { cards[i], cards[j] = cards[j], cards[i] })
 }

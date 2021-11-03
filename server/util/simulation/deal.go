@@ -8,7 +8,6 @@ import (
 )
 
 func Run(numDeals int) error {
-	randSeed := poker.NewSeed()
 	gameType := game.GameType_HOLDEM
 	numPlayers := 9
 	numCardsPerPlayer := -1
@@ -26,11 +25,11 @@ func Run(numDeals int) error {
 	}
 
 	hitsPerRank := make(map[int]int)
-	for i := 0; i <= 166; i++ {
+	for i := 0; i <= 322; i++ {
 		hitsPerRank[i] = 0
 	}
 
-	deck := poker.NewDeck(randSeed)
+	deck := poker.NewDeck()
 
 	numEval := 0
 	numPairedBoards := 0
@@ -44,11 +43,7 @@ func Run(numDeals int) error {
 			fmt.Printf("Deal %d\n", i)
 		}
 
-		if i > 0 && i%100 == 0 {
-			deck = poker.NewDeck(poker.NewSeed())
-		}
-
-		playerCards, communityCards, err := shuffleAndDeal(deck, numCardsPerPlayer, numPlayers)
+		playerCards, communityCards, err := shuffleAndDeal(deck, numCardsPerPlayer, numPlayers, gameType)
 		if err != nil {
 			return err
 		}
@@ -73,17 +68,17 @@ func Run(numDeals int) error {
 			numEval++
 
 			// fmt.Printf("%s: %d (%s)\n", poker.CardsToString(cards), rank, poker.RankString(rank))
-			if rank <= 166 {
+			if rank <= 322 {
 				hitsPerRank[int(rank)]++
 			}
 		}
 
-		sameHoldCardsFound := poker.HasSameHoleCards(playerCards)
+		sameHoldCardsFound := game.HasSameHoleCards(playerCards)
 		if sameHoldCardsFound {
 			numDealsWithSameHoleCards++
 		}
 
-		pairedAtIdx := poker.PairedAt(communityCards)
+		pairedAtIdx := game.PairedAt(communityCards)
 		if pairedAtIdx > 0 {
 			numPairedBoards++
 			if pairedAtIdx <= 3 {
@@ -106,7 +101,8 @@ func Run(numDeals int) error {
 	numRotalFlushes := 0
 	numStraightFlushes := 0
 	numfourOfAKind := 0
-	for rank := 0; rank <= 166; rank++ {
+	numFullHouse := 0
+	for rank := 0; rank <= 322; rank++ {
 		count := hitsPerRank[rank]
 		// fmt.Printf("%3d (%s): %d\n", rank, poker.RankString(int32(rank)), count)
 		if rank == 1 {
@@ -115,12 +111,15 @@ func Run(numDeals int) error {
 			numStraightFlushes += count
 		} else if rank <= 166 {
 			numfourOfAKind += count
+		} else if rank <= 322 {
+			numFullHouse += count
 		}
 	}
 
 	fmt.Printf("Royal Flushes         : %d/%d (%f)\n", numRotalFlushes, numEval, float32(numRotalFlushes)/float32(numEval))
 	fmt.Printf("Straight Flushes      : %d/%d (%f)\n", numStraightFlushes, numEval, float32(numStraightFlushes)/float32(numEval))
 	fmt.Printf("Four Of A Kind        : %d/%d (%f)\n", numfourOfAKind, numEval, float32(numfourOfAKind)/float32(numEval))
+	fmt.Printf("Full House            : %d/%d (%f)\n", numFullHouse, numEval, float32(numFullHouse)/float32(numEval))
 	fmt.Printf("Paired Boards         : %d/%d (%f)\n", numPairedBoards, numDeals, float32(numPairedBoards)/float32(numDeals))
 	fmt.Printf("Paired Boards (F)     : %d/%d (%f)\n", numFlopPairedBoards, numDeals, float32(numFlopPairedBoards)/float32(numDeals))
 	fmt.Printf("Paired Boards (T)     : %d/%d (%f)\n", numTurnPairedBoards, numDeals, float32(numTurnPairedBoards)/float32(numDeals))
@@ -138,29 +137,24 @@ func isBoardOnePair(cards []poker.Card) bool {
 	return rank > 3325 && rank <= 6185
 }
 
-func shuffleAndDeal(deck *poker.Deck, numCardsPerPlayer int, numPlayers int) (map[uint32][]poker.Card, []poker.Card, error) {
+func shuffleAndDeal(deck *poker.Deck, numCardsPerPlayer int, numPlayers int, gameType game.GameType) (map[uint32][]poker.Card, []poker.Card, error) {
 	deck.Shuffle()
 	playerCards, communityCards, err := dealCards(deck, numCardsPerPlayer, numPlayers)
 	if err != nil {
 		return nil, nil, err
 	}
-	if poker.HasSameHoleCards(playerCards) {
-		// Redeal if has 2 players with the same hole cards.
-		deck.Shuffle()
-		playerCards, communityCards, err = dealCards(deck, numCardsPerPlayer, numPlayers)
-		if err != nil {
-			return nil, nil, err
+	if !game.AnyoneHasHighHand(playerCards, communityCards, gameType) {
+		maxReshuffleAllowed := 1
+		reshuffles := 0
+		for game.AnyoneHasHighHand(playerCards, communityCards, gameType) ||
+			(reshuffles < maxReshuffleAllowed && game.NeedReshuffle(playerCards, communityCards, nil, gameType)) {
+			deck.Shuffle()
+			playerCards, communityCards, err = dealCards(deck, numCardsPerPlayer, numPlayers)
+			if err != nil {
+				return nil, nil, err
+			}
+			reshuffles++
 		}
-	}
-
-	pairedAt := poker.PairedAt(communityCards)
-	if pairedAt >= 1 && pairedAt <= 3 {
-		// Flop has a pair.
-		// communityCards, err = reDealCommunity(deck, communityCards)
-		// if err != nil {
-		// 	return nil, nil, err
-		// }
-		poker.QuickShuffleCards(communityCards)
 	}
 
 	return playerCards, communityCards, nil
