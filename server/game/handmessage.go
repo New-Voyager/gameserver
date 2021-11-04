@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -1422,22 +1423,37 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	// handResult.BigBlind = handState.BigBlind
 	// handResult.MaxPlayers = handState.MaxSeats
 
-	sendResultToApi := !g.isScriptTest
-	if sendResultToApi {
-		handResultServer := &HandResultServer{
-			GameId:     hs.GameId,
-			HandNum:    hs.HandNum,
-			GameType:   hs.GameType,
-			ButtonPos:  hs.ButtonPos,
-			NoCards:    g.NumCards(handState.GameType),
-			HandLog:    hs.getLog(),
-			HandStats:  hs.GetHandStats(),
-			RunItTwice: hs.RunItTwiceConfirmed,
-			SmallBlind: hs.SmallBlind,
-			BigBlind:   hs.BigBlind,
-			MaxPlayers: hs.MaxSeats,
-			Result:     handResult2Client,
+	handResultServer := &HandResultServer{
+		GameId:     hs.GameId,
+		HandNum:    hs.HandNum,
+		GameType:   hs.GameType,
+		ButtonPos:  hs.ButtonPos,
+		NoCards:    g.NumCards(handState.GameType),
+		HandLog:    hs.getLog(),
+		HandStats:  hs.GetHandStats(),
+		RunItTwice: hs.RunItTwiceConfirmed,
+		SmallBlind: hs.SmallBlind,
+		BigBlind:   hs.BigBlind,
+		MaxPlayers: hs.MaxSeats,
+		Result:     handResult2Client,
+	}
+
+	err = g.analyzeResult(handResultServer)
+	if err != nil {
+		var msg string
+		b, e := protojson.Marshal(handResultServer)
+		if e != nil {
+			msg = "Result analysis found issues."
+		} else {
+			msg = fmt.Sprintf("Result analysis found issues. Result: %s", string(b))
 		}
+		g.logger.Error().Err(err).
+			Uint32(logging.HandNumKey, hs.GetHandNum()).
+			Msg(msg)
+	}
+
+	sendResultToAPI := !g.isScriptTest
+	if sendResultToAPI {
 		saveResult, err := g.saveHandResult2ToAPIServer(handResultServer)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Could not save hand result to api server")
@@ -1448,4 +1464,26 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	}
 
 	return allMsgItems, nil
+}
+
+func (g *Game) analyzeResult(handResult *HandResultServer) error {
+	var playerBalanceBefore float32
+	var playerBalanceAfter float32
+	var rakeCollectedTotal float32
+	errMsgs := make([]string, 0)
+	result := handResult.Result
+	for _, pi := range result.PlayerInfo {
+		playerBalanceBefore += pi.Balance.Before
+		playerBalanceAfter += pi.Balance.After
+		rakeCollectedTotal += pi.RakePaid
+	}
+
+	if (playerBalanceBefore - rakeCollectedTotal) != playerBalanceAfter {
+		errMsgs = append(errMsgs, fmt.Sprintf("Chips don't add up. Before: %f, Rake: %f, After: %f", playerBalanceBefore, rakeCollectedTotal, playerBalanceAfter))
+	}
+
+	if len(errMsgs) > 0 {
+		return fmt.Errorf(strings.Join(errMsgs, " "))
+	}
+	return nil
 }
