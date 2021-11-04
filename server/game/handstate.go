@@ -690,7 +690,9 @@ func (h *HandState) acted(seatNo uint32, action ACTION, amount float32) {
 				h.PlayerStats[playerID].Vpip = true
 			}
 
-			if amount > h.CurrentRaise && action != ACTION_BB && action != ACTION_SB {
+			if amount > h.CurrentRaise &&
+				action != ACTION_BB &&
+				action != ACTION_SB && action != ACTION_POST_BLIND {
 				h.PlayerStats[playerID].PreflopRaise = true
 			}
 		} else if h.CurrentState == HandStatus_FLOP {
@@ -990,25 +992,6 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		straddleAvailable = true
 	}
 
-	if action.Action == ACTION_POST_BLIND {
-		// handle posting blind as special
-		amount := action.Amount
-		if amount > playerBalance {
-			amount = playerBalance
-		}
-		playerBalance = playerBalance - amount
-		h.acted(action.SeatNo, ACTION_POST_BLIND, amount)
-		action.Stack = playerBalance
-		action.ActionTime = uint32(actionResponseTime)
-		bettingRound.SeatBet[int(action.SeatNo)] = amount
-		// add the action to the log
-		log.Actions = append(log.Actions, action)
-
-		bettingState.PlayerBalance[action.SeatNo] = playerBalance
-		player.Stack = bettingState.PlayerBalance[action.SeatNo]
-		return nil
-	}
-
 	if action.Action == ACTION_BOMB_POT_BET {
 		// handle posting blind as special
 		amount := action.Amount
@@ -1036,7 +1019,9 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 	}
 
 	// if player has less than the blinds, then this player will go all-in
-	if action.Action == ACTION_BB || action.Action == ACTION_SB {
+	if action.Action == ACTION_BB ||
+		action.Action == ACTION_SB ||
+		action.Action == ACTION_POST_BLIND {
 		if playerBalance < action.Amount {
 			action.Action = ACTION_ALLIN
 			action.Amount = playerBalance
@@ -1111,7 +1096,8 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		bettingRound.SeatBet[action.SeatNo] = action.Amount
 	} else if action.Action == ACTION_SB ||
 		action.Action == ACTION_BB ||
-		action.Action == ACTION_STRADDLE {
+		action.Action == ACTION_STRADDLE ||
+		action.Action == ACTION_POST_BLIND {
 		bettingRound.SeatBet[action.SeatNo] = action.Amount
 		switch action.Action {
 		case ACTION_SB:
@@ -1120,6 +1106,8 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 			h.acted(action.SeatNo, ACTION_BB, action.Amount)
 		case ACTION_STRADDLE:
 			h.acted(action.SeatNo, ACTION_STRADDLE, action.Amount)
+		case ACTION_POST_BLIND:
+			h.acted(action.SeatNo, ACTION_POST_BLIND, action.Amount)
 		}
 		diff = action.Amount
 	}
