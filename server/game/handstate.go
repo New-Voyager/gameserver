@@ -395,11 +395,31 @@ func (h *HandState) shuffleAndPickCards() (map[uint32][]poker.Card, []poker.Card
 	tmpDeck := poker.CopyDeck(deck)
 	playerCardsMap, b1Cards, b2Cards, numCardsUsed := h.drawFromDeck(tmpDeck, nil)
 
-	if !AnyoneHasHighHand(playerCardsMap, b1Cards, h.GameType) && !AnyoneHasHighHand(playerCardsMap, b2Cards, h.GameType) {
+	handNum := h.HandNum
+	if handNum <= 10 {
+		for AnyoneHasHighHand(playerCardsMap, b1Cards, h.GameType, poker.MaxFourOfAKind) ||
+			AnyoneHasHighHand(playerCardsMap, b2Cards, h.GameType, poker.MaxFourOfAKind) {
+			deck.Shuffle()
+			tmpDeck = poker.CopyDeck(deck)
+			playerCardsMap, b1Cards, b2Cards, numCardsUsed = h.drawFromDeck(tmpDeck, nil)
+		}
+	} else if handNum > 10 && handNum <= 20 {
+		if AnyoneHasHighHand(playerCardsMap, b1Cards, h.GameType, poker.MaxFourOfAKind) ||
+			AnyoneHasHighHand(playerCardsMap, b2Cards, h.GameType, poker.MaxFourOfAKind) {
+			if rand.Int()%2 == 0 {
+				deck.Shuffle()
+				tmpDeck = poker.CopyDeck(deck)
+				playerCardsMap, b1Cards, b2Cards, numCardsUsed = h.drawFromDeck(tmpDeck, nil)
+			}
+		}
+	}
+
+	if !AnyoneHasHighHand(playerCardsMap, b1Cards, h.GameType, poker.MaxFullHouse) &&
+		!AnyoneHasHighHand(playerCardsMap, b2Cards, h.GameType, poker.MaxFullHouse) {
 		if rand.Int()%2 == 0 {
 			maxReshuffleAllowed := 1
 			reshuffles := 0
-			for AnyoneHasHighHand(playerCardsMap, b2Cards, h.GameType) ||
+			for AnyoneHasHighHand(playerCardsMap, b2Cards, h.GameType, poker.MaxFullHouse) ||
 				(reshuffles < maxReshuffleAllowed && NeedReshuffle(playerCardsMap, b1Cards, b2Cards, h.GameType)) {
 				reshuffles++
 				deck.Shuffle()

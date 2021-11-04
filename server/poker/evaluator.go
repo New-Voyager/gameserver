@@ -12,15 +12,15 @@ func init() {
 
 func RankClass(rank int32) int32 {
 	targets := [...]int32{
-		maxStraightFlush,
-		maxFourOfAKind,
-		maxFullHouse,
-		maxFlush,
-		maxStraight,
-		maxThreeOfAKind,
-		maxTwoPair,
-		maxPair,
-		maxHighCard,
+		MaxStraightFlush,
+		MaxFourOfAKind,
+		MaxFullHouse,
+		MaxFlush,
+		MaxStraight,
+		MaxThreeOfAKind,
+		MaxTwoPair,
+		MaxPair,
+		MaxHighCard,
 	}
 
 	if rank < 0 {
@@ -65,7 +65,7 @@ func five(cards ...Card) (int32, []Card) {
 }
 
 func six(cards ...Card) (int32, []Card) {
-	var minimum int32 = maxHighCard
+	var minimum int32 = MaxHighCard
 	targets := make([]Card, len(cards))
 	var bestCards []Card = make([]Card, 5)
 	for i := 0; i < len(cards); i++ {
@@ -82,7 +82,7 @@ func six(cards ...Card) (int32, []Card) {
 }
 
 func seven(cards ...Card) (int32, []Card) {
-	var minimum int32 = maxHighCard
+	var minimum int32 = MaxHighCard
 	targets := make([]Card, len(cards))
 	var bestCards []Card = make([]Card, 5)
 	for i := 0; i < len(cards); i++ {
@@ -113,7 +113,7 @@ type HighHand struct {
 }
 
 func EvaluateOmaha(playerCards []Card, boardCards []Card) OmahaResult {
-	minimum := int32(maxHighCard)
+	minimum := int32(MaxHighCard)
 	lowScore := int32(0x7FFFFFF)
 
 	playerPairs := make([][]Card, 0)
@@ -159,7 +159,7 @@ func EvaluateOmaha(playerCards []Card, boardCards []Card) OmahaResult {
 }
 
 func EvaluateHighHand(playerCards []Card, boardCards []Card) HighHand {
-	minimum := int32(maxHighCard)
+	minimum := int32(MaxHighCard)
 
 	playerPairs := make([][]Card, 0)
 	for pair := range combinations(playerCards, 2) {
