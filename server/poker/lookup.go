@@ -1,27 +1,37 @@
 package poker
 
 const (
-	maxStraightFlush = 10
-	maxFourOfAKind   = 166
-	maxFullHouse     = 322
-	maxFlush         = 1599
-	maxStraight      = 1609
-	maxThreeOfAKind  = 2467
-	maxTwoPair       = 3325
-	maxPair          = 6185
-	maxHighCard      = 7462
+	MaxStraightFlush = 10
+	MaxFourOfAKind   = 166
+	MaxFullHouse     = 322
+	MaxFlush         = 1599
+	MaxStraight      = 1609
+	MaxThreeOfAKind  = 2467
+	MaxTwoPair       = 3325
+	MaxPair          = 6185
+	MaxHighCard      = 7462
+
+	StraightFlush = 1
+	FourOfAKind   = 2
+	FullHouse     = 3
+	Flush         = 4
+	Straight      = 5
+	ThreeOfAKind  = 6
+	TwoPair       = 7
+	Pair          = 8
+	HighCard      = 9
 )
 
 var maxToRankClass = map[int32]int32{
-	maxStraightFlush: 1,
-	maxFourOfAKind:   2,
-	maxFullHouse:     3,
-	maxFlush:         4,
-	maxStraight:      5,
-	maxThreeOfAKind:  6,
-	maxTwoPair:       7,
-	maxPair:          8,
-	maxHighCard:      9,
+	MaxStraightFlush: StraightFlush,
+	MaxFourOfAKind:   FourOfAKind,
+	MaxFullHouse:     FullHouse,
+	MaxFlush:         Flush,
+	MaxStraight:      Straight,
+	MaxThreeOfAKind:  ThreeOfAKind,
+	MaxTwoPair:       TwoPair,
+	MaxPair:          Pair,
+	MaxHighCard:      HighCard,
 }
 
 var rankClassToString = map[int32]string{
@@ -99,7 +109,7 @@ func (table *lookupTable) flushes() {
 		rank++
 	}
 
-	rank = maxFullHouse + 1
+	rank = MaxFullHouse + 1
 	for _, f := range flushes {
 		primeProduct := primeProductFromRankBits(f)
 		table.flushLookup[primeProduct] = rank
@@ -110,7 +120,7 @@ func (table *lookupTable) flushes() {
 }
 
 func (table *lookupTable) straightAndHighCards(straights, highcards []int32) {
-	var rank int32 = maxFlush + 1
+	var rank int32 = MaxFlush + 1
 
 	for _, s := range straights {
 		primeProduct := primeProductFromRankBits(s)
@@ -118,7 +128,7 @@ func (table *lookupTable) straightAndHighCards(straights, highcards []int32) {
 		rank++
 	}
 
-	rank = maxPair + 1
+	rank = MaxPair + 1
 	for _, h := range highcards {
 		primeProduct := primeProductFromRankBits(h)
 		table.unsuitedLookup[primeProduct] = rank
@@ -133,7 +143,7 @@ func (table *lookupTable) multiples() {
 	}
 
 	// 1) Four of a Kind
-	var rank int32 = maxStraightFlush + 1
+	var rank int32 = MaxStraightFlush + 1
 
 	for _, i := range backwardRanks {
 		kickers := make([]int32, len(backwardRanks))
@@ -154,7 +164,7 @@ func (table *lookupTable) multiples() {
 	}
 
 	// 2) Full House
-	rank = maxFourOfAKind + 1
+	rank = MaxFourOfAKind + 1
 
 	for _, i := range backwardRanks {
 		pairRanks := make([]int32, len(backwardRanks))
@@ -175,7 +185,7 @@ func (table *lookupTable) multiples() {
 	}
 
 	// 3) Three of a Kind
-	rank = maxStraight + 1
+	rank = MaxStraight + 1
 
 	for _, i := range backwardRanks {
 		kickers := make([]int32, len(backwardRanks))
@@ -199,7 +209,7 @@ func (table *lookupTable) multiples() {
 	}
 
 	// 4) Two Pair
-	rank = maxThreeOfAKind + 1
+	rank = MaxThreeOfAKind + 1
 
 	for i := 0; i < len(backwardRanks)-1; i++ {
 		for j := i + 1; j < len(backwardRanks); j++ {
@@ -231,7 +241,7 @@ func (table *lookupTable) multiples() {
 	}
 
 	// 5) Pair
-	rank = maxTwoPair + 1
+	rank = MaxTwoPair + 1
 
 	for _, pairRank := range backwardRanks {
 		kickers := make([]int32, len(backwardRanks))
