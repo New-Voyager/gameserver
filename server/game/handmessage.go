@@ -1450,6 +1450,10 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 		g.logger.Error().Err(err).
 			Uint32(logging.HandNumKey, hs.GetHandNum()).
 			Msg(msg)
+
+		if g.isScriptTest || util.Env.IsSystemTest() {
+			panic(msg)
+		}
 	}
 
 	sendResultToAPI := !g.isScriptTest

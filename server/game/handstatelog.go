@@ -114,6 +114,8 @@ func (a *HandAction) Print(h *HandState, playersInSeats []SeatPlayer) string {
 		action = "BB"
 	case ACTION_SB:
 		action = "SB"
+	case ACTION_POST_BLIND:
+		action = "POST_BLIND"
 	case ACTION_STRADDLE:
 		action = "STRADDLE"
 	case ACTION_CALL:
