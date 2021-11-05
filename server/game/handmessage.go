@@ -339,8 +339,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 	if err := validatePlayerAction(playerMsg, actionMsg, handState, g.isScriptTest); err != nil {
 		// Ignore the action message.
-		errMsg := fmt.Sprintf("Invalid player action, Action: %s Available Actions: %v",
-			actionMsg.GetPlayerActed().Action.String(), handState.NextSeatAction.AvailableActions)
+		errMsg := "Invalid player action"
 		g.logger.Error().
 			Err(err).
 			Uint32(logging.HandNumKey, handState.GetHandNum()).
