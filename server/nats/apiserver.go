@@ -33,9 +33,9 @@ type PlayerUpdate struct {
 	GameId           uint64            `json:"gameId"`
 	PlayerId         uint64            `json:"playerId"`
 	SeatNo           uint64            `json:"seatNo"`
-	Stack            int64             `json:"Stack"`
+	Stack            float64           `json:"Stack"`
 	Status           game.PlayerStatus `json:"status"`
-	BuyIn            int64             `json:"buyIn"`
+	BuyIn            float64           `json:"buyIn"`
 	GameToken        string            `json:"gameToken"`
 	OldSeatNo        uint64            `json:"oldSeatNo"`
 	NewUpdate        game.NewUpdate    `json:"newUpdate"`
@@ -67,12 +67,12 @@ type TableUpdate struct {
 }
 
 type SeatMove struct {
-	PlayerId   uint64 `json:"playerId"`
-	PlayerUuid string `json:"playerUuid"`
-	Name       string `json:"name"`
-	Stack      int64  `json:"stack"`
-	OldSeatNo  uint32 `json:"oldSeatNo"`
-	NewSeatNo  uint32 `json:"newSeatNo"`
+	PlayerId   uint64  `json:"playerId"`
+	PlayerUuid string  `json:"playerUuid"`
+	Name       string  `json:"name"`
+	Stack      float64 `json:"stack"`
+	OldSeatNo  uint32  `json:"oldSeatNo"`
+	NewSeatNo  uint32  `json:"newSeatNo"`
 }
 
 type SeatUpdate struct {
@@ -80,7 +80,7 @@ type SeatUpdate struct {
 	PlayerId     uint64            `json:"playerId"`
 	PlayerUuid   string            `json:"playerUuid"`
 	Name         string            `json:"name"`
-	Stack        int64             `json:"stack"`
+	Stack        float64           `json:"stack"`
 	PlayerStatus game.PlayerStatus `json:"playerStatus"`
 	OpenSeat     bool              `json:"openSeat"`
 }

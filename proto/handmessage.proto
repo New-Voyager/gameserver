@@ -46,15 +46,15 @@ message NewHand {
   map <uint32, string> player_cards = 6;  // key: seat no, value: encrypted cards
   GameType game_type = 7;
   uint32 no_cards = 8;     // number of cards dealt to the players
-  int64 small_blind = 9;
-  int64 big_blind = 10;
-  int64 bring_in = 11;
-  int64 straddle = 12;
+  float small_blind = 9;
+  float big_blind = 10;
+  float bring_in = 11;
+  float straddle = 12;
   map <uint32, PlayerInSeatState> players_in_seats = 13; // seat no, player status
   map<uint32, PlayerActRound> players_acted = 14;   // seat no, player action in this round
   bool bomb_pot = 15;
   bool double_board = 16;
-  int64 bomb_pot_bet = 17;
+  float bomb_pot_bet = 17;
 }
 
 //HandDealCards message is sent to each player when cards dealt to the player
@@ -70,18 +70,18 @@ message HandDealCards {
 // the UI can refresh and highlight the seat that is to act next
 message ActionChange {
   uint32 seat_no = 1;
-  repeated int64 pots = 2; // pots in the center
-  int64 pot_updates = 3;   // pot updated based on the bets
+  repeated float pots = 2; // pots in the center
+  float pot_updates = 3;   // pot updated based on the bets
   repeated SeatsInPots seats_pots = 4; // seats that participate in the pots
-  int64 bet_amount = 5;  // bet amount in this betting round (used for check/fold)
+  float bet_amount = 5;  // bet amount in this betting round (used for check/fold)
 }
 
 message Flop {
   repeated uint32 board = 1;
   string cardsStr = 2; // string representation of the cards for logging
-  repeated int64 pots = 3; // pots in the center
+  repeated float pots = 3; // pots in the center
   repeated SeatsInPots seats_pots = 4; // seats that participate in the pots
-  map <uint32, int64> player_balance = 5; // player balance at the flop
+  map <uint32, float> player_balance = 5; // player balance at the flop
   map <uint32, string> player_card_ranks = 6; // player card ranking
   repeated Board boards = 7;
 }
@@ -90,9 +90,9 @@ message Turn {
   repeated uint32 board = 1;
   uint32 turn_card = 2;
   string cardsStr = 3; // string representation of the cards for logging
-  repeated int64 pots = 4; // pots in the center
+  repeated float pots = 4; // pots in the center
   repeated SeatsInPots seats_pots = 5; // seats that participate in the pots
-  map <uint32, int64> player_balance = 6; // player balance at the turn
+  map <uint32, float> player_balance = 6; // player balance at the turn
   map <uint32, string> player_card_ranks = 7; // player card ranking
   repeated Board boards = 8;
 }
@@ -101,9 +101,9 @@ message River {
   repeated uint32 board = 1;
   uint32 river_card = 2;
   string cardsStr = 3; // string representation of the cards for logging
-  repeated int64 pots = 4; // pots in the center
+  repeated float pots = 4; // pots in the center
   repeated SeatsInPots seats_pots = 5; // seats that participate in the pots
-  map <uint32, int64> player_balance = 6; // player balance at the river
+  map <uint32, float> player_balance = 6; // player balance at the river
   map <uint32, string> player_card_ranks = 7; // player card ranking
   repeated Board boards = 9;
 }
@@ -115,9 +115,9 @@ message SeatCards {
 
 message Showdown {
   repeated SeatCards seat_cards = 1;  // cards of all the active players
-  repeated int64 pots = 2; // pots in the center
+  repeated float pots = 2; // pots in the center
   repeated SeatsInPots seats_pots = 3; // seats that participate in the pots
-  map <uint32, int64> player_balance = 4; // player balance at the showdown
+  map <uint32, float> player_balance = 4; // player balance at the showdown
 }
 
 // This message is sent when both players confirm run
@@ -167,8 +167,8 @@ message PlayerInfo {
   HandPlayerBalance balance = 6;
   repeated uint32 hh_cards = 7;     // high hand cards
   uint32 hh_rank = 8;      // high hand rank
-  int64 received = 9;     // received from the hand
-  int64 rake_paid = 10;   // rake paid by this player
+  float received = 9;     // received from the hand
+  float rake_paid = 10;   // rake paid by this player
 }
 
 message HandResult  {
@@ -184,14 +184,14 @@ message HandResult  {
   uint32 turn = 10;
   uint32 river = 11;
   map<uint32, PlayerInfo> players = 12;    // player cards with rank (key: seat_no)
-  int64 rake_collected = 13;               // rake collected from the hand
+  float rake_collected = 13;               // rake collected from the hand
   HighHand high_hand = 14;
   map<uint64, PlayerStats> player_stats = 15;
   HandStats hand_stats = 16;
   bool run_it_twice = 17;                 // indicates the players ran it twice
-  int64 small_blind = 18;
-  int64 big_blind = 19;
-  int64 ante = 20;
+  float small_blind = 18;
+  float big_blind = 19;
+  float ante = 20;
   uint32 max_players = 21;
 }
 
@@ -207,7 +207,7 @@ message HandResultClient {
   map<uint64, PlayerStats> player_stats = 9;
   map<uint64, TimeoutStats> timeout_stats = 10;
   uint32 hand_num = 11;
-  int64 tips_collected = 12;
+  float tips_collected = 12;
   repeated HighHandWinner high_hand_winners = 13;
 }
 
@@ -229,9 +229,9 @@ message HandResultServer {
   HandStats hand_stats = 6;
   bool run_it_twice = 8;                 // indicates the players ran it twice
   uint32 button_pos = 9;
-  int64 small_blind = 10;
-  int64 big_blind = 11;
-  int64 ante = 12;
+  float small_blind = 10;
+  float big_blind = 11;
+  float ante = 12;
   uint32 max_players = 13;
   HandResultClient  result = 14;
   HandLogV2 log = 15;

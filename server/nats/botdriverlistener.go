@@ -36,7 +36,7 @@ type HandSetup struct {
 	PlayerCards          []PlayerCard `json:"player-cards"`
 	Pause                uint32       `json:"pause"` // pauses before dealing next hand
 	BombPot              bool         `json:"bomb-pot"`
-	BombPotBet           int64        `json:"bomb-pot-bet"`
+	BombPotBet           float32      `json:"bomb-pot-bet"`
 	DoubleBoard          bool         `json:"double-board"`
 	IncludeStatsInResult bool         `json:"include-stats"`
 	ResultPauseTime      uint32       `json:"result-pause-time"`

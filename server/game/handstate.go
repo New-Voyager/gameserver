@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"time"
 
@@ -11,32 +12,32 @@ import (
 )
 
 var handLogger = logging.GetZeroLogger("game::hand", nil)
-var preFlopBets = []int64{3, 5, 10}     // big blinds
-var postFlopBets = []int64{30, 50, 100} // % of pot
-var raiseOptions = []int{2, 3, 5}       // raise times
-var ploPreFlopBets = []int64{2}         // big blinds
+var preFlopBets = []int{3, 5, 10}     // big blinds
+var postFlopBets = []int{30, 50, 100} // % of pot
+var raiseOptions = []int{2, 3, 5}     // raise times
+var ploPreFlopBets = []int{2}         // big blinds
 
 func (h *HandState) initializeBettingRound() {
 	maxSeats := h.MaxSeats + 1 // dealer seat
 	h.RoundState = make(map[uint32]*RoundState)
 	h.RoundState[uint32(HandStatus_PREFLOP)] = &RoundState{
-		PlayerBalance: make(map[uint32]int64),
-		Betting:       &SeatBetting{SeatBet: make([]int64, maxSeats)},
+		PlayerBalance: make(map[uint32]float32),
+		Betting:       &SeatBetting{SeatBet: make([]float32, maxSeats)},
 		BetIndex:      1,
 	}
 	h.RoundState[uint32(HandStatus_FLOP)] = &RoundState{
-		PlayerBalance: make(map[uint32]int64),
-		Betting:       &SeatBetting{SeatBet: make([]int64, maxSeats)},
+		PlayerBalance: make(map[uint32]float32),
+		Betting:       &SeatBetting{SeatBet: make([]float32, maxSeats)},
 		BetIndex:      1,
 	}
 	h.RoundState[uint32(HandStatus_TURN)] = &RoundState{
-		PlayerBalance: make(map[uint32]int64),
-		Betting:       &SeatBetting{SeatBet: make([]int64, maxSeats)},
+		PlayerBalance: make(map[uint32]float32),
+		Betting:       &SeatBetting{SeatBet: make([]float32, maxSeats)},
 		BetIndex:      1,
 	}
 	h.RoundState[uint32(HandStatus_RIVER)] = &RoundState{
-		PlayerBalance: make(map[uint32]int64),
-		Betting:       &SeatBetting{SeatBet: make([]int64, maxSeats)},
+		PlayerBalance: make(map[uint32]float32),
+		Betting:       &SeatBetting{SeatBet: make([]float32, maxSeats)},
 		BetIndex:      1,
 	}
 
@@ -225,24 +226,24 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	h.HandStats = &HandStats{}
 	if testGameConfig != nil {
 		h.MaxSeats = uint32(testGameConfig.MaxPlayers)
-		h.SmallBlind = testGameConfig.SmallBlind
-		h.BigBlind = testGameConfig.BigBlind
-		h.Straddle = testGameConfig.StraddleBet
+		h.SmallBlind = float32(testGameConfig.SmallBlind)
+		h.BigBlind = float32(testGameConfig.BigBlind)
+		h.Straddle = float32(testGameConfig.StraddleBet)
 		h.RakePercentage = float32(testGameConfig.RakePercentage)
-		h.RakeCap = testGameConfig.RakeCap
+		h.RakeCap = float32(testGameConfig.RakeCap)
 		h.ButtonPos = buttonPos
 		h.PlayersActed = make([]*PlayerActRound, h.MaxSeats+1)
-		h.BringIn = testGameConfig.BringIn
+		h.BringIn = float32(testGameConfig.BringIn)
 	} else {
 		h.MaxSeats = uint32(newHandInfo.MaxPlayers)
-		h.SmallBlind = int64(newHandInfo.SmallBlind)
-		h.BigBlind = int64(newHandInfo.BigBlind)
-		h.Straddle = int64(newHandInfo.StraddleBet)
+		h.SmallBlind = float32(newHandInfo.SmallBlind)
+		h.BigBlind = float32(newHandInfo.BigBlind)
+		h.Straddle = float32(newHandInfo.StraddleBet)
 		h.RakePercentage = float32(newHandInfo.RakePercentage)
-		h.RakeCap = int64(newHandInfo.RakeCap)
+		h.RakeCap = float32(newHandInfo.RakeCap)
 		h.ButtonPos = newHandInfo.ButtonPos
 		h.PlayersActed = make([]*PlayerActRound, h.MaxSeats+1)
-		h.BringIn = int64(newHandInfo.BringIn)
+		h.BringIn = float32(newHandInfo.BringIn)
 		h.RunItTwiceTimeout = newHandInfo.RunItTwiceTimeout
 		h.HighHandTracked = newHandInfo.HighHandTracked
 		h.HighHandRank = newHandInfo.HighHandRank
@@ -255,7 +256,7 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 
 	if newHandInfo != nil {
 		h.BombPot = newHandInfo.BombPot
-		h.BombPotBet = int64(newHandInfo.BombPotBet)
+		h.BombPotBet = newHandInfo.BombPotBet
 		h.DoubleBoard = newHandInfo.DoubleBoard
 	}
 
@@ -382,7 +383,7 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	h.Pots = make([]*SeatsInPots, 0)
 	mainPot := initializePot(int(h.MaxSeats) + 1)
 	h.Pots = append(h.Pots, mainPot)
-	h.RakePaid = make(map[uint64]int64)
+	h.RakePaid = make(map[uint64]float32)
 
 	// setup hand for preflop
 	h.setupPreflop(postedBlinds)
@@ -499,7 +500,7 @@ func (h *HandState) setupRound(state HandStatus) {
 	// track main pot value as starting value
 	if log != nil {
 		log.PotStart = h.Pots[0].Pot
-		log.Pots = make([]int64, 0)
+		log.Pots = make([]float32, 0)
 		for _, pot := range h.Pots {
 			if pot.Pot != 0.0 {
 				log.Pots = append(log.Pots, pot.Pot)
@@ -524,7 +525,7 @@ func (h *HandState) setupRound(state HandStatus) {
 		}
 	}
 
-	h.RoundState[uint32(state)].PlayerBalance = make(map[uint32]int64)
+	h.RoundState[uint32(state)].PlayerBalance = make(map[uint32]float32)
 	roundState := h.RoundState[uint32(state)]
 	for seatNo, player := range h.PlayersInSeats {
 		if seatNo == 0 || !player.Inhand {
@@ -630,7 +631,7 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 			playerInButton := h.PlayersInSeats[h.ButtonPos]
 			buttonStraddleBet := 2 * h.BigBlind
 			if playerInButton.ButtonStraddleBet > 2 {
-				buttonStraddleBet = int64(playerInButton.ButtonStraddleBet) * h.BigBlind
+				buttonStraddleBet = float32(playerInButton.ButtonStraddleBet) * h.BigBlind
 			}
 			if playerInButton.PlayerId != 0 && playerInButton.Stack >= buttonStraddleBet {
 				if playerInButton.Stack == buttonStraddleBet {
@@ -681,7 +682,7 @@ func (h *HandState) resetPlayerActions() {
 	}
 }
 
-func (h *HandState) acted(seatNo uint32, action ACTION, amount int64) {
+func (h *HandState) acted(seatNo uint32, action ACTION, amount float32) {
 	bettingState := h.RoundState[uint32(h.CurrentState)]
 	h.PlayersActed[seatNo].Action = action
 	h.PlayersActed[seatNo].ActedBetIndex = bettingState.BetIndex
@@ -970,7 +971,7 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 				Uint64(logging.GameIDKey, h.GetGameId()).
 				Uint32(logging.HandNumKey, h.GetHandNum()).
 				Uint32(logging.SeatNumKey, action.SeatNo).
-				Msgf("Invalid amount %d passed for the fold action. Setting the amount to 0", action.Amount)
+				Msgf("Invalid amount %f passed for the fold action. Setting the amount to 0", action.Amount)
 		}
 		action.Amount = 0
 	}
@@ -1003,7 +1004,7 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 	bettingRound := bettingState.Betting
 	playerBalance := bettingState.PlayerBalance[action.SeatNo]
 	playerBetSoFar := bettingRound.SeatBet[action.SeatNo]
-	diff := int64(0)
+	diff := float32(0)
 
 	// the next player after big blind can straddle
 	straddleAvailable := false
@@ -1085,7 +1086,7 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 				Uint64(logging.GameIDKey, h.GetGameId()).
 				Uint32(logging.HandNumKey, h.GetHandNum()).
 				Uint32(logging.SeatNumKey, action.SeatNo).
-				Msgf("Invalid raise %d. Current bet: %d", action.Amount, h.GetCurrentRaise())
+				Msgf("Invalid raise %f. Current bet: %f", action.Amount, h.GetCurrentRaise())
 		}
 
 		handAction := ACTION_RAISE
@@ -1220,11 +1221,11 @@ func (h *HandState) allActionComplete() bool {
 	return false
 }
 
-func (h *HandState) getMaxBet() int64 {
+func (h *HandState) getMaxBet() float32 {
 	// before we go to next stage, settle pots
 	bettingState := h.RoundState[uint32(h.CurrentState)]
 	currentBettingRound := bettingState.Betting
-	maxBet := int64(0)
+	maxBet := float32(0)
 	for seatNo, bet := range currentBettingRound.SeatBet {
 		if currentBettingRound.SeatBet[seatNo] == 0.0 {
 			// empty seat
@@ -1363,17 +1364,18 @@ func (h *HandState) setupRiver() error {
 	return nil
 }
 
-func (h *HandState) adjustToBringIn(amount int64) int64 {
+func (h *HandState) adjustToBringIn(amount float32) float32 {
 	if h.BringIn != 0 {
 		// make call amount multiples of bring-in
-		if amount%h.BringIn > 0 {
-			amount = (amount/h.BringIn + 1.0) * h.BringIn
+		if int64(amount)%int64(h.BringIn) > 0 {
+			amount = float32(float32(int64(amount/h.BringIn+1.0)) * h.BringIn)
+			amount = float32(math.Floor(float64(amount)))
 		}
 	}
 	return amount
 }
 
-func (h *HandState) calcPloPotBet(callAmount int64, preFlop bool) int64 {
+func (h *HandState) calcPloPotBet(callAmount float32, preFlop bool) float32 {
 	roundState := h.RoundState[uint32(h.CurrentState)]
 	bettingRound := roundState.Betting
 	firstAction := false
@@ -1717,7 +1719,7 @@ func (h *HandState) getLog() *HandLog {
 	return handResult
 }
 
-func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64, callAmount int64) []*BetRaiseOption {
+func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64, callAmount float32) []*BetRaiseOption {
 	preFlopBetOptions := preFlopBets
 	postFlopBets := postFlopBets
 	roundState := h.RoundState[uint32(h.CurrentState)]
@@ -1730,7 +1732,7 @@ func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64,
 		if round == HandStatus_PREFLOP {
 			// pre-flop options
 			for _, betOption := range preFlopBetOptions {
-				betAmount := betOption * h.BigBlind
+				betAmount := float32(int64(float32(betOption) * h.BigBlind))
 				if betAmount < balance {
 					option := &BetRaiseOption{
 						Text:   fmt.Sprintf("%dBB", betOption),
@@ -1741,17 +1743,17 @@ func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64,
 			}
 			options = append(options, &BetRaiseOption{Text: "All-In", Amount: allIn})
 		} else if round >= HandStatus_FLOP {
-			totalPot := int64(0)
+			totalPot := float32(0.0)
 			for _, pot := range h.Pots {
 				totalPot += pot.Pot
 			}
 			// post-flop options
 			for _, betOption := range postFlopBets {
-				betAmount := betOption * totalPot / 100
+				betAmount := float32(int64(float32(betOption)*totalPot) / 100.0)
 				if betAmount > h.BigBlind && betAmount < balance {
 					option := &BetRaiseOption{
 						Text:   fmt.Sprintf("%d%%", betOption),
-						Amount: betAmount,
+						Amount: float32(betAmount),
 					}
 					options = append(options, option)
 				}
@@ -1770,7 +1772,7 @@ func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64,
 					bet = h.BringIn
 				}
 
-				betAmount := betOption * bet
+				betAmount := float32(int64(float32(betOption) * bet))
 				if betAmount > ploPot {
 					betAmount = ploPot
 				}
@@ -1804,7 +1806,7 @@ func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64,
 					bet = h.BringIn
 				}
 
-				betAmount := betOption * ploPot / 100
+				betAmount := float32(int64(float32(betOption)*ploPot) / 100.0)
 				if betAmount > ploPot {
 					betAmount = ploPot
 				}
@@ -1833,7 +1835,7 @@ func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64,
 	return options
 }
 
-func (h *HandState) raiseOptions(seatNo uint32, minRaiseAmount int64, maxRaiseAmount int64, playerID uint64) []*BetRaiseOption {
+func (h *HandState) raiseOptions(seatNo uint32, minRaiseAmount float32, maxRaiseAmount float32, playerID uint64) []*BetRaiseOption {
 	roundState := h.RoundState[uint32(h.CurrentState)]
 	balance := roundState.PlayerBalance[seatNo]
 	bettingRound := roundState.Betting
@@ -1842,7 +1844,7 @@ func (h *HandState) raiseOptions(seatNo uint32, minRaiseAmount int64, maxRaiseAm
 	options := make([]*BetRaiseOption, 0)
 	if h.GameType == GameType_HOLDEM {
 		for _, betOption := range raiseOptions {
-			betAmount := int64(betOption) * minRaiseAmount
+			betAmount := float32(int64(float32(betOption) * minRaiseAmount))
 			if betAmount < balance {
 				option := &BetRaiseOption{
 					Text:   fmt.Sprintf("%dx", betOption),
@@ -1854,7 +1856,7 @@ func (h *HandState) raiseOptions(seatNo uint32, minRaiseAmount int64, maxRaiseAm
 		options = append(options, &BetRaiseOption{Text: "All-In", Amount: allIn})
 	} else {
 		for _, betOption := range raiseOptions {
-			betAmount := int64(betOption) * minRaiseAmount
+			betAmount := float32(int64(float32(betOption) * minRaiseAmount))
 			betAmount = h.adjustToBringIn(betAmount)
 			if betAmount < maxRaiseAmount {
 				option := &BetRaiseOption{

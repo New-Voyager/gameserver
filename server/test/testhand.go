@@ -121,11 +121,11 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.Betting
 				if len(s) == 3 {
 					seatNo, _ := strconv.Atoi(strings.Trim(s[0], " "))
 					action := strings.Trim(s[1], " ")
-					amount, _ := strconv.ParseInt(strings.Trim(s[2], " "), 10, 64)
+					amount, _ := strconv.ParseFloat(strings.Trim(s[2], " "), 32)
 					bettingRound.Actions[i] = game.TestHandAction{
 						SeatNo: uint32(seatNo),
 						Action: action,
-						Amount: amount,
+						Amount: float32(amount),
 					}
 				} else if len(s) == 2 {
 					seatNo, _ := strconv.Atoi(strings.Trim(s[0], " "))
@@ -426,7 +426,7 @@ func (h *TestHand) verifyHandResult(t *TestDriver, handResult *game.HandResult) 
 				}
 
 				if handWinner.Amount != expectedWinner.Receive {
-					h.addError(fmt.Errorf("Winner winning didn't match. Expected %d, actual: %d",
+					h.addError(fmt.Errorf("Winner winning didn't match. Expected %f, actual: %f",
 						expectedWinner.Receive, handWinner.Amount))
 					passed = false
 				}
@@ -453,7 +453,7 @@ func (h *TestHand) verifyHandResult(t *TestDriver, handResult *game.HandResult) 
 				}
 
 				if handWinner.Amount != expectedWinner.Receive {
-					h.addError(fmt.Errorf("Winner winning didn't match. Expected %d, actual: %d",
+					h.addError(fmt.Errorf("Winner winning didn't match. Expected %f, actual: %f",
 						expectedWinner.Receive, handWinner.Amount))
 					passed = false
 				}
@@ -477,7 +477,7 @@ func (h *TestHand) verifyHandResult(t *TestDriver, handResult *game.HandResult) 
 
 			if seatNo == expectedStack.Seat {
 				if player.Balance.After != expectedStack.Stack {
-					h.addError(fmt.Errorf("Player %d seatNo: %d is not matching. Expected %d, actual: %d", player.Balance.After, seatNo,
+					h.addError(fmt.Errorf("Player %d seatNo: %d is not matching. Expected %f, actual: %f", player.Balance.After, seatNo,
 						expectedStack.Stack, player.Balance.After))
 					passed = false
 				}
@@ -501,7 +501,7 @@ func (h *TestHand) verifyWinners(playerInfo map[uint32]*game.PlayerHandInfo, act
 			if handWinner, ok := actualWinners[expectedWinner.Seat]; ok {
 				winAmount := handWinner.Amount
 				if winAmount != expectedWinner.Receive {
-					h.addError(fmt.Errorf("Winner winning didn't match. Expected %d, actual: %d",
+					h.addError(fmt.Errorf("Winner winning didn't match. Expected %f, actual: %f",
 						expectedWinner.Receive, winAmount))
 					passed = false
 				}
@@ -509,7 +509,7 @@ func (h *TestHand) verifyWinners(playerInfo map[uint32]*game.PlayerHandInfo, act
 				if expectedWinner.Rake > 0 {
 					player := playerInfo[handWinner.SeatNo]
 					if expectedWinner.Rake != player.RakePaid {
-						h.addError(fmt.Errorf("Winner rake amount didn't match. Expected %d, actual: %d",
+						h.addError(fmt.Errorf("Winner rake amount didn't match. Expected %f, actual: %f",
 							expectedWinner.Rake, player.RakePaid))
 						passed = false
 
@@ -568,7 +568,7 @@ func (h *TestHand) verifyHandResult2(t *TestDriver, handResult *game.HandResultC
 
 	// 		if seatNo == expectedStack.Seat {
 	// 			if player.Balance.After != expectedStack.Stack {
-	// 				h.addError(fmt.Errorf("Player %d seatNo: %d is not matching. Expected %d, actual: %d", player.Balance.After, seatNo,
+	// 				h.addError(fmt.Errorf("Player %d seatNo: %d is not matching. Expected %f, actual: %f", player.Balance.After, seatNo,
 	// 					expectedStack.Stack, player.Balance.After))
 	// 				passed = false
 	// 			}
@@ -678,7 +678,7 @@ func (h *TestHand) verifyBettingRound(t *TestDriver, verify *game.VerifyBettingR
 		for i, expectedPot := range verify.Pots {
 			actualPot := gamePots[i]
 			if expectedPot.Pot != actualPot.Pot {
-				e := fmt.Errorf("Pot [%d] amount does not match. Expected: %d actual: %d",
+				e := fmt.Errorf("Pot [%d] amount does not match. Expected: %f actual: %f",
 					i, expectedPot.Pot, actualPot.Pot)
 				h.gameScript.result.addError(e)
 				return e
@@ -711,7 +711,7 @@ func (h *TestHand) verifyBettingRound(t *TestDriver, verify *game.VerifyBettingR
 	}
 
 	if verify.Stacks != nil {
-		var stacks map[uint32]int64
+		var stacks map[uint32]float32
 		switch verify.State {
 		case "FLOP":
 			stacks = h.gameScript.observer.flop.PlayerBalance
@@ -726,7 +726,7 @@ func (h *TestHand) verifyBettingRound(t *TestDriver, verify *game.VerifyBettingR
 		for _, stack := range verify.Stacks {
 			if playerStack, ok := stacks[stack.Seat]; ok {
 				if playerStack != stack.Stack {
-					e := fmt.Errorf("Player at seatNo [%d] stack did not match. Expected: %d Actual %d found at state: %s",
+					e := fmt.Errorf("Player at seatNo [%d] stack did not match. Expected: %f Actual %f found at state: %s",
 						stack.Seat, stack.Stack, playerStack, verify.State)
 					h.gameScript.result.addError(e)
 				}

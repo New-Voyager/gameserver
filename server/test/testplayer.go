@@ -67,7 +67,7 @@ func (t *TestPlayer) setPlayer(player *game.Player) {
 	t.player = player
 }
 
-func (t *TestPlayer) joinGame(gameID uint64, seatNo uint32, buyIn int64, runItTwice bool, runItTwicePromptResponse bool, postBlind bool) {
+func (t *TestPlayer) joinGame(gameID uint64, seatNo uint32, buyIn float32, runItTwice bool, runItTwicePromptResponse bool, postBlind bool) {
 	t.player.JoinGame(gameID, seatNo, buyIn, runItTwice, runItTwicePromptResponse, postBlind)
 }
 

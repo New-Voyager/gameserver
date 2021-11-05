@@ -90,7 +90,7 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 				bp.observing = false
 			}
 		}
-		bp.logger.Info().Msgf("%s: PlayerUpdate: ID: %d Seat No: %d Stack: %d Status: %s",
+		bp.logger.Info().Msgf("%s: PlayerUpdate: ID: %d Seat No: %d Stack: %f Status: %s",
 			bp.logPrefix, playerID, message.SeatNo, message.Stack, message.Status)
 	case "PLAYER_SEAT_CHANGE_PROMPT":
 		if message.PlayerID != bp.PlayerID {
@@ -200,7 +200,7 @@ func (bp *BotPlayer) seatWaitList(message *gamescript.NonProtoMessage) {
 	} else {
 		// buyin
 		if bp.buyInAmount != 0 {
-			err := bp.BuyIn(bp.gameCode, int64(bp.buyInAmount))
+			err := bp.BuyIn(bp.gameCode, float32(bp.buyInAmount))
 			if err != nil {
 				bp.logger.Error().Msgf("%s: Unable to buy in %d chips while sitting from waitlist: %s", bp.logPrefix, bp.buyInAmount, err.Error())
 			} else {

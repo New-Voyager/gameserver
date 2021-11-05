@@ -94,7 +94,7 @@ func (g *GQLHelper) CreateClub(name string, description string) (string, error) 
 }
 
 // CreateClub creates a reward for a club.
-func (g *GQLHelper) CreateClubReward(clubCode string, name string, rewardType string, scheduleType string, amount int64) (uint32, error) {
+func (g *GQLHelper) CreateClubReward(clubCode string, name string, rewardType string, scheduleType string, amount float32) (uint32, error) {
 	req := graphql.NewRequest(ConfigureReward)
 
 	req.Var("clubCode", clubCode)
@@ -306,7 +306,7 @@ func (g *GQLHelper) SitIn(gameCode string, seatNo uint32, gps *gamescript.GpsLoc
 }
 
 // BuyIn buys chips once seated in a game.
-func (g *GQLHelper) BuyIn(gameCode string, amount int64) (*BuyInResp, error) {
+func (g *GQLHelper) BuyIn(gameCode string, amount float32) (*BuyInResp, error) {
 	req := graphql.NewRequest(BuyInGQL)
 
 	req.Var("gameCode", gameCode)
@@ -369,7 +369,7 @@ func (g *GQLHelper) SwitchSeat(gameCode string, toSeat int) (string, error) {
 }
 
 // ReloadChips reloads chips
-func (g *GQLHelper) ReloadChips(gameCode string, amount int64) (bool, error) {
+func (g *GQLHelper) ReloadChips(gameCode string, amount float32) (bool, error) {
 	req := graphql.NewRequest(ReloadChipsGQL)
 
 	req.Var("gameCode", gameCode)

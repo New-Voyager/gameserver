@@ -25,16 +25,16 @@ func (h *HandState) PrintTable(players map[uint64]*Player) string {
 			playerCards, _ := h.PlayersCards[uint32(seatNo)]
 			cardString := poker.CardsToString(playerCards)
 			if uint32(seatNo) == h.ButtonPos {
-				fmt.Fprintf(&b, " {%d: %s, %d, %s, BUTTON} ",
+				fmt.Fprintf(&b, " {%d: %s, %f, %s, BUTTON} ",
 					seatNo, player.PlayerName, playerInSeat.Stack, cardString)
 			} else if uint32(seatNo) == h.SmallBlindPos {
-				fmt.Fprintf(&b, " {%d: %s, %d, %s, SB} ",
+				fmt.Fprintf(&b, " {%d: %s, %f, %s, SB} ",
 					seatNo, player.PlayerName, playerInSeat.Stack, cardString)
 			} else if uint32(seatNo) == h.BigBlindPos {
-				fmt.Fprintf(&b, " {%d: %s, %d, %s, BB} ",
+				fmt.Fprintf(&b, " {%d: %s, %f, %s, BB} ",
 					seatNo, player.PlayerName, playerInSeat.Stack, cardString)
 			} else {
-				fmt.Fprintf(&b, " {%d: %s, %d, %s} ",
+				fmt.Fprintf(&b, " {%d: %s, %f, %s} ",
 					seatNo, player.PlayerName, playerInSeat.Stack, cardString)
 			}
 		}
@@ -50,7 +50,7 @@ func (n *NextSeatAction) PrettyPrint(h *HandState, playersInSeats []SeatPlayer) 
 	player := playersInSeats[seatNo]
 	var b strings.Builder
 	b.Grow(32)
-	fmt.Fprintf(&b, " Next Action: {Seat No: %d, Player: %s, balance: %d}, ", seatNo, player.Name, playerState.Stack)
+	fmt.Fprintf(&b, " Next Action: {Seat No: %d, Player: %s, balance: %f}, ", seatNo, player.Name, playerState.Stack)
 	fmt.Fprintf(&b, " Available actions: [")
 	for _, action := range n.AvailableActions {
 		switch action {
@@ -59,13 +59,13 @@ func (n *NextSeatAction) PrettyPrint(h *HandState, playersInSeats []SeatPlayer) 
 		case ACTION_CHECK:
 			fmt.Fprintf(&b, "{CHECK},")
 		case ACTION_CALL:
-			fmt.Fprintf(&b, "{CALL, callAmount: %d},", n.CallAmount)
+			fmt.Fprintf(&b, "{CALL, callAmount: %f},", n.CallAmount)
 		case ACTION_RAISE:
-			fmt.Fprintf(&b, "{RAISE, raise min: %d, max: %d},", n.MinRaiseAmount, n.MaxRaiseAmount)
+			fmt.Fprintf(&b, "{RAISE, raise min: %f, max: %f},", n.MinRaiseAmount, n.MaxRaiseAmount)
 		case ACTION_ALLIN:
-			fmt.Fprintf(&b, "{ALL_IN, allInAmount: %d},", n.AllInAmount)
+			fmt.Fprintf(&b, "{ALL_IN, allInAmount: %f},", n.AllInAmount)
 		case ACTION_STRADDLE:
-			fmt.Fprintf(&b, "{STRADDLE, straddleAmount: %d},", n.StraddleAmount)
+			fmt.Fprintf(&b, "{STRADDLE, straddleAmount: %f},", n.StraddleAmount)
 		case ACTION_RUN_IT_TWICE_YES:
 			fmt.Fprintf(&b, "{RUN_IT_TWICE, YES},")
 		case ACTION_RUN_IT_TWICE_NO:
@@ -99,7 +99,7 @@ func (h *HandState) PrintCurrentActionLog(playersInSeats []SeatPlayer) string {
 	}
 	var pots string = ""
 	for _, pot := range log.Pots {
-		pots = pots + fmt.Sprintf("%d", pot)
+		pots = pots + fmt.Sprintf("%f", pot)
 	}
 	fmt.Fprintf(&b, "Pots: %s\n", pots)
 	return b.String()
@@ -136,5 +136,5 @@ func (a *HandAction) Print(h *HandState, playersInSeats []SeatPlayer) string {
 	if a.Action == ACTION_FOLD {
 		return fmt.Sprintf("%s   %s", player.Name, action)
 	}
-	return fmt.Sprintf("%s   %s   %d", player.Name, action, a.Amount)
+	return fmt.Sprintf("%s   %s   %f", player.Name, action, a.Amount)
 }

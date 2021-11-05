@@ -9,7 +9,7 @@ message PlayerInSeat {
   uint64 player_id = 1;
   string name = 2;
   uint32 seat_no = 3;
-  int64  buy_in = 4;
+  float  buy_in = 4;
 }
 
 // message GameJoinMessage {
@@ -26,7 +26,7 @@ message PlayerInSeat {
 message GamePlayerSatMessage {
   uint64 player_id = 1;
   uint32 seat_no = 2;
-  int64  buy_in = 3;
+  float  buy_in = 3;
 }
 
 // message GameStatusChangeMessage {
@@ -36,8 +36,8 @@ message GamePlayerSatMessage {
 message PlayerAtTableState {
   uint64 player_id = 1;
   uint32 seat_no = 2;
-  int64 buy_in = 3;
-  int64 current_balance = 4;
+  float buy_in = 3;
+  float current_balance = 4;
   PlayerStatus status = 5;
   bool run_it_twice = 6;
 }
@@ -67,7 +67,7 @@ message TestHandSetup {
   uint32 pause = 10;
   uint32 hand_num = 11;
   bool bomb_pot = 12;
-  int64 bomb_pot_bet = 13;
+  float bomb_pot_bet = 13;
   bool double_board = 14;
   bool include_stats = 15;
   uint32 result_pause_time = 16;

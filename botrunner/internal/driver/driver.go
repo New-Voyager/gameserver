@@ -834,14 +834,14 @@ func (br *BotRunner) isSitIn(seatNo uint32, playerName string, playersInSeat []g
 	return false
 }
 
-func (br *BotRunner) isBoughtIn(seatNo uint32, numChips int64, playersInSeat []game.SeatInfo) bool {
+func (br *BotRunner) isBoughtIn(seatNo uint32, numChips float32, playersInSeat []game.SeatInfo) bool {
 	for _, p := range playersInSeat {
 		if p.SeatNo == seatNo {
 			if p.BuyIn == numChips {
 				return true
 			}
 			if p.BuyIn != 0 {
-				br.logger.Warn().Msgf("Seat [%d] expected to buy in [%d] chips, but bought in [%d] instead", seatNo, numChips, p.BuyIn)
+				br.logger.Warn().Msgf("Seat [%d] expected to buy in [%f] chips, but bought in [%f] instead", seatNo, numChips, p.BuyIn)
 			}
 		}
 	}

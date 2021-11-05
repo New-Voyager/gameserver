@@ -36,16 +36,16 @@ type TestGameConfig struct {
 	Title              string      `json:"title" yaml:"title"`
 	Status             GameStatus  `json:"status"`
 	TableStatus        TableStatus `json:"tableStatus"`
-	SmallBlind         int64       `json:"smallBlind" yaml:"sb"`
-	BigBlind           int64       `json:"bigBlind" yaml:"bb"`
-	StraddleBet        int64       `json:"straddleBet"`
+	SmallBlind         float64     `json:"smallBlind" yaml:"sb"`
+	BigBlind           float64     `json:"bigBlind" yaml:"bb"`
+	StraddleBet        float64     `json:"straddleBet"`
 	MinPlayers         int         `json:"minPlayers" yaml:"min-players"`
 	MaxPlayers         int         `json:"maxPlayers" yaml:"max-players"`
 	GameLength         int         `json:"gameLength"`
 	RakePercentage     float64     `json:"rakePercentage" yaml:"rake-percentage"`
-	RakeCap            int64       `json:"rakeCap" yaml:"rake-cap"`
-	BuyInMin           int64       `json:"buyInMin" yaml:"min-buyin"`
-	BuyInMax           int64       `json:"buyInMax" yaml:"max-buyin"`
+	RakeCap            float64     `json:"rakeCap" yaml:"rake-cap"`
+	BuyInMin           float64     `json:"buyInMin" yaml:"min-buyin"`
+	BuyInMax           float64     `json:"buyInMax" yaml:"max-buyin"`
 	ActionTime         int         `json:"actionTime"`
 	StartedBy          string      `json:"startedBy"`
 	StartedByUuid      string      `json:"startedByUuid"`
@@ -54,7 +54,7 @@ type TestGameConfig struct {
 	AutoStart          bool        `yaml:"auto-start"`
 	AutoApprove        bool        `yaml:"auto-approve"`
 	RewardTrackingIds  []uint32    `json:"rewardTrackingIds"`
-	BringIn            int64       `json:"bringIn" yaml:"bring-in"`
+	BringIn            float64     `json:"bringIn" yaml:"bring-in"`
 }
 
 type GamePlayer struct {
@@ -82,12 +82,12 @@ take-seat:
   wait: 1
 */
 type PlayerSeat struct {
-	Player                   uint64 `yaml:"player"`
-	SeatNo                   uint32 `yaml:"seat"`
-	BuyIn                    int64  `yaml:"buy-in"`
-	RunItTwice               bool   `yaml:"run-it-twice"`
-	RunItTwicePromptResponse bool   `yaml:"run-it-twice-prompt"`
-	PostBlind                bool   `yaml:"post-blind"`
+	Player                   uint64  `yaml:"player"`
+	SeatNo                   uint32  `yaml:"seat"`
+	BuyIn                    float32 `yaml:"buy-in"`
+	RunItTwice               bool    `yaml:"run-it-twice"`
+	RunItTwicePromptResponse bool    `yaml:"run-it-twice-prompt"`
+	PostBlind                bool    `yaml:"post-blind"`
 }
 
 type SeatVerification struct {
@@ -153,7 +153,7 @@ type HandSetup struct {
 	NewPlayers  []PlayerSeat         `yaml:"new-players"`
 	Verify      HandSetupVerfication `yaml:"verify"`
 	BombPot     bool                 `yaml:"bomb-pot"`
-	BombPotBet  int64                `yaml:"bomb-pot-bet"`
+	BombPotBet  uint32               `yaml:"bomb-pot-bet"`
 	DoubleBoard bool                 `yaml:"double-board"`
 }
 
@@ -169,12 +169,12 @@ type HandSetup struct {
 type TestHandAction struct {
 	SeatNo       uint32        `yaml:"seat"`
 	Action       string        `yaml:"action"`
-	Amount       int64         `yaml:"amount"`
+	Amount       float32       `yaml:"amount"`
 	VerifyAction *VerifyAction `yaml:"verify-action"`
 }
 
 type Pot struct {
-	Pot        int64    `yaml:"pot"`
+	Pot        float32  `yaml:"pot"`
 	SeatsInPot []uint32 `yaml:"seats"`
 }
 
@@ -214,15 +214,15 @@ type BettingRound struct {
          stack: 101
 */
 type TestHandWinner struct {
-	Seat    uint32 `yaml:"seat"`
-	Receive int64  `yaml:"receive"`
-	RankStr string `yaml:"rank"`
-	Rake    int64  `yaml:"rake"`
+	Seat    uint32  `yaml:"seat"`
+	Receive float32 `yaml:"receive"`
+	RankStr string  `yaml:"rank"`
+	Rake    float32 `yaml:"rake"`
 }
 
 type PlayerStack struct {
-	Seat  uint32 `yaml:"seat"`
-	Stack int64  `yaml:"stack"`
+	Seat  uint32  `yaml:"seat"`
+	Stack float32 `yaml:"stack"`
 }
 
 type TestHandResultVerify struct {
@@ -255,9 +255,9 @@ type GameScript struct {
 }
 
 type PlayerAtTable struct {
-	SeatNo   uint32 `yaml:"seat"`
-	PlayerID uint64 `yaml:"player"`
-	Stack    int64  `yaml:"stack"`
+	SeatNo   uint32  `yaml:"seat"`
+	PlayerID uint64  `yaml:"player"`
+	Stack    float32 `yaml:"stack"`
 }
 
 type PokerTable struct {
@@ -265,16 +265,16 @@ type PokerTable struct {
 }
 
 type BetAmount struct {
-	Text   string `yaml:"text"`
-	Amount int64  `yaml:"amount"`
+	Text   string  `yaml:"text"`
+	Amount float32 `yaml:"amount"`
 }
 
 type VerifyAction struct {
 	Actions        []string    `yaml:"actions"`
-	CallAmount     int64       `yaml:"call-amount"`
-	AllInAmount    int64       `yaml:"all-in-amount"`
-	MinRaiseAmount int64       `yaml:"min-raise-amount"`
-	MaxRaiseAmount int64       `yaml:"max-raise-amount"`
+	CallAmount     float32     `yaml:"call-amount"`
+	AllInAmount    float32     `yaml:"all-in-amount"`
+	MinRaiseAmount float32     `yaml:"min-raise-amount"`
+	MaxRaiseAmount float32     `yaml:"max-raise-amount"`
 	BetAmounts     []BetAmount `yaml:"bet-amounts"`
 }
 
@@ -308,8 +308,8 @@ type SeatPlayer struct {
 	PlayerUUID         string `json:"playerUuid"`
 	Name               string
 	EncryptionKey      string
-	BuyIn              int64
-	Stack              int64
+	BuyIn              float32
+	Stack              float32
 	Status             PlayerStatus
 	GameToken          string
 	GameTokenInt       uint64
@@ -342,14 +342,14 @@ type NewHandInfo struct {
 	GameCode          string
 	GameType          GameType
 	MaxPlayers        uint32
-	SmallBlind        int64
-	BigBlind          int64
+	SmallBlind        float32
+	BigBlind          float32
 	ButtonPos         uint32
 	HandNum           uint32
 	ActionTime        uint32
-	StraddleBet       int64
+	StraddleBet       float32
 	RakePercentage    float32
-	RakeCap           int64
+	RakeCap           float32
 	AnnounceGameType  bool
 	PlayersInSeats    []SeatPlayer
 	GameStatus        GameStatus
@@ -359,8 +359,8 @@ type NewHandInfo struct {
 	ResultPauseTime   uint32
 	BombPot           bool
 	DoubleBoard       bool
-	BombPotBet        int64
-	BringIn           int64
+	BombPotBet        float32
+	BringIn           float32
 	RunItTwiceTimeout uint32
 	HighHandRank      uint32
 	HighHandTracked   bool

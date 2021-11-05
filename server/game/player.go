@@ -365,7 +365,7 @@ func (p *Player) GameProtoMessageFromAdapter(message *GameMessage) error {
 	return nil
 }
 
-func (p *Player) JoinGame(gameID uint64, seatNo uint32, buyIn int64, runItTwice bool, runItTwicePromptResponse bool, postBlind bool) error {
+func (p *Player) JoinGame(gameID uint64, seatNo uint32, buyIn float32, runItTwice bool, runItTwicePromptResponse bool, postBlind bool) error {
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	if _, ok := GameManager.activeGames[gameIDStr]; !ok {
 		// game not found
@@ -432,7 +432,7 @@ func (p *Player) SetupNextHand(num uint32, handSetup HandSetup) error {
 
 	if handSetup.BombPot {
 		nextHand.BombPot = true
-		nextHand.BombPotBet = handSetup.BombPotBet
+		nextHand.BombPotBet = float32(handSetup.BombPotBet)
 		nextHand.DoubleBoard = handSetup.DoubleBoard
 	}
 
