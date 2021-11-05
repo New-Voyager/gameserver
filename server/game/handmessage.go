@@ -188,7 +188,7 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 		boardCards[i] = uint32(card)
 	}
 
-	pots := make([]float32, 0)
+	pots := make([]int64, 0)
 	for _, pot := range handState.Pots {
 		pots = append(pots, pot.Pot)
 	}
@@ -271,7 +271,7 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 		currentHandState.RemainingActionTime = g.GetRemainingActionTime()
 		currentHandState.NextSeatAction = handState.NextSeatAction
 	}
-	currentHandState.PlayersStack = make(map[uint64]float32)
+	currentHandState.PlayersStack = make(map[uint64]int64)
 	for seatNo, player := range handState.PlayersInSeats {
 		if seatNo == 0 || player.OpenSeat {
 			continue
@@ -462,7 +462,7 @@ func validatePlayerAction(playerMsg *HandMessage, actionMsg *HandMessageItem, ha
 		}
 		expectedCallAmount := handState.GetNextSeatAction().CallAmount
 		if action.Amount != expectedCallAmount {
-			return fmt.Errorf("Invalid call amount %f. Expected amount: %f", action.Amount, expectedCallAmount)
+			return fmt.Errorf("Invalid call amount %d. Expected amount: %d", action.Amount, expectedCallAmount)
 		}
 	}
 
@@ -566,7 +566,7 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 
 	playerAction := handState.PlayersActed[seatNo]
 	bettingState := handState.RoundState[uint32(handStage)]
-	potUpdates := float32(0)
+	potUpdates := int64(0)
 	for _, bet := range bettingState.Betting.SeatBet {
 		potUpdates += bet
 	}
@@ -751,8 +751,8 @@ func (g *Game) sendActionAck(handState *HandState, playerMsg *HandMessage, curre
 		Msgf("Acknowledgment sent to player. Message Id: %s", playerMsg.GetMessageId())
 }
 
-func (g *Game) getPots(handState *HandState) ([]float32, []*SeatsInPots) {
-	pots := make([]float32, 0)
+func (g *Game) getPots(handState *HandState) ([]int64, []*SeatsInPots) {
+	pots := make([]int64, 0)
 	seatsInPots := make([]*SeatsInPots, 0)
 	for _, pot := range handState.Pots {
 		if pot.Pot == 0 {
@@ -827,7 +827,7 @@ func (g *Game) gotoFlop(handState *HandState) ([]*HandMessageItem, error) {
 		return nil, err
 	}
 	pots, seatsInPots := g.getPots(handState)
-	balance := make(map[uint32]float32)
+	balance := make(map[uint32]int64)
 	for seatNo, player := range handState.PlayersInSeats {
 		if seatNo == 0 {
 			continue
@@ -900,7 +900,7 @@ func (g *Game) gotoTurn(handState *HandState) ([]*HandMessageItem, error) {
 
 	pots, seatsInPots := g.getPots(handState)
 
-	balance := make(map[uint32]float32)
+	balance := make(map[uint32]int64)
 	for seatNo, player := range handState.PlayersInSeats {
 		if seatNo == 0 {
 			continue
@@ -973,7 +973,7 @@ func (g *Game) gotoRiver(handState *HandState) ([]*HandMessageItem, error) {
 
 	pots, seatsInPots := g.getPots(handState)
 
-	balance := make(map[uint32]float32)
+	balance := make(map[uint32]int64)
 	for seatNo, player := range handState.PlayersInSeats {
 		if seatNo == 0 {
 			continue
@@ -1061,8 +1061,8 @@ func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([
 			continue
 		}
 
-		before := float32(0.0)
-		after := float32(0.0)
+		before := int64(0)
+		after := int64(0)
 		for _, playerBalance := range hs.BalanceBeforeHand {
 			if playerBalance.SeatNo == uint32(seatNo) {
 				before = playerBalance.Balance
@@ -1074,7 +1074,7 @@ func (g *Game) sendResult2(hs *HandState, handResultClient *HandResultClient) ([
 		} else {
 			after = player.Stack
 		}
-		rakePaid := float32(0.0)
+		rakePaid := int64(0.0)
 		if playerRake, ok := hs.RakePaid[player.PlayerId]; ok {
 			rakePaid = playerRake
 		}
@@ -1208,7 +1208,7 @@ func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error
 	g.resetTimer(handState.NextSeatAction.SeatNo, player.PlayerId, canCheck, actionTimesoutAt)
 	allMsgItems = append(allMsgItems, yourActionMsg)
 
-	pots := make([]float32, 0)
+	pots := make([]int64, 0)
 	for _, pot := range handState.Pots {
 		pots = append(pots, pot.Pot)
 	}
@@ -1216,7 +1216,7 @@ func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error
 	roundState := handState.RoundState[uint32(handState.CurrentState)]
 	currentBettingRound := roundState.Betting
 	seatBets := currentBettingRound.SeatBet
-	bettingRoundBets := float32(0)
+	bettingRoundBets := int64(0)
 	for _, bet := range seatBets {
 		bettingRoundBets = bettingRoundBets + bet
 	}
@@ -1471,9 +1471,9 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 }
 
 func (g *Game) analyzeResult(handResult *HandResultServer) error {
-	var playerBalanceBefore float32
-	var playerBalanceAfter float32
-	var rakeCollectedTotal float32
+	var playerBalanceBefore int64
+	var playerBalanceAfter int64
+	var rakeCollectedTotal int64
 	errMsgs := make([]string, 0)
 	result := handResult.Result
 	for _, pi := range result.PlayerInfo {
@@ -1483,7 +1483,7 @@ func (g *Game) analyzeResult(handResult *HandResultServer) error {
 	}
 
 	if (playerBalanceBefore - rakeCollectedTotal) != playerBalanceAfter {
-		errMsgs = append(errMsgs, fmt.Sprintf("Chips don't add up. Before: %f, Rake: %f, After: %f", playerBalanceBefore, rakeCollectedTotal, playerBalanceAfter))
+		errMsgs = append(errMsgs, fmt.Sprintf("Chips don't add up. Before: %d, Rake: %d, After: %d", playerBalanceBefore, rakeCollectedTotal, playerBalanceAfter))
 	}
 
 	if len(errMsgs) > 0 {

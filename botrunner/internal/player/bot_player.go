@@ -87,7 +87,7 @@ type BotPlayer struct {
 	buyInAmount uint32
 	havePair    bool
 	pairCard    uint32
-	balance     float32
+	balance     int64
 
 	// For message acknowledgement
 	clientLastMsgID   string
@@ -782,11 +782,11 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			if bp.config.Script.IsSeatHuman(seatNo) {
 				actedPlayerType = "human"
 			}
-			bp.logger.Debug().Msgf("%s: Seat %d (%s/%s) acted%s [%s %f] Stage:%s.", bp.logPrefix, seatNo, actedPlayerName, actedPlayerType, timedout, action, amount, bp.game.handStatus)
+			bp.logger.Debug().Msgf("%s: Seat %d (%s/%s) acted%s [%s %d] Stage:%s.", bp.logPrefix, seatNo, actedPlayerName, actedPlayerType, timedout, action, amount, bp.game.handStatus)
 		}
 		if bp.IsHuman() && seatNo != bp.seatNo {
 			// I'm a human and I see another player acted.
-			bp.logger.Debug().Msgf("%s: Seat %d: %s %f%s", bp.logPrefix, seatNo, action, amount, timedout)
+			bp.logger.Debug().Msgf("%s: Seat %d: %s %d%s", bp.logPrefix, seatNo, action, amount, timedout)
 		}
 		if seatNo == bp.seatNo && isTimedOut {
 			bp.event(BotEvent__ACTION_TIMEDOUT)
@@ -798,12 +798,12 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 				if verify != nil {
 					bp.logger.Info().Msg("Verify previous action")
 					if verify.Stack != playerActed.Stack {
-						bp.logger.Panic().Msgf("%s: Hand %d Seat No: %d verify seat action failed. Player stack: %f expected: %f",
+						bp.logger.Panic().Msgf("%s: Hand %d Seat No: %d verify seat action failed. Player stack: %d expected: %d",
 							bp.logPrefix, bp.game.handNum, bp.seatNo, playerActed.Stack, verify.Stack)
 					}
 
 					if verify.PotUpdates != playerActed.PotUpdates {
-						bp.logger.Panic().Msgf("%s: Hand %d Seat No: %d  verify seat action failed. Pot updates: %f expected: %f",
+						bp.logger.Panic().Msgf("%s: Hand %d Seat No: %d  verify seat action failed. Pot updates: %d expected: %d",
 							bp.logPrefix, bp.game.handNum, bp.seatNo, playerActed.PotUpdates, verify.PotUpdates)
 					}
 				}
@@ -968,7 +968,7 @@ func (bp *BotPlayer) verifyBoard() {
 	}
 }
 
-func (bp *BotPlayer) updateBalance(playerBalances map[uint32]float32) {
+func (bp *BotPlayer) updateBalance(playerBalances map[uint32]int64) {
 	balance, exists := playerBalances[bp.seatNo]
 	if exists {
 		bp.balance = balance
@@ -1147,7 +1147,7 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 func (bp *BotPlayer) verifyBoardWinners(scriptBoard *gamescript.BoardWinner, actualResult *game.BoardWinner) bool {
 	type winner struct {
 		SeatNo  uint32
-		Amount  float32
+		Amount  int64
 		RankStr string
 	}
 	passed := true
@@ -1238,9 +1238,9 @@ func (bp *BotPlayer) verifyResult2() {
 	} else {
 		type winner struct {
 			SeatNo   uint32
-			Amount   float32
+			Amount   int64
 			RankStr  string
-			RakePaid float32
+			RakePaid int64
 		}
 		if len(scriptResult.Winners) > 0 {
 			expectedWinnersBySeat := make(map[uint32]winner)
@@ -1350,7 +1350,7 @@ func (bp *BotPlayer) verifyResult2() {
 			if expectedBalanceBefore != nil {
 				actualBalanceBefore := resultPlayers[seatNo].GetBalance().Before
 				if actualBalanceBefore != *expectedBalanceBefore {
-					bp.logger.Error().Msgf("%s: Hand %d result verify failed. Starting balance for seat# %d: %f. Expected: %f.", bp.logPrefix, bp.game.handNum, seatNo, actualBalanceBefore, *expectedBalanceBefore)
+					bp.logger.Error().Msgf("%s: Hand %d result verify failed. Starting balance for seat# %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, actualBalanceBefore, *expectedBalanceBefore)
 					passed = false
 				}
 			}
@@ -1358,7 +1358,7 @@ func (bp *BotPlayer) verifyResult2() {
 			if expectedBalanceAfter != nil {
 				actualBalanceAfter := resultPlayers[seatNo].GetBalance().After
 				if actualBalanceAfter != *expectedBalanceAfter {
-					bp.logger.Error().Msgf("%s: Hand %d result verify failed. Remaining balance for seat# %d: %f. Expected: %f.", bp.logPrefix, bp.game.handNum, seatNo, actualBalanceAfter, *expectedBalanceAfter)
+					bp.logger.Error().Msgf("%s: Hand %d result verify failed. Remaining balance for seat# %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, actualBalanceAfter, *expectedBalanceAfter)
 					passed = false
 				}
 			}
@@ -1426,7 +1426,7 @@ func (bp *BotPlayer) verifyPotWinners(actualPot *game.PotWinners, expectedPot ga
 	}
 	type winner struct {
 		SeatNo  uint32
-		Amount  float32
+		Amount  int64
 		RankStr string
 	}
 	passed := true
@@ -1540,19 +1540,19 @@ func (bp *BotPlayer) verifyGameResultTable(gameCode string, expectedRows []games
 			passed = false
 		}
 		if rows[i].BuyIn != expectedRows[i].BuyIn {
-			bp.logger.Error().Msgf("Game result table player %s buy-in: %f, expected: %f", rows[i].PlayerName, rows[i].BuyIn, expectedRows[i].BuyIn)
+			bp.logger.Error().Msgf("Game result table player %s buy-in: %d, expected: %d", rows[i].PlayerName, rows[i].BuyIn, expectedRows[i].BuyIn)
 			passed = false
 		}
 		if rows[i].Stack != expectedRows[i].Stack {
-			bp.logger.Error().Msgf("Game result table player %s stack: %f, expected: %f", rows[i].PlayerName, rows[i].Stack, expectedRows[i].Stack)
+			bp.logger.Error().Msgf("Game result table player %s stack: %d, expected: %d", rows[i].PlayerName, rows[i].Stack, expectedRows[i].Stack)
 			passed = false
 		}
 		if rows[i].Profit != expectedRows[i].Profit {
-			bp.logger.Error().Msgf("Game result table player %s profit: %f, expected: %f", rows[i].PlayerName, rows[i].Profit, expectedRows[i].Profit)
+			bp.logger.Error().Msgf("Game result table player %s profit: %d, expected: %d", rows[i].PlayerName, rows[i].Profit, expectedRows[i].Profit)
 			passed = false
 		}
 		if rows[i].RakePaid != expectedRows[i].RakePaid {
-			bp.logger.Error().Msgf("Game result table player %s rake paid: %f, expected: %f", rows[i].PlayerName, rows[i].RakePaid, expectedRows[i].RakePaid)
+			bp.logger.Error().Msgf("Game result table player %s rake paid: %d, expected: %d", rows[i].PlayerName, rows[i].RakePaid, expectedRows[i].RakePaid)
 			passed = false
 		}
 	}
@@ -1573,7 +1573,7 @@ func (bp *BotPlayer) GetSeatNo() uint32 {
 	return bp.seatNo
 }
 
-func (bp *BotPlayer) SetBalance(balance float32) {
+func (bp *BotPlayer) SetBalance(balance int64) {
 	bp.balance = balance
 }
 
@@ -1745,7 +1745,7 @@ func (bp *BotPlayer) GetRewardID(clubCode string, name string) (uint32, error) {
 }
 
 // CreateClubReward creates a new club reward.
-func (bp *BotPlayer) CreateClubReward(clubCode string, name string, rewardType string, scheduleType string, amount float32) (uint32, error) {
+func (bp *BotPlayer) CreateClubReward(clubCode string, name string, rewardType string, scheduleType string, amount int64) (uint32, error) {
 	bp.logger.Info().Msgf("%s: Creating a new club reward [%s].", bp.logPrefix, name)
 	rewardID, err := bp.GetRewardID(clubCode, name)
 
@@ -1988,7 +1988,7 @@ func (bp *BotPlayer) JoinGame(gameCode string, gps *gamescript.GpsLocation) erro
 			// I was sitting, but crashed before submitting a buy-in.
 			// The game's waiting for me to buy in, so that it can start a hand. Go ahead and submit a buy-in request.
 			if bp.IsHuman() {
-				bp.logger.Info().Msgf("%s: Press ENTER to buy in [%f] chips...", bp.logPrefix, scriptBuyInAmount)
+				bp.logger.Info().Msgf("%s: Press ENTER to buy in [%d] chips...", bp.logPrefix, scriptBuyInAmount)
 				bufio.NewReader(os.Stdin).ReadBytes('\n')
 			}
 			err := bp.BuyIn(gameCode, scriptBuyInAmount)
@@ -2024,7 +2024,7 @@ func (bp *BotPlayer) JoinGame(gameCode string, gps *gamescript.GpsLocation) erro
 		}
 
 		if bp.IsHuman() {
-			bp.logger.Info().Msgf("%s: Press ENTER to buy in [%f] chips...", bp.logPrefix, scriptBuyInAmount)
+			bp.logger.Info().Msgf("%s: Press ENTER to buy in [%d] chips...", bp.logPrefix, scriptBuyInAmount)
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
 		} else {
 			// update player config
@@ -2082,7 +2082,7 @@ func (bp *BotPlayer) NewPlayer(gameCode string, startingSeat *gamescript.Startin
 			// I was sitting, but crashed before submitting a buy-in.
 			// The game's waiting for me to buy in, so that it can start a hand. Go ahead and submit a buy-in request.
 			if bp.IsHuman() {
-				bp.logger.Info().Msgf("%s: Press ENTER to buy in [%f] chips...", bp.logPrefix, scriptBuyInAmount)
+				bp.logger.Info().Msgf("%s: Press ENTER to buy in [%d] chips...", bp.logPrefix, scriptBuyInAmount)
 				bufio.NewReader(os.Stdin).ReadBytes('\n')
 			}
 			err := bp.BuyIn(gameCode, scriptBuyInAmount)
@@ -2119,7 +2119,7 @@ func (bp *BotPlayer) NewPlayer(gameCode string, startingSeat *gamescript.Startin
 		}
 
 		if bp.IsHuman() {
-			bp.logger.Info().Msgf("%s: Press ENTER to buy in [%f] chips...", bp.logPrefix, scriptBuyInAmount)
+			bp.logger.Info().Msgf("%s: Press ENTER to buy in [%d] chips...", bp.logPrefix, scriptBuyInAmount)
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
 		} else {
 			// update player config
@@ -2158,7 +2158,7 @@ func (bp *BotPlayer) autoReloadBalance() error {
 		// This player is explicitly set to not reload.
 		return nil
 	}
-	bp.logger.Info().Msgf("%s: [%s] Buyin %f.", bp.logPrefix, bp.gameCode, bp.gameInfo.BuyInMax)
+	bp.logger.Info().Msgf("%s: [%s] Buyin %d.", bp.logPrefix, bp.gameCode, bp.gameInfo.BuyInMax)
 	err := bp.BuyIn(bp.gameCode, bp.gameInfo.BuyInMax)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to buy in", bp.logPrefix))
@@ -2235,18 +2235,18 @@ func (bp *BotPlayer) SitIn(gameCode string, seatNo uint32, gps *gamescript.GpsLo
 }
 
 // BuyIn is where you buy the chips once seated in a game.
-func (bp *BotPlayer) BuyIn(gameCode string, amount float32) error {
-	//bp.logger.Info().Msgf("%s: Buying in amount [%f].", bp.logPrefix, amount)
+func (bp *BotPlayer) BuyIn(gameCode string, amount int64) error {
+	//bp.logger.Info().Msgf("%s: Buying in amount [%d].", bp.logPrefix, amount)
 
 	resp, err := bp.gqlHelper.BuyIn(gameCode, amount)
 	if err != nil {
-		return errors.Wrapf(err, "%s: Error from GQL helper while trying to buy in %f chips", bp.logPrefix, amount)
+		return errors.Wrapf(err, "%s: Error from GQL helper while trying to buy in %d chips", bp.logPrefix, amount)
 	}
 
 	if resp.Status.Approved {
-		bp.logger.Info().Msgf("%s: Successfully bought in [%f] chips.", bp.logPrefix, amount)
+		bp.logger.Info().Msgf("%s: Successfully bought in [%d] chips.", bp.logPrefix, amount)
 	} else {
-		bp.logger.Info().Msgf("%s: Requested to buy in [%f] chips. Needs approval.", bp.logPrefix, amount)
+		bp.logger.Info().Msgf("%s: Requested to buy in [%d] chips. Needs approval.", bp.logPrefix, amount)
 	}
 
 	return nil
@@ -2439,7 +2439,7 @@ func (bp *BotPlayer) doesScriptActionExists(scriptHand gamescript.Hand, handStat
 func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandStatus) {
 	availableActions := seatAction.AvailableActions
 	nextAction := game.ACTION_CHECK
-	nextAmt := float32(0)
+	nextAmt := int64(0)
 	autoPlay := false
 
 	if bp.config.Script.AutoPlay.Enabled {
@@ -2462,9 +2462,9 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		checkAvailable := false
 		callAvailable := false
 		allInAvailable := false
-		allInAmount := float32(0.0)
-		minBet := float32(0.0)
-		maxBet := float32(0.0)
+		allInAmount := int64(0)
+		minBet := int64(0)
+		maxBet := int64(0)
 		// we are in auto play now
 		for _, action := range seatAction.AvailableActions {
 			if action == game.ACTION_CHECK {
@@ -2501,7 +2501,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 
 		// do I have a pair
 		if bp.havePair {
-			pairValue := (float32)(bp.pairCard / 16)
+			pairValue := (int64)(bp.pairCard / 16)
 			nextAmt = pairValue * minBet
 			if nextAmt > maxBet {
 				nextAmt = maxBet
@@ -2668,7 +2668,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 	}
 
 	if bp.IsHuman() {
-		bp.logger.Info().Msgf("%s: Seat %d: Your Turn. Press ENTER to continue with [%s %f] (Hand Status: %s)...", bp.logPrefix, bp.seatNo, nextAction, nextAmt, bp.game.handStatus)
+		bp.logger.Info().Msgf("%s: Seat %d: Your Turn. Press ENTER to continue with [%s %d] (Hand Status: %s)...", bp.logPrefix, bp.seatNo, nextAction, nextAmt, bp.game.handStatus)
 		bufio.NewReader(os.Stdin).ReadBytes('\n')
 	}
 
@@ -2737,7 +2737,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 			time.Sleep(2 * time.Second)
 		}()
 	} else {
-		bp.logger.Debug().Msgf("%s: Seat %d (%s) is about to act [%s %f]. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, handAction.Action, handAction.Amount, bp.game.handStatus)
+		bp.logger.Debug().Msgf("%s: Seat %d (%s) is about to act [%s %d]. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, handAction.Action, handAction.Amount, bp.game.handStatus)
 		if actionDelayOverride > 0 {
 			bp.logger.Info().Msgf("%s: Seat %d (%s) sleeping for %d milliseconds", bp.logPrefix, bp.seatNo, playerName, actionDelayOverride)
 		}
@@ -2824,7 +2824,7 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 	}
 }
 
-func (bp *BotPlayer) rememberPlayerAction(seatNo uint32, action game.ACTION, amount float32, timedOut bool, handStatus game.HandStatus) {
+func (bp *BotPlayer) rememberPlayerAction(seatNo uint32, action game.ACTION, amount int64, timedOut bool, handStatus game.HandStatus) {
 	bp.game.table.actionTracker.RecordAction(seatNo, action, amount, timedOut, handStatus)
 	bp.game.table.playersActed[seatNo] = &game.PlayerActRound{
 		Action: action,
@@ -2931,7 +2931,7 @@ func (bp *BotPlayer) PrintHandResult() {
 				if cardsStr != "" {
 					winningCards = fmt.Sprintf(" Winning Cards: %s (%s)", cardsStr, rankStr)
 				}
-				bp.logger.Info().Msgf("%s: Pot %d Hi-Winner %d: Seat %d (%s) Amount: %f%s", bp.logPrefix, potNum+1, i+1, seatNo, playerName, amount, winningCards)
+				bp.logger.Info().Msgf("%s: Pot %d Hi-Winner %d: Seat %d (%s) Amount: %d%s", bp.logPrefix, potNum+1, i+1, seatNo, playerName, amount, winningCards)
 			}
 			for i, winner := range board.LowWinners {
 				seatNo := winner.GetSeatNo()
@@ -2944,7 +2944,7 @@ func (bp *BotPlayer) PrintHandResult() {
 				if cardsStr != "" {
 					winningCards = fmt.Sprintf(" Lo Winning Cards: %s", cardsStr)
 				}
-				bp.logger.Info().Msgf("%s: Pot %d Low-Winner %d: Seat %d (%s) Amount: %f%s", bp.logPrefix, potNum+1, i+1, seatNo, playerName, amount, winningCards)
+				bp.logger.Info().Msgf("%s: Pot %d Low-Winner %d: Seat %d (%s) Amount: %d%s", bp.logPrefix, potNum+1, i+1, seatNo, playerName, amount, winningCards)
 			}
 		}
 	}

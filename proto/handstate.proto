@@ -40,7 +40,7 @@ message HandState {
   repeated uint64 active_seats = 9;
   uint32 no_active_seats = 10;
 
-  float current_raise = 11;
+  int64 current_raise = 11;
   uint32 action_complete_at_seat = 12;
   bool straddle_bet = 13;
 
@@ -72,7 +72,7 @@ message HandState {
   // key is player id
   //map <uint64, PlayerInSeatState> players_state = 26;
   repeated PlayerInSeatState players_in_seats = 26;
-  float next_min_raise = 27;
+  int64 next_min_raise = 27;
 
   // game type
   GameType game_type = 28;
@@ -92,17 +92,17 @@ message HandState {
   repeated uint32 all_in_players = 37;
   HandStatus lastState = 38;
   uint32 max_seats = 39;
-  float big_blind = 40;
-  float small_blind = 41;
-  float straddle = 42;
+  int64 big_blind = 40;
+  int64 small_blind = 41;
+  int64 straddle = 42;
   float rakePercentage = 43;
-  float rakeCap = 44;
+  int64 rakeCap = 44;
 
-  map <uint64, float> rake_paid = 48;  // rake paid by players 
-  float rake_collected = 49;
-  float current_raise_diff = 50;     // current raise diff
-  float bet_before_raise = 51;       // bet before the raise
-  float bring_in = 52;    // bring in chips
+  map <uint64, int64> rake_paid = 48;  // rake paid by players 
+  int64 rake_collected = 49;
+  int64 current_raise_diff = 50;     // current raise diff
+  int64 bet_before_raise = 51;       // bet before the raise
+  int64 bring_in = 52;    // bring in chips
 
   FlowState flow_state = 53;
   HandMessage action_msg_in_progress = 54;
@@ -120,7 +120,7 @@ message HandState {
   repeated Board boards = 64;
   bool bomb_pot = 65;
   bool double_board = 66;
-  float bomb_pot_bet = 67;
+  int64 bomb_pot_bet = 67;
   bool include_stats_in_result = 68;
   uint32 result_pause_time = 69;
   uint32 total_result_pause_time = 70;

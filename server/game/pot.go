@@ -9,7 +9,7 @@ func initializePot(maxSeats int) *SeatsInPots {
 	}
 }
 
-func (s *SeatsInPots) add(seatNo uint32, amount float32) {
+func (s *SeatsInPots) add(seatNo uint32, amount int64) {
 	found := false
 	for i := range s.Seats {
 		if seatNo == s.Seats[i] {
@@ -24,8 +24,8 @@ func (s *SeatsInPots) add(seatNo uint32, amount float32) {
 	s.Pot += amount
 }
 
-func (h *HandState) lowestBet(seatBets []float32) float32 {
-	lowestBet := float32(-1.0)
+func (h *HandState) lowestBet(seatBets []int64) int64 {
+	lowestBet := int64(-1)
 	for seatNo, bet := range seatBets {
 		// if !h.PlayersInSeats[seatNo].OpenSeat ||
 		//    !h.PlayersInSeats[seatNo].Inhand  {
@@ -47,14 +47,14 @@ func (h *HandState) lowestBet(seatBets []float32) float32 {
 		}
 	}
 
-	if lowestBet == -1.0 {
+	if lowestBet == -1 {
 		lowestBet = 0
 	}
 	// if 0, every one checked or no more bets remaining
 	return lowestBet
 }
 
-func (h *HandState) addChipsToPot(seatBets []float32, handEnded bool) {
+func (h *HandState) addChipsToPot(seatBets []int64, handEnded bool) {
 	currentPotIndex := len(h.Pots) - 1
 	currentPot := h.Pots[currentPotIndex]
 	lowestBet := h.lowestBet(seatBets)

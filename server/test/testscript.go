@@ -84,7 +84,7 @@ func (g *TestGameScript) verifyTableResult(t *TestDriver, expectedPlayers []game
 		}
 
 		if actual.GetCurrentBalance() != expected.Stack {
-			e := fmt.Errorf("[%s section] Player %d stack does not match. Expected: %f, actual: %f",
+			e := fmt.Errorf("[%s section] Player %d stack does not match. Expected: %d, actual: %d",
 				where, actual.PlayerId, expected.Stack, actual.CurrentBalance)
 			g.result.addError(e)
 			return e

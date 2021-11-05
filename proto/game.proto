@@ -4,8 +4,8 @@ option go_package = "./game";
 import "enums.proto";
 
 message PlayerState {
-  float buy_in = 1;
-  float current_balance = 2;
+  int64 buy_in = 1;
+  int64 current_balance = 2;
   PlayerStatus status = 3;
   string game_token = 4;
   uint64 game_token_int = 5;    // 40 bit number to do XOR decipher the cards
@@ -21,11 +21,11 @@ message PlayerState {
 message GamePlayerUpdate {
   uint64 player_id = 1;
   uint32 seat_no = 2;
-  float stack = 3;
-  float buy_in = 4;
+  int64 stack = 3;
+  int64 buy_in = 4;
   string game_token = 5;
   PlayerStatus status = 6;
-  float reload_chips = 7;
+  int64 reload_chips = 7;
   NewUpdate new_update = 8;
   uint32 old_seat = 9;
   string break_exp_at = 10;
@@ -37,7 +37,7 @@ message SeatMove {
   uint64 playerId = 1;
   string playerUuid = 2;
   string name = 3;
-  float stack = 4;
+  int64 stack = 4;
   uint32 oldSeatNo = 5;
   uint32 newSeatNo = 6;
 }
@@ -49,7 +49,7 @@ message SeatUpdate {
   uint64 player_id = 2;
   string player_uuid = 3;
   string name = 4;
-  float stack = 5;
+  int64 stack = 5;
   PlayerStatus player_status = 6;
   bool open_seat = 7;
 }

@@ -37,7 +37,7 @@ type player struct {
 	playerID uint64
 	seatNo   uint32
 	status   game.PlayerStatus
-	stack    float32
-	buyIn    float32
+	stack    int64
+	buyIn    int64
 	isBot    bool
 }
