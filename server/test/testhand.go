@@ -125,7 +125,7 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.Betting
 					bettingRound.Actions[i] = game.TestHandAction{
 						SeatNo: uint32(seatNo),
 						Action: action,
-						Amount: float32(amount),
+						Amount: float64(amount),
 					}
 				} else if len(s) == 2 {
 					seatNo, _ := strconv.Atoi(strings.Trim(s[0], " "))
@@ -711,7 +711,7 @@ func (h *TestHand) verifyBettingRound(t *TestDriver, verify *game.VerifyBettingR
 	}
 
 	if verify.Stacks != nil {
-		var stacks map[uint32]float32
+		var stacks map[uint32]float64
 		switch verify.State {
 		case "FLOP":
 			stacks = h.gameScript.observer.flop.PlayerBalance

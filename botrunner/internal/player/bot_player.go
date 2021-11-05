@@ -87,7 +87,7 @@ type BotPlayer struct {
 	buyInAmount uint32
 	havePair    bool
 	pairCard    uint32
-	balance     float32
+	balance     float64
 
 	// For message acknowledgement
 	clientLastMsgID   string
@@ -968,7 +968,7 @@ func (bp *BotPlayer) verifyBoard() {
 	}
 }
 
-func (bp *BotPlayer) updateBalance(playerBalances map[uint32]float32) {
+func (bp *BotPlayer) updateBalance(playerBalances map[uint32]float64) {
 	balance, exists := playerBalances[bp.seatNo]
 	if exists {
 		bp.balance = balance
@@ -1147,7 +1147,7 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 func (bp *BotPlayer) verifyBoardWinners(scriptBoard *gamescript.BoardWinner, actualResult *game.BoardWinner) bool {
 	type winner struct {
 		SeatNo  uint32
-		Amount  float32
+		Amount  float64
 		RankStr string
 	}
 	passed := true
@@ -1238,9 +1238,9 @@ func (bp *BotPlayer) verifyResult2() {
 	} else {
 		type winner struct {
 			SeatNo   uint32
-			Amount   float32
+			Amount   float64
 			RankStr  string
-			RakePaid float32
+			RakePaid float64
 		}
 		if len(scriptResult.Winners) > 0 {
 			expectedWinnersBySeat := make(map[uint32]winner)
@@ -1426,7 +1426,7 @@ func (bp *BotPlayer) verifyPotWinners(actualPot *game.PotWinners, expectedPot ga
 	}
 	type winner struct {
 		SeatNo  uint32
-		Amount  float32
+		Amount  float64
 		RankStr string
 	}
 	passed := true
@@ -1573,7 +1573,7 @@ func (bp *BotPlayer) GetSeatNo() uint32 {
 	return bp.seatNo
 }
 
-func (bp *BotPlayer) SetBalance(balance float32) {
+func (bp *BotPlayer) SetBalance(balance float64) {
 	bp.balance = balance
 }
 
@@ -1745,7 +1745,7 @@ func (bp *BotPlayer) GetRewardID(clubCode string, name string) (uint32, error) {
 }
 
 // CreateClubReward creates a new club reward.
-func (bp *BotPlayer) CreateClubReward(clubCode string, name string, rewardType string, scheduleType string, amount float32) (uint32, error) {
+func (bp *BotPlayer) CreateClubReward(clubCode string, name string, rewardType string, scheduleType string, amount float64) (uint32, error) {
 	bp.logger.Info().Msgf("%s: Creating a new club reward [%s].", bp.logPrefix, name)
 	rewardID, err := bp.GetRewardID(clubCode, name)
 
@@ -2235,7 +2235,7 @@ func (bp *BotPlayer) SitIn(gameCode string, seatNo uint32, gps *gamescript.GpsLo
 }
 
 // BuyIn is where you buy the chips once seated in a game.
-func (bp *BotPlayer) BuyIn(gameCode string, amount float32) error {
+func (bp *BotPlayer) BuyIn(gameCode string, amount float64) error {
 	//bp.logger.Info().Msgf("%s: Buying in amount [%f].", bp.logPrefix, amount)
 
 	resp, err := bp.gqlHelper.BuyIn(gameCode, amount)
@@ -2439,7 +2439,7 @@ func (bp *BotPlayer) doesScriptActionExists(scriptHand gamescript.Hand, handStat
 func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandStatus) {
 	availableActions := seatAction.AvailableActions
 	nextAction := game.ACTION_CHECK
-	nextAmt := float32(0)
+	nextAmt := float64(0)
 	autoPlay := false
 
 	if bp.config.Script.AutoPlay.Enabled {
@@ -2462,9 +2462,9 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		checkAvailable := false
 		callAvailable := false
 		allInAvailable := false
-		allInAmount := float32(0.0)
-		minBet := float32(0.0)
-		maxBet := float32(0.0)
+		allInAmount := float64(0.0)
+		minBet := float64(0.0)
+		maxBet := float64(0.0)
 		// we are in auto play now
 		for _, action := range seatAction.AvailableActions {
 			if action == game.ACTION_CHECK {
@@ -2501,7 +2501,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 
 		// do I have a pair
 		if bp.havePair {
-			pairValue := (float32)(bp.pairCard / 16)
+			pairValue := (float64)(bp.pairCard / 16)
 			nextAmt = pairValue * minBet
 			if nextAmt > maxBet {
 				nextAmt = maxBet
@@ -2824,7 +2824,7 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 	}
 }
 
-func (bp *BotPlayer) rememberPlayerAction(seatNo uint32, action game.ACTION, amount float32, timedOut bool, handStatus game.HandStatus) {
+func (bp *BotPlayer) rememberPlayerAction(seatNo uint32, action game.ACTION, amount float64, timedOut bool, handStatus game.HandStatus) {
 	bp.game.table.actionTracker.RecordAction(seatNo, action, amount, timedOut, handStatus)
 	bp.game.table.playersActed[seatNo] = &game.PlayerActRound{
 		Action: action,

@@ -84,7 +84,7 @@ take-seat:
 type PlayerSeat struct {
 	Player                   uint64  `yaml:"player"`
 	SeatNo                   uint32  `yaml:"seat"`
-	BuyIn                    float32 `yaml:"buy-in"`
+	BuyIn                    float64 `yaml:"buy-in"`
 	RunItTwice               bool    `yaml:"run-it-twice"`
 	RunItTwicePromptResponse bool    `yaml:"run-it-twice-prompt"`
 	PostBlind                bool    `yaml:"post-blind"`
@@ -169,12 +169,12 @@ type HandSetup struct {
 type TestHandAction struct {
 	SeatNo       uint32        `yaml:"seat"`
 	Action       string        `yaml:"action"`
-	Amount       float32       `yaml:"amount"`
+	Amount       float64       `yaml:"amount"`
 	VerifyAction *VerifyAction `yaml:"verify-action"`
 }
 
 type Pot struct {
-	Pot        float32  `yaml:"pot"`
+	Pot        float64  `yaml:"pot"`
 	SeatsInPot []uint32 `yaml:"seats"`
 }
 
@@ -215,14 +215,14 @@ type BettingRound struct {
 */
 type TestHandWinner struct {
 	Seat    uint32  `yaml:"seat"`
-	Receive float32 `yaml:"receive"`
+	Receive float64 `yaml:"receive"`
 	RankStr string  `yaml:"rank"`
-	Rake    float32 `yaml:"rake"`
+	Rake    float64 `yaml:"rake"`
 }
 
 type PlayerStack struct {
 	Seat  uint32  `yaml:"seat"`
-	Stack float32 `yaml:"stack"`
+	Stack float64 `yaml:"stack"`
 }
 
 type TestHandResultVerify struct {
@@ -257,7 +257,7 @@ type GameScript struct {
 type PlayerAtTable struct {
 	SeatNo   uint32  `yaml:"seat"`
 	PlayerID uint64  `yaml:"player"`
-	Stack    float32 `yaml:"stack"`
+	Stack    float64 `yaml:"stack"`
 }
 
 type PokerTable struct {
@@ -266,15 +266,15 @@ type PokerTable struct {
 
 type BetAmount struct {
 	Text   string  `yaml:"text"`
-	Amount float32 `yaml:"amount"`
+	Amount float64 `yaml:"amount"`
 }
 
 type VerifyAction struct {
 	Actions        []string    `yaml:"actions"`
-	CallAmount     float32     `yaml:"call-amount"`
-	AllInAmount    float32     `yaml:"all-in-amount"`
-	MinRaiseAmount float32     `yaml:"min-raise-amount"`
-	MaxRaiseAmount float32     `yaml:"max-raise-amount"`
+	CallAmount     float64     `yaml:"call-amount"`
+	AllInAmount    float64     `yaml:"all-in-amount"`
+	MinRaiseAmount float64     `yaml:"min-raise-amount"`
+	MaxRaiseAmount float64     `yaml:"max-raise-amount"`
 	BetAmounts     []BetAmount `yaml:"bet-amounts"`
 }
 
@@ -308,8 +308,8 @@ type SeatPlayer struct {
 	PlayerUUID         string `json:"playerUuid"`
 	Name               string
 	EncryptionKey      string
-	BuyIn              float32
-	Stack              float32
+	BuyIn              float64
+	Stack              float64
 	Status             PlayerStatus
 	GameToken          string
 	GameTokenInt       uint64
@@ -342,14 +342,14 @@ type NewHandInfo struct {
 	GameCode          string
 	GameType          GameType
 	MaxPlayers        uint32
-	SmallBlind        float32
-	BigBlind          float32
+	SmallBlind        float64
+	BigBlind          float64
 	ButtonPos         uint32
 	HandNum           uint32
 	ActionTime        uint32
-	StraddleBet       float32
-	RakePercentage    float32
-	RakeCap           float32
+	StraddleBet       float64
+	RakePercentage    float64
+	RakeCap           float64
 	AnnounceGameType  bool
 	PlayersInSeats    []SeatPlayer
 	GameStatus        GameStatus
@@ -359,8 +359,8 @@ type NewHandInfo struct {
 	ResultPauseTime   uint32
 	BombPot           bool
 	DoubleBoard       bool
-	BombPotBet        float32
-	BringIn           float32
+	BombPotBet        float64
+	BringIn           float64
 	RunItTwiceTimeout uint32
 	HighHandRank      uint32
 	HighHandTracked   bool

@@ -15,7 +15,7 @@ type HandActionTracker struct {
 type SeatAction struct {
 	SeatNo   uint32
 	Action   ACTION
-	Amount   float32
+	Amount   float64
 	TimedOut bool
 }
 
@@ -28,7 +28,7 @@ func NewHandActionTracker() *HandActionTracker {
 }
 
 // RecordAction stores the action into the tracker.
-func (h *HandActionTracker) RecordAction(seatNo uint32, action ACTION, amount float32, timedOut bool, handStatus HandStatus) {
+func (h *HandActionTracker) RecordAction(seatNo uint32, action ACTION, amount float64, timedOut bool, handStatus HandStatus) {
 	h.Lock()
 	defer h.Unlock()
 	actions, ok := h.data[handStatus]
