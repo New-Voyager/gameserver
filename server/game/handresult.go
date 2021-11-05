@@ -133,11 +133,11 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 		}
 
 		// split the pot for each board
-		potAmountForBoard := int(pot.Pot / float32(hs.NoOfBoards))
-		remaining := pot.Pot - float32(potAmountForBoard*int(hs.NoOfBoards))
-		boardPotAmounts := make([]float32, hs.NoOfBoards)
+		potAmountForBoard := int(pot.Pot / float64(hs.NoOfBoards))
+		remaining := pot.Pot - float64(potAmountForBoard*int(hs.NoOfBoards))
+		boardPotAmounts := make([]float64, hs.NoOfBoards)
 		for i := 0; i < int(hs.NoOfBoards); i++ {
-			boardPotAmounts[i] = float32(potAmountForBoard)
+			boardPotAmounts[i] = float64(potAmountForBoard)
 			if remaining > 0 {
 				boardPotAmounts[i]++
 				remaining--
@@ -195,19 +195,19 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 			boardWinner.LowWinners = loWinners
 
 			hiWinnerPotAmount := boardPot
-			loWinnerPotAmount := float32(0.0)
+			loWinnerPotAmount := float64(0.0)
 			if len(loWinners) > 0 {
-				hiWinnerPotAmount = float32(int(boardPot / 2))
+				hiWinnerPotAmount = float64(int(boardPot / 2))
 				if int(boardPot)%2 > 0 {
 					hiWinnerPotAmount++
 				}
-				loWinnerPotAmount = boardPot - float32(hiWinnerPotAmount)
+				loWinnerPotAmount = boardPot - float64(hiWinnerPotAmount)
 			}
 
-			hiWinnerSplitPot := int(float32(hiWinnerPotAmount / float32(len(hiWinners))))
-			remaining := hiWinnerPotAmount - float32(hiWinnerSplitPot*len(hiWinners))
+			hiWinnerSplitPot := int(float64(hiWinnerPotAmount / float64(len(hiWinners))))
+			remaining := hiWinnerPotAmount - float64(hiWinnerSplitPot*len(hiWinners))
 			for _, hiWinner := range hiWinners {
-				hiWinner.Amount = float32(hiWinnerSplitPot)
+				hiWinner.Amount = float64(hiWinnerSplitPot)
 				if remaining > 0 {
 					hiWinner.Amount++
 					remaining--
@@ -215,10 +215,10 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 			}
 
 			if len(loWinners) > 0 {
-				loWinnerSplitPot := int(float32(loWinnerPotAmount / float32(len(loWinners))))
-				remaining := loWinnerPotAmount - float32(loWinnerSplitPot*len(loWinners))
+				loWinnerSplitPot := int(float64(loWinnerPotAmount / float64(len(loWinners))))
+				remaining := loWinnerPotAmount - float64(loWinnerSplitPot*len(loWinners))
 				for _, loWinner := range loWinners {
-					loWinner.Amount = float32(loWinnerSplitPot)
+					loWinner.Amount = float64(loWinnerSplitPot)
 					if remaining > 0 {
 						loWinner.Amount++
 						remaining--
@@ -285,14 +285,14 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 	return result
 }
 
-func (hr *HandResultProcessor) adjustRake(hs *HandState, totalPot float32, winners []uint32, potWinners []*PotWinnersV2, playerStack map[uint64]float32, playerReceived map[uint32]float32) map[uint64]float32 {
+func (hr *HandResultProcessor) adjustRake(hs *HandState, totalPot float64, winners []uint32, potWinners []*PotWinnersV2, playerStack map[uint64]float64, playerReceived map[uint32]float64) map[uint64]float64 {
 	sort.Slice(winners, func(a, b int) bool { return winners[a] < winners[b] })
 
-	rakePlayers := make(map[uint64]float32)
+	rakePlayers := make(map[uint64]float64)
 
 	// calculate rake from the total pot
-	rake := float32(totalPot * (hs.RakePercentage / 100))
-	rake = float32(math.Floor(float64(rake)))
+	rake := float64(totalPot * (hs.RakePercentage / 100))
+	rake = float64(math.Floor(float64(rake)))
 	if rake <= 0 {
 		rake = 1.0
 	}
@@ -302,7 +302,7 @@ func (hr *HandResultProcessor) adjustRake(hs *HandState, totalPot float32, winne
 		}
 	}
 
-	rakePaid := make(map[uint32]float32)
+	rakePaid := make(map[uint32]float64)
 	for seatNo, player := range hs.PlayersInSeats {
 		if !player.Inhand {
 			continue
@@ -311,18 +311,18 @@ func (hr *HandResultProcessor) adjustRake(hs *HandState, totalPot float32, winne
 	}
 
 	// rake from each player
-	rakeFromPlayer := float32(int(rake / float32(len(winners))))
-	rakeFromPlayer = float32(math.Floor(float64(rakeFromPlayer)))
+	rakeFromPlayer := float64(int(rake / float64(len(winners))))
+	rakeFromPlayer = float64(math.Floor(float64(rakeFromPlayer)))
 	if rakeFromPlayer == 0.0 {
 		rakeFromPlayer = 1.0
 	}
 
 	// rake from player who won money
-	//rakeFromPlayer1 := float32(0.0)
+	//rakeFromPlayer1 := float64(0.0)
 	if int(rake) > 0 {
-		rakeSubtracted := make(map[uint32]float32)
+		rakeSubtracted := make(map[uint32]float64)
 
-		totalRakeCollected := float32(0)
+		totalRakeCollected := float64(0)
 		for _, winnerSeat := range winners {
 			if playerReceived[winnerSeat] > rakeFromPlayer {
 				rakePaid[winnerSeat] += rakeFromPlayer
@@ -359,11 +359,11 @@ func (hr *HandResultProcessor) adjustRake(hs *HandState, totalPot float32, winne
 		// 		winnerCount = winnerCount + len(board.LowWinners)
 		// 	}
 		// }
-		// rakeFromPlayer = float32(int(rake / float32(winnerCount)))
+		// rakeFromPlayer = float64(int(rake / float64(winnerCount)))
 		// if rakeFromPlayer == 0.0 {
 		// 	rakeFromPlayer = 1.0
 		// }
-		// totalRakeCollected := float32(0)
+		// totalRakeCollected := float64(0)
 		// for totalRakeCollected < rake {
 		// 	for _, pot := range potWinners {
 		// 		if totalRakeCollected >= rake {
@@ -415,8 +415,8 @@ func (hr *HandResultProcessor) adjustRake(hs *HandState, totalPot float32, winne
 	return rakePlayers
 }
 func (hr *HandResultProcessor) calcRakeAndBalance(hs *HandState, potWinners []*PotWinnersV2) map[uint32]*PlayerHandInfo {
-	playerStack := make(map[uint64]float32)
-	playerReceived := make(map[uint32]float32)
+	playerStack := make(map[uint64]float64)
+	playerReceived := make(map[uint32]float64)
 
 	for seatNoIdx, player := range hs.PlayersInSeats {
 		if !player.Inhand || player.SeatNo == 0 || player.OpenSeat {
@@ -425,7 +425,7 @@ func (hr *HandResultProcessor) calcRakeAndBalance(hs *HandState, potWinners []*P
 		playerStack[player.PlayerId] = player.Stack
 		playerReceived[uint32(seatNoIdx)] = 0
 	}
-	totalPot := float32(0)
+	totalPot := float64(0)
 	winners := make([]uint32, 0)
 	// update player balance
 	for _, pot := range potWinners {
@@ -470,7 +470,7 @@ func (hr *HandResultProcessor) calcRakeAndBalance(hs *HandState, potWinners []*P
 			}
 		}
 	}
-	rakePlayers := make(map[uint64]float32)
+	rakePlayers := make(map[uint64]float64)
 
 	if hs.RakePercentage > 0 {
 		rakePlayers = hr.adjustRake(hs, totalPot, winners, potWinners, playerStack, playerReceived)
@@ -495,7 +495,7 @@ func (hr *HandResultProcessor) calcRakeAndBalance(hs *HandState, potWinners []*P
 			continue
 		}
 
-		before := float32(0.0)
+		before := float64(0.0)
 		for _, playerBalance := range hs.BalanceBeforeHand {
 			if playerBalance.SeatNo == uint32(seatNo) {
 				before = playerBalance.Balance
@@ -518,7 +518,7 @@ func (hr *HandResultProcessor) calcRakeAndBalance(hs *HandState, potWinners []*P
 				After:  player.Stack,
 			}
 		}
-		rakePaidAmount := float32(0.0)
+		rakePaidAmount := float64(0.0)
 		if rake, ok := rakePlayers[player.PlayerId]; ok {
 			rakePaidAmount = rake
 		}

@@ -26,16 +26,16 @@ enum ACTION {
 message HandAction {
   uint32    seat_no = 1;
   ACTION    action = 2;
-  float     amount = 3;
+  double     amount = 3;
   bool timed_out = 4;
   uint32 action_time = 5;
-  float stack = 6;        // player current stack (populated by game)
-  float pot_updates = 7;  // pot updated by the action
+  double stack = 6;        // player current stack (populated by game)
+  double pot_updates = 7;  // pot updated by the action
 }
 
 message HandActionLog {
-  float pot_start = 1;
-  repeated float pots = 2;
+  double pot_start = 1;
+  repeated double pots = 2;
   repeated HandAction actions = 3; 
   repeated SeatsInPots seats_pots = 4;
 }
@@ -53,33 +53,33 @@ message ResetTimer {
 
 message BetRaiseOption {
   string text = 1;
-  float amount = 2;
+  double amount = 2;
 }
 
 message NextSeatAction {
   uint32 seat_no = 1;
   repeated ACTION available_actions = 2;
-  float straddleAmount = 3;       // straddle amount
-  float callAmount = 4;           // what is the amount to call
-  float raiseAmount = 5;          // if the caller wants to raise from previous raise
-  float minBetAmount = 6;         // min bet is the big blind
-  float maxBetAmount = 7;        // calculated for PLO
-  float minRaiseAmount = 8;      // min bet is the big blind
-  float maxRaiseAmount = 9;      // calculated for PLO
-  float allInAmount = 10;         // all in amount
+  double straddleAmount = 3;       // straddle amount
+  double callAmount = 4;           // what is the amount to call
+  double raiseAmount = 5;          // if the caller wants to raise from previous raise
+  double minBetAmount = 6;         // min bet is the big blind
+  double maxBetAmount = 7;        // calculated for PLO
+  double minRaiseAmount = 8;      // min bet is the big blind
+  double maxRaiseAmount = 9;      // calculated for PLO
+  double allInAmount = 10;         // all in amount
   repeated BetRaiseOption betOptions = 11; // bet/raise options
   int64 actionTimesoutAt = 12;   // Unix time that the player's action times out
   uint32 secondsTillTimesout = 13;  // Seconds left until the player's action times out
-  float seatInSoFar = 14;       // amount of chips this seat put in this round
+  double seatInSoFar = 14;       // amount of chips this seat put in this round
 }
 
 message PlayerInSeatState {
   uint64 player_id = 1;
   string name = 2;
   PlayerStatus status = 3;
-  float stack = 4;
+  double stack = 4;
   HandStatus round = 5;
-  float playerReceived = 6;
+  double playerReceived = 6;
   string buy_in_exp_time = 7;
   string break_exp_time = 8;
   bool inhand = 9;
@@ -97,7 +97,7 @@ message PlayerInSeatState {
 message PlayerBalance {
   uint32 seat_no = 1;
   uint64 player_id = 2;
-  float balance = 3;
+  double balance = 3;
 }
 
 enum HandStatus {
@@ -157,31 +157,31 @@ message HighHand {
 
 message PlayerActRound {
   ACTION  action = 1;
-  float amount = 2;
-  float raiseAmount = 3;
+  double amount = 2;
+  double raiseAmount = 3;
 
   // tracks what bet index this action applies to 
   uint32 acted_bet_index = 4;
 
   // total bet of the player in this round
   // used for calculating player stack
-  float bet_amount = 5;
+  double bet_amount = 5;
 }
 
 // message tracks number of players in this pot and the amount in the pot
 message SeatsInPots {
   repeated uint32 seats  = 1;
-  float pot = 2;
+  double pot = 2;
 }
 
 message SeatBetting {
-  repeated float seat_bet  = 1;
+  repeated double seat_bet  = 1;
 }
 
 
 message RoundState {
   SeatBetting betting = 1;
-  map<uint32, float> player_balance = 2;
+  map<uint32, double> player_balance = 2;
 
   // bet_index is incremented anytime a player increase the wager.
   // then this index is used to determine whether a player has already acted for this bet_index (PlayerActed)
@@ -202,9 +202,9 @@ message CurrentHandState {
   uint32 small_blind_pos = 6;
   uint32 big_blind_pos = 7;
 
-  float big_blind = 8;
-  float small_blind = 9;
-  float straddle = 10;
+  double big_blind = 8;
+  double small_blind = 9;
+  double straddle = 10;
 
   map<uint32, PlayerActRound> players_acted = 12;   // seat no, player action in this round
 
@@ -215,23 +215,23 @@ message CurrentHandState {
   
   string player_cards = 17;  // current player's cards if the player is playing
   uint32 player_seat_no = 18; // current player's seat no
-  map <uint64, float> players_stack = 19; 
+  map <uint64, double> players_stack = 19; 
   uint32 next_seat_to_act = 20;
   uint32 remaining_action_time = 21;
 
   NextSeatAction next_seat_action = 22;
-  repeated float pots = 23; // pots in the center
-  float pot_updates = 24;   // pot updated based on the bets
+  repeated double pots = 23; // pots in the center
+  double pot_updates = 24;   // pot updated based on the bets
   uint32 no_cards = 25;     // number of cards dealt to players
   bool bomb_pot = 36;
   bool double_board = 37;
-  float bomb_pot_bet = 38;
+  double bomb_pot_bet = 38;
 }
 
 message HandWinner {
   uint32 seat_no = 1;
   bool lo_card = 2;
-  float amount = 3;
+  double amount = 3;
   repeated uint32 winning_cards = 4;
   string winning_cards_str = 5;
   string rank_str = 6;
@@ -242,7 +242,7 @@ message HandWinner {
 
 message PotWinners {
   uint32 pot_no = 1;
-  float amount = 2;
+  double amount = 2;
   repeated HandWinner hi_winners = 3;
   repeated HandWinner low_winners = 4;
   uint32 pause_time = 5;      // pause time 
@@ -277,12 +277,12 @@ message Board {
 
 message Winner {
   uint32 seat_no = 1;
-  float amount = 2;
+  double amount = 2;
 }
 
 message BoardWinner {
   uint32 board_no = 2;
-  float amount = 3;                  // pot amount for this board
+  double amount = 3;                  // pot amount for this board
   map <uint32, Winner> hi_winners = 4;    // hi winners of the board (seat number)
   map <uint32, Winner> low_winners = 5;   // low winners of the board (seat number)
   string hi_rank_text = 6; 
@@ -290,7 +290,7 @@ message BoardWinner {
 
 message PotWinnersV2 {
   uint32 pot_no = 1;
-  float amount = 2;
+  double amount = 2;
   repeated BoardWinner board_winners = 3;
   repeated uint32 seats_in_pots = 4;
 }
@@ -301,8 +301,8 @@ message HandResultV2 {
 }
 
 message HandPlayerBalance {
-  float before = 1;
-  float after = 2;
+  double before = 1;
+  double after = 2;
 }
 
 message PlayerHandInfo {
@@ -312,6 +312,6 @@ message PlayerHandInfo {
   HandPlayerBalance balance = 6;
   repeated uint32 hh_cards = 7;     // high hand cards
   uint32 hh_rank = 8;      // high hand rank
-  float received = 9;     // received from the hand
-  float rake_paid = 10;   // rake paid by this player
+  double received = 9;     // received from the hand
+  double rake_paid = 10;   // rake paid by this player
 }

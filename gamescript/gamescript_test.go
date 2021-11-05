@@ -487,22 +487,22 @@ func TestReadGameScript(t *testing.T) {
 							Seat:   1,
 							HhRank: getUint32Pointer(127),
 							Balance: PlayerBalance{
-								Before: getFloat32Pointer(100),
-								After:  getFloat32Pointer(84),
+								Before: getFloat64Pointer(100),
+								After:  getFloat64Pointer(84),
 							},
 						},
 						{
 							Seat:   5,
 							HhRank: getUint32Pointer(2255),
 							Balance: PlayerBalance{
-								After: getFloat32Pointer(120),
+								After: getFloat64Pointer(120),
 							},
 						},
 						{
 							Seat:   8,
 							HhRank: nil,
 							Balance: PlayerBalance{
-								After: getFloat32Pointer(96),
+								After: getFloat64Pointer(96),
 							},
 						},
 					},
@@ -557,7 +557,7 @@ func getUint32Pointer(v uint32) *uint32 {
 	return &v
 }
 
-func getFloat32Pointer(v float32) *float32 {
+func getFloat64Pointer(v float64) *float64 {
 	return &v
 }
 

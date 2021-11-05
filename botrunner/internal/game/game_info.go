@@ -8,9 +8,9 @@ type GameInfo struct {
 	GameCode              string
 	GameType              string
 	Title                 string
-	SmallBlind            float32
-	BigBlind              float32
-	StraddleBet           float32
+	SmallBlind            float64
+	BigBlind              float64
+	StraddleBet           float64
 	UtgStraddleAllowed    bool
 	ButtonStraddleAllowed bool
 	MinPlayers            uint32
@@ -22,10 +22,10 @@ type GameInfo struct {
 	WaitlistAllowed       bool
 	SitInApproval         bool
 	MaxWaitList           uint32
-	RakePercentage        float32
-	RakeCap               float32
-	BuyInMin              float32
-	BuyInMax              float32
+	RakePercentage        float64
+	RakeCap               float64
+	BuyInMin              float64
+	BuyInMax              float64
 	ActionTime            uint32
 	MuckLosingHand        bool
 	RunItTwiceAllowed     bool
@@ -60,8 +60,8 @@ type SeatInfo struct {
 	PlayerUUID string  `json:"playerUuid"`
 	PlayerId   uint64  `json:"playerId"`
 	Name       string  `json:"name"`
-	BuyIn      float32 `json:"buyIn"`
-	Stack      float32 `json:"stack"`
+	BuyIn      float64 `json:"buyIn"`
+	Stack      float64 `json:"stack"`
 	IsBot      bool    `json:"isBot"`
 	Status     string  `json:"status"`
 }
@@ -70,18 +70,18 @@ type SeatInfo struct {
 type GameCreateOpt struct {
 	Title              string
 	GameType           string
-	SmallBlind         float32
-	BigBlind           float32
+	SmallBlind         float64
+	BigBlind           float64
 	UtgStraddleAllowed bool
-	StraddleBet        float32
+	StraddleBet        float64
 	MinPlayers         int
 	MaxPlayers         int
 	GameLength         int
 	BuyInApproval      bool
-	RakePercentage     float32
-	RakeCap            float32
-	BuyInMin           float32
-	BuyInMax           float32
+	RakePercentage     float64
+	RakeCap            float64
+	BuyInMin           float64
+	BuyInMax           float64
 	ActionTime         int
 	RewardIds          []uint32
 	RunItTwiceAllowed  bool

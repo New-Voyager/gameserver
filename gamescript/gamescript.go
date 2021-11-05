@@ -41,7 +41,7 @@ type Club struct {
 type Reward struct {
 	Name     string
 	Type     string
-	Amount   float32
+	Amount   float64
 	Schedule string
 }
 
@@ -66,18 +66,18 @@ type Game struct {
 	Create             bool     `yaml:"create"`
 	Title              string   `yaml:"title"`
 	GameType           string   `yaml:"game-type"`
-	SmallBlind         float32  `yaml:"small-blind"`
-	BigBlind           float32  `yaml:"big-blind"`
+	SmallBlind         float64  `yaml:"small-blind"`
+	BigBlind           float64  `yaml:"big-blind"`
 	UtgStraddleAllowed bool     `yaml:"utg-straddle-allowed"`
-	StraddleBet        float32  `yaml:"straddle-bet"`
+	StraddleBet        float64  `yaml:"straddle-bet"`
 	MinPlayers         int      `yaml:"min-players"`
 	MaxPlayers         int      `yaml:"max-players"`
 	GameLength         int      `yaml:"game-length"`
 	BuyInApproval      bool     `yaml:"buy-in-approval"`
-	RakePercentage     float32  `yaml:"rake-percentage"`
-	RakeCap            float32  `yaml:"rake-cap"`
-	BuyInMin           float32  `yaml:"buy-in-min"`
-	BuyInMax           float32  `yaml:"buy-in-max"`
+	RakePercentage     float64  `yaml:"rake-percentage"`
+	RakeCap            float64  `yaml:"rake-cap"`
+	BuyInMin           float64  `yaml:"buy-in-min"`
+	BuyInMax           float64  `yaml:"buy-in-max"`
 	ActionTime         int      `yaml:"action-time"`
 	Rewards            string   `yaml:"rewards"`
 	DontStart          bool     `yaml:"dont-start"`
@@ -96,15 +96,15 @@ type Game struct {
 }
 
 type GpsLocation struct {
-	Lat  float32 `yaml:"lat"`
-	Long float32 `yaml:"long"`
+	Lat  float64 `yaml:"lat"`
+	Long float64 `yaml:"long"`
 }
 
 // StartingSeat contains an entry in the StartingSeats array in the game script.
 type StartingSeat struct {
 	Seat           uint32       `yaml:"seat"`
 	Player         string       `yaml:"player"`
-	BuyIn          float32      `yaml:"buy-in"`
+	BuyIn          float64      `yaml:"buy-in"`
 	MuckLosingHand bool         `yaml:"muck-losing-hand"`
 	PostBlind      bool         `yaml:"post-blind"`
 	AutoReload     *bool        `yaml:"auto-reload"`
@@ -134,14 +134,14 @@ type SwitchSeat struct {
 // ReloadChips contains an entry in the ReloadChips array in the game script.
 type ReloadChips struct {
 	SeatNo uint32  `yaml:"seat"`
-	Amount float32 `yaml:"amount"`
+	Amount float64 `yaml:"amount"`
 }
 
 // Observer contains entries of observers of game
 type Observer struct {
 	Player   string  `yaml:"player"`
 	Waitlist bool    `yaml:"waitlist"`
-	BuyIn    float32 `yaml:"buy-in"`
+	BuyIn    float64 `yaml:"buy-in"`
 	Confirm  bool    `yaml:"confirm"`
 }
 
@@ -204,10 +204,10 @@ type APIVerification struct {
 type GameResultTableRow struct {
 	PlayerName  string  `yaml:"player-name"`
 	HandsPlayed uint32  `yaml:"hands-played"`
-	BuyIn       float32 `yaml:"buy-in"`
-	Profit      float32 `yaml:"profit"`
-	Stack       float32 `yaml:"stack"`
-	RakePaid    float32 `yaml:"rake-paid"`
+	BuyIn       float64 `yaml:"buy-in"`
+	Profit      float64 `yaml:"profit"`
+	Stack       float64 `yaml:"stack"`
+	RakePaid    float64 `yaml:"rake-paid"`
 }
 
 // HandSetup contains the setup content in the hand config.
@@ -233,7 +233,7 @@ type HandSetup struct {
 	SwitchSeats     []SwitchSeat         `yaml:"switch-seats"`
 	ReloadChips     []ReloadChips        `yaml:"reload-chips"`
 	BombPot         bool                 `yaml:"bomb-pot"`
-	BombPotBet      float32              `yaml:"bomb-pot-bet"`
+	BombPotBet      float64              `yaml:"bomb-pot-bet"`
 	DoubleBoard     bool                 `yaml:"double-board"`
 	ResultPauseTime uint32               `yaml:"result-pause-time"`
 	PlayersConfig   []PlayerConfig       `yaml:"players-config"`
@@ -285,7 +285,7 @@ type LeaveGame struct {
 type WaitList struct {
 	Player  string  `yaml:"player"`
 	Confirm bool    `yaml:"confirm"`
-	BuyIn   float32 `yaml:"buy-in"`
+	BuyIn   float64 `yaml:"buy-in"`
 }
 
 type DealerChoiceSetup struct {
@@ -316,7 +316,7 @@ type SeatAction struct {
 type Action struct {
 	Seat   uint32  `yaml:"seat"`
 	Action string  `yaml:"action"`
-	Amount float32 `yaml:"amount"`
+	Amount float64 `yaml:"amount"`
 }
 
 // Custom unmarshaller for action expression.
@@ -356,7 +356,7 @@ func (a *Action) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 	a.Seat = uint32(seatNo)
 	a.Action = strings.Trim(tokens[1], " ")
-	a.Amount = float32(amount)
+	a.Amount = float64(amount)
 	return nil
 }
 
@@ -366,8 +366,8 @@ type PreAction struct {
 }
 
 type VerifyAction struct {
-	Stack      float32 `yaml:"stack"`
-	PotUpdates float32 `yaml:"pot-updates"`
+	Stack      float64 `yaml:"stack"`
+	PotUpdates float64 `yaml:"pot-updates"`
 }
 
 type SetupServerCrash struct {
@@ -376,20 +376,20 @@ type SetupServerCrash struct {
 
 type YourActionVerification struct {
 	AvailableActions []string    `yaml:"available-actions"`
-	StraddleAmount   float32     `yaml:"straddle-amount"`
-	CallAmount       float32     `yaml:"call-amount"`
-	RaiseAmount      float32     `yaml:"raise-amount"`
-	MinBetAmount     float32     `yaml:"min-bet-amount"`
-	MaxBetAmount     float32     `yaml:"max-bet-amount"`
-	MinRaiseAmount   float32     `yaml:"min-raise-amount"`
-	MaxRaiseAmount   float32     `yaml:"max-raise-amount"`
-	AllInAmount      float32     `yaml:"all-in-amount"`
+	StraddleAmount   float64     `yaml:"straddle-amount"`
+	CallAmount       float64     `yaml:"call-amount"`
+	RaiseAmount      float64     `yaml:"raise-amount"`
+	MinBetAmount     float64     `yaml:"min-bet-amount"`
+	MaxBetAmount     float64     `yaml:"max-bet-amount"`
+	MinRaiseAmount   float64     `yaml:"min-raise-amount"`
+	MaxRaiseAmount   float64     `yaml:"max-raise-amount"`
+	AllInAmount      float64     `yaml:"all-in-amount"`
 	BetOptions       []BetOption `yaml:"bet-options"`
 }
 
 type BetOption struct {
 	Text   string
-	Amount float32
+	Amount float64
 }
 
 // Custom unmarshaller for BetOption expression.
@@ -419,7 +419,7 @@ func (b *BetOption) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return errors.Wrapf(err, "Cannot convert second token [%s] to BetOption amount", trimmed)
 	}
 	b.Text = strings.Trim(tokens[0], " ")
-	b.Amount = float32(amount)
+	b.Amount = float64(amount)
 	return nil
 }
 
@@ -437,7 +437,7 @@ type SeatRank struct {
 }
 
 type Pot struct {
-	Pot        float32  `yaml:"pot"`
+	Pot        float64  `yaml:"pot"`
 	SeatsInPot []uint32 `yaml:"seats"`
 }
 
@@ -454,9 +454,9 @@ type HandResult struct {
 
 type HandWinner struct {
 	Seat     uint32   `yaml:"seat"`
-	Receive  float32  `yaml:"receive"`
+	Receive  float64  `yaml:"receive"`
 	RankStr  string   `yaml:"rank"`
-	RakePaid *float32 `yaml:"rake-paid"`
+	RakePaid *float64 `yaml:"rake-paid"`
 }
 
 type ResultPlayer struct {
@@ -466,8 +466,8 @@ type ResultPlayer struct {
 }
 
 type PlayerBalance struct {
-	Before *float32 `yaml:"before"`
-	After  *float32 `yaml:"after"`
+	Before *float64 `yaml:"before"`
+	After  *float64 `yaml:"after"`
 }
 
 type TimeoutStats struct {
@@ -481,7 +481,7 @@ type BoardWinner struct {
 	BoardWinners WinnerPot `yaml:"winners"`
 }
 type WinnerPot struct {
-	Amount    float32      `yaml:"amount"`
+	Amount    float64      `yaml:"amount"`
 	Winners   []HandWinner `yaml:"winners"`
 	LoWinners []HandWinner `yaml:"lo-winners"`
 }
@@ -524,7 +524,7 @@ type SeatUpdate struct {
 	PlayerId   int64   `yaml:"playerId" json:"playerId"`
 	PlayerUuid string  `yaml:"playerUuid" json:"playerUuid"`
 	Name       string  `yaml:"name" json:"name"`
-	Stack      float32 `yaml:"stack" json:"stack"`
+	Stack      float64 `yaml:"stack" json:"stack"`
 	Status     string  `yaml:"status" json:"status"`
 }
 type NonProtoMessage struct {
@@ -543,7 +543,7 @@ type NonProtoMessage struct {
 	Winners          []HighHandWinner `yaml:"winners" json:"winners"`
 	SeatNo           uint32           `yaml:"seatNo" json:"seatNo"`
 	Status           string           `yaml:"status" json:"status"`
-	Stack            float32          `yaml:"stack" json:"stack"`
+	Stack            float64          `yaml:"stack" json:"stack"`
 	NewUpdate        string           `yaml:"newUpdate" json:"newUpdate"`
 	GameId           uint64           `yaml:"gameId" json:"gameId"`
 	GameStatus       string           `yaml:"gameStatus" json:"gameStatus"`
@@ -693,7 +693,7 @@ func (s *Script) GetSeatNoByPlayerName(playerName string) uint32 {
 	return 0
 }
 
-func (s *Script) GetInitialBuyInAmount(seatNo uint32) float32 {
+func (s *Script) GetInitialBuyInAmount(seatNo uint32) float64 {
 	for _, startingSeat := range s.StartingSeats {
 		if startingSeat.Seat == seatNo {
 			return startingSeat.BuyIn

@@ -200,7 +200,7 @@ func (bp *BotPlayer) seatWaitList(message *gamescript.NonProtoMessage) {
 	} else {
 		// buyin
 		if bp.buyInAmount != 0 {
-			err := bp.BuyIn(bp.gameCode, float32(bp.buyInAmount))
+			err := bp.BuyIn(bp.gameCode, float64(bp.buyInAmount))
 			if err != nil {
 				bp.logger.Error().Msgf("%s: Unable to buy in %d chips while sitting from waitlist: %s", bp.logPrefix, bp.buyInAmount, err.Error())
 			} else {

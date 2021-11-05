@@ -834,7 +834,7 @@ func (br *BotRunner) isSitIn(seatNo uint32, playerName string, playersInSeat []g
 	return false
 }
 
-func (br *BotRunner) isBoughtIn(seatNo uint32, numChips float32, playersInSeat []game.SeatInfo) bool {
+func (br *BotRunner) isBoughtIn(seatNo uint32, numChips float64, playersInSeat []game.SeatInfo) bool {
 	for _, p := range playersInSeat {
 		if p.SeatNo == seatNo {
 			if p.BuyIn == numChips {

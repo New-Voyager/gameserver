@@ -477,8 +477,8 @@ func (g *Game) dealNewHand() error {
 				PlayerID     uint64 `json:"playerId"`
 				PlayerUUID   string `json:"playerUuid"`
 				Name         string
-				BuyIn        float32
-				Stack        float32
+				BuyIn        float64
+				Stack        float64
 				Status       PlayerStatus
 				GameToken    string
 				GameTokenInt uint64
@@ -861,7 +861,7 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 		boardCards[i] = uint32(card)
 	}
 
-	pots := make([]float32, 0)
+	pots := make([]float64, 0)
 	for _, pot := range handState.Pots {
 		pots = append(pots, pot.Pot)
 	}
@@ -947,7 +947,7 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 		currentHandState.RemainingActionTime = g.GetRemainingActionTime()
 		currentHandState.NextSeatAction = handState.NextSeatAction
 	}
-	currentHandState.PlayersStack = make(map[uint64]float32)
+	currentHandState.PlayersStack = make(map[uint64]float64)
 	for seatNo, player := range handState.PlayersInSeats {
 		if player.OpenSeat {
 			continue
@@ -979,7 +979,7 @@ func (g *Game) HandlePongMessage(message *PingPongMessage) {
 	g.networkCheck.handlePongMessage(message)
 }
 
-func (g *Game) addScriptTestPlayer(player *Player, buyIn float32, postBlind bool) error {
+func (g *Game) addScriptTestPlayer(player *Player, buyIn float64, postBlind bool) error {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 	g.scriptTestPlayers[player.PlayerID] = player
