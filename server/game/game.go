@@ -108,7 +108,7 @@ func NewPokerGame(
 	g.chGame = make(chan []byte, 10)
 	g.chHand = make(chan []byte, 10)
 	g.end = make(chan bool, 10)
-	g.chPlayTimedOut = make(chan timer.TimerMsg)
+	g.chPlayTimedOut = make(chan timer.TimerMsg, 10)
 	timer1Logger := logging.GetZeroLogger("timer::ActionTimer", nil).
 		With().Uint64(logging.GameIDKey, gameID).
 		Str(logging.GameCodeKey, gameCode).
