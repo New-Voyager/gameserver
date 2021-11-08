@@ -164,7 +164,7 @@ func (g *Game) processPendingUpdates(apiServerURL string, gameID uint64, gameCod
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		g.logger.Panic().Msgf("Failed to process pending updates. Error: %d", resp.StatusCode)
+		g.logger.Error().Msgf("Failed to process pending updates. Error: %d", resp.StatusCode)
 	}
 }
 

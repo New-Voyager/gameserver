@@ -32,7 +32,7 @@ func (bp *BotPlayer) setupServerCrashWithRetry(crashPoint string, playerID uint6
 	err := bp.setupServerCrash(crashPoint, playerID)
 	retries := 0
 	for err != nil && retries < maxRetries {
-		bp.logger.Error().Msgf("%s: Error while setting up game server crash: %v", bp.logPrefix, err)
+		bp.logger.Warn().Msgf("%s: Could not setup game server crash: %v", bp.logPrefix, err)
 		time.Sleep(2 * time.Second)
 		err = bp.setupServerCrash(crashPoint, playerID)
 		retries++
