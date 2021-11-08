@@ -301,10 +301,18 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		if handState.ActionMsgInProgress == nil {
 			// There is no saved message. We crashed before saving the
 			// message. We rely on the client to retry the message in this case.
+
+			nextSeatAction := handState.NextSeatAction
+			if nextSeatAction == nil {
+				// Shouldn't get here.
+				g.logger.Error().Msg("ActionMsgInProgress and NextSeatAction are both nil")
+				return nil
+			}
+
 			now := time.Now()
 			// Give some time for the client to retry before timing it out.
 			retryWindowSec := 10
-			actionExpiresAt := time.Unix(handState.NextSeatAction.ActionTimesoutAt, 0)
+			actionExpiresAt := time.Unix(nextSeatAction.ActionTimesoutAt, 0)
 			if actionExpiresAt.Before(now.Add(time.Duration(retryWindowSec) * time.Second)) {
 				actionExpiresAt = now.Add(time.Duration(retryWindowSec) * time.Second)
 			}
@@ -312,15 +320,15 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 				Msgf("Game server restarted with no saved action message. Relying on the client to resend the action. Restarting the action timer. Current time: %s. Action expires at: %s (%.3f seconds from now).", now, actionExpiresAt.Format(time.RFC3339), actionExpiresAt.Sub(now).Seconds())
 
 			var canCheck bool
-			for _, action := range handState.NextSeatAction.AvailableActions {
+			for _, action := range nextSeatAction.AvailableActions {
 				if action == ACTION_CHECK {
 					canCheck = true
 					break
 				}
 			}
-			player := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
-			if handState.NextSeatAction.ActionTimesoutAt != 0 {
-				g.resetTimer(handState.NextSeatAction.SeatNo, player.PlayerId, canCheck, actionExpiresAt)
+			player := handState.PlayersInSeats[nextSeatAction.SeatNo]
+			if nextSeatAction.ActionTimesoutAt != 0 {
+				g.resetTimer(nextSeatAction.SeatNo, player.PlayerId, canCheck, actionExpiresAt)
 			}
 			return nil
 		}
@@ -335,18 +343,24 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_1, playerMsg.PlayerId)
 
 	actionMsg := g.getClientMsgItem(playerMsg)
-	messageSeatNo := actionMsg.GetPlayerActed().GetSeatNo()
 
 	if err := validatePlayerAction(playerMsg, actionMsg, handState, g.isScriptTest); err != nil {
 		// Ignore the action message.
 		errMsg := "Invalid player action"
+		var actionStr string
+		var messageSeatNo uint32
+		playerActed := actionMsg.GetPlayerActed()
+		if playerActed != nil {
+			actionStr = playerActed.Action.String()
+			messageSeatNo = playerActed.GetSeatNo()
+		}
 		g.logger.Error().
 			Err(err).
 			Uint32(logging.HandNumKey, handState.GetHandNum()).
 			Uint64(logging.PlayerIDKey, playerMsg.GetPlayerId()).
 			Uint32(logging.SeatNumKey, messageSeatNo).
 			Str(logging.MsgTypeKey, actionMsg.MessageType).
-			Str(logging.ActionKey, actionMsg.GetPlayerActed().Action.String()).
+			Str(logging.ActionKey, actionStr).
 			Msg(errMsg)
 
 		// We could get invalid messages (duplicate message, wrong state, etc.)
@@ -354,6 +368,8 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
 		return InvalidMessageError{Msg: errMsg}
 	}
+
+	messageSeatNo := actionMsg.GetPlayerActed().GetSeatNo()
 
 	expectedState := FlowState_WAIT_FOR_NEXT_ACTION
 	if handState.FlowState != expectedState {
@@ -400,6 +416,11 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 
 func validatePlayerAction(playerMsg *HandMessage, actionMsg *HandMessageItem, handState *HandState, isScriptTest bool) error {
 	action := actionMsg.GetPlayerActed()
+	if action == nil {
+		errMsg := "Invalid action. Msg item does not containe playerActed"
+		return InvalidMessageError{Msg: errMsg}
+	}
+
 	messageSeatNo := action.GetSeatNo()
 
 	if handState.NextSeatAction == nil {
