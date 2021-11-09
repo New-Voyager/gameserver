@@ -24,10 +24,6 @@ func GetHand2PlayerSubject(gameCode string, playerID uint64) string {
 	return fmt.Sprintf("hand.%s.player.%d", gameCode, playerID)
 }
 
-func GetPing2PlayerSubject(gameCode string, playerID uint64) string {
-	return fmt.Sprintf("ping.%s.player.%d", gameCode, playerID)
-}
-
-func GetPongSubject(gameCode string) string {
+func GetClientAliveSubject(gameCode string) string {
 	return fmt.Sprintf("clientalive.%s", gameCode)
 }

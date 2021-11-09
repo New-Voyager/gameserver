@@ -2347,11 +2347,10 @@ func (bp *BotPlayer) queryCurrentHandState() error {
 }
 
 func (bp *BotPlayer) sendAliveMsg() {
-	msg := game.PingPongMessage{
+	msg := game.ClientAliveMessage{
 		GameId:   bp.gameID,
 		GameCode: bp.gameCode,
 		PlayerId: bp.PlayerID,
-		Seq:      0,
 	}
 
 	protoData, err := proto.Marshal(&msg)

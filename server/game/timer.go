@@ -9,7 +9,7 @@ import (
 )
 
 func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireAt time.Time) {
-	g.logger.Debug().
+	g.logger.Info().
 		Msgf("Resetting timer. Current timer seat: %d, player ID: %d, expires at %s (%.3f seconds from now)", seatNo, playerID, expireAt.Format(time.RFC3339), expireAt.Sub(time.Now()).Seconds())
 	g.actionTimer.NewAction(timer.TimerMsg{
 		SeatNo:   seatNo,
@@ -17,7 +17,7 @@ func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireA
 		ExpireAt: expireAt,
 		CanCheck: canCheck,
 	})
-	g.networkCheck2.NewAction(networkcheck.NewAction{
+	g.networkCheck.NewAction(networkcheck.NewAction{
 		PlayerID: playerID,
 	})
 }
@@ -67,7 +67,7 @@ func (g *Game) pausePlayTimer(seatNo uint32) {
 		Uint32(logging.SeatNumKey, seatNo).
 		Msgf("Pausing timer. Player responded in: %.3fs", actionResponseTime.Seconds())
 	g.actionTimer.Pause()
-	g.networkCheck2.Pause()
+	g.networkCheck.Pause()
 }
 
 func (g *Game) pausePlayTimer2(seatNo uint32) {

@@ -21,10 +21,9 @@ type NewAction struct {
 
 type AliveMsg struct {
 	PlayerID uint64
-	Seq      uint32
 }
 
-type NetworkCheck2 struct {
+type NetworkCheck struct {
 	logger                 *zerolog.Logger
 	gameID                 uint64
 	gameCode               string
@@ -41,13 +40,13 @@ type NetworkCheck2 struct {
 	conoRestoredCallback   func()
 }
 
-func NewNetworkCheck2(
+func NewNetworkCheck(
 	logger *zerolog.Logger,
 	gameID uint64,
 	gameCode string,
 	crashHandler func(),
-) *NetworkCheck2 {
-	n := NetworkCheck2{
+) *NetworkCheck {
+	n := NetworkCheck{
 		logger:                 logger,
 		gameID:                 gameID,
 		gameCode:               gameCode,
@@ -63,14 +62,16 @@ func NewNetworkCheck2(
 	return &n
 }
 
-func (n *NetworkCheck2) Run() {
+func (n *NetworkCheck) Run() {
 	go n.loop()
 }
-func (n *NetworkCheck2) Destroy() {
+func (n *NetworkCheck) Destroy() {
 	n.chEndLoop <- true
 }
 
-func (n *NetworkCheck2) loop() {
+func (n *NetworkCheck) loop() {
+	n.logger.Info().Msg("Networkcheck loop running")
+
 	defer func() {
 		err := recover()
 		if err != nil {
@@ -88,8 +89,14 @@ func (n *NetworkCheck2) loop() {
 	for {
 		select {
 		case action := <-n.chNewAction:
+			if n.debugConnectivityCheck {
+				n.logger.Info().Uint64(logging.PlayerIDKey, action.PlayerID).Msg("New Action 2")
+			}
 			n.handleNewAction(action)
 		case msg := <-n.chClientAlive:
+			if n.debugConnectivityCheck {
+				n.logger.Info().Uint64(logging.PlayerIDKey, msg.PlayerID).Msg("Client Alive 2")
+			}
 			n.handleClientAlive(msg)
 		case <-n.chPause:
 			n.handlePause()
@@ -102,19 +109,67 @@ func (n *NetworkCheck2) loop() {
 	}
 }
 
-func (n *NetworkCheck2) NewAction(a NewAction) {
+func (n *NetworkCheck) NewAction(a NewAction) {
+	if n.debugConnectivityCheck {
+		n.logger.Info().
+			Uint64(logging.PlayerIDKey, a.PlayerID).
+			Msg("New Action 1")
+	}
 	n.chNewAction <- a
 }
 
-func (n *NetworkCheck2) Pause() {
+func (n *NetworkCheck) ClientAlive(msg *AliveMsg) {
+	if n.debugConnectivityCheck {
+		n.logger.Info().
+			Uint64(logging.PlayerIDKey, msg.PlayerID).
+			Msg("Client Alive 1")
+	}
+	n.chClientAlive <- msg
+}
+
+func (n *NetworkCheck) Pause() {
 	n.chPause <- true
 }
 
-func (n *NetworkCheck2) handlePause() {
+func (n *NetworkCheck) handleNewAction(action NewAction) {
+	if n.debugConnectivityCheck {
+		n.logger.Info().
+			Uint64(logging.PlayerIDKey, action.PlayerID).
+			Msg("Handling new action player")
+	}
+	now := time.Now()
+	n.clientState = &ClientAliveState{
+		playerID:      action.PlayerID,
+		lastAliveTime: now,
+		connLost:      false,
+	}
+
+	n.paused = false
+}
+
+// Handle the alive msg from the client.
+func (n *NetworkCheck) handleClientAlive(msg *AliveMsg) {
+	if n.debugConnectivityCheck {
+		if msg.PlayerID != n.clientState.playerID {
+			n.logger.Info().Msgf("Ignoring alive msg from unexpected player. Current action player: %d, msg Player: %d", n.clientState.playerID, msg.PlayerID)
+			return
+		}
+	}
+
+	if n.debugConnectivityCheck {
+		n.logger.Info().
+			Uint64(logging.PlayerIDKey, msg.PlayerID).
+			Msg("Handling client alive")
+	}
+
+	n.clientState.lastAliveTime = time.Now()
+}
+
+func (n *NetworkCheck) handlePause() {
 	n.paused = true
 }
 
-func (n *NetworkCheck2) handleTimeout() {
+func (n *NetworkCheck) handleTimeout() {
 	if n.paused {
 		return
 	}
@@ -149,39 +204,4 @@ func (n *NetworkCheck2) handleTimeout() {
 			n.clientState.connLost = true
 		}
 	}
-}
-
-func (n *NetworkCheck2) handleNewAction(action NewAction) {
-	if n.debugConnectivityCheck {
-		n.logger.Info().
-			Uint64(logging.PlayerIDKey, action.PlayerID).
-			Msg("New action player")
-	}
-	now := time.Now()
-	n.clientState = &ClientAliveState{
-		playerID:      action.PlayerID,
-		lastAliveTime: now,
-		connLost:      false,
-	}
-
-	n.paused = false
-}
-
-func (n *NetworkCheck2) ClientAlive(msg *AliveMsg) {
-	if n.debugConnectivityCheck {
-		n.logger.Info().
-			Uint64(logging.PlayerIDKey, msg.PlayerID).
-			Msg("Client alive received")
-	}
-	n.chClientAlive <- msg
-}
-
-// Handle the alive msg from the client.
-func (n *NetworkCheck2) handleClientAlive(msg *AliveMsg) {
-	if msg.PlayerID != n.clientState.playerID {
-		n.logger.Info().Msgf("Ignoring alive msg from unexpected player. Current action player: %d, msg Player: %d", n.clientState.playerID, msg.PlayerID)
-		return
-	}
-
-	n.clientState.lastAliveTime = time.Now()
 }

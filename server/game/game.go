@@ -30,7 +30,6 @@ NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 type MessageSender interface {
 	BroadcastGameMessage(message *GameMessage, noLog bool)
 	BroadcastHandMessage(message *HandMessage)
-	SendPingMessageToPlayer(message *PingPongMessage, playerID uint64)
 	SendHandMessageToPlayer(message *HandMessage, playerID uint64)
 	SendGameMessageToPlayer(message *GameMessage, playerID uint64)
 }
@@ -71,8 +70,7 @@ type Game struct {
 
 	actionTimer        *timer.ActionTimer
 	actionTimer2       *timer.ActionTimer
-	networkCheck       *NetworkCheck
-	networkCheck2      *networkcheck.NetworkCheck2
+	networkCheck       *networkcheck.NetworkCheck
 	encryptionKeyCache *encryptionkey.Cache
 }
 
@@ -125,17 +123,12 @@ func NewPokerGame(
 		Int(logging.TimerIDKey, 2).
 		Logger()
 	g.actionTimer2 = timer.NewActionTimer(&timer2Logger, g.queueActionTimeoutMsg, g.crashHandler)
+
 	networkCheckLogger := logging.GetZeroLogger("NetworkCheck", nil).
 		With().Uint64(logging.GameIDKey, gameID).
 		Str(logging.GameCodeKey, gameCode).
 		Logger()
-	g.networkCheck = NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, messageSender, g.crashHandler)
-
-	networkCheck2Logger := logging.GetZeroLogger("NetworkCheck2", nil).
-		With().Uint64(logging.GameIDKey, gameID).
-		Str(logging.GameCodeKey, gameCode).
-		Logger()
-	g.networkCheck2 = networkcheck.NewNetworkCheck2(&networkCheck2Logger, g.gameID, g.gameCode, g.crashHandler)
+	g.networkCheck = networkcheck.NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, g.crashHandler)
 
 	if g.isScriptTest {
 		g.initTestGameState()
@@ -194,11 +187,6 @@ func NewTestPokerGame(
 		Int(logging.TimerIDKey, 2).
 		Logger()
 	g.actionTimer2 = timer.NewActionTimer(&timer2Logger, g.queueActionTimeoutMsg, g.crashHandler)
-	networkCheckLogger := logging.GetZeroLogger("game::NetworkCheck", nil).
-		With().Uint64(logging.GameIDKey, gameID).
-		Str(logging.GameCodeKey, gameCode).
-		Logger()
-	g.networkCheck = NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, messageSender, g.crashHandler)
 
 	if g.isScriptTest {
 		g.initTestGameState()
@@ -220,7 +208,7 @@ func (g *Game) GameStarted() error {
 	g.actionTimer.Run()
 	g.actionTimer2.Run()
 	// g.networkCheck.Run()
-	g.networkCheck2.Run()
+	g.networkCheck.Run()
 
 	go g.runGame()
 	return nil
@@ -232,7 +220,7 @@ func (g *Game) GameEnded() error {
 	g.actionTimer.Destroy()
 	g.actionTimer2.Destroy()
 	// g.networkCheck.Destroy()
-	g.networkCheck2.Destroy()
+	g.networkCheck.Destroy()
 	g.removeHandState()
 	g.logger.Info().Msg("Finished cleaning up game")
 	return nil
@@ -570,7 +558,6 @@ func (g *Game) dealNewHand() error {
 				playerIDs = append(playerIDs, playerID)
 			}
 		}
-		g.networkCheck.SetPlayerIDs(playerIDs)
 	}
 
 	if g.isScriptTest {
@@ -985,14 +972,9 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 	return nil
 }
 
-func (g *Game) HandlePongMessage(message *PingPongMessage) {
-	g.networkCheck.handlePongMessage(message)
-}
-
-func (g *Game) HandleAliveMessage(message *PingPongMessage) {
-	g.networkCheck2.ClientAlive(&networkcheck.AliveMsg{
+func (g *Game) HandleAliveMessage(message *ClientAliveMessage) {
+	g.networkCheck.ClientAlive(&networkcheck.AliveMsg{
 		PlayerID: message.PlayerId,
-		Seq:      message.Seq,
 	})
 }
 

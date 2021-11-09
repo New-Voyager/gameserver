@@ -58,7 +58,7 @@ type NatsGame struct {
 	game2AllPlayersSubject string
 
 	player2HandSubscription *natsgo.Subscription
-	pongSubscription        *natsgo.Subscription
+	clientAliveSubscription *natsgo.Subscription
 	natsConn                *natsgo.Conn
 
 	maxRetries       uint32
@@ -102,10 +102,10 @@ func newNatsGame(nc *natsgo.Conn, gameID uint64, gameCode string) (*NatsGame, er
 	}
 
 	// for receiving ping response
-	playerPongSubject := GetPongSubject(gameCode)
-	natsGame.pongSubscription, e = nc.Subscribe(playerPongSubject, natsGame.clientAlive)
+	clientAliveSubject := GetClientAliveSubject(gameCode)
+	natsGame.clientAliveSubscription, e = nc.Subscribe(clientAliveSubject, natsGame.clientAlive)
 	if e != nil {
-		return nil, errors.Wrapf(e, "Failed to subscribe to %s", playerPongSubject)
+		return nil, errors.Wrapf(e, "Failed to subscribe to %s", clientAliveSubject)
 	}
 
 	serverGame, gameID, err := game.GameManager.InitializeGame(natsGame, gameID, gameCode)
@@ -127,10 +127,10 @@ func (n *NatsGame) cleanup() {
 			Str(logging.NatsSubjectKey, n.player2HandSubscription.Subject).
 			Msgf("Could not unsubscribe player->hand subject during cleanup")
 	}
-	err = n.pongSubscription.Unsubscribe()
+	err = n.clientAliveSubscription.Unsubscribe()
 	if err != nil {
 		n.logger.Warn().
-			Str(logging.NatsSubjectKey, n.pongSubscription.Subject).
+			Str(logging.NatsSubjectKey, n.clientAliveSubscription.Subject).
 			Msgf("Could not unsubscribe pong subject during cleanup")
 	}
 }
@@ -260,7 +260,7 @@ func (n *NatsGame) player2Pong(msg *natsgo.Msg) {
 	// 	n.logger.Info().
 	// 		Msg(fmt.Sprintf("Player->Pong: %s", string(msg.Data)))
 	// }
-	// var message game.PingPongMessage
+	// var message game.ClientAliveMessage
 	// err := proto.Unmarshal(msg.Data, &message)
 	// if err != nil {
 	// 	n.logger.Error().Err(err).Msg("Could not proto-unmarshal pong message from player")
@@ -272,11 +272,7 @@ func (n *NatsGame) player2Pong(msg *natsgo.Msg) {
 
 // messages sent from client to pong channel for notifying liveness
 func (n *NatsGame) clientAlive(msg *natsgo.Msg) {
-	if util.Env.ShouldDebugConnectivityCheck() {
-		n.logger.Info().
-			Msg(fmt.Sprintf("Player->ClientAlive: %s", string(msg.Data)))
-	}
-	var message game.PingPongMessage
+	var message game.ClientAliveMessage
 	err := proto.Unmarshal(msg.Data, &message)
 	if err != nil {
 		n.logger.Error().Err(err).Msg("Could not proto-unmarshal pong message from player")
@@ -340,29 +336,6 @@ func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 	err = n.natsConn.Publish(n.hand2AllPlayersSubject, data)
 	if err != nil {
 		n.logger.Error().Err(err).Msg("Could not publish hand message")
-	}
-}
-
-func (n NatsGame) SendPingMessageToPlayer(message *game.PingPongMessage, playerID uint64) {
-	pingSubject := GetPing2PlayerSubject(n.gameCode, playerID)
-	if util.Env.ShouldDebugConnectivityCheck() {
-		jsonData, err := protojson.Marshal(message)
-		if err != nil {
-			n.logger.Warn().Msg("Could not protojson-marshal ping message for logging")
-		} else {
-			n.logger.Info().
-				Str(logging.NatsSubjectKey, pingSubject).
-				Msgf("Ping->Player: %s", string(jsonData))
-		}
-	}
-	data, err := proto.Marshal(message)
-	if err != nil {
-		n.logger.Error().Err(err).Msg("Could not proto-marshal ping message")
-		return
-	}
-	err = n.natsConn.Publish(pingSubject, data)
-	if err != nil {
-		n.logger.Error().Err(err).Msg("Could not publish ping message")
 	}
 }
 
