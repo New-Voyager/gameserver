@@ -106,12 +106,19 @@ func (n *NetworkCheck2) NewAction(a NewAction) {
 	n.chNewAction <- a
 }
 
+func (n *NetworkCheck2) Pause() {
+	n.chPause <- true
+}
+
 func (n *NetworkCheck2) handlePause() {
 	n.paused = true
 }
 
 func (n *NetworkCheck2) handleTimeout() {
 	if n.paused {
+		return
+	}
+	if n.clientState == nil {
 		return
 	}
 
@@ -145,6 +152,11 @@ func (n *NetworkCheck2) handleTimeout() {
 }
 
 func (n *NetworkCheck2) handleNewAction(action NewAction) {
+	if n.debugConnectivityCheck {
+		n.logger.Info().
+			Uint64(logging.PlayerIDKey, action.PlayerID).
+			Msg("New action player")
+	}
 	now := time.Now()
 	n.clientState = &ClientAliveState{
 		playerID:      action.PlayerID,
@@ -153,6 +165,15 @@ func (n *NetworkCheck2) handleNewAction(action NewAction) {
 	}
 
 	n.paused = false
+}
+
+func (n *NetworkCheck2) ClientAlive(msg *AliveMsg) {
+	if n.debugConnectivityCheck {
+		n.logger.Info().
+			Uint64(logging.PlayerIDKey, msg.PlayerID).
+			Msg("Client alive received")
+	}
+	n.chClientAlive <- msg
 }
 
 // Handle the alive msg from the client.

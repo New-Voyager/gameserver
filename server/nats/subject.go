@@ -29,5 +29,5 @@ func GetPing2PlayerSubject(gameCode string, playerID uint64) string {
 }
 
 func GetPongSubject(gameCode string) string {
-	return fmt.Sprintf("pong.%s", gameCode)
+	return fmt.Sprintf("clientalive.%s", gameCode)
 }

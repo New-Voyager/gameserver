@@ -17,6 +17,7 @@ import (
 	"voyager.com/logging"
 	"voyager.com/server/crashtest"
 	"voyager.com/server/internal/encryptionkey"
+	"voyager.com/server/networkcheck"
 	"voyager.com/server/poker"
 	"voyager.com/server/timer"
 	"voyager.com/server/util"
@@ -71,6 +72,7 @@ type Game struct {
 	actionTimer        *timer.ActionTimer
 	actionTimer2       *timer.ActionTimer
 	networkCheck       *NetworkCheck
+	networkCheck2      *networkcheck.NetworkCheck2
 	encryptionKeyCache *encryptionkey.Cache
 }
 
@@ -128,6 +130,12 @@ func NewPokerGame(
 		Str(logging.GameCodeKey, gameCode).
 		Logger()
 	g.networkCheck = NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, messageSender, g.crashHandler)
+
+	networkCheck2Logger := logging.GetZeroLogger("NetworkCheck2", nil).
+		With().Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
+		Logger()
+	g.networkCheck2 = networkcheck.NewNetworkCheck2(&networkCheck2Logger, g.gameID, g.gameCode, g.crashHandler)
 
 	if g.isScriptTest {
 		g.initTestGameState()
@@ -211,7 +219,8 @@ func (g *Game) playersInSeatsCount() int {
 func (g *Game) GameStarted() error {
 	g.actionTimer.Run()
 	g.actionTimer2.Run()
-	g.networkCheck.Run()
+	// g.networkCheck.Run()
+	g.networkCheck2.Run()
 
 	go g.runGame()
 	return nil
@@ -222,7 +231,8 @@ func (g *Game) GameEnded() error {
 	g.end <- true
 	g.actionTimer.Destroy()
 	g.actionTimer2.Destroy()
-	g.networkCheck.Destroy()
+	// g.networkCheck.Destroy()
+	g.networkCheck2.Destroy()
 	g.removeHandState()
 	g.logger.Info().Msg("Finished cleaning up game")
 	return nil
@@ -977,6 +987,13 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 
 func (g *Game) HandlePongMessage(message *PingPongMessage) {
 	g.networkCheck.handlePongMessage(message)
+}
+
+func (g *Game) HandleAliveMessage(message *PingPongMessage) {
+	g.networkCheck2.ClientAlive(&networkcheck.AliveMsg{
+		PlayerID: message.PlayerId,
+		Seq:      message.Seq,
+	})
 }
 
 func (g *Game) addScriptTestPlayer(player *Player, buyIn float64, postBlind bool) error {

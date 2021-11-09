@@ -103,7 +103,7 @@ func newNatsGame(nc *natsgo.Conn, gameID uint64, gameCode string) (*NatsGame, er
 
 	// for receiving ping response
 	playerPongSubject := GetPongSubject(gameCode)
-	natsGame.pongSubscription, e = nc.Subscribe(playerPongSubject, natsGame.player2Pong)
+	natsGame.pongSubscription, e = nc.Subscribe(playerPongSubject, natsGame.clientAlive)
 	if e != nil {
 		return nil, errors.Wrapf(e, "Failed to subscribe to %s", playerPongSubject)
 	}
@@ -124,13 +124,13 @@ func (n *NatsGame) cleanup() {
 	err := n.player2HandSubscription.Unsubscribe()
 	if err != nil {
 		n.logger.Warn().
-			Str("subjectName", n.player2HandSubscription.Subject).
+			Str(logging.NatsSubjectKey, n.player2HandSubscription.Subject).
 			Msgf("Could not unsubscribe player->hand subject during cleanup")
 	}
 	err = n.pongSubscription.Unsubscribe()
 	if err != nil {
 		n.logger.Warn().
-			Str("subjectName", n.pongSubscription.Subject).
+			Str(logging.NatsSubjectKey, n.pongSubscription.Subject).
 			Msgf("Could not unsubscribe pong subject during cleanup")
 	}
 }
@@ -256,18 +256,39 @@ func (n *NatsGame) onQueryHand(gameID uint64, playerID uint64, messageID string)
 
 // messages sent from player to pong channel for network check
 func (n *NatsGame) player2Pong(msg *natsgo.Msg) {
+	// if util.Env.ShouldDebugConnectivityCheck() {
+	// 	n.logger.Info().
+	// 		Msg(fmt.Sprintf("Player->Pong: %s", string(msg.Data)))
+	// }
+	// var message game.PingPongMessage
+	// err := proto.Unmarshal(msg.Data, &message)
+	// if err != nil {
+	// 	n.logger.Error().Err(err).Msg("Could not proto-unmarshal pong message from player")
+	// 	return
+	// }
+
+	// n.serverGame.HandlePongMessage(&message)
+}
+
+// messages sent from client to pong channel for notifying liveness
+func (n *NatsGame) clientAlive(msg *natsgo.Msg) {
 	if util.Env.ShouldDebugConnectivityCheck() {
 		n.logger.Info().
-			Msg(fmt.Sprintf("Player->Pong: %s", string(msg.Data)))
+			Msg(fmt.Sprintf("Player->ClientAlive: %s", string(msg.Data)))
 	}
 	var message game.PingPongMessage
 	err := proto.Unmarshal(msg.Data, &message)
 	if err != nil {
-		n.logger.Error().Err(err).Msg("Could proto-unmarshal pong message from player")
+		n.logger.Error().Err(err).Msg("Could not proto-unmarshal pong message from player")
 		return
 	}
 
-	n.serverGame.HandlePongMessage(&message)
+	if message.GameId != n.gameID || message.GameCode != n.gameCode {
+		n.logger.Error().Msgf("Discarding client alive message. Unexpected game ID or game code. Game ID: %d, game code: %s", message.GameId, message.GameCode)
+		return
+	}
+
+	n.serverGame.HandleAliveMessage(&message)
 }
 
 func (n NatsGame) BroadcastGameMessage(message *game.GameMessage, noLog bool) {

@@ -26,6 +26,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"voyager.com/botrunner/internal/game"
 	"voyager.com/botrunner/internal/gql"
+	"voyager.com/botrunner/internal/networkcheck"
 	"voyager.com/botrunner/internal/poker"
 	"voyager.com/botrunner/internal/rest"
 	"voyager.com/botrunner/internal/util"
@@ -104,7 +105,6 @@ type BotPlayer struct {
 	chGame     chan *GameMessageChannelItem
 	chHand     chan *game.HandMessage
 	chHandText chan *gamescript.HandTextMessage
-	chPing     chan *game.PingPongMessage
 	end        chan bool
 	endPing    chan bool
 
@@ -116,8 +116,8 @@ type BotPlayer struct {
 	confirmWaitlist bool
 
 	// Nats subjects
-	meToHandSubjectName string
-	pongSubjectName     string
+	meToHandSubjectName    string
+	clientAliveSubjectName string
 
 	// Nats subscription objects
 	gameMsgSubscription           *natsgo.Subscription
@@ -125,7 +125,6 @@ type BotPlayer struct {
 	handMsgPlayerSubscription     *natsgo.Subscription
 	handMsgPlayerTextSubscription *natsgo.Subscription
 	playerMsgPlayerSubscription   *natsgo.Subscription
-	pingSubscription              *natsgo.Subscription
 
 	game      *gameView
 	seatNo    uint32
@@ -153,6 +152,9 @@ type BotPlayer struct {
 	PrivateMessages     []map[string]interface{}
 	PrivateTextMessages []*gamescript.HandTextMessage
 	GameMessages        []*gamescript.NonProtoMessage
+
+	// For periodically notifying server the client is alive
+	clientAliveCheck *networkcheck.ClientAliveCheck
 }
 
 // NewBotPlayer creates an instance of BotPlayer.
@@ -176,7 +178,6 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 		natsConn:        nc,
 		chGame:          make(chan *GameMessageChannelItem, 10),
 		chHand:          make(chan *game.HandMessage, 10),
-		chPing:          make(chan *game.PingPongMessage, 10),
 		chHandText:      make(chan *gamescript.HandTextMessage, 10),
 		end:             make(chan bool),
 		endPing:         make(chan bool),
@@ -269,14 +270,13 @@ func (bp *BotPlayer) Reset() {
 	bp.inWaitList = false
 	bp.confirmWaitlist = false
 	bp.meToHandSubjectName = ""
-	bp.pongSubjectName = ""
+	bp.clientAliveSubjectName = ""
 	bp.gameMsgSubscription = nil
 	bp.gameMsgSubscription = nil
 	bp.handMsgAllSubscription = nil
 	bp.handMsgPlayerSubscription = nil
 	bp.handMsgPlayerTextSubscription = nil
 	bp.playerMsgPlayerSubscription = nil
-	bp.pingSubscription = nil
 	bp.game = nil
 	bp.observing = false
 	bp.hasNextHandBeenSetup = false
@@ -288,7 +288,6 @@ func (bp *BotPlayer) Reset() {
 	bp.updateLogPrefix()
 	bp.UpdateLogger(0, "")
 	go bp.messageLoop()
-	go bp.pingMessageLoop()
 }
 
 func (bp *BotPlayer) UpdateLogger(gameID uint64, gameCode string) {
@@ -304,6 +303,18 @@ func (bp *BotPlayer) SetBotsInGame(bots []*BotPlayer) {
 func (bp *BotPlayer) enterState(e *fsm.Event) {
 	if bp.printStateMsg {
 		bp.logger.Info().Msgf("%s: [%s] ===> [%s]", bp.logPrefix, e.Src, e.Dst)
+	}
+
+	if e.Dst == BotState__MY_TURN {
+		if bp.clientAliveCheck == nil {
+			bp.logger.Error().Msgf("%s: Entered %s state, but clientAliveCheck is nil", bp.logPrefix, BotState__MY_TURN)
+		} else {
+			bp.clientAliveCheck.InAction()
+		}
+	} else {
+		if bp.clientAliveCheck != nil {
+			bp.clientAliveCheck.NotInAction()
+		}
 	}
 }
 
@@ -416,17 +427,6 @@ func (bp *BotPlayer) unmarshalAndQueueHandMsg(data []byte) {
 	bp.chHand <- &message
 }
 
-func (bp *BotPlayer) handlePingMsg(msg *natsgo.Msg) {
-	var message game.PingPongMessage
-	err := proto.Unmarshal(msg.Data, &message)
-	if err != nil {
-		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf ping message [%s]", bp.logPrefix, err, string(msg.Data))
-		return
-	}
-
-	bp.chPing <- &message
-}
-
 func (bp *BotPlayer) messageLoop() {
 	for {
 		select {
@@ -447,18 +447,6 @@ func (bp *BotPlayer) messageLoop() {
 			bp.processHandMessage(message)
 		case message := <-bp.chHandText:
 			bp.processHandTextMessage(message)
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-}
-
-func (bp *BotPlayer) pingMessageLoop() {
-	for {
-		select {
-		case <-bp.endPing:
-			return
-		case message := <-bp.chPing:
-			bp.respondToPing(message)
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
@@ -889,27 +877,6 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			bp.act(nextSeatAction, handStatus)
 		}
 	}
-}
-
-func (bp *BotPlayer) respondToPing(pingMsg *game.PingPongMessage) error {
-	msg := game.PingPongMessage{
-		GameId:   bp.gameID,
-		PlayerId: bp.PlayerID,
-		Seq:      pingMsg.GetSeq(),
-	}
-
-	protoData, err := proto.Marshal(&msg)
-	if err != nil {
-		return errors.Wrap(err, "Could not proto-marshal pong message.")
-	}
-	// bp.logger.Debug().Msgf("%s: Sending PONG. Msg: %s", bp.logPrefix, string(protoData))
-	// Send to hand subject.
-	err = bp.natsConn.Publish(bp.pongSubjectName, protoData)
-	if err != nil {
-		return errors.Wrapf(err, "Unable to publish pong message to nats channel %s", bp.pongSubjectName)
-	}
-
-	return nil
 }
 
 func (bp *BotPlayer) chooseNextGame(gameType game.GameType) {
@@ -1820,8 +1787,7 @@ func (bp *BotPlayer) Subscribe(gameToAllSubjectName string,
 	handToAllSubjectName string,
 	handToPlayerSubjectName string,
 	handToPlayerTextSubjectName string,
-	playerChannelName string,
-	pingSubjectName string) error {
+	playerChannelName string) error {
 
 	if bp.gameMsgSubscription == nil || !bp.gameMsgSubscription.IsValid() {
 		bp.logger.Info().Msgf("%s: Subscribing to %s to receive game messages sent to players/observers", bp.logPrefix, gameToAllSubjectName)
@@ -1871,16 +1837,6 @@ func (bp *BotPlayer) Subscribe(gameToAllSubjectName string,
 		}
 		bp.playerMsgPlayerSubscription = sub
 		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, handToPlayerSubjectName)
-	}
-
-	if bp.pingSubscription == nil || !bp.pingSubscription.IsValid() {
-		bp.logger.Info().Msgf("%s: Subscribing to %s to receive ping messages sent to player: %s", bp.logPrefix, pingSubjectName, bp.config.Name)
-		pingToPlayerSub, err := bp.natsConn.Subscribe(pingSubjectName, bp.handlePingMsg)
-		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the ping message subject [%s]", bp.logPrefix, pingSubjectName))
-		}
-		bp.pingSubscription = pingToPlayerSub
-		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, pingSubjectName)
 	}
 
 	bp.event(BotEvent__SUBSCRIBE)
@@ -1939,13 +1895,17 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 	bp.gameInfo = &gi
 
 	playerChannelName := fmt.Sprintf("player.%d", bp.PlayerID)
-	err = bp.Subscribe(gi.GameToPlayerChannel, gi.HandToAllChannel, gi.HandToPlayerChannel, gi.HandToPlayerTextChannel, playerChannelName, gi.PingChannel)
+	err = bp.Subscribe(gi.GameToPlayerChannel, gi.HandToAllChannel, gi.HandToPlayerChannel, gi.HandToPlayerTextChannel, playerChannelName)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to game %s channels", bp.logPrefix, gameCode))
 	}
 
 	bp.meToHandSubjectName = gi.PlayerToHandChannel
-	bp.pongSubjectName = gi.PongChannel
+	bp.clientAliveSubjectName = gi.ClientAliveChannel
+
+	bp.logger.Info().Msgf("%s: Starting network check client", bp.logPrefix)
+	bp.clientAliveCheck = networkcheck.NewClientAliveCheck(gi.GameID, gameCode, bp.sendAliveMsg)
+	bp.clientAliveCheck.Run()
 
 	return nil
 }
@@ -2272,6 +2232,8 @@ func (bp *BotPlayer) LeaveGameImmediately() error {
 	bp.updateSeatNo(0)
 	bp.gameCode = ""
 	bp.gameID = 0
+	bp.clientAliveCheck.Destroy()
+	bp.clientAliveCheck = nil
 	return nil
 }
 
@@ -2382,6 +2344,26 @@ func (bp *BotPlayer) queryCurrentHandState() error {
 		return errors.Wrap(err, fmt.Sprintf("%s: Unable to publish to nats", bp.logPrefix))
 	}
 	return nil
+}
+
+func (bp *BotPlayer) sendAliveMsg() {
+	msg := game.PingPongMessage{
+		GameId:   bp.gameID,
+		GameCode: bp.gameCode,
+		PlayerId: bp.PlayerID,
+		Seq:      0,
+	}
+
+	protoData, err := proto.Marshal(&msg)
+	if err != nil {
+		bp.logger.Error().Err(err).Msgf("%s: Could not proto-marshal client-alive message", bp.logPrefix)
+		return
+	}
+	bp.logger.Info().Msgf("%s: Sending client-alive message to %s", bp.logPrefix, bp.clientAliveSubjectName)
+	err = bp.natsConn.Publish(bp.clientAliveSubjectName, protoData)
+	if err != nil {
+		bp.logger.Error().Err(err).Msgf("%s: Unable to publish client-alive message to nats channel %s", bp.logPrefix, bp.clientAliveSubjectName)
+	}
 }
 
 // UpdateGamePlayerSettings updates player's configuration for this game.
