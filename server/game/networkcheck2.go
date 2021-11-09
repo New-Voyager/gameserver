@@ -2,7 +2,6 @@ package game
 
 import (
 	"runtime/debug"
-	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -14,21 +13,9 @@ type pingPongState struct {
 	playerID       uint64
 	pingSeq        uint32
 	pongSeq        uint32
-	numPingMissed  uint32
 	pingSentTime   time.Time
 	pingTimesoutAt time.Time
-	responseTimes  []time.Duration
 	connLost       bool
-	sync.Mutex
-}
-
-func (p *pingPongState) reset() {
-	p.playerID = 0
-	p.pingSeq = 0
-	p.pongSeq = 0
-	p.numPingMissed = 0
-	p.responseTimes = make([]time.Duration, 0)
-	p.connLost = false
 }
 
 type NewAction struct {
@@ -41,10 +28,12 @@ type NetworkCheck2 struct {
 	gameID                 uint64
 	gameCode               string
 	chEndLoop              chan bool
+	chPause                chan bool
 	chNewAction            chan NewAction
 	chPong                 chan *PingPongMessage
 	pingTimeoutSec         uint32
 	pingPongState          *pingPongState
+	paused                 bool
 	debugConnectivityCheck bool
 	messageSender          *MessageSender
 	crashHandler           func()
@@ -62,10 +51,11 @@ func NewNetworkCheck2(
 		gameID:                 gameID,
 		gameCode:               gameCode,
 		chEndLoop:              make(chan bool, 10),
+		chPause:                make(chan bool, 10),
 		chNewAction:            make(chan NewAction, 10),
 		chPong:                 make(chan *PingPongMessage, 10),
 		pingTimeoutSec:         uint32(util.Env.GetPingTimeout()),
-		pingPongState:          &pingPongState{},
+		pingPongState:          nil,
 		debugConnectivityCheck: util.Env.ShouldDebugConnectivityCheck(),
 		messageSender:          messageReceiver,
 		crashHandler:           crashHandler,
@@ -95,59 +85,89 @@ func (n *NetworkCheck2) loop() {
 		}
 	}()
 
-	// Do we need a pause channel?
-	var paused bool
 	for {
 		select {
 		case action := <-n.chNewAction:
 			n.handleNewAction(action)
 		case msg := <-n.chPong:
 			n.handlePongMsg(msg)
+		case <-n.chPause:
+			n.handlePause()
 		case <-n.chEndLoop:
 			return
 		default:
-			if paused {
-				break
-			}
-			now := time.Now()
-
-			if now.After(n.pingPongState.pingTimesoutAt) {
-				if n.pingPongState.pongSeq != n.pingPongState.pingSeq {
-					// Did not receive pong.
-					// Broadcast connection issue.
-				}
-
-				// Send another ping.
-
-				n.pingPongState.pingSeq++
-				now = time.Now()
-				n.pingPongState.pingSentTime = now
-				n.pingPongState.pingTimesoutAt = now.Add(time.Duration(n.pingTimeoutSec) * time.Second)
-			}
-
+			n.processPeriodic()
+			time.Sleep(100 * time.Millisecond)
 		}
-		time.Sleep(100 * time.Millisecond)
 	}
 }
 
+func (n *NetworkCheck2) handlePause() {
+	n.paused = true
+}
+
+func (n *NetworkCheck2) processPeriodic() {
+	if n.paused {
+		return
+	}
+
+	now := time.Now()
+
+	if now.Before(n.pingPongState.pingTimesoutAt) {
+		return
+	}
+
+	if n.pingPongState.pongSeq != n.pingPongState.pingSeq {
+		// Did not receive pong in this round.
+		// Broadcast connection issue if not already done.
+		if !n.pingPongState.connLost {
+			if n.debugConnectivityCheck {
+				n.logger.Info().
+					Uint64(logging.PlayerIDKey, n.pingPongState.playerID).
+					Msg("Player connectivity lost")
+			}
+			n.pingPongState.connLost = true
+			n.broadcastConnectivityLost([]uint64{n.pingPongState.playerID})
+		}
+	}
+
+	// Send next ping.
+	n.pingPongState.pingSeq++
+
+	// TODO: Unicast to the action player.
+	n.broadcastPing(n.pingPongState.pingSeq)
+
+	now = time.Now()
+	n.pingPongState.pingSentTime = now
+	n.pingPongState.pingTimesoutAt = now.Add(time.Duration(n.pingTimeoutSec) * time.Second)
+}
+
 func (n *NetworkCheck2) handleNewAction(action NewAction) {
+	var firstPingSeq uint32 = 1
+
 	if action.SendInitialPing {
-		// TODO: Unicast
-		n.broadcastPing(1)
+		// TODO: Unicast to the action player.
+		n.broadcastPing(firstPingSeq)
 	}
 	now := time.Now()
 	n.pingPongState = &pingPongState{
 		playerID:       action.PlayerID,
-		pingSeq:        1,
+		pingSeq:        firstPingSeq,
 		pongSeq:        0,
 		pingSentTime:   now,
 		pingTimesoutAt: now.Add(time.Duration(n.pingTimeoutSec) * time.Second),
-		responseTimes:  make([]time.Duration, 0),
+		connLost:       false,
 	}
+
+	n.paused = false
 }
 
 // Handle the response from the client.
 func (n *NetworkCheck2) handlePongMsg(msg *PingPongMessage) {
+	if n.paused {
+		return
+	}
+
 	if msg.PlayerId != n.pingPongState.playerID {
 		n.logger.Info().Msgf("Ignoring pong msg from unexpected player. Current player: %d, msg Player: %d", n.pingPongState.playerID, msg.PlayerId)
 		return
