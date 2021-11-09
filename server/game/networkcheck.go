@@ -183,10 +183,10 @@ func (n *NetworkCheck) broadcastConnectivityLost(playerIDs []uint64) {
 }
 
 func (n *NetworkCheck) broadcastPingMessage(msg *PingPongMessage) error {
-	if *n.messageSender != nil {
-		msg.GameCode = n.gameCode
-		(*n.messageSender).BroadcastPingMessage(msg)
-	}
+	// if *n.messageSender != nil {
+	// 	msg.GameCode = n.gameCode
+	// 	(*n.messageSender).BroadcastPingMessage(msg)
+	// }
 	return nil
 }
 

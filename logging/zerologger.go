@@ -20,6 +20,7 @@ const (
 	ActionKey       string = "action"
 	TimerIDKey      string = "timerID"
 	TimerPurposeKey string = "purpose"
+	NatsSubjectKey  string = "subject"
 )
 
 func getEnableColorLog() string {

@@ -29,7 +29,7 @@ NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 type MessageSender interface {
 	BroadcastGameMessage(message *GameMessage, noLog bool)
 	BroadcastHandMessage(message *HandMessage)
-	BroadcastPingMessage(message *PingPongMessage)
+	SendPingMessageToPlayer(message *PingPongMessage, playerID uint64)
 	SendHandMessageToPlayer(message *HandMessage, playerID uint64)
 	SendGameMessageToPlayer(message *GameMessage, playerID uint64)
 }

@@ -133,9 +133,7 @@ func (n *NetworkCheck2) processPeriodic() {
 
 	// Send next ping.
 	n.pingPongState.pingSeq++
-
-	// TODO: Unicast to the action player.
-	n.broadcastPing(n.pingPongState.pingSeq)
+	n.sendPing(n.pingPongState.pingSeq, n.pingPongState.playerID)
 
 	now = time.Now()
 	n.pingPongState.pingSentTime = now
@@ -146,8 +144,7 @@ func (n *NetworkCheck2) handleNewAction(action NewAction) {
 	var firstPingSeq uint32 = 1
 
 	if action.SendInitialPing {
-		// TODO: Unicast to the action player.
-		n.broadcastPing(firstPingSeq)
+		n.sendPing(firstPingSeq, n.pingPongState.playerID)
 	}
 	now := time.Now()
 	n.pingPongState = &pingPongState{
@@ -199,12 +196,14 @@ func (n *NetworkCheck2) handlePongMsg(msg *PingPongMessage) {
 	}
 }
 
-func (n *NetworkCheck2) broadcastPing(pingSeq uint32) error {
+func (n *NetworkCheck2) sendPing(pingSeq uint32, playerID uint64) error {
 	msg := PingPongMessage{
-		GameId: n.gameID,
-		Seq:    pingSeq,
+		GameId:   n.gameID,
+		GameCode: n.gameCode,
+		PlayerId: playerID,
+		Seq:      pingSeq,
 	}
-	n.broadcastPingMessage(&msg)
+	n.SendPingMessageToPlayer(&msg, playerID)
 	return nil
 }
 
@@ -222,10 +221,9 @@ func (n *NetworkCheck2) broadcastConnectivityLost(playerIDs []uint64) {
 	n.broadcastGameMessage(&gameMessage)
 }
 
-func (n *NetworkCheck2) broadcastPingMessage(msg *PingPongMessage) error {
+func (n *NetworkCheck2) SendPingMessageToPlayer(msg *PingPongMessage, playerID uint64) error {
 	if *n.messageSender != nil {
-		msg.GameCode = n.gameCode
-		(*n.messageSender).BroadcastPingMessage(msg)
+		(*n.messageSender).SendPingMessageToPlayer(msg, playerID)
 	}
 	return nil
 }
