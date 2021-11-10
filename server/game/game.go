@@ -128,7 +128,7 @@ func NewPokerGame(
 		With().Uint64(logging.GameIDKey, gameID).
 		Str(logging.GameCodeKey, gameCode).
 		Logger()
-	g.networkCheck = networkcheck.NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, g.crashHandler)
+	g.networkCheck = networkcheck.NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, g.crashHandler, g.onClientConnLost, g.onClientConnRestored)
 
 	if g.isScriptTest {
 		g.initTestGameState()
@@ -192,7 +192,7 @@ func NewTestPokerGame(
 		With().Uint64(logging.GameIDKey, gameID).
 		Str(logging.GameCodeKey, gameCode).
 		Logger()
-	g.networkCheck = networkcheck.NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, g.crashHandler)
+	g.networkCheck = networkcheck.NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, g.crashHandler, g.onClientConnLost, g.onClientConnRestored)
 
 	if g.isScriptTest {
 		g.initTestGameState()
@@ -1143,4 +1143,54 @@ func (g *Game) EncryptAndB64ForPlayer(data []byte, playerID uint64) (string, err
 
 func (g *Game) GetRemainingActionTime() uint32 {
 	return g.actionTimer.GetRemainingSec()
+}
+
+func (g *Game) onClientConnLost(a networkcheck.Action) {
+	playerIDs := []uint64{a.PlayerID}
+	g.broadcastConnectivityLost(playerIDs)
+}
+
+func (g *Game) broadcastConnectivityLost(playerIDs []uint64) {
+	if *g.messageSender == nil {
+		return
+	}
+
+	gameMessage := GameMessage{
+		MessageType: GamePlayerConnectivityLost,
+		GameId:      g.gameID,
+		GameCode:    g.gameCode,
+		PlayerId:    0,
+	}
+	gameMessage.GameMessage = &GameMessage_NetworkConnectivity{
+		NetworkConnectivity: &GameNetworkConnectivityMessage{
+			PlayerIds: playerIDs,
+		},
+	}
+	skipLog := !util.Env.ShouldDebugConnectivityCheck()
+	(*g.messageSender).BroadcastGameMessage(&gameMessage, skipLog)
+}
+
+func (g *Game) onClientConnRestored(a networkcheck.Action) {
+	playerIDs := []uint64{a.PlayerID}
+	g.broadcastConnectivityRestored(playerIDs)
+}
+
+func (g *Game) broadcastConnectivityRestored(playerIDs []uint64) {
+	if *g.messageSender == nil {
+		return
+	}
+
+	gameMessage := GameMessage{
+		MessageType: GamePlayerConnectivityRestored,
+		GameId:      g.gameID,
+		GameCode:    g.gameCode,
+		PlayerId:    0,
+	}
+	gameMessage.GameMessage = &GameMessage_NetworkConnectivity{
+		NetworkConnectivity: &GameNetworkConnectivityMessage{
+			PlayerIds: playerIDs,
+		},
+	}
+	skipLog := !util.Env.ShouldDebugConnectivityCheck()
+	(*g.messageSender).BroadcastGameMessage(&gameMessage, skipLog)
 }

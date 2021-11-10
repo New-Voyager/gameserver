@@ -15,7 +15,7 @@ type ClientAliveState struct {
 	connLost      bool
 }
 
-type NewAction struct {
+type Action struct {
 	PlayerID uint64
 }
 
@@ -29,15 +29,16 @@ type NetworkCheck struct {
 	gameCode               string
 	chEndLoop              chan bool
 	chPause                chan bool
-	chNewAction            chan NewAction
+	chNewAction            chan Action
 	chClientAlive          chan *AliveMsg
 	clientDeadThresholdSec uint32
 	clientState            *ClientAliveState
+	currentAction          Action
 	paused                 bool
 	debugConnectivityCheck bool
 	crashHandler           func()
-	connLostCallback       func()
-	conoRestoredCallback   func()
+	connLost               func(Action)
+	connRestored           func(Action)
 }
 
 func NewNetworkCheck(
@@ -45,6 +46,8 @@ func NewNetworkCheck(
 	gameID uint64,
 	gameCode string,
 	crashHandler func(),
+	connLostCallback func(Action),
+	connRestoredCallback func(Action),
 ) *NetworkCheck {
 	n := NetworkCheck{
 		logger:                 logger,
@@ -52,12 +55,14 @@ func NewNetworkCheck(
 		gameCode:               gameCode,
 		chEndLoop:              make(chan bool, 10),
 		chPause:                make(chan bool, 10),
-		chNewAction:            make(chan NewAction, 10),
+		chNewAction:            make(chan Action, 10),
 		chClientAlive:          make(chan *AliveMsg, 10),
 		clientDeadThresholdSec: uint32(util.Env.GetPingTimeout()),
 		clientState:            nil,
 		debugConnectivityCheck: util.Env.ShouldDebugConnectivityCheck(),
 		crashHandler:           crashHandler,
+		connLost:               connLostCallback,
+		connRestored:           connRestoredCallback,
 	}
 	return &n
 }
@@ -70,7 +75,7 @@ func (n *NetworkCheck) Destroy() {
 }
 
 func (n *NetworkCheck) loop() {
-	n.logger.Info().Msg("Networkcheck loop running")
+	n.logger.Info().Msg("Networkcheck loop starting")
 
 	defer func() {
 		err := recover()
@@ -109,7 +114,7 @@ func (n *NetworkCheck) loop() {
 	}
 }
 
-func (n *NetworkCheck) NewAction(a NewAction) {
+func (n *NetworkCheck) NewAction(a Action) {
 	if n.debugConnectivityCheck {
 		n.logger.Info().
 			Uint64(logging.PlayerIDKey, a.PlayerID).
@@ -131,7 +136,7 @@ func (n *NetworkCheck) Pause() {
 	n.chPause <- true
 }
 
-func (n *NetworkCheck) handleNewAction(action NewAction) {
+func (n *NetworkCheck) handleNewAction(action Action) {
 	if n.debugConnectivityCheck {
 		n.logger.Info().
 			Uint64(logging.PlayerIDKey, action.PlayerID).
@@ -143,6 +148,7 @@ func (n *NetworkCheck) handleNewAction(action NewAction) {
 		lastAliveTime: now,
 		connLost:      false,
 	}
+	n.currentAction = action
 
 	n.paused = false
 }
@@ -188,9 +194,10 @@ func (n *NetworkCheck) handleTimeout() {
 				Uint64(logging.PlayerIDKey, n.clientState.playerID).
 				Msg("Player connectivity restored")
 
-			// TODO: Notify main loop.
-
 			n.clientState.connLost = false
+
+			// Notify the game.
+			n.connRestored(n.currentAction)
 		}
 	} else {
 		if now.After(timeoutAt) {
@@ -199,9 +206,10 @@ func (n *NetworkCheck) handleTimeout() {
 				Uint64(logging.PlayerIDKey, n.clientState.playerID).
 				Msg("Player connectivity lost")
 
-			// TODO: Notify main loop.
-
 			n.clientState.connLost = true
+
+			// Notify the game.
+			n.connLost(n.currentAction)
 		}
 	}
 }

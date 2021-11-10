@@ -41,11 +41,11 @@ type ActionTimer struct {
 	chRemainingOut chan time.Duration
 	chEndLoop      chan bool
 
-	callback        func(TimerMsg)
 	currentTimerMsg TimerMsg
 	expirationTime  time.Time
 	lastResetAt     time.Time
 
+	timedOut     func(TimerMsg)
 	crashHandler func()
 }
 
@@ -59,7 +59,7 @@ func NewActionTimer(logger *zerolog.Logger, callback func(TimerMsg), crashHandle
 		chRemainingIn:  make(chan bool),
 		chRemainingOut: make(chan time.Duration),
 		chEndLoop:      make(chan bool, 10),
-		callback:       callback,
+		timedOut:       callback,
 		crashHandler:   crashHandler,
 	}
 	return &at
@@ -125,7 +125,7 @@ func (a *ActionTimer) loop() {
 
 				if remainingSec <= 0 {
 					// The player timed out.
-					a.callback(a.currentTimerMsg)
+					a.timedOut(a.currentTimerMsg)
 					a.expirationTime = time.Time{}
 					paused = true
 				}

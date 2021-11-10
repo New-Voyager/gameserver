@@ -17,7 +17,7 @@ func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireA
 		ExpireAt: expireAt,
 		CanCheck: canCheck,
 	})
-	g.networkCheck.NewAction(networkcheck.NewAction{
+	g.networkCheck.NewAction(networkcheck.Action{
 		PlayerID: playerID,
 	})
 }
