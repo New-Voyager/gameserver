@@ -65,6 +65,7 @@ services:
       DISABLE_DELAYS: 1
       ENABLE_ENCRYPTION: 1
       SYSTEM_TEST: 1
+      DEBUG_CONNECTIVITY_CHECK: 1
       LOG_LEVEL: 'debug'
       COLORIZE_LOG: ${COLORIZE_LOG}
     command:
@@ -92,6 +93,7 @@ services:
       DISABLE_DELAYS: 1
       ENABLE_ENCRYPTION: 1
       SYSTEM_TEST: 1
+      DEBUG_CONNECTIVITY_CHECK: 1
       LOG_LEVEL: 'debug'
       COLORIZE_LOG: ${COLORIZE_LOG}
     command:

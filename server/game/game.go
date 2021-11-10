@@ -17,6 +17,7 @@ import (
 	"voyager.com/logging"
 	"voyager.com/server/crashtest"
 	"voyager.com/server/internal/encryptionkey"
+	"voyager.com/server/networkcheck"
 	"voyager.com/server/poker"
 	"voyager.com/server/timer"
 	"voyager.com/server/util"
@@ -29,7 +30,6 @@ NOTE: Seat numbers are indexed from 1-9 like the real poker table.
 type MessageSender interface {
 	BroadcastGameMessage(message *GameMessage, noLog bool)
 	BroadcastHandMessage(message *HandMessage)
-	BroadcastPingMessage(message *PingPongMessage)
 	SendHandMessageToPlayer(message *HandMessage, playerID uint64)
 	SendGameMessageToPlayer(message *GameMessage, playerID uint64)
 }
@@ -70,7 +70,7 @@ type Game struct {
 
 	actionTimer        *timer.ActionTimer
 	actionTimer2       *timer.ActionTimer
-	networkCheck       *NetworkCheck
+	networkCheck       *networkcheck.NetworkCheck
 	encryptionKeyCache *encryptionkey.Cache
 }
 
@@ -123,11 +123,12 @@ func NewPokerGame(
 		Int(logging.TimerIDKey, 2).
 		Logger()
 	g.actionTimer2 = timer.NewActionTimer(&timer2Logger, g.queueActionTimeoutMsg, g.crashHandler)
+
 	networkCheckLogger := logging.GetZeroLogger("NetworkCheck", nil).
 		With().Uint64(logging.GameIDKey, gameID).
 		Str(logging.GameCodeKey, gameCode).
 		Logger()
-	g.networkCheck = NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, messageSender, g.crashHandler)
+	g.networkCheck = networkcheck.NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, g.crashHandler, g.onClientConnLost, g.onClientConnRestored)
 
 	if g.isScriptTest {
 		g.initTestGameState()
@@ -172,7 +173,7 @@ func NewTestPokerGame(
 	g.chHand = make(chan []byte, 10)
 	g.end = make(chan bool, 10)
 	g.chPlayTimedOut = make(chan timer.TimerMsg)
-	timer1Logger := logging.GetZeroLogger("timer::ActionTimer", nil).
+	timer1Logger := logging.GetZeroLogger("ActionTimer", nil).
 		With().Uint64(logging.GameIDKey, gameID).
 		Str(logging.GameCodeKey, gameCode).
 		Int(logging.TimerIDKey, 1).
@@ -180,17 +181,18 @@ func NewTestPokerGame(
 	g.actionTimer = timer.NewActionTimer(&timer1Logger, g.queueActionTimeoutMsg, g.crashHandler)
 
 	// Timer 2 is used for run-it-twice player 2.
-	timer2Logger := logging.GetZeroLogger("timer::ActionTimer", nil).
+	timer2Logger := logging.GetZeroLogger("ActionTimer", nil).
 		With().Uint64(logging.GameIDKey, gameID).
 		Str(logging.GameCodeKey, gameCode).
 		Int(logging.TimerIDKey, 2).
 		Logger()
 	g.actionTimer2 = timer.NewActionTimer(&timer2Logger, g.queueActionTimeoutMsg, g.crashHandler)
-	networkCheckLogger := logging.GetZeroLogger("game::NetworkCheck", nil).
+
+	networkCheckLogger := logging.GetZeroLogger("NetworkCheck", nil).
 		With().Uint64(logging.GameIDKey, gameID).
 		Str(logging.GameCodeKey, gameCode).
 		Logger()
-	g.networkCheck = NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, messageSender, g.crashHandler)
+	g.networkCheck = networkcheck.NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, g.crashHandler, g.onClientConnLost, g.onClientConnRestored)
 
 	if g.isScriptTest {
 		g.initTestGameState()
@@ -560,7 +562,6 @@ func (g *Game) dealNewHand() error {
 				playerIDs = append(playerIDs, playerID)
 			}
 		}
-		g.networkCheck.SetPlayerIDs(playerIDs)
 	}
 
 	if g.isScriptTest {
@@ -975,8 +976,10 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 	return nil
 }
 
-func (g *Game) HandlePongMessage(message *PingPongMessage) {
-	g.networkCheck.handlePongMessage(message)
+func (g *Game) HandleAliveMessage(message *ClientAliveMessage) {
+	g.networkCheck.ClientAlive(&networkcheck.AliveMsg{
+		PlayerID: message.PlayerId,
+	})
 }
 
 func (g *Game) addScriptTestPlayer(player *Player, buyIn float64, postBlind bool) error {
@@ -1138,4 +1141,54 @@ func (g *Game) EncryptAndB64ForPlayer(data []byte, playerID uint64) (string, err
 
 func (g *Game) GetRemainingActionTime() uint32 {
 	return g.actionTimer.GetRemainingSec()
+}
+
+func (g *Game) onClientConnLost(a networkcheck.Action) {
+	playerIDs := []uint64{a.PlayerID}
+	g.broadcastConnectivityLost(playerIDs)
+}
+
+func (g *Game) broadcastConnectivityLost(playerIDs []uint64) {
+	if *g.messageSender == nil {
+		return
+	}
+
+	gameMessage := GameMessage{
+		MessageType: GamePlayerConnectivityLost,
+		GameId:      g.gameID,
+		GameCode:    g.gameCode,
+		PlayerId:    0,
+	}
+	gameMessage.GameMessage = &GameMessage_NetworkConnectivity{
+		NetworkConnectivity: &GameNetworkConnectivityMessage{
+			PlayerIds: playerIDs,
+		},
+	}
+	skipLog := !util.Env.ShouldDebugConnectivityCheck()
+	(*g.messageSender).BroadcastGameMessage(&gameMessage, skipLog)
+}
+
+func (g *Game) onClientConnRestored(a networkcheck.Action) {
+	playerIDs := []uint64{a.PlayerID}
+	g.broadcastConnectivityRestored(playerIDs)
+}
+
+func (g *Game) broadcastConnectivityRestored(playerIDs []uint64) {
+	if *g.messageSender == nil {
+		return
+	}
+
+	gameMessage := GameMessage{
+		MessageType: GamePlayerConnectivityRestored,
+		GameId:      g.gameID,
+		GameCode:    g.gameCode,
+		PlayerId:    0,
+	}
+	gameMessage.GameMessage = &GameMessage_NetworkConnectivity{
+		NetworkConnectivity: &GameNetworkConnectivityMessage{
+			PlayerIds: playerIDs,
+		},
+	}
+	skipLog := !util.Env.ShouldDebugConnectivityCheck()
+	(*g.messageSender).BroadcastGameMessage(&gameMessage, skipLog)
 }

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"voyager.com/logging"
+	"voyager.com/server/networkcheck"
 	"voyager.com/server/timer"
 )
 
@@ -15,6 +16,9 @@ func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireA
 		PlayerID: playerID,
 		ExpireAt: expireAt,
 		CanCheck: canCheck,
+	})
+	g.networkCheck.NewAction(networkcheck.Action{
+		PlayerID: playerID,
 	})
 }
 
@@ -63,6 +67,7 @@ func (g *Game) pausePlayTimer(seatNo uint32) {
 		Uint32(logging.SeatNumKey, seatNo).
 		Msgf("Pausing timer. Player responded in: %.3fs", actionResponseTime.Seconds())
 	g.actionTimer.Pause()
+	g.networkCheck.Pause()
 }
 
 func (g *Game) pausePlayTimer2(seatNo uint32) {

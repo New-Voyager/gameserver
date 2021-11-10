@@ -48,8 +48,7 @@ type GameInfo struct {
 	PlayerToHandChannel     string
 	HandToPlayerChannel     string
 	HandToPlayerTextChannel string
-	PingChannel             string
-	PongChannel             string
+	ClientAliveChannel      string
 	Start                   bool
 	BotsToWaitlist          bool
 }

@@ -1,0 +1,62 @@
+package networkcheck
+
+import "time"
+
+type ClientAliveCheck struct {
+	gameID   uint64
+	gameCode string
+	inAction bool
+
+	chEnd      chan bool
+	chInAction chan bool
+
+	sendAliveMsg func()
+}
+
+func NewClientAliveCheck(gameID uint64, gameCode string, sendAliveMsg func()) *ClientAliveCheck {
+	c := ClientAliveCheck{
+		gameID:       gameID,
+		gameCode:     gameCode,
+		chEnd:        make(chan bool, 10),
+		chInAction:   make(chan bool, 10),
+		sendAliveMsg: sendAliveMsg,
+	}
+	return &c
+}
+
+func (c *ClientAliveCheck) Run() {
+	go c.loop()
+}
+
+func (c *ClientAliveCheck) Destroy() {
+	c.chEnd <- true
+}
+
+func (c *ClientAliveCheck) InAction() {
+	c.chInAction <- true
+}
+
+func (c *ClientAliveCheck) NotInAction() {
+	c.chInAction <- false
+}
+
+func (c *ClientAliveCheck) loop() {
+	ticker := time.NewTicker(2 * time.Second)
+
+	for {
+		select {
+		case <-c.chEnd:
+			return
+		case isInAction := <-c.chInAction:
+			c.inAction = isInAction
+			if isInAction {
+				// Immediately send one without waiting for the tick.
+				c.sendAliveMsg()
+			}
+		case <-ticker.C:
+			if c.inAction {
+				c.sendAliveMsg()
+			}
+		}
+	}
+}

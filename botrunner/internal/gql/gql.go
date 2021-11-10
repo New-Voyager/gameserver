@@ -981,8 +981,7 @@ const GameInfoGQL = `query game_info($gameCode: String!) {
 		playerToHandChannel
 		handToPlayerChannel
 		handToPlayerTextChannel
-		pingChannel
-		pongChannel
+		clientAliveChannel
 		botsToWaitlist
     }
 }`

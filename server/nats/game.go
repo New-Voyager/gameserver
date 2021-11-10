@@ -56,10 +56,9 @@ type NatsGame struct {
 
 	hand2AllPlayersSubject string
 	game2AllPlayersSubject string
-	pingSubject            string
 
 	player2HandSubscription *natsgo.Subscription
-	pongSubscription        *natsgo.Subscription
+	clientAliveSubscription *natsgo.Subscription
 	natsConn                *natsgo.Conn
 
 	maxRetries       uint32
@@ -90,7 +89,6 @@ func newNatsGame(nc *natsgo.Conn, gameID uint64, gameCode string) (*NatsGame, er
 		chManageGame:           make(chan []byte),
 		game2AllPlayersSubject: game2AllPlayersSubject,
 		hand2AllPlayersSubject: hand2AllPlayersSubject,
-		pingSubject:            GetPingSubject(gameCode),
 		natsConn:               nc,
 		maxRetries:             10,
 		retryDelayMillis:       1500,
@@ -104,10 +102,10 @@ func newNatsGame(nc *natsgo.Conn, gameID uint64, gameCode string) (*NatsGame, er
 	}
 
 	// for receiving ping response
-	playerPongSubject := GetPongSubject(gameCode)
-	natsGame.pongSubscription, e = nc.Subscribe(playerPongSubject, natsGame.player2Pong)
+	clientAliveSubject := GetClientAliveSubject(gameCode)
+	natsGame.clientAliveSubscription, e = nc.Subscribe(clientAliveSubject, natsGame.clientAlive)
 	if e != nil {
-		return nil, errors.Wrapf(e, "Failed to subscribe to %s", playerPongSubject)
+		return nil, errors.Wrapf(e, "Failed to subscribe to %s", clientAliveSubject)
 	}
 
 	serverGame, gameID, err := game.GameManager.InitializeGame(natsGame, gameID, gameCode)
@@ -126,14 +124,14 @@ func (n *NatsGame) cleanup() {
 	err := n.player2HandSubscription.Unsubscribe()
 	if err != nil {
 		n.logger.Warn().
-			Str("subjectName", n.player2HandSubscription.Subject).
+			Str(logging.NatsSubjectKey, n.player2HandSubscription.Subject).
 			Msgf("Could not unsubscribe player->hand subject during cleanup")
 	}
-	err = n.pongSubscription.Unsubscribe()
+	err = n.clientAliveSubscription.Unsubscribe()
 	if err != nil {
 		n.logger.Warn().
-			Str("subjectName", n.pongSubscription.Subject).
-			Msgf("Could not unsubscribe pong subject during cleanup")
+			Str(logging.NatsSubjectKey, n.clientAliveSubscription.Subject).
+			Msgf("Could not unsubscribe client liveness subject during cleanup")
 	}
 }
 
@@ -211,13 +209,15 @@ func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
 	if logLevel == zerolog.DebugLevel || logLevel == zerolog.TraceLevel {
 		b, err := protojson.Marshal(&message)
 		if err != nil {
-			n.logger.Debug().Msgf("Cannot log player msg as json: %s", err)
+			n.logger.Warn().Err(err).Msgf("Could not protojson-marshal hand message from player for logging")
 		} else {
 			n.logger.Debug().
 				Msg(fmt.Sprintf("Player->Hand: %v", string(b)))
 		}
 	}
 	if e != nil {
+		n.logger.Error().Err(e).
+			Msg("Could not proto-unmarshal hand message from player")
 		return
 	}
 
@@ -225,7 +225,12 @@ func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
 	if len(message.Messages) >= 1 {
 		message1 := message.Messages[0]
 		if message1.MessageType == game.HandQueryCurrentHand {
-			n.onQueryHand(n.gameID, message.PlayerId, message.MessageId)
+			err := n.onQueryHand(n.gameID, message.PlayerId, message.MessageId)
+			if err != nil {
+				n.logger.Error().Err(err).
+					Uint64(logging.PlayerIDKey, message.PlayerId).
+					Msg("Could not handle query current hand")
+			}
 			messageHandled = true
 		}
 	}
@@ -241,24 +246,29 @@ func (n *NatsGame) onQueryHand(gameID uint64, playerID uint64, messageID string)
 	n.logger.Debug().
 		Msgf("Player->Hand: Query current hand [%d] returned", playerID)
 	if err != nil {
+		n.logger.Error().Err(err).
+			Uint64(logging.PlayerIDKey, playerID).
+			Msgf("Could not handle query current hand for player")
 		return err
 	}
 	return nil
 }
 
-// messages sent from player to pong channel for network check
-func (n *NatsGame) player2Pong(msg *natsgo.Msg) {
-	if util.Env.ShouldDebugConnectivityCheck() {
-		n.logger.Info().
-			Msg(fmt.Sprintf("Player->Pong: %s", string(msg.Data)))
-	}
-	var message game.PingPongMessage
-	e := proto.Unmarshal(msg.Data, &message)
-	if e != nil {
+// messages sent from client to client liveness channel for notifying liveness
+func (n *NatsGame) clientAlive(msg *natsgo.Msg) {
+	var message game.ClientAliveMessage
+	err := proto.Unmarshal(msg.Data, &message)
+	if err != nil {
+		n.logger.Error().Err(err).Msg("Could not proto-unmarshal clientAlive message from player")
 		return
 	}
 
-	n.serverGame.HandlePongMessage(&message)
+	if message.GameId != n.gameID || message.GameCode != n.gameCode {
+		n.logger.Error().Msgf("Discarding client alive message. Unexpected game ID or game code. Game ID: %d, game code: %s", message.GameId, message.GameCode)
+		return
+	}
+
+	n.serverGame.HandleAliveMessage(&message)
 }
 
 func (n NatsGame) BroadcastGameMessage(message *game.GameMessage, noLog bool) {
@@ -267,14 +277,21 @@ func (n NatsGame) BroadcastGameMessage(message *game.GameMessage, noLog bool) {
 			Msg(fmt.Sprintf("Game->AllPlayers: %s", message.MessageType))
 	}
 	// let send this to all players
-	data, _ := protojson.Marshal(message)
+	data, err := protojson.Marshal(message)
+	if err != nil {
+		n.logger.Error().Err(err).Msg("Could not protojson-marshal game message")
+		return
+	}
 
 	if message.GameCode != n.gameCode {
 		n.logger.Warn().Msgf("BroadcastGameMessage called with message that contains wrong game code. Message game code: %s, NatsGame.gameCode: %s", message.GameCode, n.gameCode)
 		return
 	}
 
-	n.natsConn.Publish(n.game2AllPlayersSubject, data)
+	err = n.natsConn.Publish(n.game2AllPlayersSubject, data)
+	if err != nil {
+		n.logger.Error().Err(err).Msg("Could not publish game message")
+	}
 }
 
 func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
@@ -283,41 +300,50 @@ func (n NatsGame) BroadcastHandMessage(message *game.HandMessage) {
 	marshaller := protojson.MarshalOptions{
 		EmitUnpopulated: true,
 	}
-	jsonData, _ := marshaller.Marshal(message)
-	var msgTypes []string
-	for _, msgItem := range message.GetMessages() {
-		msgTypes = append(msgTypes, msgItem.MessageType)
+	jsonData, err := marshaller.Marshal(message)
+	if err != nil {
+		n.logger.Warn().Msg("Could not protojson-marshal hand message for logging")
+	} else {
+		var msgTypes []string
+		for _, msgItem := range message.GetMessages() {
+			msgTypes = append(msgTypes, msgItem.MessageType)
+		}
+		n.logger.Debug().Str("Messages", fmt.Sprintf("%v", msgTypes)).
+			Str(logging.NatsSubjectKey, n.hand2AllPlayersSubject).
+			Msg(fmt.Sprintf("H->A: %s", string(jsonData)))
 	}
-	n.logger.Debug().Str("Messages", fmt.Sprintf("%v", msgTypes)).
-		Str("subject", n.hand2AllPlayersSubject).
-		Msg(fmt.Sprintf("H->A: %s", string(jsonData)))
-	data, _ := proto.Marshal(message)
-	n.natsConn.Publish(n.hand2AllPlayersSubject, data)
-}
-
-func (n NatsGame) BroadcastPingMessage(message *game.PingPongMessage) {
-	jsonData, _ := protojson.Marshal(message)
-	if util.Env.ShouldDebugConnectivityCheck() {
-		n.logger.Info().
-			Str("subject", n.pingSubject).
-			Msg(fmt.Sprintf("Ping->All: %s", string(jsonData)))
+	data, err := proto.Marshal(message)
+	if err != nil {
+		n.logger.Error().Err(err).Msg("Could not proto-marshal hand message")
+		return
 	}
-	data, _ := proto.Marshal(message)
-	n.natsConn.Publish(n.pingSubject, data)
+	err = n.natsConn.Publish(n.hand2AllPlayersSubject, data)
+	if err != nil {
+		n.logger.Error().Err(err).Msg("Could not publish hand message")
+	}
 }
 
 func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID uint64) {
-	hand2PlayerSubject := fmt.Sprintf("hand.%s.player.%d", n.gameCode, playerID)
+	hand2PlayerSubject := GetHand2PlayerSubject(n.gameCode, playerID)
 	message.PlayerId = playerID
-	jsonData, _ := protojson.Marshal(message)
-	data, _ := proto.Marshal(message)
-	var msgTypes []string
-	for _, msgItem := range message.GetMessages() {
-		msgTypes = append(msgTypes, msgItem.MessageType)
+	jsonData, err := protojson.Marshal(message)
+	if err != nil {
+		n.logger.Warn().Msg("Could not protojson-marshal hand message to player for logging")
+	} else {
+		var msgTypes []string
+		for _, msgItem := range message.GetMessages() {
+			msgTypes = append(msgTypes, msgItem.MessageType)
+		}
+		n.logger.Debug().Str("Message", fmt.Sprintf("%v", msgTypes)).
+			Str(logging.NatsSubjectKey, hand2PlayerSubject).
+			Msg(fmt.Sprintf("H->P: %s", string(jsonData)))
 	}
-	n.logger.Debug().Str("Message", fmt.Sprintf("%v", msgTypes)).
-		Str("subject", hand2PlayerSubject).
-		Msg(fmt.Sprintf("H->P: %s", string(jsonData)))
+
+	data, err := proto.Marshal(message)
+	if err != nil {
+		n.logger.Error().Err(err).Msgf("Could not pro-marshal hand message to player %d", playerID)
+		return
+	}
 
 	if util.Env.IsEncryptionEnabled() {
 		encryptedData, err := n.serverGame.EncryptForPlayer(data, playerID)
@@ -328,7 +354,10 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 		data = encryptedData
 	}
 
-	n.natsConn.Publish(hand2PlayerSubject, data)
+	err = n.natsConn.Publish(hand2PlayerSubject, data)
+	if err != nil {
+		n.logger.Error().Err(err).Msgf("Could not publish hand message to player %d", playerID)
+	}
 }
 
 func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID uint64) {
@@ -336,12 +365,26 @@ func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID ui
 		Msg(fmt.Sprintf("Game->Player: %s", message.MessageType))
 
 	if playerID == 0 {
-		data, _ := protojson.Marshal(message)
+		data, err := protojson.Marshal(message)
+		if err != nil {
+			n.logger.Error().Err(err).Msg("Could not protojson-marshal game message to chManageGame")
+		}
 		n.chManageGame <- data
 	} else {
-		subject := fmt.Sprintf("game.%s.player.%d", n.gameCode, playerID)
-		data, _ := protojson.Marshal(message)
-		n.natsConn.Publish(subject, data)
+		subject := GetGame2PlayerSubject(n.gameCode, playerID)
+		data, err := protojson.Marshal(message)
+		if err != nil {
+			n.logger.Error().Err(err).
+				Uint64(logging.PlayerIDKey, playerID).
+				Msg("Could not protojson-marshal game message to player")
+			return
+		}
+		err = n.natsConn.Publish(subject, data)
+		if err != nil {
+			n.logger.Error().Err(err).
+				Str(logging.NatsSubjectKey, subject).
+				Msg("Could not publish game message to player")
+		}
 	}
 }
 
