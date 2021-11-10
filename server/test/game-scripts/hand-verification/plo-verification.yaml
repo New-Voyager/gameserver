@@ -1,0 +1,424 @@
+disabled: false
+game-config:
+  type: PLO
+  max-players: 9
+  min-players: 3
+  min-buyin: 60.0
+  max-buyin: 300.0
+  auto-start: false
+  auto-approve: true
+  title: 3 players playing
+  sb: 1.0
+  bb: 2.0
+
+# players in the game
+players:
+  - name: player1
+    id: 1
+  - name: player2
+    id: 2
+  - name: player3
+    id: 3
+  - name: player4
+    id: 4
+
+take-seat:
+  button-pos: 1
+  seats:
+    -
+      seat: 1 
+      player: 1
+      buy-in: 100
+    -
+      seat: 2 
+      player: 2
+      buy-in: 100
+    -
+      seat: 3 
+      player: 3
+      buy-in: 100
+    -
+      seat: 4 
+      player: 4
+      buy-in: 100
+
+  # wait for one second delay for the game to settle
+  wait: 1
+
+  # verify the table/player configuration is correct
+  verify:
+    table:
+      players:
+        -
+          seat: 1 
+          player: 1
+          stack: 100
+        -
+          seat: 2 
+          player: 2
+          stack: 100
+        -
+          seat: 3 
+          player: 3
+          stack: 100
+        -
+          seat: 4 
+          player: 4
+          stack: 100
+
+# deal the following hands in the table
+hands:
+  -
+    num: 1
+    setup:
+      button-pos: 1
+      flop: ["Ac", "Ad", "2c"]
+      turn: Td
+      river: 4s
+      seat-cards:
+        # seat cards in the order players are sitting 
+        # seat 1 gets Kh Qd 4d 5c
+        # seat 2 gets 3s 7s 8d Qc
+        # seat 3 gets 9h 2s Jc Qh
+        # seat 4 gets 9s Ks 7c Jd
+        - 
+          cards: ["Kh", "Qd", "4d", "5c"]
+        -
+          cards: ["3s", "7s", "8d", "Qc"]
+        -
+          cards: ["9h", "2s", "Jc", "Qh"]
+        -
+          cards: ["9s", "Ks", "7c", "Jd"]
+
+      # here the game engine sends the cards to the players
+      verify:
+        # verify button, sb, bb positions
+        # verify next action seat position
+        # verify current hand state
+        button: 1
+        sb: 2
+        bb: 3
+        next-action-pos: 4
+        state: PREFLOP
+        dealt-cards:
+          -
+            seat-no: 2
+            cards: ["Kh", "Qd", "4d", "5c"]
+          -
+            seat-no: 3
+            cards: ["3s", "7s", "8d", "Qc"]
+          -
+            seat-no: 4
+            cards: ["9h", "2s", "Jc", "Qh"]
+          -
+            seat-no: 1
+            cards: ["9s", "Ks", "7c", "Jd"]
+   
+    # simulate pre-flop action
+    preflop-action:
+      actions:
+        -
+          seat: 4
+          action: CALL
+          amount: 2
+          verify-action:
+            actions: ["CALL", "FOLD", "BET", "STRADDLE"]
+            call-amount: 2
+            min-raise-amount: 4
+            max-raise-amount: 5
+            bet-amounts:
+              - text: 2BB
+                amount: 4
+              - text: Pot
+                amount: 5
+        -
+          seat: 1
+          action: CALL
+          amount: 2
+          verify-action:
+            actions: ["CALL", "FOLD", "BET"]
+            call-amount: 2
+            min-raise-amount: 4
+            max-raise-amount: 7
+            bet-amounts:
+              - text: 2BB
+                amount: 4
+              - text: Pot
+                amount: 7
+        -
+          seat: 2
+          action: BET
+          amount: 8
+          verify-action:
+            actions: ["CALL", "FOLD", "BET"]
+            call-amount: 2
+            min-raise-amount: 4
+            max-raise-amount: 8
+            bet-amounts:
+              - text: 2BB
+                amount: 4
+              - text: Pot
+                amount: 8
+        -
+          seat: 3
+          action: CALL
+          amount: 8
+          verify-action:
+            actions: ["FOLD", "CALL", "RAISE"]
+            call-amount: 8
+            min-raise-amount: 14
+            max-raise-amount: 20
+            bet-amounts:
+              - text: Pot
+                amount: 20
+        -
+          seat: 4
+          action: CALL
+          amount: 8
+          verify-action:
+            actions: ["FOLD", "CALL", "RAISE"]
+            call-amount: 8
+            min-raise-amount: 14
+            max-raise-amount: 26
+            bet-amounts:
+              - text: 2x
+                amount: 20
+              - text: Pot
+                amount: 26
+        -
+          seat: 1
+          action: CALL
+          amount: 8
+          verify-action:
+            actions: ["FOLD", "CALL", "RAISE"]
+            call-amount: 8
+            min-raise-amount: 14
+            max-raise-amount: 32
+            bet-amounts:
+              - text: 2x
+                amount: 20
+              - text: 3x
+                amount: 26
+              - text: Pot
+                amount: 32
+      # verify preflop-action result
+      verify:
+        state: FLOP
+        board: ["Ac", "Ad", "2c"]
+
+    flop-action:
+      actions:
+        -
+          seat: 2
+          action: CHECK
+          verify-action:
+            actions: ["CHECK", "FOLD", "BET"]
+            min-raise-amount: 2
+            max-raise-amount: 32
+            bet-amounts:
+              - text: 30%
+                amount: 9
+              - text: 50%
+                amount: 16
+              - text: Pot
+                amount: 32
+        -
+          seat: 3
+          action: BET
+          amount: 10
+          verify-action:
+            actions: ["CHECK", "FOLD", "BET"]
+            min-raise-amount: 2
+            max-raise-amount: 32
+            bet-amounts:
+              - text: 30%
+                amount: 9
+              - text: 50%
+                amount: 16
+              - text: Pot
+                amount: 32
+        -
+          seat: 4
+          action: CALL
+          amount: 10
+          verify-action:
+            actions: ["FOLD", "RAISE", "CALL"]
+            call-amount: 10
+            min-raise-amount: 20
+            max-raise-amount: 52
+            bet-amounts:
+              - text: 2x
+                amount: 30
+              - text: 3x
+                amount: 40
+              - text: Pot
+                amount: 52
+        -
+          seat: 1
+          action: CALL
+          amount: 10
+          verify-action:
+            actions: ["FOLD", "RAISE", "CALL"]
+            call-amount: 10
+            min-raise-amount: 20
+            max-raise-amount: 62
+            bet-amounts:
+              - text: 2x
+                amount: 30
+              - text: 3x
+                amount: 40
+              - text: 5x
+                amount: 60
+              - text: Pot
+                amount: 62
+        -
+          seat: 2
+          action: CALL
+          amount: 10
+          verify-action:
+            actions: ["FOLD", "RAISE", "CALL"]
+            call-amount: 10
+            min-raise-amount: 20
+            max-raise-amount: 72
+            bet-amounts:
+              - text: 2x
+                amount: 30
+              - text: 3x
+                amount: 40
+              - text: 5x
+                amount: 60
+              - text: Pot
+                amount: 72
+      # verify flop-action result
+      verify:
+        state: TURN
+        board: ["Ac", "Ad", "2c", "Td"]
+    turn-action:
+      actions:
+        -
+          seat: 2
+          action: CHECK
+          verify-action:
+            actions: ["CHECK", "FOLD", "BET"]
+            min-raise-amount: 2
+            max-raise-amount: 72
+            bet-amounts:
+              - text: 30%
+                amount: 21
+              - text: 50%
+                amount: 36
+              - text: Pot
+                amount: 72
+        -
+          seat: 3
+          action: CHECK
+          verify-action:
+            actions: ["CHECK", "FOLD", "BET"]
+            min-raise-amount: 2
+            max-raise-amount: 72
+            bet-amounts:
+              - text: 30%
+                amount: 21
+              - text: 50%
+                amount: 36
+              - text: Pot
+                amount: 72
+        -
+          seat: 4
+          action: CHECK
+          verify-action:
+            actions: ["CHECK", "FOLD", "BET"]
+            min-raise-amount: 2
+            max-raise-amount: 72
+            bet-amounts:
+              - text: 30%
+                amount: 21
+              - text: 50%
+                amount: 36
+              - text: Pot
+                amount: 72
+        -
+          seat: 1
+          action: CHECK
+          verify-action:
+            actions: ["CHECK", "FOLD", "BET"]
+            min-raise-amount: 2
+            max-raise-amount: 72
+            bet-amounts:
+              - text: 30%
+                amount: 21
+              - text: 50%
+                amount: 36
+              - text: Pot
+                amount: 72
+      # verify river-action result
+      verify:
+        state: RIVER
+        board: ["Ac", "Ad", "2c", "Td", "4s"]
+    river-action:
+      actions:
+        -
+          seat: 2
+          action: BET
+          amount: 20
+          verify-action:
+            actions: ["CHECK", "FOLD", "BET"]
+            min-raise-amount: 2
+            max-raise-amount: 72
+            bet-amounts:
+              - text: 30%
+                amount: 21
+              - text: 50%
+                amount: 36
+              - text: Pot
+                amount: 72
+        -
+          seat: 3
+          action: FOLD
+          verify-action:
+            actions: ["CALL", "FOLD", "RAISE", "ALLIN"]
+            call-amount: 20
+            min-raise-amount: 40
+            max-raise-amount: 82
+            all-in-amount: 82
+            bet-amounts:
+              - text: 2x
+                amount: 60
+              - text: 3x
+                amount: 80
+              - text: All-In
+                amount: 82
+        -
+          seat: 4
+          action: CALL
+          amount: 20
+          verify-action:
+            actions: ["CALL", "FOLD", "RAISE", "ALLIN"]
+            call-amount: 20
+            min-raise-amount: 40
+            max-raise-amount: 82
+            all-in-amount: 82
+            bet-amounts:
+              - text: 2x
+                amount: 60
+              - text: 3x
+                amount: 80
+              - text: All-In
+                amount: 82
+        -
+          seat: 1
+          action: CALL
+          amount: 20
+          verify-action:
+            actions: ["CALL", "FOLD", "RAISE", "ALLIN"]
+            call-amount: 20
+            min-raise-amount: 40
+            max-raise-amount: 82
+            all-in-amount: 82
+            bet-amounts:
+              - text: 2x
+                amount: 60
+              - text: 3x
+                amount: 80
+              - text: All-In
+                amount: 82
