@@ -9,7 +9,7 @@ import (
 )
 
 func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireAt time.Time) {
-	g.logger.Info().
+	g.logger.Debug().
 		Msgf("Resetting timer. Current timer seat: %d, player ID: %d, expires at %s (%.3f seconds from now)", seatNo, playerID, expireAt.Format(time.RFC3339), expireAt.Sub(time.Now()).Seconds())
 	g.actionTimer.NewAction(timer.TimerMsg{
 		SeatNo:   seatNo,

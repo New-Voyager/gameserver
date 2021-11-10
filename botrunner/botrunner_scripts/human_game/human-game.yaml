@@ -6,5 +6,5 @@ auto-play:
   enabled: true
   num-games: 1
 bot-config:
-  min-action-delay: 500
-  max-action-delay: 1500
+  min-action-delay: 1000
+  max-action-delay: 2000

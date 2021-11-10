@@ -131,7 +131,7 @@ func (n *NatsGame) cleanup() {
 	if err != nil {
 		n.logger.Warn().
 			Str(logging.NatsSubjectKey, n.clientAliveSubscription.Subject).
-			Msgf("Could not unsubscribe pong subject during cleanup")
+			Msgf("Could not unsubscribe client liveness subject during cleanup")
 	}
 }
 
@@ -254,28 +254,12 @@ func (n *NatsGame) onQueryHand(gameID uint64, playerID uint64, messageID string)
 	return nil
 }
 
-// messages sent from player to pong channel for network check
-func (n *NatsGame) player2Pong(msg *natsgo.Msg) {
-	// if util.Env.ShouldDebugConnectivityCheck() {
-	// 	n.logger.Info().
-	// 		Msg(fmt.Sprintf("Player->Pong: %s", string(msg.Data)))
-	// }
-	// var message game.ClientAliveMessage
-	// err := proto.Unmarshal(msg.Data, &message)
-	// if err != nil {
-	// 	n.logger.Error().Err(err).Msg("Could not proto-unmarshal pong message from player")
-	// 	return
-	// }
-
-	// n.serverGame.HandlePongMessage(&message)
-}
-
-// messages sent from client to pong channel for notifying liveness
+// messages sent from client to client liveness channel for notifying liveness
 func (n *NatsGame) clientAlive(msg *natsgo.Msg) {
 	var message game.ClientAliveMessage
 	err := proto.Unmarshal(msg.Data, &message)
 	if err != nil {
-		n.logger.Error().Err(err).Msg("Could not proto-unmarshal pong message from player")
+		n.logger.Error().Err(err).Msg("Could not proto-unmarshal clientAlive message from player")
 		return
 	}
 
