@@ -173,7 +173,7 @@ func NewTestPokerGame(
 	g.chHand = make(chan []byte, 10)
 	g.end = make(chan bool, 10)
 	g.chPlayTimedOut = make(chan timer.TimerMsg)
-	timer1Logger := logging.GetZeroLogger("timer::ActionTimer", nil).
+	timer1Logger := logging.GetZeroLogger("ActionTimer", nil).
 		With().Uint64(logging.GameIDKey, gameID).
 		Str(logging.GameCodeKey, gameCode).
 		Int(logging.TimerIDKey, 1).
@@ -181,12 +181,18 @@ func NewTestPokerGame(
 	g.actionTimer = timer.NewActionTimer(&timer1Logger, g.queueActionTimeoutMsg, g.crashHandler)
 
 	// Timer 2 is used for run-it-twice player 2.
-	timer2Logger := logging.GetZeroLogger("timer::ActionTimer", nil).
+	timer2Logger := logging.GetZeroLogger("ActionTimer", nil).
 		With().Uint64(logging.GameIDKey, gameID).
 		Str(logging.GameCodeKey, gameCode).
 		Int(logging.TimerIDKey, 2).
 		Logger()
 	g.actionTimer2 = timer.NewActionTimer(&timer2Logger, g.queueActionTimeoutMsg, g.crashHandler)
+
+	networkCheckLogger := logging.GetZeroLogger("NetworkCheck", nil).
+		With().Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
+		Logger()
+	g.networkCheck = networkcheck.NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, g.crashHandler)
 
 	if g.isScriptTest {
 		g.initTestGameState()
