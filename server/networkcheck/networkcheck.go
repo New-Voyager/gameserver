@@ -49,6 +49,12 @@ func NewNetworkCheck(
 	connLostCallback func(Action),
 	connRestoredCallback func(Action),
 ) *NetworkCheck {
+	if connLostCallback == nil {
+		panic("connLostCallback is nil in NewNetworkCheck")
+	}
+	if connRestoredCallback == nil {
+		panic("connRestoredCallback is nil in NewNetworkCheck")
+	}
 	n := NetworkCheck{
 		logger:                 logger,
 		gameID:                 gameID,
@@ -155,6 +161,13 @@ func (n *NetworkCheck) handleNewAction(action Action) {
 
 // Handle the alive msg from the client.
 func (n *NetworkCheck) handleClientAlive(msg *AliveMsg) {
+	if n.clientState == nil {
+		n.logger.Warn().
+			Uint64(logging.PlayerIDKey, msg.PlayerID).
+			Msgf("handleClientAlive called when n.clientState is nil")
+		return
+	}
+
 	if n.debugConnectivityCheck {
 		if msg.PlayerID != n.clientState.playerID {
 			n.logger.Info().Msgf("Ignoring alive msg from unexpected player. Current action player: %d, msg Player: %d", n.clientState.playerID, msg.PlayerID)

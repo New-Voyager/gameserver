@@ -213,7 +213,6 @@ func (g *Game) playersInSeatsCount() int {
 func (g *Game) GameStarted() error {
 	g.actionTimer.Run()
 	g.actionTimer2.Run()
-	// g.networkCheck.Run()
 	g.networkCheck.Run()
 
 	go g.runGame()
@@ -225,7 +224,6 @@ func (g *Game) GameEnded() error {
 	g.end <- true
 	g.actionTimer.Destroy()
 	g.actionTimer2.Destroy()
-	// g.networkCheck.Destroy()
 	g.networkCheck.Destroy()
 	g.removeHandState()
 	g.logger.Info().Msg("Finished cleaning up game")

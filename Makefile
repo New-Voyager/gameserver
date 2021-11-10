@@ -62,6 +62,8 @@ print-system-test-logs:
 %:
 	$(MAKE) -C $(SERVER_DIR) $@
 
+# First manually install dart plugin.
+# flutter pub global activate protoc_plugin
 .PHONY: compile-dart
 compile-dart:
 	rm -rf dart/
