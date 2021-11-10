@@ -208,11 +208,11 @@ hands:
             max-raise-amount: 98
             bet-amounts:
               - text: 2x
-                amount: 8
+                amount: 4
               - text: 3x
-                amount: 12
+                amount: 6
               - text: 5x
-                amount: 20
+                amount: 10
               - text: All-In
                 amount: 98          
 
@@ -228,11 +228,11 @@ hands:
             max-raise-amount: 98
             bet-amounts:
               - text: 2x
-                amount: 8
+                amount: 4
               - text: 3x
-                amount: 12
+                amount: 6
               - text: 5x
-                amount: 20
+                amount: 10
               - text: All-In
                 amount: 98
 
@@ -247,11 +247,11 @@ hands:
             max-raise-amount: 98
             bet-amounts:
               - text: 2x
-                amount: 12
+                amount: 6
               - text: 3x
-                amount: 18
+                amount: 8
               - text: 5x
-                amount: 30
+                amount: 12
               - text: All-In
                 amount: 98
 

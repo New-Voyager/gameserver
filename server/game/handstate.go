@@ -1559,6 +1559,8 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 					// calculate the maximum amount the player can raise
 					canRaise = true
 					betOptions = h.raiseOptions(actionSeat,
+						h.CurrentRaiseDiff,
+						h.BetBeforeRaise,
 						nextAction.MinRaiseAmount,
 						nextAction.MaxRaiseAmount,
 						player.PlayerId)
@@ -1835,7 +1837,7 @@ func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64,
 	return options
 }
 
-func (h *HandState) raiseOptions(seatNo uint32, minRaiseAmount float64, maxRaiseAmount float64, playerID uint64) []*BetRaiseOption {
+func (h *HandState) raiseOptions(seatNo uint32, raiseAmount float64, seatInSoFar float64, minRaiseAmount float64, maxRaiseAmount float64, playerID uint64) []*BetRaiseOption {
 	roundState := h.RoundState[uint32(h.CurrentState)]
 	balance := roundState.PlayerBalance[seatNo]
 	bettingRound := roundState.Betting
@@ -1844,7 +1846,7 @@ func (h *HandState) raiseOptions(seatNo uint32, minRaiseAmount float64, maxRaise
 	options := make([]*BetRaiseOption, 0)
 	if h.GameType == GameType_HOLDEM {
 		for _, betOption := range raiseOptions {
-			betAmount := float64(int64(float64(betOption) * minRaiseAmount))
+			betAmount := float64(float64(betOption)*raiseAmount) + seatInSoFar
 			if betAmount < balance {
 				option := &BetRaiseOption{
 					Text:   fmt.Sprintf("%dx", betOption),
