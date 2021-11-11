@@ -1389,10 +1389,7 @@ func (h *HandState) calcPloPotBet(actionSeatNo uint32, callAmount float64, preFl
 		}
 	}
 
-	totalPot := callAmount
-	// if !firstAction {
-	// 	totalPot = callAmount * 2.0
-	// }
+	totalPot := callAmount + callAmount
 	for _, pot := range h.Pots {
 		totalPot += pot.Pot
 	}

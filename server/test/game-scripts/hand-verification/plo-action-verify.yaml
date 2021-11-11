@@ -125,12 +125,12 @@ hands:
             actions: ["CALL", "FOLD", "BET", "STRADDLE"]
             call-amount: 2
             min-raise-amount: 4
-            max-raise-amount: 5
+            max-raise-amount: 7
             bet-amounts:
               - text: 2BB
                 amount: 4
               - text: Pot
-                amount: 5
+                amount: 7
         -
           seat: 1
           action: CALL
@@ -139,68 +139,74 @@ hands:
             actions: ["CALL", "FOLD", "BET"]
             call-amount: 2
             min-raise-amount: 4
-            max-raise-amount: 7
+            max-raise-amount: 9
             bet-amounts:
               - text: 2BB
                 amount: 4
               - text: Pot
-                amount: 7
+                amount: 9
         -
           seat: 2
           action: BET
-          amount: 8
+          amount: 10
           verify-action:
             actions: ["CALL", "FOLD", "BET"]
             call-amount: 2
             min-raise-amount: 4
-            max-raise-amount: 8
+            max-raise-amount: 10
             bet-amounts:
               - text: 2BB
                 amount: 4
+              - text: 5BB
+                amount: 10
               - text: Pot
-                amount: 8
+                amount: 10
         -
           seat: 3
           action: CALL
-          amount: 8
+          amount: 10
           verify-action:
             actions: ["FOLD", "CALL", "RAISE"]
-            call-amount: 8
-            min-raise-amount: 14
-            max-raise-amount: 20
+            call-amount: 10
+            min-raise-amount: 18
+            max-raise-amount: 34
             bet-amounts:
+              - text: 2x
+                amount: 26
               - text: Pot
-                amount: 20
+                amount: 34
         -
           seat: 4
           action: CALL
-          amount: 8
+          amount: 10
           verify-action:
             actions: ["FOLD", "CALL", "RAISE"]
-            call-amount: 8
-            min-raise-amount: 14
-            max-raise-amount: 26
+            call-amount: 10
+            min-raise-amount: 18
+            max-raise-amount: 42
             bet-amounts:
               - text: 2x
-                amount: 20
-              - text: Pot
                 amount: 26
+              - text: 3x
+                amount: 34
+              - text: Pot
+                amount: 42
         -
           seat: 1
           action: CALL
-          amount: 8
+          amount: 10
           verify-action:
             actions: ["FOLD", "CALL", "RAISE"]
-            call-amount: 8
-            min-raise-amount: 14
-            max-raise-amount: 32
+            call-amount: 10
+            min-raise-amount: 18
+            max-raise-amount: 50
             bet-amounts:
               - text: 2x
-                amount: 20
-              - text: 3x
                 amount: 26
+              - text: 3x
+                amount: 34
               - text: Pot
-                amount: 32
+                amount: 50
       # verify preflop-action result
       verify:
         state: FLOP
@@ -214,14 +220,14 @@ hands:
           verify-action:
             actions: ["CHECK", "FOLD", "BET"]
             min-raise-amount: 2
-            max-raise-amount: 32
+            max-raise-amount: 40
             bet-amounts:
               - text: 30%
-                amount: 9
+                amount: 12
               - text: 50%
-                amount: 16
+                amount: 20
               - text: Pot
-                amount: 32
+                amount: 40
         -
           seat: 3
           action: BET
@@ -229,14 +235,14 @@ hands:
           verify-action:
             actions: ["CHECK", "FOLD", "BET"]
             min-raise-amount: 2
-            max-raise-amount: 32
+            max-raise-amount: 40
             bet-amounts:
               - text: 30%
-                amount: 9
+                amount: 12
               - text: 50%
-                amount: 16
+                amount: 20
               - text: Pot
-                amount: 32
+                amount: 40
         -
           seat: 4
           action: CALL
@@ -245,14 +251,16 @@ hands:
             actions: ["FOLD", "RAISE", "CALL"]
             call-amount: 10
             min-raise-amount: 20
-            max-raise-amount: 52
+            max-raise-amount: 70
             bet-amounts:
               - text: 2x
                 amount: 30
               - text: 3x
                 amount: 40
+              - text: 5x
+                amount: 60
               - text: Pot
-                amount: 52
+                amount: 70
         -
           seat: 1
           action: CALL
@@ -261,7 +269,7 @@ hands:
             actions: ["FOLD", "RAISE", "CALL"]
             call-amount: 10
             min-raise-amount: 20
-            max-raise-amount: 62
+            max-raise-amount: 80
             bet-amounts:
               - text: 2x
                 amount: 30
@@ -270,7 +278,7 @@ hands:
               - text: 5x
                 amount: 60
               - text: Pot
-                amount: 62
+                amount: 80
         -
           seat: 2
           action: CALL
@@ -279,7 +287,8 @@ hands:
             actions: ["FOLD", "RAISE", "CALL"]
             call-amount: 10
             min-raise-amount: 20
-            max-raise-amount: 72
+            max-raise-amount: 90
+            all-in-amount: 90
             bet-amounts:
               - text: 2x
                 amount: 30
@@ -287,9 +296,9 @@ hands:
                 amount: 40
               - text: 5x
                 amount: 60
-              - text: Pot
-                amount: 72
-      # verify flop-action result
+              - text: All-In
+                amount: 90
+      # verify turn-action result
       verify:
         state: TURN
         board: ["Ac", "Ad", "2c", "Td"]
@@ -301,56 +310,60 @@ hands:
           verify-action:
             actions: ["CHECK", "FOLD", "BET"]
             min-raise-amount: 2
-            max-raise-amount: 72
+            max-raise-amount: 80
+            all-in-amount: 80
             bet-amounts:
               - text: 30%
-                amount: 21
+                amount: 24
               - text: 50%
-                amount: 36
+                amount: 40
               - text: Pot
-                amount: 72
+                amount: 80
         -
           seat: 3
           action: CHECK
           verify-action:
             actions: ["CHECK", "FOLD", "BET"]
             min-raise-amount: 2
-            max-raise-amount: 72
+            max-raise-amount: 80
+            all-in-amount: 80
             bet-amounts:
               - text: 30%
-                amount: 21
+                amount: 24
               - text: 50%
-                amount: 36
+                amount: 40
               - text: Pot
-                amount: 72
+                amount: 80
         -
           seat: 4
           action: CHECK
           verify-action:
             actions: ["CHECK", "FOLD", "BET"]
             min-raise-amount: 2
-            max-raise-amount: 72
+            max-raise-amount: 80
+            all-in-amount: 80
             bet-amounts:
               - text: 30%
-                amount: 21
+                amount: 24
               - text: 50%
-                amount: 36
+                amount: 40
               - text: Pot
-                amount: 72
+                amount: 80
         -
           seat: 1
           action: CHECK
           verify-action:
             actions: ["CHECK", "FOLD", "BET"]
             min-raise-amount: 2
-            max-raise-amount: 72
+            max-raise-amount: 80
+            all-in-amount: 80
             bet-amounts:
               - text: 30%
-                amount: 21
+                amount: 24
               - text: 50%
-                amount: 36
+                amount: 40
               - text: Pot
-                amount: 72
+                amount: 80
       # verify river-action result
       verify:
         state: RIVER
@@ -364,14 +377,15 @@ hands:
           verify-action:
             actions: ["CHECK", "FOLD", "BET"]
             min-raise-amount: 2
-            max-raise-amount: 72
+            max-raise-amount: 80
+            all-in-amount: 80
             bet-amounts:
               - text: 30%
-                amount: 21
+                amount: 24
               - text: 50%
-                amount: 36
+                amount: 40
               - text: Pot
-                amount: 72
+                amount: 80
         -
           seat: 3
           action: FOLD
@@ -379,15 +393,13 @@ hands:
             actions: ["CALL", "FOLD", "RAISE", "ALLIN"]
             call-amount: 20
             min-raise-amount: 40
-            max-raise-amount: 82
-            all-in-amount: 82
+            max-raise-amount: 80
+            all-in-amount: 80
             bet-amounts:
               - text: 2x
                 amount: 60
-              - text: 3x
-                amount: 80
               - text: All-In
-                amount: 82
+                amount: 80
         -
           seat: 4
           action: CALL
@@ -396,15 +408,13 @@ hands:
             actions: ["CALL", "FOLD", "RAISE", "ALLIN"]
             call-amount: 20
             min-raise-amount: 40
-            max-raise-amount: 82
-            all-in-amount: 82
+            max-raise-amount: 80
+            all-in-amount: 80
             bet-amounts:
               - text: 2x
                 amount: 60
-              - text: 3x
-                amount: 80
               - text: All-In
-                amount: 82
+                amount: 80
         -
           seat: 1
           action: CALL
@@ -413,12 +423,10 @@ hands:
             actions: ["CALL", "FOLD", "RAISE", "ALLIN"]
             call-amount: 20
             min-raise-amount: 40
-            max-raise-amount: 82
-            all-in-amount: 82
+            max-raise-amount: 80
+            all-in-amount: 80
             bet-amounts:
               - text: 2x
                 amount: 60
-              - text: 3x
-                amount: 80
               - text: All-In
-                amount: 82
+                amount: 80
