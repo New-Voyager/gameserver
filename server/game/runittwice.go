@@ -121,7 +121,12 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 
 // handle run-it-twice confirmation
 func (g *Game) runItTwiceConfirmation(h *HandState, message *HandMessage) ([]*HandMessageItem, error) {
-	actionMsg := g.getClientMsgItem(message)
+	actionMsg, err := g.getClientMsgItem(message)
+	if err != nil {
+		// Shouldn't get here. Msg must be validated by the caller.
+		g.logger.Error().Err(err).Msg("Invalid client msg in runItTwiceConfirmation")
+		return make([]*HandMessageItem, 0), nil
+	}
 	g.logger.Info().
 		Uint32(logging.SeatNumKey, message.SeatNo).
 		Str("message", actionMsg.MessageType).
