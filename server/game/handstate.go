@@ -15,7 +15,7 @@ var handLogger = logging.GetZeroLogger("game::hand", nil)
 var preFlopBets = []int{3, 5, 10}     // big blinds
 var postFlopBets = []int{30, 50, 100} // % of pot
 var raiseOptions = []int{2, 3, 5}     // raise times
-var ploPreFlopBets = []int{2}         // big blinds
+var ploPreFlopBets = []int{2, 5, 10}  // big blinds
 
 func (h *HandState) initializeBettingRound() {
 	maxSeats := h.MaxSeats + 1 // dealer seat
@@ -1375,7 +1375,7 @@ func (h *HandState) adjustToBringIn(amount float64) float64 {
 	return amount
 }
 
-func (h *HandState) calcPloPotBet(callAmount float64, preFlop bool) float64 {
+func (h *HandState) calcPloPotBet(actionSeatNo uint32, callAmount float64, preFlop bool) float64 {
 	roundState := h.RoundState[uint32(h.CurrentState)]
 	bettingRound := roundState.Betting
 	firstAction := false
@@ -1389,15 +1389,16 @@ func (h *HandState) calcPloPotBet(callAmount float64, preFlop bool) float64 {
 		}
 	}
 
-	totalPot := callAmount
-	if !firstAction {
-		totalPot = callAmount * 2.0
-	}
+	totalPot := callAmount + callAmount
 	for _, pot := range h.Pots {
 		totalPot += pot.Pot
 	}
 
-	for _, bet := range bettingRound.SeatBet {
+	for seatNo, bet := range bettingRound.SeatBet {
+		if uint32(seatNo) == actionSeatNo {
+			// don't include my bet in the pot calculation
+			continue
+		}
 		// if there is no call or bet, then consider the blinds as bring-in bets
 		if firstAction && bet != 0 && bet < h.BringIn {
 			bet = h.BringIn
@@ -1524,7 +1525,7 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 		} else {
 			preFlop := h.CurrentState == HandStatus_PREFLOP
 			// handle PLO max raise
-			ploPot := h.calcPloPotBet(nextAction.CallAmount, preFlop)
+			ploPot := h.calcPloPotBet(actionSeat, nextAction.CallAmount, preFlop)
 			nextAction.MaxRaiseAmount = ploPot
 			if ploPot > allIn {
 				nextAction.MaxRaiseAmount = allIn
@@ -1559,6 +1560,7 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 					// calculate the maximum amount the player can raise
 					canRaise = true
 					betOptions = h.raiseOptions(actionSeat,
+						nextAction.CallAmount,
 						h.CurrentRaiseDiff,
 						h.BetBeforeRaise,
 						nextAction.MinRaiseAmount,
@@ -1766,7 +1768,7 @@ func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64,
 		// PLO
 		if round == HandStatus_PREFLOP {
 			preFlop := h.CurrentState == HandStatus_PREFLOP
-			ploPot := h.calcPloPotBet(callAmount, preFlop)
+			ploPot := h.calcPloPotBet(seatNo, callAmount, preFlop)
 			// pre-flop options
 			for _, betOption := range ploPreFlopBets {
 				bet := h.BigBlind
@@ -1776,7 +1778,8 @@ func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64,
 
 				betAmount := float64(int64(float64(betOption) * bet))
 				if betAmount > ploPot {
-					betAmount = ploPot
+					//betAmount = ploPot
+					continue
 				}
 				betAmount = h.adjustToBringIn(betAmount)
 
@@ -1796,7 +1799,7 @@ func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64,
 		} else {
 			preFlop := h.CurrentState == HandStatus_PREFLOP
 			// post flop
-			ploPot := h.calcPloPotBet(callAmount, preFlop)
+			ploPot := h.calcPloPotBet(seatNo, callAmount, preFlop)
 			// pre-flop options
 			for _, betOption := range postFlopBets {
 				// skip 100%
@@ -1837,7 +1840,7 @@ func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64,
 	return options
 }
 
-func (h *HandState) raiseOptions(seatNo uint32, raiseAmount float64, seatInSoFar float64, minRaiseAmount float64, maxRaiseAmount float64, playerID uint64) []*BetRaiseOption {
+func (h *HandState) raiseOptions(seatNo uint32, callAmount float64, raiseAmount float64, seatInSoFar float64, minRaiseAmount float64, maxRaiseAmount float64, playerID uint64) []*BetRaiseOption {
 	roundState := h.RoundState[uint32(h.CurrentState)]
 	balance := roundState.PlayerBalance[seatNo]
 	bettingRound := roundState.Betting
@@ -1858,7 +1861,7 @@ func (h *HandState) raiseOptions(seatNo uint32, raiseAmount float64, seatInSoFar
 		options = append(options, &BetRaiseOption{Text: "All-In", Amount: allIn})
 	} else {
 		for _, betOption := range raiseOptions {
-			betAmount := float64(int64(float64(betOption) * minRaiseAmount))
+			betAmount := float64(int64(float64(betOption)*raiseAmount)) + callAmount
 			betAmount = h.adjustToBringIn(betAmount)
 			if betAmount < maxRaiseAmount {
 				option := &BetRaiseOption{
