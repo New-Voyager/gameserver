@@ -52,12 +52,12 @@ type ActionTimer struct {
 func NewActionTimer(logger *zerolog.Logger, callback func(TimerMsg), crashHandler func()) *ActionTimer {
 	at := ActionTimer{
 		logger:         logger,
-		chReset:        make(chan TimerMsg),
-		chResetTime:    make(chan TimerResetTimeMsg),
-		chExtend:       make(chan TimerExtendMsg),
-		chPause:        make(chan bool),
-		chRemainingIn:  make(chan bool),
-		chRemainingOut: make(chan time.Duration),
+		chReset:        make(chan TimerMsg, 10),
+		chResetTime:    make(chan TimerResetTimeMsg, 10),
+		chExtend:       make(chan TimerExtendMsg, 10),
+		chPause:        make(chan bool, 10),
+		chRemainingIn:  make(chan bool, 10),
+		chRemainingOut: make(chan time.Duration, 10),
 		chEndLoop:      make(chan bool, 10),
 		timedOut:       callback,
 		crashHandler:   crashHandler,
