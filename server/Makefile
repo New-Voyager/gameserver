@@ -100,7 +100,21 @@ script-test: export REDIS_PORT=$(DEV_REDIS_PORT)
 script-test: export REDIS_DB=$(DEV_REDIS_DB)
 script-test: export DISABLE_DELAYS=1
 script-test: export LOG_LEVEL=$(DEV_LOG_LEVEL)
-script-test: test-build run-redis
+script-test:
+ifdef GAME_SCRIPT
+	go run main.go --script-tests --game-script $(GAME_SCRIPT)
+else
+	go run main.go --script-tests
+endif
+
+.PHONY: script-test-cov
+script-test-cov: export PERSIST_METHOD=redis
+script-test-cov: export REDIS_HOST=$(DEV_REDIS_HOST)
+script-test-cov: export REDIS_PORT=$(DEV_REDIS_PORT)
+script-test-cov: export REDIS_DB=$(DEV_REDIS_DB)
+script-test-cov: export DISABLE_DELAYS=1
+script-test-cov: export LOG_LEVEL=$(DEV_LOG_LEVEL)
+script-test-cov: test-build run-redis
 	./game-server.test --script-tests -test.coverprofile=script_test_coverage.out -test.run TestRunMain voyager.com/server
 ifdef CI
 	go tool cover -html=script_test_coverage.out
