@@ -279,8 +279,16 @@ func (g *Game) onQueryCurrentHand(playerMsg *HandMessage) error {
 	}
 
 	if bettingInProgress && handState.NextSeatAction != nil {
+		remainingActionTime := g.GetRemainingActionTime()
+		if playerSeatNo != handState.NextSeatAction.SeatNo {
+			if remainingActionTime > g.timerCushionSec {
+				remainingActionTime = remainingActionTime - g.timerCushionSec
+			} else {
+				remainingActionTime = 0
+			}
+		}
 		currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
-		currentHandState.RemainingActionTime = g.GetRemainingActionTime()
+		currentHandState.RemainingActionTime = remainingActionTime
 		currentHandState.NextSeatAction = handState.NextSeatAction
 	}
 	currentHandState.PlayersStack = make(map[uint64]float64)
@@ -1250,8 +1258,7 @@ func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error
 	// This doesn't need to be accurate. When the action times out,
 	// the client will submit a default action. This is just a fallback
 	// in case the client is unable to do that.
-	var cushion uint32 = 10
-	actionTimesoutAt := time.Now().Add(time.Duration(handState.ActionTime+cushion) * time.Second)
+	actionTimesoutAt := time.Now().Add(time.Duration(handState.ActionTime+g.timerCushionSec) * time.Second)
 	handState.NextSeatAction.ActionTimesoutAt = actionTimesoutAt.Unix()
 	g.resetTimer(handState.NextSeatAction.SeatNo, player.PlayerId, canCheck, actionTimesoutAt)
 	allMsgItems = append(allMsgItems, yourActionMsg)

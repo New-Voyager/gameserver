@@ -68,6 +68,7 @@ type Game struct {
 	// used for storing player configuration of runItTwicePrompt, muckLosingHand
 	//playerConfig atomic.Value
 
+	timerCushionSec    uint32
 	actionTimer        *timer.ActionTimer
 	actionTimer2       *timer.ActionTimer
 	networkCheck       *networkcheck.NetworkCheck
@@ -102,6 +103,7 @@ func NewPokerGame(
 		apiServerURL:       apiServerURL,
 		maxRetries:         10,
 		retryDelayMillis:   2000,
+		timerCushionSec:    5,
 		encryptionKeyCache: encryptionKeyCache,
 	}
 	g.scriptTestPlayers = make(map[uint64]*Player)
@@ -944,6 +946,14 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 	}
 
 	if bettingInProgress && handState.NextSeatAction != nil {
+		remainingActionTime := g.GetRemainingActionTime()
+		if playerSeatNo != handState.NextSeatAction.SeatNo {
+			if remainingActionTime > g.timerCushionSec {
+				remainingActionTime = remainingActionTime - g.timerCushionSec
+			} else {
+				remainingActionTime = 0
+			}
+		}
 		currentHandState.NextSeatToAct = handState.NextSeatAction.SeatNo
 		currentHandState.RemainingActionTime = g.GetRemainingActionTime()
 		currentHandState.NextSeatAction = handState.NextSeatAction
