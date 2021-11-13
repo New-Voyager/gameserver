@@ -1,0 +1,111 @@
+club:
+  name: Manchester Club
+  description: Club used for testing with the bot runner
+
+game:
+  create: true
+  title: "2 Players BB All-In"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 4
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 0
+  buy-in-max: 300
+  action-time: 100
+
+starting-seats:
+  - seat: 2
+    player: young
+    buy-in: 100
+  - seat: 3
+    player: carol
+    buy-in: 100
+
+tester:
+auto-play:
+  enabled: false
+
+hands:
+  - setup:
+      button-pos: 2
+      flop: ["Ac", "Ad", "2c"]
+      turn: Td
+      river: 4s
+      seat-cards:
+        - seat: 2
+          cards: ["9h", "2s"]
+        - seat: 3
+          cards: ["Kh", "Qd"]
+
+    preflop:
+      seat-actions:
+        - action: 3, CALL, 2
+        - action: 2, CHECK
+
+    flop:
+      verify:
+        board: ["Ac", "Ad", "2c"]
+      seat-actions:
+        - action: 3, CHECK
+        - action: 2, BET, 97
+        - action: 3, CALL, 97
+
+    turn:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td"]
+      seat-actions:
+        - action: 3, CHECK
+        - action: 2, CHECK
+
+    river:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-actions:
+        - action: 3, CHECK
+        - action: 2, CHECK
+
+    result:
+      winners:
+        - seat: 2
+          receive: 193.0
+          rank: Two Pair
+          rake-paid: 5.0
+      action-ended: SHOW_DOWN
+
+      players:
+        - seat: 2
+          balance:
+            after: 194
+        - seat: 3
+          balance:
+            after: 1
+
+  - setup:
+      verify:
+        button-pos: 3
+        sb-pos: 2
+        bb-pos: 3
+      flop: ["Ac", "Ad", "2c"]
+      turn: Td
+      river: 4s
+      seat-cards:
+        - seat: 1
+          cards: ["3s", "7s"]
+        - seat: 2
+          cards: ["9h", "2s"]
+        - seat: 3
+          cards: ["Kh", "Qd"]
+      auto: true
+
+after-game:
+  verify:
+    num-hands-played:
+      gte: 2
+      lte: 2

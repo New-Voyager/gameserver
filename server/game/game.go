@@ -12,6 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"voyager.com/encryption"
 	"voyager.com/logging"
@@ -604,13 +605,18 @@ func (g *Game) dealNewHand() error {
 		handPlayerInSeats[playerInSeat.SeatNo].Stack = playerInSeat.Stack - currentBettingRound.SeatBet[playerInSeat.SeatNo]
 	}
 
+	var nextSeatNo uint32
+	if handState.NextSeatAction != nil {
+		nextSeatNo = handState.NextSeatAction.SeatNo
+	}
+
 	// send a new hand message to all players
 	newHand := NewHand{
 		HandNum:        handState.HandNum,
 		ButtonPos:      handState.ButtonPos,
 		SbPos:          handState.SmallBlindPos,
 		BbPos:          handState.BigBlindPos,
-		NextActionSeat: handState.NextSeatAction.SeatNo,
+		NextActionSeat: nextSeatNo,
 		NoCards:        g.NumCards(gameType),
 		GameType:       gameType,
 		SmallBlind:     handState.SmallBlind,
@@ -696,9 +702,15 @@ func (g *Game) dealNewHand() error {
 	}
 
 	// print next action
-	g.logger.Trace().
-		Uint32(logging.HandNumKey, handState.HandNum).
-		Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, g.PlayersInSeats)))
+	if handState.NextSeatAction == nil {
+		g.logger.Trace().
+			Uint32(logging.HandNumKey, handState.HandNum).
+			Msg(fmt.Sprintf("Next action is nil"))
+	} else {
+		g.logger.Trace().
+			Uint32(logging.HandNumKey, handState.HandNum).
+			Msg(fmt.Sprintf("Next action: %s", handState.NextSeatAction.PrettyPrint(handState, g.PlayersInSeats)))
+	}
 
 	allMsgItems := make([]*HandMessageItem, 0)
 	if handState.BombPot {
@@ -712,21 +724,58 @@ func (g *Game) dealNewHand() error {
 		}
 	}
 
-	msgItems, err := g.moveToNextAction(handState)
-	if err != nil {
-		return err
-	}
-	allMsgItems = append(allMsgItems, msgItems...)
-	handMsg := HandMessage{
-		HandNum:    handState.HandNum,
-		HandStatus: handState.CurrentState,
-		MessageId:  g.generateMsgID("INITIAL_ACTION", handState.HandNum, handState.CurrentState, 0, "", handState.CurrentActionNum),
-		Messages:   allMsgItems,
+	var handMsg HandMessage
+	var nextFlowState FlowState
+	if handState.allActionComplete() {
+		msgItems, err := g.allPlayersAllIn(handState)
+		if err != nil {
+			return err
+		}
+		nextFlowState = FlowState_MOVE_TO_NEXT_HAND
+		allMsgItems = append(allMsgItems, msgItems...)
+		handMsg = HandMessage{
+			HandNum:    handState.HandNum,
+			HandStatus: handState.CurrentState,
+			MessageId:  g.generateMsgID("NO_ACTION_THIS_HAND", handState.HandNum, handState.CurrentState, 0, "", handState.CurrentActionNum),
+			Messages:   allMsgItems,
+		}
+	} else {
+		if handState.NextSeatAction == nil {
+			bytes, err := protojson.Marshal(handState)
+			var errMsg string
+			if err != nil {
+				errMsg = "NextSeatAction is nil when dealing new hand"
+			} else {
+				errMsg = fmt.Sprintf("NextSeatAction is nil when dealing new hand. HandState: %s", string(bytes))
+			}
+			g.logger.Panic().
+				Uint32(logging.HandNumKey, handState.HandNum).
+				Uint32(logging.ButtonPosKey, handState.ButtonPos).
+				Uint32(logging.SbPosKey, handState.SmallBlindPos).
+				Uint32(logging.BbPosKey, handState.BigBlindPos).
+				Float64(logging.SbAmtKey, handState.SmallBlind).
+				Float64(logging.BbAmtKey, handState.BigBlind).
+				Msg(errMsg)
+		}
+
+		msgItems, err := g.moveToNextAction(handState)
+		if err != nil {
+			return err
+		}
+		allMsgItems = append(allMsgItems, msgItems...)
+		handMsg = HandMessage{
+			HandNum:    handState.HandNum,
+			HandStatus: handState.CurrentState,
+			MessageId:  g.generateMsgID("INITIAL_ACTION", handState.HandNum, handState.CurrentState, 0, "", handState.CurrentActionNum),
+			Messages:   allMsgItems,
+		}
+		nextFlowState = FlowState_WAIT_FOR_NEXT_ACTION
 	}
 	g.broadcastHandMessage(&handMsg)
+
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_5, 0)
 
-	err = g.saveHandState(handState, FlowState_WAIT_FOR_NEXT_ACTION)
+	err = g.saveHandState(handState, nextFlowState)
 	if err != nil {
 		msg := fmt.Sprintf("Could not save hand state after dealing")
 		g.logger.Error().
@@ -736,6 +785,7 @@ func (g *Game) dealNewHand() error {
 		return errors.Wrap(err, msg)
 	}
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_6, 0)
+	g.handleHandEnded(handState, handState.TotalResultPauseTime, allMsgItems)
 	return nil
 }
 
