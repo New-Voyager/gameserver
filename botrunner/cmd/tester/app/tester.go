@@ -66,6 +66,8 @@ func (t *Tester) Run() error {
 		return errors.Wrap(err, "Unable to login")
 	}
 
+	t.player.Reset()
+
 	err = t.player.JoinGame(t.gameCode, nil)
 	if err != nil {
 		return errors.Wrap(err, "Unable to join game")
