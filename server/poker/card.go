@@ -151,6 +151,7 @@ func CardsToString(cards interface{}) string {
 	switch cards.(type) {
 	case []Card:
 		for _, c := range cards.([]Card) {
+			fmt.Printf("%s\n", CardToString(c))
 			fmt.Fprintf(&b, " %s ", CardToString(c))
 		}
 	case []uint32:
@@ -195,7 +196,7 @@ func FromByteCards(byteCards []byte) []Card {
 func FromUint32Cards(intCards []uint32) []Card {
 	cards := make([]Card, len(intCards))
 	for i, card := range intCards {
-		cards[i] = Card(card)
+		cards[i] = NewCardFromByte(uint8(card))
 	}
 	return cards
 }
@@ -221,6 +222,15 @@ func ByteCardsToUint32Cards(byteCards []byte) []uint32 {
 	cards := make([]uint32, len(byteCards))
 	for i, card := range byteCards {
 		cards[i] = uint32(NewCardFromByte(card).GetByte())
+	}
+	return cards
+}
+
+func FromStringCards(strCards []string) []Card {
+	cards := make([]Card, len(strCards))
+	for i, card := range strCards {
+		c := NewCard(card)
+		cards[i] = c
 	}
 	return cards
 }

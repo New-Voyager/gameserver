@@ -47,6 +47,8 @@ func init() {
 }
 
 func main() {
+	printFullHouses()
+	return
 	// Global random seed that is used by all games.
 	rand.Seed(random.NewSeed())
 
@@ -151,7 +153,7 @@ func runWithNats(gameManager *game.Manager) {
 	// restart games
 	time.Sleep(3 * time.Second)
 	mainLogger.Info().Msg("Requesting to restart the active games.")
-	err = nats.RequestRestartGames(apiServerURL)
+	//err = nats.RequestRestartGames(apiServerURL)
 	if err != nil {
 		mainLogger.Error().Msg("Error while requesting to restart active games")
 	}
@@ -337,4 +339,45 @@ func TestOmaha() {
 		8: "Pair",
 		9: "High Card",*/
 
+}
+
+func getCards(card int32, count int32) []byte {
+	/*
+		2: [1, 2, 4, 8],
+		3: [17, 18, 20, 24],
+		4: [33, 34, 36, 40],
+		5: [49, 50, 52, 56],
+		6: [65, 66, 68, 72],
+		7: [81, 82, 84, 88],
+		8: [97, 98, 100, 104],
+		9: [113, 114, 116, 120],
+		10: [129, 130, 132, 136],
+		11: [145, 146, 148, 152],
+		12: [161, 162, 164, 168],
+		13: [177, 178, 180, 184],
+		14: [193, 194, 196, 200],
+	*/
+	var cards [4]byte
+	if card == 2 {
+		cards = [4]byte{1, 2, 4, 8}
+	} else if card == 3 {
+		cards = [4]byte{17, 18, 20, 24}
+	}
+
+	return cards[:count]
+}
+
+func printFullHouses() {
+	printFullHousesHelper(2, 3)
+	printFullHousesHelper(3, 2)
+}
+
+func printFullHousesHelper(card1 int32, card2 int32) {
+	var pokerCards []byte = make([]byte, 0)
+	pokerCards = append(pokerCards, getCards(card1, 3)...)
+	pokerCards = append(pokerCards, getCards(card2, 2)...)
+	evalCards := poker.FromByteCards(pokerCards)
+	rank, retCards := poker.Evaluate(evalCards)
+	_ = retCards
+	fmt.Printf("%s: %d  \n", poker.CardsToString(pokerCards), rank)
 }
