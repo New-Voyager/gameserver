@@ -301,11 +301,11 @@ func (hr *HandResultProcessor) adjustRake(hs *HandState, totalPot float64, winne
 	rakePlayers := make(map[uint64]float64)
 
 	// calculate rake from the total pot
-	rake := float64(totalPot * (hs.RakePercentage / 100))
+	var rake float64 = totalPot * (hs.RakePercentage / 100)
 	if hr.chipUnit == ChipUnit_CENT {
 
 	} else {
-		rake = float64(math.Floor(float64(rake)))
+		rake = math.Floor(rake)
 		if rake <= 0 {
 			rake = 1.0
 		}
