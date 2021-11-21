@@ -348,6 +348,7 @@ type NewHandInfo struct {
 	HandNum           uint32
 	ActionTime        uint32
 	StraddleBet       float64
+	ChipUnit          ChipUnit
 	RakePercentage    float64
 	RakeCap           float64
 	AnnounceGameType  bool

@@ -1440,7 +1440,7 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 		}
 	}
 
-	handResultProcessor := NewHandResultProcessor(handState, uint32(handState.MaxSeats), nil)
+	handResultProcessor := NewHandResultProcessor(handState, g.chipUnit, uint32(handState.MaxSeats), nil)
 
 	handResult2Client := handResultProcessor.determineWinners()
 	allMsgItems := make([]*HandMessageItem, 0)

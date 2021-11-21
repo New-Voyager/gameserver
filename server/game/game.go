@@ -66,6 +66,9 @@ type Game struct {
 	maxRetries       uint32
 	retryDelayMillis uint32
 
+	// Whether to allow fractional chip or not
+	chipUnit ChipUnit
+
 	// used for storing player configuration of runItTwicePrompt, muckLosingHand
 	//playerConfig atomic.Value
 
@@ -438,6 +441,7 @@ func (g *Game) dealNewHand() error {
 		if newHandInfo.TableStatus != TableStatus_GAME_RUNNING {
 			return nil
 		}
+		g.chipUnit = newHandInfo.ChipUnit
 		g.PlayersInSeats = make([]SeatPlayer, newHandInfo.MaxPlayers+1) // 0 is dealer/observer
 		resultPauseTime = newHandInfo.ResultPauseTime
 		buttonPos = newHandInfo.ButtonPos

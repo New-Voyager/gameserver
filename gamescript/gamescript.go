@@ -74,6 +74,7 @@ type Game struct {
 	MaxPlayers         int      `yaml:"max-players"`
 	GameLength         int      `yaml:"game-length"`
 	BuyInApproval      bool     `yaml:"buy-in-approval"`
+	ChipUnit           string   `yaml:"chip-unit"`
 	RakePercentage     float64  `yaml:"rake-percentage"`
 	RakeCap            float64  `yaml:"rake-cap"`
 	BuyInMin           float64  `yaml:"buy-in-min"`

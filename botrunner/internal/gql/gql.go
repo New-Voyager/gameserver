@@ -245,6 +245,9 @@ func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (Configu
 	req.Var("gameLength", opt.GameLength)
 	req.Var("buyInApproval", opt.BuyInApproval)
 	req.Var("rakePercentage", opt.RakePercentage)
+	if opt.ChipUnit != "" {
+		req.Var("chipUnit", opt.ChipUnit)
+	}
 	req.Var("rakeCap", opt.RakeCap)
 	req.Var("buyInMin", opt.BuyInMin)
 	req.Var("buyInMax", opt.BuyInMax)
@@ -937,6 +940,7 @@ const GameInfoGQL = `query game_info($gameCode: String!) {
         straddleBet
         utgStraddleAllowed
         buttonStraddleAllowed
+        chipUnit
         minPlayers
         maxPlayers
         gameLength
@@ -1128,6 +1132,7 @@ const ConfigureGameGQL = `mutation configure_game(
 	$maxPlayers: Int!
 	$gameLength: Int!
 	$buyInApproval: Boolean
+	$chipUnit: ChipUnit
 	$rakePercentage: Float
 	$rakeCap: Float
 	$buyInMin: Float!
@@ -1157,6 +1162,7 @@ const ConfigureGameGQL = `mutation configure_game(
 			maxPlayers: $maxPlayers
 			gameLength: $gameLength
 			buyInApproval: $buyInApproval
+			chipUnit: $chipUnit
 			rakePercentage: $rakePercentage
 			rakeCap: $rakeCap
 			buyInMin: $buyInMin

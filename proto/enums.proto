@@ -48,7 +48,12 @@ enum GameType {
     NOT_ENOUGH_PLAYERS = 2;
     GAME_RUNNING = 3;
   }
-  
+
+  enum ChipUnit {
+    DOLLAR = 0;
+    CENT = 1;
+  }
+
   // Player update since the last hand
   enum NewUpdate {
     UNKNOWN_PLAYER_UPDATE = 0;

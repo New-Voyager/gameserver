@@ -13,6 +13,7 @@ type GameInfo struct {
 	StraddleBet           float64
 	UtgStraddleAllowed    bool
 	ButtonStraddleAllowed bool
+	ChipUnit              string
 	MinPlayers            uint32
 	MaxPlayers            uint32
 	GameLength            uint32
@@ -77,6 +78,7 @@ type GameCreateOpt struct {
 	MaxPlayers         int
 	GameLength         int
 	BuyInApproval      bool
+	ChipUnit           string
 	RakePercentage     float64
 	RakeCap            float64
 	BuyInMin           float64

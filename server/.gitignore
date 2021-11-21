@@ -27,3 +27,5 @@ script_test_coverage.out
 script_test_coverage.html
 system_test_coverage*.out
 system_test_coverage*.html
+
+*.log

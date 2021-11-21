@@ -30,6 +30,7 @@ game:
   max-players: 9
   game-length: 60
   buy-in-approval: true
+  chip-unit: "CENT"
   rake-percentage: 5.0
   rake-cap: 5.0
   buy-in-min: 100
