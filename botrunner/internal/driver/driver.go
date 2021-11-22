@@ -332,6 +332,7 @@ func (br *BotRunner) RunOneGame() error {
 			MaxPlayers:         br.script.Game.MaxPlayers,
 			GameLength:         br.script.Game.GameLength,
 			BuyInApproval:      br.script.Game.BuyInApproval,
+			ChipUnit:           br.script.Game.ChipUnit,
 			RakePercentage:     br.script.Game.RakePercentage,
 			RakeCap:            br.script.Game.RakeCap,
 			BuyInMin:           br.script.Game.BuyInMin,

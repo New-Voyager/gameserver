@@ -1440,7 +1440,7 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 		}
 	}
 
-	handResultProcessor := NewHandResultProcessor(handState, uint32(handState.MaxSeats), nil)
+	handResultProcessor := NewHandResultProcessor(handState, g.chipUnit, uint32(handState.MaxSeats), nil)
 
 	handResult2Client := handResultProcessor.determineWinners()
 	allMsgItems := make([]*HandMessageItem, 0)
@@ -1537,7 +1537,9 @@ func (g *Game) analyzeResult(handResult *HandResultServer) error {
 		rakeCollectedTotal += pi.RakePaid
 	}
 
-	if (playerBalanceBefore - rakeCollectedTotal) != playerBalanceAfter {
+	expectedAfter := util.RoundDecimal(playerBalanceBefore-rakeCollectedTotal, 2)
+	after := util.RoundDecimal(playerBalanceAfter, 2)
+	if expectedAfter != after {
 		errMsgs = append(errMsgs, fmt.Sprintf("Chips don't add up. Before: %f, Rake: %f, After: %f", playerBalanceBefore, rakeCollectedTotal, playerBalanceAfter))
 	}
 

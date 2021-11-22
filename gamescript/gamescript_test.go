@@ -46,6 +46,7 @@ func TestReadGameScript(t *testing.T) {
 			MaxPlayers:         9,
 			GameLength:         60,
 			BuyInApproval:      true,
+			ChipUnit:           "CENT",
 			RakePercentage:     5.0,
 			RakeCap:            5.0,
 			BuyInMin:           100,
