@@ -1,0 +1,109 @@
+club:
+  name: Manchester Club
+  description: Club used for testing with the bot runner
+
+game:
+  create: true
+  title: "PLO Testing Game"
+  game-type: "PLO"
+  # Use cent insted of the default DOLLAR.
+  # This enables 2 decimal digits for counting chips.
+  chip-unit: "CENT"
+  small-blind: 3.0
+  big-blind: 6.0
+  utg-straddle-allowed: true
+  straddle-bet: 8.0
+  min-players: 2
+  max-players: 4
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 7.0
+  rake-cap: 5.2
+  buy-in-min: 100
+  buy-in-max: 300
+  action-time: 100
+
+starting-seats:
+  - seat: 1
+    player: young
+    buy-in: 100
+  - seat: 2
+    player: carol
+    buy-in: 100
+  - seat: 3
+    player: matt
+    buy-in: 100
+
+tester:
+auto-play:
+  enabled: false
+
+# deal the following hands in the table
+hands:
+  - setup:
+      button-pos: 1
+      board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-cards:
+        - seat: 1
+          cards: ["9h", "3c", "Ts", "5c"]
+        - seat: 2
+          cards: ["Kh", "Qd", "3h", "5s"]
+        - seat: 3
+          cards: ["3s", "7s", "9d", "8h"]
+
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 1, CALL, 6
+        - action: 2, CALL, 6
+        - action: 3, CHECK
+
+    flop:
+      verify:
+        board: ["Ac", "Ad", "2c"]
+      seat-actions:
+        - action: 2, CHECK
+        - action: 3, BET, 6
+        - action: 1, CALL, 6
+        - action: 2, RAISE, 12
+        - action: 3, FOLD
+        - action: 1, CALL, 12
+
+    turn:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td"]
+      seat-actions:
+        - action: 2, CHECK
+        - action: 1, BET, 24
+        - action: 2, CALL, 24
+
+    river:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-actions:
+        - action: 2, CHECK
+        - action: 1, CHECK
+
+    result:
+      winners:
+        - seat: 2
+          receive: 45.4
+          rank: Straight
+          rake-paid: 2.6
+        - seat: 1
+          receive: 45.4
+          rank: Straight
+          rake-paid: 2.6
+      action-ended: SHOW_DOWN
+
+      players:
+        - seat: 1
+          balance:
+            after: 103.4
+        - seat: 2
+          balance:
+            after: 103.4
+        - seat: 3
+          balance:
+            after: 88

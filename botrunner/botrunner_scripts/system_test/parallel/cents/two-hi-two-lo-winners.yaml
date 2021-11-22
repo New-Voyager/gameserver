@@ -1,0 +1,120 @@
+club:
+  name: Manchester Club
+  description: Club used for testing with the bot runner
+
+game:
+  create: true
+  title: "PLO HI LO Testing Game"
+  game-type: "PLO_HILO"
+  # Use cent insted of the default DOLLAR.
+  # This enables 2 decimal digits for counting chips.
+  chip-unit: "CENT"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 4
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 100
+  buy-in-max: 300
+  action-time: 100
+
+starting-seats:
+  - seat: 1
+    player: young
+    buy-in: 100
+  - seat: 2
+    player: carol
+    buy-in: 100
+  - seat: 3
+    player: matt
+    buy-in: 100
+
+tester:
+auto-play:
+  enabled: false
+
+# deal the following hands in the table
+hands:
+  - setup:
+      button-pos: 1
+      board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-cards:
+        - seat: 2
+          cards: ["Kh", "Qd", "3h", "5s"]
+        - seat: 3
+          cards: ["As", "Ts", "9d", "8h"]
+        - seat: 1
+          cards: ["Ah", "Tc", "5c", "3s"]
+
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 1, CALL, 2
+        - action: 2, CALL, 2
+        - action: 3, CHECK
+
+    flop:
+      verify:
+        board: ["Ac", "Ad", "2c"]
+      seat-actions:
+        - action: 2, CHECK
+        - action: 3, BET, 2
+        - action: 1, CALL, 2
+        - action: 2, RAISE, 4
+        - action: 3, CALL, 4
+        - action: 1, CALL, 4
+
+    turn:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td"]
+      seat-actions:
+        - action: 2, CHECK
+        - action: 3, CHECK
+        - action: 1, BET, 10
+        - action: 2, CALL, 10
+        - action: 3, CALL, 10
+
+    river:
+      verify:
+        board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-actions:
+        - action: 2, BET, 10
+        - action: 3, CALL, 10
+        - action: 1, CALL, 10
+
+    result:
+      # This randomly fails with the winner 1 rake value being either 1.0 or 2.0.
+      winners:
+        - seat: 1
+          receive: 18.2
+          rank: Full House
+          rake-paid: 1.3
+        - seat: 3
+          receive: 18.2
+          rank: Full House
+          rake-paid: 1.3
+
+      lo-winners:
+        - seat: 1
+          receive: 19.5
+        - seat: 2
+          receive: 18.2
+
+          action-ended: SHOW_DOWN
+
+      players:
+        - seat: 1
+          balance:
+            after: 111.7
+        - seat: 2
+          balance:
+            after: 92.2
+        - seat: 3
+          balance:
+            after: 92.2
