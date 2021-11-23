@@ -109,13 +109,13 @@ hands:
           buy-in: 100
           profit: 28
           stack: 128
-          rake-paid: 2
+          rake-paid: 1
         - player-name: carol
           hands-played: 1
           buy-in: 100
           profit: -26
           stack: 74
-          rake-paid: 0
+          rake-paid: 1
         - player-name: matt
           hands-played: 1
           buy-in: 100
