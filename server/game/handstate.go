@@ -169,6 +169,7 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	h.NoActiveSeats = 0
 	h.PlayerStats = make(map[uint64]*PlayerStats)
 	h.TimeoutStats = make(map[uint64]*TimeoutStats)
+	h.PotContribution = make(map[uint32]float64)
 
 	// update active seats with players who are playing
 	for seatNo, playerInSeat := range playersInSeats {
@@ -213,6 +214,7 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 			h.NoActiveSeats++
 			h.ActiveSeats[playerInSeat.SeatNo] = playerInSeat.PlayerID
 		}
+		h.PotContribution[uint32(seatNo)] = 0
 	}
 
 	// if there is no active player in the button pos (panic)

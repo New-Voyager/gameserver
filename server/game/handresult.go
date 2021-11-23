@@ -541,13 +541,19 @@ func (hr *HandResultProcessor) calcRakeAndBalance(hs *HandState, potWinners []*P
 			rakePaidAmount = rake
 		}
 
+		potContributionAmount := float64(0.0)
+		if _, exists := hs.PotContribution[uint32(seatNo)]; exists {
+			potContributionAmount = hs.PotContribution[uint32(seatNo)]
+		}
+
 		players[player.SeatNo] = &PlayerHandInfo{
-			Id:          player.PlayerId,
-			PlayedUntil: player.Round,
-			Cards:       poker.ByteCardsToUint32Cards(hs.PlayersCards[player.SeatNo]),
-			Balance:     playerBalance,
-			Received:    util.RoundDecimal(playerBalance.After-playerBalance.Before, 2),
-			RakePaid:    rakePaidAmount,
+			Id:              player.PlayerId,
+			PlayedUntil:     player.Round,
+			Cards:           poker.ByteCardsToUint32Cards(hs.PlayersCards[player.SeatNo]),
+			Balance:         playerBalance,
+			Received:        util.RoundDecimal(playerBalance.After-playerBalance.Before, 2),
+			RakePaid:        rakePaidAmount,
+			PotContribution: potContributionAmount,
 		}
 	}
 	return players

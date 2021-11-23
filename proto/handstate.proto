@@ -134,4 +134,6 @@ message HandState {
   uint32 high_hand_rank = 75;
   bool high_hand_tracked = 76;
   repeated uint64 headsup_players = 77;
+
+  map<uint32, double> pot_contribution = 78;
 }

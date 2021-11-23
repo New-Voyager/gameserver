@@ -314,4 +314,5 @@ message PlayerHandInfo {
   uint32 hh_rank = 8;      // high hand rank
   double received = 9;     // received from the hand
   double rake_paid = 10;   // rake paid by this player
+  double pot_contribution = 11;
 }
