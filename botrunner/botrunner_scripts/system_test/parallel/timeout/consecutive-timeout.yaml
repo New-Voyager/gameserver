@@ -367,13 +367,13 @@ after-game:
           buy-in: 100
           profit: 197
           stack: 297
-          rake-paid: 6
+          rake-paid: 5
         - player-name: carol
           hands-played: 4
           buy-in: 200
           profit: -106
           stack: 94
-          rake-paid: 0
+          rake-paid: 2
         - player-name: matt
           # matt only played 3/4 hands due to consecutive timeouts and being put in break.
           hands-played: 3
@@ -386,4 +386,4 @@ after-game:
           buy-in: 400
           profit: -96
           stack: 304
-          rake-paid: 2
+          rake-paid: 1
