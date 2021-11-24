@@ -321,6 +321,10 @@ func (br *BotRunner) RunOneGame() error {
 	var gameCode string
 	if br.botIsGameHost {
 		// First bot creates the game.
+		chipUnit := br.script.Game.ChipUnit
+		if chipUnit == "" {
+			chipUnit = "CENT"
+		}
 		gameID, gameCode, err = br.bots[0].CreateGame(game.GameCreateOpt{
 			Title:              br.script.Game.Title,
 			GameType:           br.script.Game.GameType,
@@ -332,7 +336,7 @@ func (br *BotRunner) RunOneGame() error {
 			MaxPlayers:         br.script.Game.MaxPlayers,
 			GameLength:         br.script.Game.GameLength,
 			BuyInApproval:      br.script.Game.BuyInApproval,
-			ChipUnit:           br.script.Game.ChipUnit,
+			ChipUnit:           chipUnit,
 			RakePercentage:     br.script.Game.RakePercentage,
 			RakeCap:            br.script.Game.RakeCap,
 			BuyInMin:           br.script.Game.BuyInMin,
