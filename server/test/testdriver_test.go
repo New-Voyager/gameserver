@@ -11,7 +11,7 @@ func TestTwoPots(t *testing.T) {
 
 func TestSimpleHand(t *testing.T) {
 	testDriver := NewTestDriver()
-	testDriver.RunGameScript("game-scripts/simple-hand.yaml")
+	testDriver.RunGameScript("game-scripts/holdem/simple-hand.yaml")
 }
 
 func TestEveryOneAllIn(t *testing.T) {

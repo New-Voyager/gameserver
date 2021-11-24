@@ -36,6 +36,7 @@ type TestGameConfig struct {
 	Title              string      `json:"title" yaml:"title"`
 	Status             GameStatus  `json:"status"`
 	TableStatus        TableStatus `json:"tableStatus"`
+	ChipUnit           string      `json:"chipUnit" yaml:"chip-unit"`
 	SmallBlind         float64     `json:"smallBlind" yaml:"sb"`
 	BigBlind           float64     `json:"bigBlind" yaml:"bb"`
 	StraddleBet        float64     `json:"straddleBet"`

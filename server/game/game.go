@@ -504,6 +504,11 @@ func (g *Game) dealNewHand() error {
 	} else {
 		// We're in a script test (no api server).
 		gameType = g.testGameConfig.GameType
+		if g.testGameConfig.ChipUnit == "DOLLAR" {
+			g.chipUnit = ChipUnit_DOLLAR
+		} else {
+			g.chipUnit = ChipUnit_CENT
+		}
 
 		newHandNum = g.scriptTestPrevHandNum + 1
 		if testHandSetup != nil {
