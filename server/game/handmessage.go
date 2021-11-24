@@ -1537,8 +1537,8 @@ func (g *Game) analyzeResult(handResult *HandResultServer) error {
 		rakeCollectedTotal += pi.RakePaid
 	}
 
-	expectedAfter := util.RoundDecimal(playerBalanceBefore-rakeCollectedTotal, 2)
-	after := util.RoundDecimal(playerBalanceAfter, 2)
+	expectedAfter := playerBalanceBefore - rakeCollectedTotal
+	after := playerBalanceAfter
 	if expectedAfter != after {
 		errMsgs = append(errMsgs, fmt.Sprintf("Chips don't add up. Before: %f, Rake: %f, After: %f", playerBalanceBefore, rakeCollectedTotal, playerBalanceAfter))
 	}

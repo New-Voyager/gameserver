@@ -138,26 +138,10 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 		// split the pot for each board
 		boardPotAmounts := make([]float64, hs.NoOfBoards)
 		if hr.chipUnit == ChipUnit_CENT {
-			var potAmountForBoard float64 = util.FloorDecimal(pot.Pot/float64(hs.NoOfBoards), 2)
-			remaining := pot.Pot - potAmountForBoard*float64(hs.NoOfBoards)
-			for i := 0; i < int(hs.NoOfBoards); i++ {
-				boardPotAmounts[i] = potAmountForBoard
-				if util.Greater(remaining, 0) {
-					boardPotAmounts[i] += 0.01
-					remaining -= 0.01
-				}
-				boardPotAmounts[i] = util.RoundDecimal(boardPotAmounts[i], 2)
-			}
+			util.SplitCents(pot.Pot, int(hs.NoOfBoards), boardPotAmounts)
 		} else {
-			var potAmountForBoard int = int(pot.Pot / float64(hs.NoOfBoards))
-			remaining := pot.Pot - float64(potAmountForBoard*int(hs.NoOfBoards))
-			for i := 0; i < int(hs.NoOfBoards); i++ {
-				boardPotAmounts[i] = float64(potAmountForBoard)
-				if remaining > 0 {
-					boardPotAmounts[i]++
-					remaining--
-				}
-			}
+			util.SplitCents(pot.Pot, int(hs.NoOfBoards), boardPotAmounts)
+			// util.SplitDollars(pot.Pot, int(hs.NoOfBoards), boardPotAmounts)
 		}
 
 		// we calculate how much chips go to each board from this pot
@@ -214,31 +198,32 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 				hiWinnerPotAmount := boardPot
 				loWinnerPotAmount := float64(0.0)
 				if len(loWinners) > 0 {
-					hiWinnerPotAmount = util.RoundDecimal(boardPot/2, 2)
-					loWinnerPotAmount = boardPot - hiWinnerPotAmount
+					hiWinnerPotAmount = float64(int(boardPot / 2))
+					if int(boardPot)%2 > 0 {
+						hiWinnerPotAmount++
+					}
+					loWinnerPotAmount = boardPot - float64(hiWinnerPotAmount)
 				}
 
-				hiWinnerSplitPot := util.FloorDecimal(hiWinnerPotAmount/float64(len(hiWinners)), 2)
-				remaining := hiWinnerPotAmount - hiWinnerSplitPot*float64(len(hiWinners))
+				hiWinnerSplitPot := int(float64(hiWinnerPotAmount / float64(len(hiWinners))))
+				remaining := hiWinnerPotAmount - float64(hiWinnerSplitPot*len(hiWinners))
 				for _, hiWinner := range hiWinners {
-					hiWinner.Amount = hiWinnerSplitPot
-					if util.Greater(remaining, 0) {
-						hiWinner.Amount += 0.01
-						remaining -= 0.01
+					hiWinner.Amount = float64(hiWinnerSplitPot)
+					if remaining > 0 {
+						hiWinner.Amount++
+						remaining--
 					}
-					hiWinner.Amount = util.RoundDecimal(hiWinner.Amount, 2)
 				}
 
 				if len(loWinners) > 0 {
-					loWinnerSplitPot := util.FloorDecimal(loWinnerPotAmount/float64(len(loWinners)), 2)
-					remaining := loWinnerPotAmount - loWinnerSplitPot*float64(len(loWinners))
+					loWinnerSplitPot := int(float64(loWinnerPotAmount / float64(len(loWinners))))
+					remaining := loWinnerPotAmount - float64(loWinnerSplitPot*len(loWinners))
 					for _, loWinner := range loWinners {
-						loWinner.Amount = loWinnerSplitPot
-						if util.Greater(remaining, 0) {
-							loWinner.Amount += 0.01
-							remaining -= 0.01
+						loWinner.Amount = float64(loWinnerSplitPot)
+						if remaining > 0 {
+							loWinner.Amount++
+							remaining--
 						}
-						loWinner.Amount = util.RoundDecimal(loWinner.Amount, 2)
 					}
 				}
 			} else {
@@ -342,9 +327,9 @@ func (hr *HandResultProcessor) adjustRake(hs *HandState, totalPot float64, winne
 	// calculate rake from the total pot
 	var rake float64 = totalPot * (hs.RakePercentage / 100)
 	if hr.chipUnit == ChipUnit_CENT {
-		rake = util.FloorDecimal(rake, 2)
-		if rake < 0.01 {
-			rake = 0.01
+		rake = math.Floor(rake)
+		if rake <= 0 {
+			rake = 1.0
 		}
 	} else {
 		rake = math.Floor(rake)
@@ -370,9 +355,9 @@ func (hr *HandResultProcessor) adjustRake(hs *HandState, totalPot float64, winne
 	// rake from each player
 	rakeFromPlayer := rake / float64(len(winners))
 	if hr.chipUnit == ChipUnit_CENT {
-		rakeFromPlayer = util.FloorDecimal(rakeFromPlayer, 2)
-		if rakeFromPlayer < 0.01 {
-			rakeFromPlayer = 0.01
+		rakeFromPlayer = float64(int(rakeFromPlayer))
+		if rakeFromPlayer == 0.0 {
+			rakeFromPlayer = 1.0
 		}
 	} else {
 		rakeFromPlayer = float64(int(rakeFromPlayer))
@@ -393,7 +378,7 @@ func (hr *HandResultProcessor) adjustRake(hs *HandState, totalPot float64, winne
 				rakeSubtracted[winnerSeat] += rakeFromPlayer
 				totalRakeCollected += rakeFromPlayer
 			}
-			if util.GreaterOrNearlyEqual(totalRakeCollected, rake) {
+			if totalRakeCollected >= rake {
 				break
 			}
 		}
@@ -401,15 +386,15 @@ func (hr *HandResultProcessor) adjustRake(hs *HandState, totalPot float64, winne
 			for _, board := range pot.BoardWinners {
 				for _, handWinner := range board.HiWinners {
 					seatNo := handWinner.SeatNo
-					if util.GreaterOrNearlyEqual(rakeSubtracted[seatNo], rakeFromPlayer) {
-						handWinner.Amount = util.RoundDecimal(handWinner.Amount-rakeFromPlayer, 2)
+					if rakeSubtracted[seatNo] >= rakeFromPlayer {
+						handWinner.Amount = handWinner.Amount - rakeFromPlayer
 						rakeSubtracted[seatNo] -= rakeFromPlayer
 					}
 				}
 				for _, handWinner := range board.LowWinners {
 					seatNo := handWinner.SeatNo
-					if util.GreaterOrNearlyEqual(rakeSubtracted[seatNo], rakeFromPlayer) {
-						handWinner.Amount = util.RoundDecimal(handWinner.Amount-rakeFromPlayer, 2)
+					if rakeSubtracted[seatNo] >= rakeFromPlayer {
+						handWinner.Amount = handWinner.Amount - rakeFromPlayer
 						rakeSubtracted[seatNo] -= rakeFromPlayer
 					}
 				}
@@ -422,9 +407,9 @@ func (hr *HandResultProcessor) adjustRake(hs *HandState, totalPot float64, winne
 				continue
 			}
 			if rakeAmount > 0 {
-				playerStack[player.PlayerId] = util.RoundDecimal(playerStack[player.PlayerId]-rakeAmount, 2)
-				playerReceived[seatNo] = util.RoundDecimal(playerReceived[seatNo]-rakeAmount, 2)
-				rakePlayers[player.PlayerId] = util.RoundDecimal(rakeAmount, 2)
+				playerStack[player.PlayerId] = playerStack[player.PlayerId] - rakeAmount
+				playerReceived[seatNo] = playerReceived[seatNo] - rakeAmount
+				rakePlayers[player.PlayerId] = rakeAmount
 			}
 		}
 		hs.RakePaid = rakePlayers
@@ -551,7 +536,7 @@ func (hr *HandResultProcessor) calcRakeAndBalance(hs *HandState, potWinners []*P
 			PlayedUntil:     player.Round,
 			Cards:           poker.ByteCardsToUint32Cards(hs.PlayersCards[player.SeatNo]),
 			Balance:         playerBalance,
-			Received:        util.RoundDecimal(playerBalance.After-playerBalance.Before, 2),
+			Received:        playerBalance.After - playerBalance.Before,
 			RakePaid:        rakePaidAmount,
 			PotContribution: potContributionAmount,
 		}
