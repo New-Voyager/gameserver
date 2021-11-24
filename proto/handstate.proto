@@ -136,4 +136,5 @@ message HandState {
   repeated uint64 headsup_players = 77;
 
   map<uint32, double> pot_contribution = 78;
+  ChipUnit chipUnit = 79;
 }

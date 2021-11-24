@@ -147,7 +147,10 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	newHandInfo *NewHandInfo,
 	testHandSetup *TestHandSetup,
 	buttonPos uint32, sbPos uint32, bbPos uint32,
-	playersInSeats []SeatPlayer) error {
+	playersInSeats []SeatPlayer,
+	chipUnit ChipUnit) error {
+
+	h.ChipUnit = chipUnit
 
 	// settle players in the seats
 	if testGameConfig != nil {
@@ -1757,6 +1760,9 @@ func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64,
 			// post-flop options
 			for _, betOption := range postFlopBets {
 				betAmount := float64(int64(float64(betOption)*totalPot) / 100.0)
+				if h.ChipUnit == ChipUnit_DOLLAR {
+					betAmount = util.FloorToNearest(betAmount, 100)
+				}
 				if betAmount > h.BigBlind && betAmount < balance {
 					option := &BetRaiseOption{
 						Text:   fmt.Sprintf("%d%%", betOption),

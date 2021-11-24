@@ -504,10 +504,10 @@ func (g *Game) dealNewHand() error {
 	} else {
 		// We're in a script test (no api server).
 		gameType = g.testGameConfig.GameType
-		if g.testGameConfig.ChipUnit == "DOLLAR" {
-			g.chipUnit = ChipUnit_DOLLAR
-		} else {
+		if g.testGameConfig.ChipUnit == "CENT" {
 			g.chipUnit = ChipUnit_CENT
+		} else {
+			g.chipUnit = ChipUnit_DOLLAR
 		}
 
 		newHandNum = g.scriptTestPrevHandNum + 1
@@ -543,7 +543,7 @@ func (g *Game) dealNewHand() error {
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
 
-	err = handState.initialize(g.testGameConfig, newHandInfo, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
+	err = handState.initialize(g.testGameConfig, newHandInfo, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats, g.chipUnit)
 	if err != nil {
 		return errors.Wrapf(err, "Error while initializing hand state")
 	}
