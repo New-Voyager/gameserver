@@ -146,7 +146,8 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	newHandInfo *NewHandInfo,
 	testHandSetup *TestHandSetup,
 	buttonPos uint32, sbPos uint32, bbPos uint32,
-	playersInSeats []SeatPlayer) error {
+	playersInSeats []SeatPlayer,
+	chipConverter *ChipConverter) error {
 
 	// settle players in the seats
 	if testGameConfig != nil {
@@ -228,14 +229,14 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	h.HandStats = &HandStats{}
 	if testGameConfig != nil {
 		h.MaxSeats = uint32(testGameConfig.MaxPlayers)
-		h.SmallBlind = float64(testGameConfig.SmallBlind)
-		h.BigBlind = float64(testGameConfig.BigBlind)
-		h.Straddle = float64(testGameConfig.StraddleBet)
+		h.SmallBlind = chipConverter.ChipsToCents(testGameConfig.SmallBlind)
+		h.BigBlind = chipConverter.ChipsToCents(testGameConfig.BigBlind)
+		h.Straddle = chipConverter.ChipsToCents(testGameConfig.StraddleBet)
 		h.RakePercentage = float64(testGameConfig.RakePercentage)
-		h.RakeCap = float64(testGameConfig.RakeCap)
+		h.RakeCap = chipConverter.ChipsToCents(testGameConfig.RakeCap)
 		h.ButtonPos = buttonPos
 		h.PlayersActed = make([]*PlayerActRound, h.MaxSeats+1)
-		h.BringIn = float64(testGameConfig.BringIn)
+		h.BringIn = chipConverter.ChipsToCents(testGameConfig.BringIn)
 	} else {
 		h.MaxSeats = uint32(newHandInfo.MaxPlayers)
 		h.SmallBlind = float64(newHandInfo.SmallBlind)

@@ -67,7 +67,8 @@ type Game struct {
 	retryDelayMillis uint32
 
 	// Whether to allow fractional chip or not
-	chipUnit ChipUnit
+	chipUnit      ChipUnit
+	chipConverter *ChipConverter
 
 	// used for storing player configuration of runItTwicePrompt, muckLosingHand
 	//playerConfig atomic.Value
@@ -529,6 +530,8 @@ func (g *Game) dealNewHand() error {
 		bbPos = 0
 	}
 
+	g.chipConverter = NewChipConverter(g.chipUnit)
+
 	if testHandSetup != nil {
 		if testHandSetup.ButtonPos > 0 {
 			buttonPos = testHandSetup.ButtonPos
@@ -543,7 +546,7 @@ func (g *Game) dealNewHand() error {
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
 
-	err = handState.initialize(g.testGameConfig, newHandInfo, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
+	err = handState.initialize(g.testGameConfig, newHandInfo, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats, g.chipConverter)
 	if err != nil {
 		return errors.Wrapf(err, "Error while initializing hand state")
 	}
