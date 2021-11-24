@@ -115,19 +115,9 @@ func (g *Game) getClientMsgItem(message *HandMessage) (*HandMessageItem, error) 
 	return msgItems[0], nil
 }
 
-func (g *Game) convertToServerUnits(msgItem *HandMessageItem) error {
-	var err error
-	switch msgItem.MessageType {
-	case HandPlayerActed:
-		err = g.convertHandPlayerActed(msgItem)
-	default:
-	}
-	return err
-}
-
 func (g *Game) convertHandPlayerActed(msgItem *HandMessageItem) error {
 	pa := msgItem.GetPlayerActed()
-	pa.Amount = g.chipConverter.ChipsToCents(pa.Amount)
+	pa.Amount = util.ChipsToCents(pa.Amount)
 	return nil
 }
 
@@ -383,7 +373,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		return err
 	}
 
-	if err := validatePlayerAction(playerMsg, actionMsg, handState, g.chipConverter, g.isScriptTest); err != nil {
+	if err := validatePlayerAction(playerMsg, actionMsg, handState, g.isScriptTest); err != nil {
 		// Ignore the action message.
 		errMsg := "Invalid player action"
 		var actionStr string
@@ -459,7 +449,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	return g.prepareNextAction(handState, uint64(actedSeconds))
 }
 
-func validatePlayerAction(playerMsg *HandMessage, actionMsg *HandMessageItem, handState *HandState, chipConverter *ChipConverter, isScriptTest bool) error {
+func validatePlayerAction(playerMsg *HandMessage, actionMsg *HandMessageItem, handState *HandState, isScriptTest bool) error {
 	action := actionMsg.GetPlayerActed()
 	if action == nil {
 		errMsg := "Invalid action. Msg item does not containe playerActed"
@@ -525,7 +515,7 @@ func validatePlayerAction(playerMsg *HandMessage, actionMsg *HandMessageItem, ha
 		if handState.GetNextSeatAction() == nil {
 			return fmt.Errorf("handState.NextSeatAction is nil")
 		}
-		expectedCallAmount := chipConverter.CentsToChips(handState.GetNextSeatAction().CallAmount)
+		expectedCallAmount := util.CentsToChips(handState.GetNextSeatAction().CallAmount)
 		if action.Amount != expectedCallAmount {
 			return fmt.Errorf("Invalid call amount %f. Expected amount: %f", action.Amount, expectedCallAmount)
 		}

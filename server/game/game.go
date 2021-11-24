@@ -67,8 +67,7 @@ type Game struct {
 	retryDelayMillis uint32
 
 	// Whether to allow fractional chip or not
-	chipUnit      ChipUnit
-	chipConverter *ChipConverter
+	chipUnit ChipUnit
 
 	// used for storing player configuration of runItTwicePrompt, muckLosingHand
 	//playerConfig atomic.Value
@@ -530,8 +529,6 @@ func (g *Game) dealNewHand() error {
 		bbPos = 0
 	}
 
-	g.chipConverter = NewChipConverter(g.chipUnit)
-
 	if testHandSetup != nil {
 		if testHandSetup.ButtonPos > 0 {
 			buttonPos = testHandSetup.ButtonPos
@@ -546,7 +543,7 @@ func (g *Game) dealNewHand() error {
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
 
-	err = handState.initialize(g.testGameConfig, newHandInfo, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats, g.chipConverter)
+	err = handState.initialize(g.testGameConfig, newHandInfo, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
 	if err != nil {
 		return errors.Wrapf(err, "Error while initializing hand state")
 	}
@@ -835,6 +832,13 @@ func (g *Game) loadHandState() (*HandState, error) {
 
 func (g *Game) broadcastHandMessage(message *HandMessage) {
 	message.GameCode = g.gameCode
+	err := g.convertToClientUnits(message)
+	if err != nil {
+		msg := "Could not convert to client units"
+		g.logger.Error().Err(err).Msg(msg)
+		panic(msg)
+	}
+
 	if *g.messageSender != nil {
 		(*g.messageSender).BroadcastHandMessage(message)
 	} else {

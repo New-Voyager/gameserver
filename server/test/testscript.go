@@ -44,13 +44,12 @@ func (g *TestGameScript) waitForObserver() observerChItem {
 // configures the table with the configuration
 func (g *TestGameScript) configure(t *TestDriver) error {
 	gameType := game.GameType(game.GameType_value[g.gameScript.GameConfig.GameTypeStr])
-	chipUnit := ToGameChipUnit(g.gameScript.GameConfig.ChipUnit)
 	var err error
-	g.testGame, g.observer, err = NewTestGame(g, 1, gameType, g.gameScript.GameConfig.Title, g.gameScript.GameConfig.AutoStart, chipUnit, g.gameScript.Players)
+	g.testGame, g.observer, err = NewTestGame(g, 1, gameType, g.gameScript.GameConfig.Title, g.gameScript.GameConfig.AutoStart, g.gameScript.Players)
 	if err != nil {
 		return err
 	}
-	g.testGame.PopulateSeats(g.gameScript.AssignSeat.Seats, chipUnit)
+	g.testGame.PopulateSeats(g.gameScript.AssignSeat.Seats)
 
 	return nil
 }

@@ -390,15 +390,13 @@ func (h *TestHand) dealHand(t *TestDriver) error {
 func (h *TestHand) setup(t *TestDriver) error {
 	h.gameScript.testGame.Observer().resetBlinds(h.gameScript.testGame.gameID)
 
-	chipUnit := ToGameChipUnit(h.gameScript.gameScript.GameConfig.ChipUnit)
-
 	// add new players
 	if h.hand.Setup.NewPlayers != nil && len(h.hand.Setup.NewPlayers) > 0 {
 		t := h.gameScript.testGame
 		for _, testPlayer := range h.hand.Setup.NewPlayers {
 			player := t.players[testPlayer.Player]
 
-			buyIn := util.ChipsToCents(int32(chipUnit), testPlayer.BuyIn)
+			buyIn := util.ChipsToCents(testPlayer.BuyIn)
 			player.joinGame(t.gameID, testPlayer.SeatNo,
 				buyIn, testPlayer.RunItTwice,
 				testPlayer.RunItTwicePromptResponse,

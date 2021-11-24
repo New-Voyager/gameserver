@@ -323,7 +323,7 @@ func (br *BotRunner) RunOneGame() error {
 		// First bot creates the game.
 		chipUnit := br.script.Game.ChipUnit
 		if chipUnit == "" {
-			chipUnit = "CENT"
+			chipUnit = "DOLLAR"
 		}
 		gameID, gameCode, err = br.bots[0].CreateGame(game.GameCreateOpt{
 			Title:              br.script.Game.Title,
@@ -653,7 +653,11 @@ func (br *BotRunner) processAfterGameAssertions(gameCode string) error {
 	errMsgs := make([]string, 0)
 	minExpectedHands := br.script.AfterGame.Verify.NumHandsPlayed.Gte
 	maxExpectedHands := br.script.AfterGame.Verify.NumHandsPlayed.Lte
-	totalHandsPlayed := br.observerBot.GetHandResult2().HandNum
+	handResult := br.observerBot.GetHandResult2()
+	if handResult == nil {
+		panic("Hand result is nil. Maybe no result has been received from the server.")
+	}
+	totalHandsPlayed := handResult.HandNum
 	if minExpectedHands != nil {
 		if totalHandsPlayed < *minExpectedHands {
 			errMsgs = append(errMsgs, fmt.Sprintf("Total hands played: %d, Expected AT LEAST %d hands to have been played", totalHandsPlayed, *minExpectedHands))

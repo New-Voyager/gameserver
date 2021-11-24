@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"voyager.com/logging"
 	"voyager.com/server/poker"
+	"voyager.com/server/util"
 )
 
 var handLogger = logging.GetZeroLogger("game::hand", nil)
@@ -146,8 +147,7 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	newHandInfo *NewHandInfo,
 	testHandSetup *TestHandSetup,
 	buttonPos uint32, sbPos uint32, bbPos uint32,
-	playersInSeats []SeatPlayer,
-	chipConverter *ChipConverter) error {
+	playersInSeats []SeatPlayer) error {
 
 	// settle players in the seats
 	if testGameConfig != nil {
@@ -229,14 +229,14 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	h.HandStats = &HandStats{}
 	if testGameConfig != nil {
 		h.MaxSeats = uint32(testGameConfig.MaxPlayers)
-		h.SmallBlind = chipConverter.ChipsToCents(testGameConfig.SmallBlind)
-		h.BigBlind = chipConverter.ChipsToCents(testGameConfig.BigBlind)
-		h.Straddle = chipConverter.ChipsToCents(testGameConfig.StraddleBet)
+		h.SmallBlind = util.ChipsToCents(testGameConfig.SmallBlind)
+		h.BigBlind = util.ChipsToCents(testGameConfig.BigBlind)
+		h.Straddle = util.ChipsToCents(testGameConfig.StraddleBet)
 		h.RakePercentage = float64(testGameConfig.RakePercentage)
-		h.RakeCap = chipConverter.ChipsToCents(testGameConfig.RakeCap)
+		h.RakeCap = util.ChipsToCents(testGameConfig.RakeCap)
 		h.ButtonPos = buttonPos
 		h.PlayersActed = make([]*PlayerActRound, h.MaxSeats+1)
-		h.BringIn = chipConverter.ChipsToCents(testGameConfig.BringIn)
+		h.BringIn = util.ChipsToCents(testGameConfig.BringIn)
 	} else {
 		h.MaxSeats = uint32(newHandInfo.MaxPlayers)
 		h.SmallBlind = float64(newHandInfo.SmallBlind)

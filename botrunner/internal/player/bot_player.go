@@ -2886,6 +2886,9 @@ func (bp *BotPlayer) GetErrorMsg() string {
 
 // GetHandResult2 returns the hand result received from the server.
 func (bp *BotPlayer) GetHandResult2() *game.HandResultClient {
+	if bp.game == nil {
+		panic("GetHandResult2 called with nil game")
+	}
 	return bp.game.handResult2
 }
 
