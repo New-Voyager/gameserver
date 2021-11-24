@@ -780,6 +780,7 @@ func (g *Game) dealNewHand() error {
 		}
 		nextFlowState = FlowState_WAIT_FOR_NEXT_ACTION
 	}
+
 	g.broadcastHandMessage(&handMsg)
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_5, 0)
@@ -832,7 +833,8 @@ func (g *Game) loadHandState() (*HandState, error) {
 
 func (g *Game) broadcastHandMessage(message *HandMessage) {
 	message.GameCode = g.gameCode
-	err := g.convertToClientUnits(message)
+	var outMsg *HandMessage = &HandMessage{}
+	err := g.convertToClientUnits(message, outMsg)
 	if err != nil {
 		msg := "Could not convert to client units"
 		g.logger.Error().Err(err).Msg(msg)
@@ -840,15 +842,15 @@ func (g *Game) broadcastHandMessage(message *HandMessage) {
 	}
 
 	if *g.messageSender != nil {
-		(*g.messageSender).BroadcastHandMessage(message)
+		(*g.messageSender).BroadcastHandMessage(outMsg)
 	} else {
-		b, _ := proto.Marshal(message)
+		b, _ := proto.Marshal(outMsg)
 		for _, player := range g.scriptTestPlayers {
 			player.chHand <- b
 		}
 	}
 
-	for _, msgItem := range message.GetMessages() {
+	for _, msgItem := range outMsg.GetMessages() {
 		msgType := msgItem.GetMessageType()
 		switch msgType {
 		case HandNewHand:

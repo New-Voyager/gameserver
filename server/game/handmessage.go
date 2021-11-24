@@ -115,12 +115,6 @@ func (g *Game) getClientMsgItem(message *HandMessage) (*HandMessageItem, error) 
 	return msgItems[0], nil
 }
 
-func (g *Game) convertHandPlayerActed(msgItem *HandMessageItem) error {
-	pa := msgItem.GetPlayerActed()
-	pa.Amount = util.ChipsToCents(pa.Amount)
-	return nil
-}
-
 func (g *Game) onExtendTimer(playerMsg *HandMessage) error {
 	playerID := playerMsg.GetPlayerId()
 	if playerID == 0 {

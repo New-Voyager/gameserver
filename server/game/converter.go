@@ -1,55 +1,78 @@
 package game
 
-import "voyager.com/server/util"
+import (
+	"google.golang.org/protobuf/proto"
+	"voyager.com/server/util"
+)
 
 func (g *Game) convertToServerUnits(msgItem *HandMessageItem) error {
 	var err error
 	switch msgItem.MessageType {
 	case HandPlayerActed:
-		err = g.convertHandPlayerActed(msgItem)
+		err = g.c2sHandPlayerActed(msgItem)
 	default:
 	}
 	return err
 }
 
-func (g *Game) convertToClientUnits(message *HandMessage) error {
-	for _, msgItem := range message.GetMessages() {
+func (g *Game) c2sHandPlayerActed(msgItem *HandMessageItem) error {
+	pa := msgItem.GetPlayerActed()
+	pa.Amount = util.ChipsToCents(pa.Amount)
+	pa.Stack = util.ChipsToCents(pa.Stack)
+	pa.PotUpdates = util.ChipsToCents(pa.PotUpdates)
+	return nil
+}
+
+func (g *Game) convertToClientUnits(message *HandMessage, outMsg *HandMessage) error {
+	ma, _ := proto.Marshal(message)
+	proto.Unmarshal(ma, outMsg)
+
+	for _, msgItem := range outMsg.GetMessages() {
 		msgType := msgItem.GetMessageType()
 		switch msgType {
 		case HandNewHand:
-			convertNewHand(msgItem)
+			s2cNewHand(msgItem)
 		case HandQueryCurrentHand:
-			convertQueryCurrentHand(msgItem)
+			s2cQueryCurrentHand(msgItem)
+		case HandPlayerActed:
+			s2cPlayerActed(msgItem)
 		case HandNextAction:
-			convertNextAction(msgItem)
+			s2cNextAction(msgItem)
 		case HandPlayerAction:
-			convertYourAction(msgItem)
+			s2cYourAction(msgItem)
 		case HandFlop:
-			convertFlop(msgItem)
+			s2cFlop(msgItem)
 		case HandTurn:
-			convertTurn(msgItem)
+			s2cTurn(msgItem)
 		case HandRiver:
-			convertRiver(msgItem)
+			s2cRiver(msgItem)
 		case HandRunItTwice:
-			convertRunItTwice(msgItem)
+			s2cRunItTwice(msgItem)
 		case HandNoMoreActions:
-			convertNoMoreActions(msgItem)
+			s2cNoMoreActions(msgItem)
 		case HandResultMessage2:
-			convertResult(msgItem)
+			s2cResult(msgItem)
 		default:
 		}
 	}
 	return nil
 }
 
-func convertNoMoreActions(msgItem *HandMessageItem) {
+func s2cNoMoreActions(msgItem *HandMessageItem) {
 	a := msgItem.GetNoMoreActions()
 	for _, s := range a.Pots {
 		s.Pot = util.CentsToChips(s.Pot)
 	}
 }
 
-func convertQueryCurrentHand(msgItem *HandMessageItem) {
+func s2cPlayerActed(msgItem *HandMessageItem) {
+	a := msgItem.GetPlayerActed()
+	a.Amount = util.CentsToChips(a.Amount)
+	a.Stack = util.CentsToChips(a.Stack)
+	a.PotUpdates = util.CentsToChips(a.PotUpdates)
+}
+
+func s2cQueryCurrentHand(msgItem *HandMessageItem) {
 	c := msgItem.GetCurrentHandState()
 	c.BigBlind = util.CentsToChips(c.BigBlind)
 	c.SmallBlind = util.CentsToChips(c.SmallBlind)
@@ -71,7 +94,7 @@ func convertQueryCurrentHand(msgItem *HandMessageItem) {
 	}
 }
 
-func convertNewHand(msgItem *HandMessageItem) {
+func s2cNewHand(msgItem *HandMessageItem) {
 	h := msgItem.GetNewHand()
 	h.SmallBlind = util.CentsToChips(h.SmallBlind)
 	h.BigBlind = util.CentsToChips(h.BigBlind)
@@ -89,7 +112,7 @@ func convertNewHand(msgItem *HandMessageItem) {
 	}
 }
 
-func convertYourAction(msgItem *HandMessageItem) {
+func s2cYourAction(msgItem *HandMessageItem) {
 	a := msgItem.GetSeatAction()
 	convertNextSeatAction(a)
 }
@@ -108,7 +131,7 @@ func convertNextSeatAction(a *NextSeatAction) {
 	}
 }
 
-func convertNextAction(msgItem *HandMessageItem) {
+func s2cNextAction(msgItem *HandMessageItem) {
 	a := msgItem.GetActionChange()
 	a.BetAmount = util.CentsToChips(a.BetAmount)
 	a.PotUpdates = util.CentsToChips(a.PotUpdates)
@@ -120,7 +143,7 @@ func convertNextAction(msgItem *HandMessageItem) {
 	}
 }
 
-func convertFlop(msgItem *HandMessageItem) {
+func s2cFlop(msgItem *HandMessageItem) {
 	f := msgItem.GetFlop()
 	for i := 0; i < len(f.Pots); i++ {
 		f.Pots[i] = util.CentsToChips(f.Pots[i])
@@ -133,7 +156,7 @@ func convertFlop(msgItem *HandMessageItem) {
 	}
 }
 
-func convertTurn(msgItem *HandMessageItem) {
+func s2cTurn(msgItem *HandMessageItem) {
 	f := msgItem.GetTurn()
 	for i := 0; i < len(f.Pots); i++ {
 		f.Pots[i] = util.CentsToChips(f.Pots[i])
@@ -146,7 +169,7 @@ func convertTurn(msgItem *HandMessageItem) {
 	}
 }
 
-func convertRiver(msgItem *HandMessageItem) {
+func s2cRiver(msgItem *HandMessageItem) {
 	f := msgItem.GetRiver()
 	for i := 0; i < len(f.Pots); i++ {
 		f.Pots[i] = util.CentsToChips(f.Pots[i])
@@ -159,14 +182,14 @@ func convertRiver(msgItem *HandMessageItem) {
 	}
 }
 
-func convertRunItTwice(msgItem *HandMessageItem) {
+func s2cRunItTwice(msgItem *HandMessageItem) {
 	r := msgItem.GetRunItTwice()
 	for _, s := range r.SeatsPots {
 		s.Pot = util.CentsToChips(s.Pot)
 	}
 }
 
-func convertResult(msgItem *HandMessageItem) {
+func s2cResult(msgItem *HandMessageItem) {
 	handResultClient := msgItem.GetHandResultClient()
 	for _, w := range handResultClient.PotWinners {
 		w.Amount = util.CentsToChips(w.Amount)
