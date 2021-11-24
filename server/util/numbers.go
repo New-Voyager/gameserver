@@ -53,3 +53,31 @@ func GreaterOrNearlyEqual(a float64, b float64) bool {
 
 	return NearlyEqual(a, b)
 }
+
+func SplitCents(totalAmt float64, numSplits int, splits []float64) {
+	amountPerSplit := int(totalAmt / float64(numSplits))
+	remaining := totalAmt - float64(amountPerSplit*numSplits)
+	for i := 0; i < numSplits; i++ {
+		splits[i] = float64(amountPerSplit)
+		if remaining > 0 {
+			splits[i]++
+			remaining--
+		}
+	}
+}
+
+func SplitDollars(totalAmt float64, numSplits int, splits []float64) {
+	amountPerSplit := int(totalAmt / float64(numSplits))
+	remainder := amountPerSplit % 100
+	if remainder != 0 {
+		amountPerSplit = amountPerSplit - remainder
+	}
+	remaining := totalAmt - float64(amountPerSplit*numSplits)
+	for i := 0; i < numSplits; i++ {
+		splits[i] = float64(amountPerSplit)
+		if remaining > 0 {
+			splits[i] += 100
+			remaining -= 100
+		}
+	}
+}
