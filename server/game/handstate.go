@@ -270,7 +270,7 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 		h.DoubleBoard = testHandSetup.DoubleBoard
 		h.BombPot = testHandSetup.BombPot
 		if h.BombPot {
-			h.BombPotBet = testHandSetup.BombPotBet
+			h.BombPotBet = util.ChipsToCents(testHandSetup.BombPotBet)
 		}
 	}
 
