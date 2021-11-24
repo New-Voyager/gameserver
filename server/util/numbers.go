@@ -29,6 +29,14 @@ func RoundDecimal(num float64, digits int) float64 {
 	}
 }
 
+func FloorToNearest(num float64, nearest int) float64 {
+	if nearest == 1 {
+		return math.Floor(num)
+	}
+	num = float64(int(num))
+	return num - float64(int(num)%nearest)
+}
+
 func NearlyEqual(a float64, b float64) bool {
 	if a == b {
 		return true
@@ -67,6 +75,19 @@ func SplitCents(totalAmt float64, numSplits int, splits []float64) {
 }
 
 func SplitDollars(totalAmt float64, numSplits int, splits []float64) {
+	rounded := RoundDecimal(totalAmt, 0)
+	if rounded != totalAmt {
+		if Env.IsSystemTest() {
+			panic(fmt.Sprintf("SplitDollars totalAmt is imprecise. totalAmt: %v", totalAmt))
+		} else {
+			totalAmt = rounded
+		}
+	}
+	if int(totalAmt)%100 != 0 {
+		if Env.IsSystemTest() {
+			panic(fmt.Sprintf("SplitDollars totalAmt is not divisible by 100. totalAmt: %v, int(totalAmt): %v", totalAmt, int(totalAmt)))
+		}
+	}
 	amountPerSplit := int(totalAmt / float64(numSplits))
 	remainder := amountPerSplit % 100
 	if remainder != 0 {

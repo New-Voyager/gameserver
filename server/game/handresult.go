@@ -140,8 +140,7 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 		if hr.chipUnit == ChipUnit_CENT {
 			util.SplitCents(pot.Pot, int(hs.NoOfBoards), boardPotAmounts)
 		} else {
-			util.SplitCents(pot.Pot, int(hs.NoOfBoards), boardPotAmounts)
-			// util.SplitDollars(pot.Pot, int(hs.NoOfBoards), boardPotAmounts)
+			util.SplitDollars(pot.Pot, int(hs.NoOfBoards), boardPotAmounts)
 		}
 
 		// we calculate how much chips go to each board from this pot
@@ -227,35 +226,35 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 					}
 				}
 			} else {
-				hiWinnerPotAmount := boardPot
-				loWinnerPotAmount := float64(0.0)
-				if len(loWinners) > 0 {
-					hiWinnerPotAmount = float64(int(boardPot / 2))
-					if int(boardPot)%2 > 0 {
-						hiWinnerPotAmount++
-					}
-					loWinnerPotAmount = boardPot - float64(hiWinnerPotAmount)
+				// Dollar game. All amounts are multiples of 100.
+				var hiWinnerPotAmount float64
+				var loWinnerPotAmount float64
+				if len(loWinners) == 0 {
+					hiWinnerPotAmount = boardPot
+				} else {
+					amts := make([]float64, 2)
+					util.SplitDollars(boardPot, 2, amts)
+					hiWinnerPotAmount = amts[0]
+					loWinnerPotAmount = amts[1]
 				}
 
-				hiWinnerSplitPot := int(float64(hiWinnerPotAmount / float64(len(hiWinners))))
-				remaining := hiWinnerPotAmount - float64(hiWinnerSplitPot*len(hiWinners))
+				numWinners := len(hiWinners)
+				amts := make([]float64, numWinners)
+				util.SplitDollars(hiWinnerPotAmount, numWinners, amts)
+				i := 0
 				for _, hiWinner := range hiWinners {
-					hiWinner.Amount = float64(hiWinnerSplitPot)
-					if remaining > 0 {
-						hiWinner.Amount++
-						remaining--
-					}
+					hiWinner.Amount = amts[i]
+					i++
 				}
 
 				if len(loWinners) > 0 {
-					loWinnerSplitPot := int(float64(loWinnerPotAmount / float64(len(loWinners))))
-					remaining := loWinnerPotAmount - float64(loWinnerSplitPot*len(loWinners))
+					numWinners := len(loWinners)
+					amts := make([]float64, numWinners)
+					util.SplitDollars(loWinnerPotAmount, numWinners, amts)
+					i := 0
 					for _, loWinner := range loWinners {
-						loWinner.Amount = float64(loWinnerSplitPot)
-						if remaining > 0 {
-							loWinner.Amount++
-							remaining--
-						}
+						loWinner.Amount = amts[i]
+						i++
 					}
 				}
 			}
@@ -332,9 +331,9 @@ func (hr *HandResultProcessor) adjustRake(hs *HandState, totalPot float64, winne
 			rake = 1.0
 		}
 	} else {
-		rake = math.Floor(rake)
+		rake = util.FloorToNearest(rake, 100)
 		if rake <= 0 {
-			rake = 1.0
+			rake = 100
 		}
 	}
 
@@ -360,9 +359,9 @@ func (hr *HandResultProcessor) adjustRake(hs *HandState, totalPot float64, winne
 			rakeFromPlayer = 1.0
 		}
 	} else {
-		rakeFromPlayer = float64(int(rakeFromPlayer))
+		rakeFromPlayer = util.FloorToNearest(rakeFromPlayer, 100)
 		if rakeFromPlayer == 0.0 {
-			rakeFromPlayer = 1.0
+			rakeFromPlayer = 100
 		}
 	}
 
