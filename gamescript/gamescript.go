@@ -350,14 +350,14 @@ func (a *Action) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var amount float64
 	if len(tokens) == 3 {
 		trimmed := strings.Trim(tokens[2], " ")
-		amount, err = strconv.ParseFloat(trimmed, 32)
+		amount, err = strconv.ParseFloat(trimmed, 64)
 		if err != nil {
 			return errors.Wrapf(err, "Cannot convert third token [%s] to seat number", trimmed)
 		}
 	}
 	a.Seat = uint32(seatNo)
 	a.Action = strings.Trim(tokens[1], " ")
-	a.Amount = float64(amount)
+	a.Amount = amount
 	return nil
 }
 
