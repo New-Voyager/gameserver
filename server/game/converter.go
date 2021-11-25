@@ -129,6 +129,7 @@ func convertNextSeatAction(a *NextSeatAction) {
 	a.MinRaiseAmount = util.CentsToChips(a.MinRaiseAmount)
 	a.MaxRaiseAmount = util.CentsToChips(a.MaxRaiseAmount)
 	a.AllInAmount = util.CentsToChips(a.AllInAmount)
+	a.SeatInSoFar = util.CentsToChips(a.SeatInSoFar)
 	for _, bo := range a.BetOptions {
 		bo.Amount = util.CentsToChips(bo.Amount)
 	}
