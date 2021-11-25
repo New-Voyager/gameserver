@@ -504,6 +504,11 @@ func (g *Game) dealNewHand() error {
 	} else {
 		// We're in a script test (no api server).
 		gameType = g.testGameConfig.GameType
+		if g.testGameConfig.ChipUnit == "CENT" {
+			g.chipUnit = ChipUnit_CENT
+		} else {
+			g.chipUnit = ChipUnit_DOLLAR
+		}
 
 		newHandNum = g.scriptTestPrevHandNum + 1
 		if testHandSetup != nil {
@@ -538,7 +543,7 @@ func (g *Game) dealNewHand() error {
 		HandStartedAt: uint64(time.Now().Unix()),
 	}
 
-	err = handState.initialize(g.testGameConfig, newHandInfo, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats)
+	err = handState.initialize(g.testGameConfig, newHandInfo, testHandSetup, buttonPos, sbPos, bbPos, g.PlayersInSeats, g.chipUnit)
 	if err != nil {
 		return errors.Wrapf(err, "Error while initializing hand state")
 	}
@@ -775,6 +780,7 @@ func (g *Game) dealNewHand() error {
 		}
 		nextFlowState = FlowState_WAIT_FOR_NEXT_ACTION
 	}
+
 	g.broadcastHandMessage(&handMsg)
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_5, 0)
@@ -827,16 +833,24 @@ func (g *Game) loadHandState() (*HandState, error) {
 
 func (g *Game) broadcastHandMessage(message *HandMessage) {
 	message.GameCode = g.gameCode
+	var outMsg *HandMessage = &HandMessage{}
+	err := g.convertToClientUnits(message, outMsg)
+	if err != nil {
+		msg := "Could not convert to client units"
+		g.logger.Error().Err(err).Msg(msg)
+		panic(msg)
+	}
+
 	if *g.messageSender != nil {
-		(*g.messageSender).BroadcastHandMessage(message)
+		(*g.messageSender).BroadcastHandMessage(outMsg)
 	} else {
-		b, _ := proto.Marshal(message)
+		b, _ := proto.Marshal(outMsg)
 		for _, player := range g.scriptTestPlayers {
 			player.chHand <- b
 		}
 	}
 
-	for _, msgItem := range message.GetMessages() {
+	for _, msgItem := range outMsg.GetMessages() {
 		msgType := msgItem.GetMessageType()
 		switch msgType {
 		case HandNewHand:
@@ -879,14 +893,22 @@ func (g *Game) QueueHandMessage(message *HandMessage) {
 
 func (g *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint64) {
 	message.GameCode = g.gameCode
+	var outMsg *HandMessage = &HandMessage{}
+	err := g.convertToClientUnits(message, outMsg)
+	if err != nil {
+		msg := "Could not convert to client units"
+		g.logger.Error().Err(err).Msg(msg)
+		panic(msg)
+	}
+
 	if *g.messageSender != nil {
-		(*g.messageSender).SendHandMessageToPlayer(message, playerID)
+		(*g.messageSender).SendHandMessageToPlayer(outMsg, playerID)
 	} else {
 		player := g.scriptTestPlayers[playerID]
 		if player == nil {
 			return
 		}
-		b, _ := proto.Marshal(message)
+		b, _ := proto.Marshal(outMsg)
 		player.chHand <- b
 	}
 }

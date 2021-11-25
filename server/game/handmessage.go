@@ -392,6 +392,12 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 		return InvalidMessageError{Msg: errMsg}
 	}
 
+	err = g.convertToServerUnits(actionMsg)
+	if err != nil {
+		g.logger.Error().Err(err).Msg("Could not convert action msg to server units")
+		panic(err)
+	}
+
 	messageSeatNo := actionMsg.GetPlayerActed().GetSeatNo()
 
 	expectedState := FlowState_WAIT_FOR_NEXT_ACTION
@@ -503,9 +509,9 @@ func validatePlayerAction(playerMsg *HandMessage, actionMsg *HandMessageItem, ha
 		if handState.GetNextSeatAction() == nil {
 			return fmt.Errorf("handState.NextSeatAction is nil")
 		}
-		expectedCallAmount := handState.GetNextSeatAction().CallAmount
+		expectedCallAmount := util.CentsToChips(handState.GetNextSeatAction().CallAmount)
 		if action.Amount != expectedCallAmount {
-			return fmt.Errorf("Invalid call amount %f. Expected amount: %f", action.Amount, expectedCallAmount)
+			return fmt.Errorf("Invalid call amount %v. Expected amount: %v", action.Amount, expectedCallAmount)
 		}
 	}
 
@@ -1537,8 +1543,8 @@ func (g *Game) analyzeResult(handResult *HandResultServer) error {
 		rakeCollectedTotal += pi.RakePaid
 	}
 
-	expectedAfter := util.RoundDecimal(playerBalanceBefore-rakeCollectedTotal, 2)
-	after := util.RoundDecimal(playerBalanceAfter, 2)
+	expectedAfter := playerBalanceBefore - rakeCollectedTotal
+	after := playerBalanceAfter
 	if expectedAfter != after {
 		errMsgs = append(errMsgs, fmt.Sprintf("Chips don't add up. Before: %f, Rake: %f, After: %f", playerBalanceBefore, rakeCollectedTotal, playerBalanceAfter))
 	}

@@ -87,6 +87,7 @@ test: export PERSIST_METHOD=memory
 test: build
 	go test voyager.com/server/poker
 	go test voyager.com/server/game
+	go test voyager.com/server/util
 
 .PHONY: test-build
 test-build:

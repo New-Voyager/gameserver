@@ -6,6 +6,7 @@ import (
 
 	"voyager.com/logging"
 	"voyager.com/server/game"
+	"voyager.com/server/util"
 )
 
 var testGameLogger = logging.GetZeroLogger("test::testgame", nil)
@@ -40,6 +41,9 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 	now := time.Now().UnixNano()
 	gameCode := fmt.Sprintf("%d", now)
 	maxPlayers := 9
+	sb := util.ChipsToCents(gameScript.gameScript.GameConfig.SmallBlind)
+	bb := util.ChipsToCents(gameScript.gameScript.GameConfig.BigBlind)
+
 	config := game.TestGameConfig{
 		ClubId:     clubID,
 		GameType:   gameType,
@@ -47,8 +51,8 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 		MinPlayers: len(players),
 		MaxPlayers: maxPlayers,
 		AutoStart:  autoStart,
-		SmallBlind: gameScript.gameScript.GameConfig.SmallBlind,
-		BigBlind:   gameScript.gameScript.GameConfig.BigBlind,
+		SmallBlind: sb,
+		BigBlind:   bb,
 		ActionTime: 300,
 	}
 	_ = config
@@ -97,8 +101,9 @@ func NewTestGame(gameScript *TestGameScript, clubID uint32,
 func (t *TestGame) PopulateSeats(playerAtSeats []game.PlayerSeat) {
 	for _, testPlayer := range playerAtSeats {
 		player := t.players[testPlayer.Player]
+		buyIn := util.ChipsToCents(testPlayer.BuyIn)
 		player.joinGame(t.gameID, testPlayer.SeatNo,
-			testPlayer.BuyIn, testPlayer.RunItTwice,
+			buyIn, testPlayer.RunItTwice,
 			testPlayer.RunItTwicePromptResponse,
 			testPlayer.PostBlind)
 		t.playersInSeats[testPlayer.SeatNo] = player

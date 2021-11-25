@@ -9,6 +9,7 @@ import (
 
 	"voyager.com/server/game"
 	"voyager.com/server/poker"
+	"voyager.com/server/util"
 )
 
 type TestHand struct {
@@ -394,8 +395,10 @@ func (h *TestHand) setup(t *TestDriver) error {
 		t := h.gameScript.testGame
 		for _, testPlayer := range h.hand.Setup.NewPlayers {
 			player := t.players[testPlayer.Player]
+
+			buyIn := util.ChipsToCents(testPlayer.BuyIn)
 			player.joinGame(t.gameID, testPlayer.SeatNo,
-				testPlayer.BuyIn, testPlayer.RunItTwice,
+				buyIn, testPlayer.RunItTwice,
 				testPlayer.RunItTwicePromptResponse,
 				testPlayer.PostBlind)
 			t.playersInSeats[testPlayer.SeatNo] = player

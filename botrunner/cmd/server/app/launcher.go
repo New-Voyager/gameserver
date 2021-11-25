@@ -47,7 +47,7 @@ func (l *Launcher) ApplyToBatch(batchID string, players *gamescript.Players, scr
 	if exists {
 		var launchIntervalMsg string
 		if launchInterval != nil {
-			launchIntervalMsg = fmt.Sprintf(", LaunchInterval: %f", *launchInterval)
+			launchIntervalMsg = fmt.Sprintf(", LaunchInterval: %v", *launchInterval)
 		}
 		launcherLogger.Info().Msgf("Updating batch [%s]. NumGames: %d%s", batchID, desiredNumGames, launchIntervalMsg)
 		b.Apply(desiredNumGames, launchInterval)
@@ -58,7 +58,7 @@ func (l *Launcher) ApplyToBatch(batchID string, players *gamescript.Players, scr
 
 		var launchIntervalMsg string
 		if launchInterval != nil {
-			launchIntervalMsg = fmt.Sprintf(", LaunchInterval: %f", *launchInterval)
+			launchIntervalMsg = fmt.Sprintf(", LaunchInterval: %v", *launchInterval)
 		}
 		launcherLogger.Info().Msgf("Creating batch [%s]. NumGames: %d%s, Players: %+v, Script: %+v", batchID, desiredNumGames, launchIntervalMsg, players, script)
 		b, err := NewBotRunnerBatch(batchID, players, script)

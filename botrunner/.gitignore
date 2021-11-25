@@ -28,3 +28,6 @@ __debug_bin
 system_test_code_coverage/
 system_test_code_coverage_1/
 system_test_code_coverage_2/
+failed.txt
+succeeded.txt
+timedout.txt

@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"voyager.com/logging"
 	"voyager.com/server/poker"
+	"voyager.com/server/util"
 )
 
 var handLogger = logging.GetZeroLogger("game::hand", nil)
@@ -146,7 +147,10 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	newHandInfo *NewHandInfo,
 	testHandSetup *TestHandSetup,
 	buttonPos uint32, sbPos uint32, bbPos uint32,
-	playersInSeats []SeatPlayer) error {
+	playersInSeats []SeatPlayer,
+	chipUnit ChipUnit) error {
+
+	h.ChipUnit = chipUnit
 
 	// settle players in the seats
 	if testGameConfig != nil {
@@ -228,14 +232,14 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	h.HandStats = &HandStats{}
 	if testGameConfig != nil {
 		h.MaxSeats = uint32(testGameConfig.MaxPlayers)
-		h.SmallBlind = float64(testGameConfig.SmallBlind)
-		h.BigBlind = float64(testGameConfig.BigBlind)
-		h.Straddle = float64(testGameConfig.StraddleBet)
+		h.SmallBlind = util.ChipsToCents(testGameConfig.SmallBlind)
+		h.BigBlind = util.ChipsToCents(testGameConfig.BigBlind)
+		h.Straddle = util.ChipsToCents(testGameConfig.StraddleBet)
 		h.RakePercentage = float64(testGameConfig.RakePercentage)
-		h.RakeCap = float64(testGameConfig.RakeCap)
+		h.RakeCap = util.ChipsToCents(testGameConfig.RakeCap)
 		h.ButtonPos = buttonPos
 		h.PlayersActed = make([]*PlayerActRound, h.MaxSeats+1)
-		h.BringIn = float64(testGameConfig.BringIn)
+		h.BringIn = util.ChipsToCents(testGameConfig.BringIn)
 	} else {
 		h.MaxSeats = uint32(newHandInfo.MaxPlayers)
 		h.SmallBlind = float64(newHandInfo.SmallBlind)
@@ -266,7 +270,7 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 		h.DoubleBoard = testHandSetup.DoubleBoard
 		h.BombPot = testHandSetup.BombPot
 		if h.BombPot {
-			h.BombPotBet = testHandSetup.BombPotBet
+			h.BombPotBet = util.ChipsToCents(testHandSetup.BombPotBet)
 		}
 	}
 
@@ -1756,6 +1760,9 @@ func (h *HandState) betOptions(seatNo uint32, round HandStatus, playerID uint64,
 			// post-flop options
 			for _, betOption := range postFlopBets {
 				betAmount := float64(int64(float64(betOption)*totalPot) / 100.0)
+				if h.ChipUnit == ChipUnit_DOLLAR {
+					betAmount = util.FloorToNearest(betAmount, 100)
+				}
 				if betAmount > h.BigBlind && betAmount < balance {
 					option := &BetRaiseOption{
 						Text:   fmt.Sprintf("%d%%", betOption),
