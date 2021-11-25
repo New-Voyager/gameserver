@@ -850,7 +850,7 @@ func (br *BotRunner) isBoughtIn(seatNo uint32, numChips float64, playersInSeat [
 				return true
 			}
 			if p.BuyIn != 0 {
-				br.logger.Warn().Msgf("Seat [%d] expected to buy in [%f] chips, but bought in [%f] instead", seatNo, numChips, p.BuyIn)
+				br.logger.Warn().Msgf("Seat [%d] expected to buy in [%v] chips, but bought in [%v] instead", seatNo, numChips, p.BuyIn)
 			}
 		}
 	}

@@ -511,7 +511,7 @@ func validatePlayerAction(playerMsg *HandMessage, actionMsg *HandMessageItem, ha
 		}
 		expectedCallAmount := util.CentsToChips(handState.GetNextSeatAction().CallAmount)
 		if action.Amount != expectedCallAmount {
-			return fmt.Errorf("Invalid call amount %f. Expected amount: %f", action.Amount, expectedCallAmount)
+			return fmt.Errorf("Invalid call amount %v. Expected amount: %v", action.Amount, expectedCallAmount)
 		}
 	}
 
