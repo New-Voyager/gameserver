@@ -118,6 +118,9 @@ func s2cYourAction(msgItem *HandMessageItem) {
 }
 
 func convertNextSeatAction(a *NextSeatAction) {
+	if a == nil {
+		return
+	}
 	a.StraddleAmount = util.CentsToChips(a.StraddleAmount)
 	a.CallAmount = util.CentsToChips(a.CallAmount)
 	a.RaiseAmount = util.CentsToChips(a.RaiseAmount)

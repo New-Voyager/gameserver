@@ -893,14 +893,22 @@ func (g *Game) QueueHandMessage(message *HandMessage) {
 
 func (g *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint64) {
 	message.GameCode = g.gameCode
+	var outMsg *HandMessage = &HandMessage{}
+	err := g.convertToClientUnits(message, outMsg)
+	if err != nil {
+		msg := "Could not convert to client units"
+		g.logger.Error().Err(err).Msg(msg)
+		panic(msg)
+	}
+
 	if *g.messageSender != nil {
-		(*g.messageSender).SendHandMessageToPlayer(message, playerID)
+		(*g.messageSender).SendHandMessageToPlayer(outMsg, playerID)
 	} else {
 		player := g.scriptTestPlayers[playerID]
 		if player == nil {
 			return
 		}
-		b, _ := proto.Marshal(message)
+		b, _ := proto.Marshal(outMsg)
 		player.chHand <- b
 	}
 }
