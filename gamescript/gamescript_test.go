@@ -7,7 +7,7 @@ import (
 )
 
 func TestReadGameScript(t *testing.T) {
-	script, err := ReadGameScript("test_scripts/script1.yaml")
+	script, err := ReadGameScript("test_scripts/all-fields.yaml")
 	if err != nil {
 		t.Fatalf("ReadGameScript returned error [%s]", err)
 	}
