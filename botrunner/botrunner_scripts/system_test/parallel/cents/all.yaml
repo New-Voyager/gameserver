@@ -176,7 +176,168 @@ hands:
           rake-paid: 0.34
 
   - setup:
-      auto: true
+      flop: ["Kc", "2h", "2c"]
+      turn: Ad
+      river: 4c
+      seat-cards:
+        - seat: 1
+          cards: ["Kh", "2d"]
+        - seat: 5
+          cards: ["4h", "9d"]
+        - seat: 8
+          cards: ["Ah", "8s"]
+      verify:
+        seats:
+          - seat: 1
+            stack: 135.46
+          - seat: 5
+            stack: 162.55
+          - seat: 8
+            stack: 193.09
 
-  - setup:
-      auto: true
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 5, CALL, 2.62
+        - action: 8, RAISE, 5.31
+        - action: 1, CALL, 5.31
+        - action: 5, RAISE, 6.99
+        - action: 8, CALL, 6.99
+        - action: 1, CALL, 6.99
+
+    flop:
+      verify:
+        board: ["Kc", "2h", "2c"]
+        ranks:
+          - seat: 1
+            rank: "Full House"
+          - seat: 5
+            rank: "Pair"
+          - seat: 8
+            rank: "Pair"
+      seat-actions:
+        - action: 8, CHECK
+        - action: 1, BET, 3.01
+        - action: 5, CALL, 3.01
+        - action: 8, RAISE, 5
+        - action: 1, CALL, 5
+        - action: 5, CALL, 5
+
+    turn:
+      verify:
+        board: ["Kc", "2h", "2c", "Ad"]
+        ranks:
+          - seat: 1
+            rank: "Full House"
+          - seat: 5
+            rank: "Pair"
+          - seat: 8
+            rank: "Two Pair"
+      seat-actions:
+        - action: 8, CHECK
+        - action: 1, BET, 4.95
+        - action: 5, CALL, 4.95
+        - action: 8, CALL, 4.95
+
+    river:
+      verify:
+        board: ["Kc", "2h", "2c", "Ad", "4c"]
+        ranks:
+          - seat: 1
+            rank: "Full House"
+          - seat: 5
+            rank: "Two Pair"
+          - seat: 8
+            rank: "Two Pair"
+      seat-actions:
+        - action: 8, BET, 9.99
+        - action: 1, CALL, 9.99
+        - action: 5, CALL, 9.99
+          pre-action:
+            - verify:
+                available-actions: ["FOLD", "RAISE", "CALL", "ALLIN"]
+                straddle-amount: 0
+                call-amount: 9.99
+                raise-amount: 9.99
+                min-bet-amount: 0
+                max-bet-amount: 0
+                min-raise-amount: 19.98
+                max-raise-amount: 145.61
+                all-in-amount: 145.61
+                bet-options:
+                  - 2x, 19.98
+                  - 3x, 29.97
+                  - 5x, 49.95
+                  - All-In, 145.61
+
+    result:
+      winners:
+        - seat: 1
+          receive: 75.81
+          rank: Full House
+          rake-paid: 4.98
+      action-ended: SHOW_DOWN
+
+      players:
+        - seat: 1
+          balance:
+            before: 138.08
+            after: 186.96
+          pot-contribution: 26.93
+        - seat: 5
+          balance:
+            before: 162.55
+            after: 135.62
+          pot-contribution: 26.93
+        - seat: 8
+          balance:
+            before: 194.4
+            after: 167.47
+          pot-contribution: 26.93
+
+      tips-collected: 4.98
+
+    api:
+      game-result-table:
+        - player-name: young
+          hands-played: 2
+          buy-in: 99.99
+          profit: 86.97
+          stack: 186.96
+          rake-paid: 3.97
+        - player-name: carol
+          hands-played: 2
+          buy-in: 199.99
+          profit: -64.37
+          stack: 135.62
+          rake-paid: 3.97
+        - player-name: matt
+          hands-played: 2
+          buy-in: 200.01
+          profit: -32.54
+          stack: 167.47
+          rake-paid: 2
+
+after-game:
+  verify:
+    api:
+      game-result-table:
+        - player-name: young
+          hands-played: 2
+          buy-in: 99.99
+          profit: 86.97
+          stack: 186.96
+          rake-paid: 3.97
+        - player-name: carol
+          hands-played: 2
+          buy-in: 199.99
+          profit: -64.37
+          stack: 135.62
+          rake-paid: 3.97
+        - player-name: matt
+          hands-played: 2
+          buy-in: 200.01
+          profit: -32.54
+          stack: 167.47
+          rake-paid: 2
