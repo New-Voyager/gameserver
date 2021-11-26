@@ -55,6 +55,7 @@ message NewHand {
   bool bomb_pot = 15;
   bool double_board = 16;
   double bomb_pot_bet = 17;
+  double ante = 18;
 }
 
 //HandDealCards message is sent to each player when cards dealt to the player
@@ -235,6 +236,7 @@ message HandResultServer {
   uint32 max_players = 13;
   HandResultClient  result = 14;
   HandLogV2 log = 15;
+  double collected_ante = 16;
 }
 
 

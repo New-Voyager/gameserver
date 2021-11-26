@@ -238,6 +238,7 @@ func (g *GQLHelper) CreateGame(clubCode string, opt game.GameCreateOpt) (Configu
 	req.Var("gameType", opt.GameType)
 	req.Var("smallBlind", opt.SmallBlind)
 	req.Var("bigBlind", opt.BigBlind)
+	req.Var("ante", opt.Ante)
 	req.Var("utgStraddleAllowed", opt.UtgStraddleAllowed)
 	req.Var("straddleBet", opt.StraddleBet)
 	req.Var("minPlayers", opt.MinPlayers)
@@ -1126,6 +1127,7 @@ const ConfigureGameGQL = `mutation configure_game(
 	$gameType: GameType!
 	$smallBlind: Float!
 	$bigBlind: Float!
+	$ante: Float
 	$utgStraddleAllowed: Boolean
 	$straddleBet: Float!
 	$minPlayers: Int!
@@ -1156,6 +1158,7 @@ const ConfigureGameGQL = `mutation configure_game(
 			gameType: $gameType
 			smallBlind: $smallBlind
 			bigBlind: $bigBlind
+			ante: $ante
 			utgStraddleAllowed: $utgStraddleAllowed
 			straddleBet: $straddleBet
 			minPlayers: $minPlayers

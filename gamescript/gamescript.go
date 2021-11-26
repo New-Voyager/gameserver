@@ -68,6 +68,7 @@ type Game struct {
 	GameType           string   `yaml:"game-type"`
 	SmallBlind         float64  `yaml:"small-blind"`
 	BigBlind           float64  `yaml:"big-blind"`
+	Ante               float64  `yaml:"ante"`
 	UtgStraddleAllowed bool     `yaml:"utg-straddle-allowed"`
 	StraddleBet        float64  `yaml:"straddle-bet"`
 	MinPlayers         int      `yaml:"min-players"`

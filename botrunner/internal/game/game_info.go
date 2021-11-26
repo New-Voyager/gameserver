@@ -10,6 +10,7 @@ type GameInfo struct {
 	Title                 string
 	SmallBlind            float64
 	BigBlind              float64
+	Ante                  float64
 	StraddleBet           float64
 	UtgStraddleAllowed    bool
 	ButtonStraddleAllowed bool
@@ -72,6 +73,7 @@ type GameCreateOpt struct {
 	GameType           string
 	SmallBlind         float64
 	BigBlind           float64
+	Ante               float64
 	UtgStraddleAllowed bool
 	StraddleBet        float64
 	MinPlayers         int

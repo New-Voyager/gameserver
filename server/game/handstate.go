@@ -246,7 +246,7 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 		h.MaxSeats = uint32(newHandInfo.MaxPlayers)
 		h.SmallBlind = float64(newHandInfo.SmallBlind)
 		h.BigBlind = float64(newHandInfo.BigBlind)
-		h.Ante = util.ChipsToCents(newHandInfo.Ante)
+		h.Ante = float64(newHandInfo.Ante)
 		h.Straddle = float64(newHandInfo.StraddleBet)
 		h.RakePercentage = float64(newHandInfo.RakePercentage)
 		h.RakeCap = float64(newHandInfo.RakeCap)
@@ -562,6 +562,28 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 
 	// add antes here
 	h.PreflopActions.PotStart = 0
+
+	// add ante here
+	// the players should have ante to be here
+	if h.Ante > 0 {
+		pot := h.PreflopActions.PotStart
+		collectedAnte := float64(0)
+		for seatNoIdx, playerID := range h.ActiveSeats {
+			if playerID == 0 {
+				continue
+			}
+			seatNo := uint32(seatNoIdx)
+			player := h.PlayersInSeats[seatNo]
+			player.Stack -= h.Ante
+			// update player balance
+			pot += h.Ante
+			collectedAnte += h.Ante
+		}
+		h.CollectedAnte = collectedAnte
+		h.PreflopActions.PotStart = pot
+		h.Pots[0].Pot = pot
+	}
+
 	h.setupRound(HandStatus_PREFLOP)
 
 	if h.BombPot {

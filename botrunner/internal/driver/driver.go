@@ -330,6 +330,7 @@ func (br *BotRunner) RunOneGame() error {
 			GameType:           br.script.Game.GameType,
 			SmallBlind:         br.script.Game.SmallBlind,
 			BigBlind:           br.script.Game.BigBlind,
+			Ante:               br.script.Game.Ante,
 			UtgStraddleAllowed: br.script.Game.UtgStraddleAllowed,
 			StraddleBet:        br.script.Game.StraddleBet,
 			MinPlayers:         br.script.Game.MinPlayers,
