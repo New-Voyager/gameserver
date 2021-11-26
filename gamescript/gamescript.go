@@ -148,14 +148,15 @@ type Observer struct {
 
 // VerifySeat verifies seat position in a new hand
 type VerifySeat struct {
-	Seat        uint32 `yaml:"seat"`
-	Player      string `yaml:"player"`
-	Status      string `yaml:"status"`
-	InHand      *bool  `yaml:"inhand"`
-	MissedBlind *bool  `yaml:"missed-blind"`
-	Button      *bool  `yaml:"button"`
-	Sb          *bool  `yaml:"sb"`
-	Bb          *bool  `yaml:"bb"`
+	Seat        uint32   `yaml:"seat"`
+	Player      string   `yaml:"player"`
+	Status      string   `yaml:"status"`
+	InHand      *bool    `yaml:"inhand"`
+	MissedBlind *bool    `yaml:"missed-blind"`
+	Button      *bool    `yaml:"button"`
+	Sb          *bool    `yaml:"sb"`
+	Bb          *bool    `yaml:"bb"`
+	Stack       *float64 `yaml:"stack"`
 }
 
 // BotConfig contains botConfig content in the game script.
@@ -377,14 +378,14 @@ type SetupServerCrash struct {
 
 type YourActionVerification struct {
 	AvailableActions []string    `yaml:"available-actions"`
-	StraddleAmount   float64     `yaml:"straddle-amount"`
-	CallAmount       float64     `yaml:"call-amount"`
-	RaiseAmount      float64     `yaml:"raise-amount"`
-	MinBetAmount     float64     `yaml:"min-bet-amount"`
-	MaxBetAmount     float64     `yaml:"max-bet-amount"`
-	MinRaiseAmount   float64     `yaml:"min-raise-amount"`
-	MaxRaiseAmount   float64     `yaml:"max-raise-amount"`
-	AllInAmount      float64     `yaml:"all-in-amount"`
+	StraddleAmount   *float64    `yaml:"straddle-amount"`
+	CallAmount       *float64    `yaml:"call-amount"`
+	RaiseAmount      *float64    `yaml:"raise-amount"`
+	MinBetAmount     *float64    `yaml:"min-bet-amount"`
+	MaxBetAmount     *float64    `yaml:"max-bet-amount"`
+	MinRaiseAmount   *float64    `yaml:"min-raise-amount"`
+	MaxRaiseAmount   *float64    `yaml:"max-raise-amount"`
+	AllInAmount      *float64    `yaml:"all-in-amount"`
 	BetOptions       []BetOption `yaml:"bet-options"`
 }
 
@@ -415,12 +416,12 @@ func (b *BetOption) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	// Parse amount token
 	var amount float64
 	trimmed := strings.Trim(tokens[1], " ")
-	amount, err = strconv.ParseFloat(trimmed, 32)
+	amount, err = strconv.ParseFloat(trimmed, 64)
 	if err != nil {
 		return errors.Wrapf(err, "Cannot convert second token [%s] to BetOption amount", trimmed)
 	}
 	b.Text = strings.Trim(tokens[0], " ")
-	b.Amount = float64(amount)
+	b.Amount = amount
 	return nil
 }
 
