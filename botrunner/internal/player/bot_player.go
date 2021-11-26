@@ -1008,11 +1008,6 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 	currentHand := bp.config.Script.GetHand(handNum)
 	verify := currentHand.Setup.Verify
 	if len(verify.Seats) > 0 {
-		// if len(verify.Seats) != len(newHand.PlayersInSeats) {
-		// 	errMsg := fmt.Sprintf("Number of players in the table is not matching. Expected: %v Actual: %v", verify.Seats, newHand.PlayersInSeats)
-		// 	bp.logger.Error().Msg(errMsg)
-		// 	panic(errMsg)
-		// }
 		for _, seat := range currentHand.Setup.Verify.Seats {
 			seatPlayer := newHand.PlayersInSeats[seat.Seat]
 			if seat.Player != "" && seatPlayer.Name != seat.Player {
@@ -1066,6 +1061,14 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 				if seatPlayer.MissedBlind != *seat.MissedBlind {
 					errMsg := fmt.Sprintf("Player [%s] missed blind is not matching: Expected: %t Actual: %t",
 						seatPlayer.Name, *seat.MissedBlind, seatPlayer.MissedBlind)
+					bp.logger.Error().Msg(errMsg)
+					panic(errMsg)
+				}
+			}
+			if seat.Stack != nil {
+				if seatPlayer.Stack != *seat.Stack {
+					errMsg := fmt.Sprintf("Player [%s] stack is not matching: Expected: %v Actual: %v",
+						seatPlayer.Name, *seat.Stack, seatPlayer.Stack)
 					bp.logger.Error().Msg(errMsg)
 					panic(errMsg)
 				}
@@ -1338,6 +1341,23 @@ func (bp *BotPlayer) verifyResult2() {
 					passed = false
 				}
 			}
+			expectedPotContribution := scriptResultPlayer.PotContribution
+			if expectedPotContribution != nil {
+				actualContribution := resultPlayers[seatNo].GetPotContribution()
+				if actualContribution != *expectedPotContribution {
+					bp.logger.Error().Msgf("%s: Hand %d result verify failed. PotContribution for seat# %d: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, seatNo, actualContribution, *expectedPotContribution)
+					passed = false
+				}
+			}
+		}
+	}
+
+	if scriptResult.TipsCollected != nil {
+		var expectedTips float64 = *scriptResult.TipsCollected
+		var actualTips float64 = actualResult.GetTipsCollected()
+		if actualTips != expectedTips {
+			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Tips collected: %v, Expected: %v", bp.logPrefix, bp.game.handNum, actualTips, expectedTips)
+			passed = false
 		}
 	}
 
@@ -2594,7 +2614,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 			extendActionTimeoutBySec = scriptAction.ExtendTimeoutBySec
 			resetActionTimerToSec = scriptAction.ResetTimerToSec
 			preActions := scriptAction.PreActions
-			bp.processPreActions(preActions)
+			bp.processPreActions(seatAction, preActions)
 		}
 	}
 

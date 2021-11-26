@@ -7,7 +7,7 @@ import (
 )
 
 func TestReadGameScript(t *testing.T) {
-	script, err := ReadGameScript("test_scripts/script1.yaml")
+	script, err := ReadGameScript("test_scripts/all-fields.yaml")
 	if err != nil {
 		t.Fatalf("ReadGameScript returned error [%s]", err)
 	}
@@ -267,12 +267,14 @@ func TestReadGameScript(t *testing.T) {
 								InHand: getBoolPointer(true),
 								Button: getBoolPointer(true),
 								Bb:     getBoolPointer(true),
+								Stack:  getFloat64Pointer(29.99),
 							},
 							{
 								Seat:   2,
 								Player: "brian",
 								Status: "IN_BREAK",
 								InHand: getBoolPointer(false),
+								Stack:  getFloat64Pointer(30.01),
 							},
 							{
 								Seat:   3,
@@ -309,14 +311,14 @@ func TestReadGameScript(t *testing.T) {
 								{
 									Verify: YourActionVerification{
 										AvailableActions: []string{"FOLD", "CALL", "RAISE", "ALLIN"},
-										StraddleAmount:   3,
-										CallAmount:       5,
-										RaiseAmount:      10,
-										MinBetAmount:     2,
-										MaxBetAmount:     4,
-										MinRaiseAmount:   10,
-										MaxRaiseAmount:   30,
-										AllInAmount:      200,
+										StraddleAmount:   getFloat64Pointer(3),
+										CallAmount:       getFloat64Pointer(5),
+										RaiseAmount:      getFloat64Pointer(10),
+										MinBetAmount:     getFloat64Pointer(2),
+										MaxBetAmount:     getFloat64Pointer(4),
+										MinRaiseAmount:   getFloat64Pointer(10),
+										MaxRaiseAmount:   getFloat64Pointer(30),
+										AllInAmount:      getFloat64Pointer(200),
 										BetOptions: []BetOption{
 											{
 												Text:   "Pot",
@@ -491,6 +493,7 @@ func TestReadGameScript(t *testing.T) {
 								Before: getFloat64Pointer(100),
 								After:  getFloat64Pointer(84),
 							},
+							PotContribution: getFloat64Pointer(37.44),
 						},
 						{
 							Seat:   5,
@@ -498,6 +501,7 @@ func TestReadGameScript(t *testing.T) {
 							Balance: PlayerBalance{
 								After: getFloat64Pointer(120),
 							},
+							PotContribution: getFloat64Pointer(5.61),
 						},
 						{
 							Seat:   8,
@@ -507,6 +511,7 @@ func TestReadGameScript(t *testing.T) {
 							},
 						},
 					},
+					TipsCollected: getFloat64Pointer(4.96),
 					TimeoutStats: []TimeoutStats{
 						{
 							Seat:                      1,
