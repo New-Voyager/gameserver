@@ -1008,11 +1008,11 @@ func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
 	currentHand := bp.config.Script.GetHand(handNum)
 	verify := currentHand.Setup.Verify
 	if len(verify.Seats) > 0 {
-		// if len(verify.Seats) != len(newHand.PlayersInSeats) {
-		// 	errMsg := fmt.Sprintf("Number of players in the table is not matching. Expected: %v Actual: %v", verify.Seats, newHand.PlayersInSeats)
-		// 	bp.logger.Error().Msg(errMsg)
-		// 	panic(errMsg)
-		// }
+		if len(verify.Seats) != len(newHand.PlayersInSeats) {
+			errMsg := fmt.Sprintf("Number of players in the table is not matching. Expected: %v Actual: %v", verify.Seats, newHand.PlayersInSeats)
+			bp.logger.Error().Msg(errMsg)
+			panic(errMsg)
+		}
 		for _, seat := range currentHand.Setup.Verify.Seats {
 			seatPlayer := newHand.PlayersInSeats[seat.Seat]
 			if seat.Player != "" && seatPlayer.Name != seat.Player {
