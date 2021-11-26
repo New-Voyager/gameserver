@@ -234,16 +234,19 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 		h.MaxSeats = uint32(testGameConfig.MaxPlayers)
 		h.SmallBlind = util.ChipsToCents(testGameConfig.SmallBlind)
 		h.BigBlind = util.ChipsToCents(testGameConfig.BigBlind)
+		h.Ante = util.ChipsToCents(testGameConfig.Ante)
 		h.Straddle = util.ChipsToCents(testGameConfig.StraddleBet)
 		h.RakePercentage = float64(testGameConfig.RakePercentage)
 		h.RakeCap = util.ChipsToCents(testGameConfig.RakeCap)
 		h.ButtonPos = buttonPos
 		h.PlayersActed = make([]*PlayerActRound, h.MaxSeats+1)
 		h.BringIn = util.ChipsToCents(testGameConfig.BringIn)
+		h.MandatoryStraddle = testGameConfig.MandatoryStraddle
 	} else {
 		h.MaxSeats = uint32(newHandInfo.MaxPlayers)
 		h.SmallBlind = float64(newHandInfo.SmallBlind)
 		h.BigBlind = float64(newHandInfo.BigBlind)
+		h.Ante = util.ChipsToCents(newHandInfo.Ante)
 		h.Straddle = float64(newHandInfo.StraddleBet)
 		h.RakePercentage = float64(newHandInfo.RakePercentage)
 		h.RakeCap = float64(newHandInfo.RakeCap)
@@ -253,6 +256,7 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 		h.RunItTwiceTimeout = newHandInfo.RunItTwiceTimeout
 		h.HighHandTracked = newHandInfo.HighHandTracked
 		h.HighHandRank = newHandInfo.HighHandRank
+		h.MandatoryStraddle = newHandInfo.MandatoryStraddle
 	}
 	h.BurnCards = false
 	h.CurrentActionNum = 0
