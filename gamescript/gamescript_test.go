@@ -491,6 +491,7 @@ func TestReadGameScript(t *testing.T) {
 								Before: getFloat64Pointer(100),
 								After:  getFloat64Pointer(84),
 							},
+							PotContribution: getFloat64Pointer(37.44),
 						},
 						{
 							Seat:   5,
@@ -498,6 +499,7 @@ func TestReadGameScript(t *testing.T) {
 							Balance: PlayerBalance{
 								After: getFloat64Pointer(120),
 							},
+							PotContribution: getFloat64Pointer(5.61),
 						},
 						{
 							Seat:   8,
@@ -507,6 +509,7 @@ func TestReadGameScript(t *testing.T) {
 							},
 						},
 					},
+					TipsCollected: getFloat64Pointer(4.96),
 					TimeoutStats: []TimeoutStats{
 						{
 							Seat:                      1,

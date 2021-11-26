@@ -451,6 +451,7 @@ type HandResult struct {
 	RunItTwice    *bool            `yaml:"run-it-twice"`
 	Boards        []BoardWinner    `yaml:"boards"`
 	HighHands     []HighHandWinner `yaml:"high-hands"`
+	TipsCollected *float64         `yaml:"tips-collected"`
 }
 
 type HandWinner struct {
@@ -461,9 +462,10 @@ type HandWinner struct {
 }
 
 type ResultPlayer struct {
-	Seat    uint32        `yaml:"seat"`
-	Balance PlayerBalance `yaml:"balance"`
-	HhRank  *uint32       `yaml:"hhRank"`
+	Seat            uint32        `yaml:"seat"`
+	Balance         PlayerBalance `yaml:"balance"`
+	HhRank          *uint32       `yaml:"hhRank"`
+	PotContribution *float64      `yaml:"pot-contribution"`
 }
 
 type PlayerBalance struct {

@@ -1338,6 +1338,23 @@ func (bp *BotPlayer) verifyResult2() {
 					passed = false
 				}
 			}
+			expectedPotContribution := scriptResultPlayer.PotContribution
+			if expectedPotContribution != nil {
+				actualContribution := resultPlayers[seatNo].GetPotContribution()
+				if actualContribution != *expectedPotContribution {
+					bp.logger.Error().Msgf("%s: Hand %d result verify failed. PotContribution for seat# %d: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, seatNo, actualContribution, *expectedPotContribution)
+					passed = false
+				}
+			}
+		}
+	}
+
+	if scriptResult.TipsCollected != nil {
+		var expectedTips float64 = *scriptResult.TipsCollected
+		var actualTips float64 = actualResult.GetTipsCollected()
+		if actualTips != expectedTips {
+			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Tips collected: %v, Expected: %v", bp.logPrefix, bp.game.handNum, actualTips, expectedTips)
+			passed = false
 		}
 	}
 
