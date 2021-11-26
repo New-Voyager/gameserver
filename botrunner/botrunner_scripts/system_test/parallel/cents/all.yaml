@@ -9,30 +9,30 @@ game:
   # Use cent insted of the default DOLLAR.
   # This enables 2 decimal digits for counting chips.
   chip-unit: "CENT"
-  small-blind: 1.3
-  big-blind: 2.6
+  small-blind: 1.31
+  big-blind: 2.62
   utg-straddle-allowed: true
-  straddle-bet: 5.2
+  straddle-bet: 5.24
   min-players: 2
   max-players: 9
   game-length: 60
   buy-in-approval: true
-  rake-percentage: 6.1
+  rake-percentage: 6.17
   rake-cap: 20.0
-  buy-in-min: 100
-  buy-in-max: 300
+  buy-in-min: 99.99
+  buy-in-max: 299.99
   action-time: 100
 
 starting-seats:
   - seat: 1
     player: young
-    buy-in: 100
+    buy-in: 99.99
   - seat: 5
     player: carol
-    buy-in: 100
+    buy-in: 199.99
   - seat: 8
     player: matt
-    buy-in: 100
+    buy-in: 200.01
 
 tester:
 auto-play:
@@ -56,8 +56,8 @@ hands:
     preflop:
       seat-actions:
         # seat number/action/amount
-        - action: 1, CALL, 2.6
-        - action: 5, CALL, 2.6
+        - action: 1, CALL, 2.62
+        - action: 5, CALL, 2.62
         - action: 8, CHECK
 
     flop:
@@ -72,11 +72,11 @@ hands:
             rank: "Two Pair"
       seat-actions:
         - action: 5, CHECK
-        - action: 8, BET, 2
-        - action: 1, CALL, 2
-        - action: 5, RAISE, 4
+        - action: 8, BET, 2.99
+        - action: 1, CALL, 2.99
+        - action: 5, RAISE, 4.33
         - action: 8, FOLD
-        - action: 1, CALL, 4
+        - action: 1, CALL, 4.33
 
     turn:
       verify:
@@ -90,8 +90,8 @@ hands:
             rank: # folded
       seat-actions:
         - action: 5, CHECK
-        - action: 1, BET, 10
-        - action: 5, CALL, 10
+        - action: 1, BET, 10.5
+        - action: 5, CALL, 10.5
 
     river:
       verify:
@@ -104,48 +104,53 @@ hands:
           - seat: 8
             rank: # folded
       seat-actions:
-        - action: 5, BET, 10
-        - action: 1, CALL, 10
+        - action: 5, BET, 19.99
+        - action: 1, CALL, 19.99
 
     result:
       winners:
         - seat: 1
-          receive: 54.28
+          receive: 75.53
           rank: Pair
-          rake-paid: 3.52
+          rake-paid: 4.96
       action-ended: SHOW_DOWN
 
       players:
         - seat: 1
           balance:
-            after: 127.68
+            after: 138.08
+          pot-contribution: 37.44
         - seat: 5
           balance:
-            after: 73.4
+            after: 162.55
+          pot-contribution: 37.44
         - seat: 8
           balance:
-            after: 95.4
+            after: 194.4
+          pot-contribution: 5.61
+
+      tips-collected: 4.96
 
     api:
       game-result-table:
         - player-name: young
           hands-played: 1
-          buy-in: 100
-          profit: 27.68
-          stack: 127.68
-          rake-paid: 1.62
+          buy-in: 99.99
+          profit: 38.09
+          stack: 138.08
+          rake-paid: 2.31
         - player-name: carol
           hands-played: 1
-          buy-in: 100
-          profit: -26.6
-          stack: 73.4
-          rake-paid: 1.62
+          buy-in: 199.99
+          profit: -37.44
+          stack: 162.55
+          rake-paid: 2.31
         - player-name: matt
           hands-played: 1
-          buy-in: 100
-          profit: -4.6
-          stack: 95.4
-          rake-paid: 0.28
+          buy-in: 200.01
+          profit: -5.61
+          stack: 194.4
+          rake-paid: 0.34
 
   - setup:
       auto: true
