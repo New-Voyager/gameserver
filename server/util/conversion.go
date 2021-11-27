@@ -1,7 +1,7 @@
 package util
 
 func ChipsToCents(chips float64) float64 {
-	return chips * 100
+	return RoundDecimal(chips*100, 0)
 }
 
 func CentsToChips(cents float64) float64 {

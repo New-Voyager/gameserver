@@ -169,10 +169,12 @@ hands:
             inhand: true
             button: true
             bb: true
+            stack: 29.99
           - seat: 2
             player: brian
             status: IN_BREAK
             inhand: false
+            stack: 30.01
           - seat: 3
             player: yong
             sb: true
@@ -272,13 +274,17 @@ hands:
           balance:
             before: 100
             after: 84
+          pot-contribution: 37.44
         - seat: 5
           hhRank: 2255
           balance:
             after: 120
+          pot-contribution: 5.61
         - seat: 8
           balance:
             after: 96
+
+      tips-collected: 4.96
 
       timeout-stats:
         - seat: 1
