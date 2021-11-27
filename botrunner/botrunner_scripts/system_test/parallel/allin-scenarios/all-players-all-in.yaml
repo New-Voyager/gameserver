@@ -69,5 +69,5 @@ hands:
         - action: 2, ALLIN, 98
         - action: 3, ALLIN, 98
 
-  - setup:
-      auto: true
+  # - setup:
+  #     auto: true

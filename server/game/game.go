@@ -632,6 +632,7 @@ func (g *Game) dealNewHand() error {
 		BigBlind:       handState.BigBlind,
 		BringIn:        handState.BringIn,
 		Straddle:       handState.Straddle,
+		Ante:           handState.Ante,
 		PlayersInSeats: handPlayerInSeats,
 		PlayersActed:   playersActed,
 		BombPot:        handState.BombPot,

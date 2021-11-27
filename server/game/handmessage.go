@@ -1485,18 +1485,19 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	// handResult.MaxPlayers = handState.MaxSeats
 
 	handResultServer := &HandResultServer{
-		GameId:     hs.GameId,
-		HandNum:    hs.HandNum,
-		GameType:   hs.GameType,
-		ButtonPos:  hs.ButtonPos,
-		NoCards:    g.NumCards(handState.GameType),
-		HandLog:    hs.getLog(),
-		HandStats:  hs.GetHandStats(),
-		RunItTwice: hs.RunItTwiceConfirmed,
-		SmallBlind: hs.SmallBlind,
-		BigBlind:   hs.BigBlind,
-		MaxPlayers: hs.MaxSeats,
-		Result:     handResult2Client,
+		GameId:        hs.GameId,
+		HandNum:       hs.HandNum,
+		GameType:      hs.GameType,
+		ButtonPos:     hs.ButtonPos,
+		NoCards:       g.NumCards(handState.GameType),
+		HandLog:       hs.getLog(),
+		HandStats:     hs.GetHandStats(),
+		RunItTwice:    hs.RunItTwiceConfirmed,
+		SmallBlind:    hs.SmallBlind,
+		BigBlind:      hs.BigBlind,
+		MaxPlayers:    hs.MaxSeats,
+		Result:        handResult2Client,
+		CollectedAnte: hs.CollectedAnte,
 	}
 
 	err = g.analyzeResult(handResultServer)

@@ -101,6 +101,7 @@ func s2cNewHand(msgItem *HandMessageItem) {
 	h.BringIn = util.CentsToChips(h.BringIn)
 	h.Straddle = util.CentsToChips(h.Straddle)
 	h.BombPotBet = util.CentsToChips(h.BombPotBet)
+	h.Ante = util.CentsToChips(h.Ante)
 	for _, p := range h.PlayersInSeats {
 		p.Stack = util.CentsToChips(p.Stack)
 		p.PlayerReceived = util.CentsToChips(p.PlayerReceived)

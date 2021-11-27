@@ -137,4 +137,7 @@ message HandState {
 
   map<uint32, double> pot_contribution = 78;
   ChipUnit chipUnit = 79;
+  double ante = 80;
+  bool mandatory_straddle = 81;
+  double collected_ante = 82;
 }

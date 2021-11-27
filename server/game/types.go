@@ -39,7 +39,9 @@ type TestGameConfig struct {
 	ChipUnit           string      `json:"chipUnit" yaml:"chip-unit"`
 	SmallBlind         float64     `json:"smallBlind" yaml:"sb"`
 	BigBlind           float64     `json:"bigBlind" yaml:"bb"`
+	Ante               float64     `json:"ante" yaml:"ante"`
 	StraddleBet        float64     `json:"straddleBet"`
+	MandatoryStraddle  bool        `json:"mandatoryStraddle" yaml:"mandatory-straddle"`
 	MinPlayers         int         `json:"minPlayers" yaml:"min-players"`
 	MaxPlayers         int         `json:"maxPlayers" yaml:"max-players"`
 	GameLength         int         `json:"gameLength"`
@@ -345,6 +347,7 @@ type NewHandInfo struct {
 	MaxPlayers        uint32
 	SmallBlind        float64
 	BigBlind          float64
+	Ante              float64
 	ButtonPos         uint32
 	HandNum           uint32
 	ActionTime        uint32
@@ -366,4 +369,5 @@ type NewHandInfo struct {
 	RunItTwiceTimeout uint32
 	HighHandRank      uint32
 	HighHandTracked   bool
+	MandatoryStraddle bool
 }
