@@ -1400,8 +1400,8 @@ func (h *HandState) adjustToBringIn(amount float64) float64 {
 	if h.BringIn != 0 {
 		// make call amount multiples of bring-in
 		if int64(amount)%int64(h.BringIn) > 0 {
-			amount = float64(float64(int64(amount/h.BringIn+1.0)) * h.BringIn)
-			amount = float64(math.Floor(float64(amount)))
+			amount = float64(int64(amount/h.BringIn+1.0)) * h.BringIn
+			amount = math.Floor(amount)
 		}
 	}
 	return amount
