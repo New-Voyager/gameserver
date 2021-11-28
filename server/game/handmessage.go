@@ -1410,6 +1410,21 @@ func (g *Game) onePlayerRemaining(handState *HandState) ([]*HandMessageItem, err
 	handState.everyOneFoldedWinners()
 	handState.CurrentState = HandStatus_RESULT
 
+	// scenario:
+	// player1 bets   10
+	// player2 calls  10
+	// player3 raises 40
+	// player1 folds
+	// player2 folds
+	// player3 raise 40 is not part of the pot contribution
+	// remove the player raise from pot contribution
+	for seatNo, _ := range handState.PotContribution {
+		if seatNo != handState.RaiseSeatNo {
+			continue
+		}
+		handState.PotContribution[seatNo] -= handState.CurrentRaiseDiff
+	}
+
 	var allMsgItems []*HandMessageItem
 	var msgItems []*HandMessageItem
 	var err error

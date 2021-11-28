@@ -140,4 +140,9 @@ message HandState {
   double ante = 80;
   bool mandatory_straddle = 81;
   double collected_ante = 82;
+
+  // the following fields are used to remove the bet/raise amount
+  // from pot contribution
+  uint32 raise_seat_no = 83;
+  double raise_amount = 84;  
 }

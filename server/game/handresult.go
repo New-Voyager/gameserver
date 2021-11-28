@@ -416,6 +416,7 @@ func (hr *HandResultProcessor) adjustRake(hs *HandState, totalPot float64, winne
 	}
 	return rakePlayers
 }
+
 func (hr *HandResultProcessor) calcRakeAndBalance(hs *HandState, potWinners []*PotWinnersV2) map[uint32]*PlayerHandInfo {
 	playerStack := make(map[uint64]float64)
 	playerReceived := make(map[uint32]float64)
@@ -428,10 +429,13 @@ func (hr *HandResultProcessor) calcRakeAndBalance(hs *HandState, potWinners []*P
 		playerReceived[uint32(seatNoIdx)] = 0
 	}
 	totalPot := float64(0)
+	for _, pot := range hs.PotContribution {
+		totalPot += pot
+	}
+
 	winners := make([]uint32, 0)
 	// update player balance
 	for _, pot := range potWinners {
-		totalPot += pot.Amount
 		for _, board := range pot.BoardWinners {
 			for _, handWinner := range board.HiWinners {
 				seatNo := handWinner.SeatNo
