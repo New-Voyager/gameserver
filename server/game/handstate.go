@@ -1109,6 +1109,11 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 		diff = playerBalance
 		action.Amount = amount
 		h.acted(action.SeatNo, ACTION_ALLIN, amount)
+		if action.Amount > h.CurrentRaise {
+			// reset player action
+			h.RaiseSeatNo = action.SeatNo
+			h.RaiseAmount = action.Amount
+		}
 	} else if action.Action == ACTION_RAISE ||
 		action.Action == ACTION_BET {
 		// TODO: we need to handle raise and determine next min raise
@@ -1135,6 +1140,8 @@ func (h *HandState) actionReceived(action *HandAction, actionResponseTime uint64
 			// reset player action
 			h.acted(action.SeatNo, handAction, action.Amount)
 			h.ActionCompleteAtSeat = action.SeatNo
+			h.RaiseSeatNo = action.SeatNo
+			h.RaiseAmount = action.Amount
 		}
 
 		// how much this user already had in the betting round
