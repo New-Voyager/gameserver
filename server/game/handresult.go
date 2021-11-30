@@ -479,7 +479,15 @@ func (hr *HandResultProcessor) calcRakeAndBalance(hs *HandState, potWinners []*P
 	rakePlayers := make(map[uint64]float64)
 
 	if hs.RakePercentage > 0 {
-		rakePlayers = hr.adjustRake(hs, totalPot, winners, potWinners, playerStack, playerReceived)
+		rake := true
+		// if the pot size is less than 2 bigblinds, then don't take tips
+		if totalPot < 2*hs.BigBlind {
+			rake = false
+		}
+
+		if rake {
+			rakePlayers = hr.adjustRake(hs, totalPot, winners, potWinners, playerStack, playerReceived)
+		}
 	}
 
 	players := make(map[uint32]*PlayerHandInfo)
