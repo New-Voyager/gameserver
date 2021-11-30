@@ -18,6 +18,10 @@ func (g *Game) runItTwice(h *HandState, lastPlayerAction *PlayerActRound) bool {
 		return false
 	}
 
+	if h.DoubleBoard {
+		return false
+	}
+
 	if !h.hasEveryOneActed() {
 		return false
 	}
