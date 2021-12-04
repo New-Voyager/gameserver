@@ -618,6 +618,12 @@ func (g *Game) dealNewHand() error {
 	if handState.NextSeatAction != nil {
 		nextSeatNo = handState.NextSeatAction.SeatNo
 	}
+	potUpdates := float64(0)
+	pots := make([]float64, 0)
+	for _, pot := range handState.Pots {
+		potUpdates = potUpdates + pot.Pot
+		pots = append(pots, pot.Pot)
+	}
 
 	// send a new hand message to all players
 	newHand := NewHand{
@@ -638,6 +644,8 @@ func (g *Game) dealNewHand() error {
 		BombPot:        handState.BombPot,
 		BombPotBet:     handState.BombPotBet,
 		DoubleBoard:    handState.DoubleBoard,
+		PotUpdates:     potUpdates,
+		Pots:           pots,
 	}
 
 	handMessage := HandMessage{
