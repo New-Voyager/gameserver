@@ -620,9 +620,12 @@ func (g *Game) dealNewHand() error {
 	}
 	potUpdates := float64(0)
 	pots := make([]float64, 0)
-	for _, pot := range handState.Pots {
-		potUpdates = potUpdates + pot.Pot
-		pots = append(pots, pot.Pot)
+
+	currentRoundState, ok := handState.RoundState[uint32(handState.CurrentState)]
+	if ok {
+		for _, bet := range currentRoundState.Betting.SeatBet {
+			potUpdates = potUpdates + bet
+		}
 	}
 
 	// send a new hand message to all players

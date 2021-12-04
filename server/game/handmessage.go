@@ -1287,22 +1287,16 @@ func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error
 	allMsgItems = append(allMsgItems, yourActionMsg)
 
 	pots := make([]float64, 0)
+	currentPot := float64(0)
 	for _, pot := range handState.Pots {
 		pots = append(pots, pot.Pot)
+		currentPot += pot.Pot
 	}
-	currentPot := pots[len(pots)-1]
 	roundState := handState.RoundState[uint32(handState.CurrentState)]
 	currentBettingRound := roundState.Betting
 	seatBets := currentBettingRound.SeatBet
-	bettingRoundBets := float64(0)
 	for _, bet := range seatBets {
-		bettingRoundBets = bettingRoundBets + bet
-	}
-
-	if bettingRoundBets != 0 {
-		currentPot = currentPot + bettingRoundBets
-	} else {
-		currentPot = 0
+		currentPot += bet
 	}
 
 	// action moves to the next player
