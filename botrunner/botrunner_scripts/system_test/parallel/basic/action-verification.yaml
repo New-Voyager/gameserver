@@ -73,7 +73,7 @@ hands:
         - action: 1, CALL, 2
           verify:
             stack: 98
-            pot-updates: 5
+            # pot-updates: 5
         - action: 2, CALL, 2
           verify:
             stack: 98
@@ -81,6 +81,7 @@ hands:
         - action: 3, CHECK
           verify:
             stack: 98
+            pot-updates: 6
     
     flop:
       seat-actions:
