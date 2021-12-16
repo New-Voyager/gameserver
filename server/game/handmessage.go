@@ -1488,8 +1488,10 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	totalPauseTime := uint32(0)
 	for _, pot := range handResult2Client.PotWinners {
 		for _, board := range pot.BoardWinners {
-			totalPauseTime = totalPauseTime + uint32(len(board.HiWinners))*hs.ResultPauseTime
-			totalPauseTime = totalPauseTime + uint32(len(board.LowWinners))*hs.ResultPauseTime
+			totalPauseTime = totalPauseTime + hs.ResultPauseTime
+			if len(board.LowWinners) > 0 {
+				totalPauseTime = totalPauseTime + hs.ResultPauseTime
+			}
 		}
 	}
 	hs.TotalResultPauseTime = totalPauseTime
