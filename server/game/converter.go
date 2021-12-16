@@ -111,6 +111,10 @@ func s2cNewHand(msgItem *HandMessageItem) {
 		p.RaiseAmount = util.CentsToChips(p.RaiseAmount)
 		p.BetAmount = util.CentsToChips(p.BetAmount)
 	}
+	h.PotUpdates = util.CentsToChips(h.PotUpdates)
+	for i := 0; i < len(h.Pots); i++ {
+		h.Pots[i] = util.CentsToChips(h.Pots[i])
+	}
 }
 
 func s2cYourAction(msgItem *HandMessageItem) {
@@ -159,6 +163,7 @@ func s2cFlop(msgItem *HandMessageItem) {
 	for seatNo := range f.PlayerBalance {
 		f.PlayerBalance[seatNo] = util.CentsToChips(f.PlayerBalance[seatNo])
 	}
+	f.PotUpdates = util.CentsToChips(f.PotUpdates)
 }
 
 func s2cTurn(msgItem *HandMessageItem) {
@@ -172,6 +177,7 @@ func s2cTurn(msgItem *HandMessageItem) {
 	for seatNo := range f.PlayerBalance {
 		f.PlayerBalance[seatNo] = util.CentsToChips(f.PlayerBalance[seatNo])
 	}
+	f.PotUpdates = util.CentsToChips(f.PotUpdates)
 }
 
 func s2cRiver(msgItem *HandMessageItem) {
@@ -185,6 +191,7 @@ func s2cRiver(msgItem *HandMessageItem) {
 	for seatNo := range f.PlayerBalance {
 		f.PlayerBalance[seatNo] = util.CentsToChips(f.PlayerBalance[seatNo])
 	}
+	f.PotUpdates = util.CentsToChips(f.PotUpdates)
 }
 
 func s2cRunItTwice(msgItem *HandMessageItem) {
