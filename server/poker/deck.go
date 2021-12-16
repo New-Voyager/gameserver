@@ -3,12 +3,22 @@ package poker
 import (
 	"fmt"
 	"math/rand"
+
+	"github.com/db47h/rand64/v3/xoroshiro"
+	"voyager.com/server/util/random"
 )
 
-var fullDeck *Deck
+var (
+	fullDeck *Deck
+	rndSrc   xoroshiro.Rng128P
+	rng      *rand.Rand
+)
 
 func init() {
 	fullDeck = &Deck{cards: initializeFullCards()}
+	rndSrc = xoroshiro.Rng128P{}
+	rndSrc.Seed(random.NewSeed())
+	rng = rand.New(&rndSrc)
 }
 
 type Deck struct {
@@ -52,19 +62,18 @@ func CopyDeck(original *Deck) *Deck {
 func (deck *Deck) Shuffle() *Deck {
 	deck.cards = make([]Card, len(fullDeck.cards))
 	copy(deck.cards, fullDeck.cards)
-	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
-	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
+	rng.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
+	rng.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
 	deck.box()
-	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
-
+	rng.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
 	return deck
 }
 
 func (deck *Deck) ShuffleWithoutReset() *Deck {
-	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
-	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
+	rng.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
+	rng.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
 	deck.box()
-	rand.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
+	rng.Shuffle(len(deck.cards), func(i, j int) { deck.cards[i], deck.cards[j] = deck.cards[j], deck.cards[i] })
 
 	return deck
 }
