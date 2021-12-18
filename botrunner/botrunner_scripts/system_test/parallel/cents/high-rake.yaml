@@ -90,16 +90,39 @@ hands:
         - seat: 1
           receive: 40.98
           rank: Straight
-          rake-paid: 4.02
+          rake-paid: 4.03
       action-ended: SHOW_DOWN
 
       players:
         - seat: 1
           balance:
-            after: 98.98
+            after: 98.97
         - seat: 2
           balance:
             after: 98.98
         - seat: 3
           balance:
             after: 94
+
+      tips-collected: 8.05
+
+    api:
+      game-result-table:
+        - player-name: young
+          hands-played: 1
+          buy-in: 100
+          profit: -1.03
+          stack: 98.97
+          rake-paid: 3.76
+        - player-name: carol
+          hands-played: 1
+          buy-in: 100
+          profit: -1.02
+          stack: 98.98
+          rake-paid: 3.76
+        - player-name: matt
+          hands-played: 1
+          buy-in: 100
+          profit: -6
+          stack: 94
+          rake-paid: 0.53
