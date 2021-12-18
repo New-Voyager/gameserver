@@ -381,6 +381,20 @@ func (hr *HandResultProcessor) adjustRake(hs *HandState, totalPot float64, winne
 				break
 			}
 		}
+		for _, winnerSeat := range winners {
+			if totalRakeCollected >= rake {
+				break
+			}
+			if hr.chipUnit == ChipUnit_CENT {
+				totalRakeCollected++
+				rakePaid[winnerSeat]++
+				rakeSubtracted[winnerSeat]++
+			} else {
+				totalRakeCollected += 100
+				rakePaid[winnerSeat] += 100
+				rakeSubtracted[winnerSeat] += 100
+			}
+		}
 		for _, pot := range potWinners {
 			for _, board := range pot.BoardWinners {
 				for _, handWinner := range board.HiWinners {
