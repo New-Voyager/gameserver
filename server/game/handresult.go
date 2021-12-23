@@ -48,9 +48,18 @@ func (hr *HandResultProcessor) evaluateRank() {
 			if playerId == 0 {
 				continue
 			}
+			if hs.CurrentState == HandStatus_FLOP {
+				continue
+			}
+
 			seatNo := uint32(seatNoIdx)
 			playersCards := hs.PlayersCards[seatNo]
 			boardCards := poker.FromUint32ByteCards(board.Cards)
+			if hs.CurrentState == HandStatus_FLOP {
+				boardCards = boardCards[0:3]
+			} else if hs.CurrentState == HandStatus_TURN {
+				boardCards = boardCards[0:4]
+			}
 			eval := hr.evaluator.Evaluate2(playersCards, boardCards)
 			lowFound := len(eval.locards) > 0
 			hiCards := poker.ByteCardsToUint32Cards(eval.cards)
