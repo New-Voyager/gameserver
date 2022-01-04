@@ -48,9 +48,18 @@ func (hr *HandResultProcessor) evaluateRank() {
 			if playerId == 0 {
 				continue
 			}
+			if hs.HandCompletedAt == HandStatus_PREFLOP {
+				continue
+			}
+
 			seatNo := uint32(seatNoIdx)
 			playersCards := hs.PlayersCards[seatNo]
 			boardCards := poker.FromUint32ByteCards(board.Cards)
+			if hs.HandCompletedAt == HandStatus_FLOP {
+				boardCards = boardCards[0:3]
+			} else if hs.HandCompletedAt == HandStatus_TURN {
+				boardCards = boardCards[0:4]
+			}
 			eval := hr.evaluator.Evaluate2(playersCards, boardCards)
 			lowFound := len(eval.locards) > 0
 			hiCards := poker.ByteCardsToUint32Cards(eval.cards)
@@ -126,6 +135,19 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 	lowWinnerFound := false
 	winningPlayers := make(map[uint32]bool)
 	potWinners := make([]*PotWinnersV2, 0)
+
+	// is there only one active seats
+	activeSeats := 0
+	for _, seatNo := range hs.ActiveSeats {
+		if seatNo != 0 {
+			activeSeats++
+		}
+	}
+	oneWinner := false
+	if activeSeats == 1 {
+		oneWinner = true
+	}
+
 	// iterate through each pot
 	for potNo, pot := range hs.Pots {
 		potWinner := PotWinnersV2{
@@ -151,12 +173,16 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 				BoardNo: board.BoardNo,
 				Amount:  boardPot,
 			}
-			// determined winning ranks in this board
-			hiRank, loRank := hr.determineHiLoRank(i, pot.Seats)
-			boardWinner.HiRankText = poker.RankString(hiRank)
-
 			hiWinners := make(map[uint32]*Winner)
 			loWinners := make(map[uint32]*Winner)
+			hiRank := int32(0x7ffffff)
+			loRank := int32(0x7ffffff)
+			if !oneWinner {
+				// determined winning ranks in this board
+				hiRank, loRank = hr.determineHiLoRank(i, pot.Seats)
+				boardWinner.HiRankText = poker.RankString(hiRank)
+			}
+
 			// determine winners
 			for _, seatNo := range pot.Seats {
 
@@ -166,27 +192,36 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 				}
 
 				player := hs.PlayersInSeats[seatNo]
-				if board.PlayerRank[seatNo].HiRank == uint32(hiRank) {
+				if !oneWinner {
+					if board.PlayerRank[seatNo].HiRank == uint32(hiRank) {
+						winningPlayers[seatNo] = true
+						hiWinners[seatNo] = &Winner{
+							SeatNo: seatNo,
+							Amount: 0,
+						}
+						if hs.PlayerStats[player.PlayerId].Headsup {
+							hs.PlayerStats[player.PlayerId].WonHeadsup = true
+						}
+					}
+					if hr.hiLoGame && loRank != 0x7FFFFFFF {
+						if board.PlayerRank[seatNo].LoRank == uint32(loRank) {
+							lowWinnerFound = true
+							winningPlayers[seatNo] = true
+							loWinners[seatNo] = &Winner{
+								SeatNo: seatNo,
+								Amount: 0,
+							}
+						}
+						if hs.PlayerStats[player.PlayerId].Headsup {
+							hs.PlayerStats[player.PlayerId].WonHeadsup = true
+						}
+					}
+				} else {
+					// only one winner
 					winningPlayers[seatNo] = true
 					hiWinners[seatNo] = &Winner{
 						SeatNo: seatNo,
 						Amount: 0,
-					}
-					if hs.PlayerStats[player.PlayerId].Headsup {
-						hs.PlayerStats[player.PlayerId].WonHeadsup = true
-					}
-				}
-				if hr.hiLoGame && loRank != 0x7FFFFFFF {
-					if board.PlayerRank[seatNo].LoRank == uint32(loRank) {
-						lowWinnerFound = true
-						winningPlayers[seatNo] = true
-						loWinners[seatNo] = &Winner{
-							SeatNo: seatNo,
-							Amount: 0,
-						}
-					}
-					if hs.PlayerStats[player.PlayerId].Headsup {
-						hs.PlayerStats[player.PlayerId].WonHeadsup = true
 					}
 				}
 			}
