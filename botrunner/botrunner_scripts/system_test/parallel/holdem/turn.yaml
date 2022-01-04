@@ -78,7 +78,6 @@ hands:
       winners:
         - seat: 2
           receive: 37
-          rank: Pair
           rake-paid: 1
 
       action-ended: TURN

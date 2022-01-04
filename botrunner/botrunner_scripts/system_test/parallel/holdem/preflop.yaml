@@ -62,7 +62,6 @@ hands:
       winners:
         - seat: 2
           receive: 15.0
-          rank: Pair
           rake-paid: 1
 
       action-ended: PREFLOP

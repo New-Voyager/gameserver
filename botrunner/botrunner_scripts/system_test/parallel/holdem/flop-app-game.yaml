@@ -72,7 +72,6 @@ hands:
       winners:
         - seat: 2
           receive: 19
-          rank: Pair
           rake-paid: 1
 
       action-ended: FLOP
