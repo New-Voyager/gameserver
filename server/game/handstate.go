@@ -626,7 +626,7 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 		}
 
 		playerInSB := h.PlayersInSeats[h.SmallBlindPos]
-		if playerInSB.PlayerId != 0 {
+		if playerInSB.PlayerId != 0 && playerInSB.Inhand {
 			if playerInSB.Stack <= h.SmallBlind {
 				h.actionReceived(&HandAction{
 					SeatNo: h.SmallBlindPos,
@@ -643,6 +643,9 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 		}
 
 		playerInBB := h.PlayersInSeats[h.BigBlindPos]
+		if !playerInBB.Inhand {
+			panic("playerInBB.Inhand is false")
+		}
 		if playerInBB.PlayerId != 0 {
 			if playerInBB.Stack <= h.BigBlind {
 				h.actionReceived(&HandAction{
@@ -661,24 +664,26 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 
 		if h.ButtonStraddle {
 			playerInButton := h.PlayersInSeats[h.ButtonPos]
-			buttonStraddleBet := 2 * h.BigBlind
-			if playerInButton.ButtonStraddleBet > 2 {
-				buttonStraddleBet = float64(playerInButton.ButtonStraddleBet) * h.BigBlind
-			}
-			if playerInButton.PlayerId != 0 && playerInButton.Stack >= buttonStraddleBet {
-				if playerInButton.Stack == buttonStraddleBet {
-					h.actionReceived(&HandAction{
-						SeatNo: h.ButtonPos,
-						Action: ACTION_ALLIN,
-						Amount: playerInBB.Stack,
-					}, 0)
-				} else {
-					h.actionReceived(&HandAction{
-						SeatNo: h.ButtonPos,
-						Action: ACTION_STRADDLE,
-						Amount: buttonStraddleBet,
-					}, 0)
-					h.Straddle = buttonStraddleBet
+			if playerInButton.Inhand {
+				buttonStraddleBet := 2 * h.BigBlind
+				if playerInButton.ButtonStraddleBet > 2 {
+					buttonStraddleBet = float64(playerInButton.ButtonStraddleBet) * h.BigBlind
+				}
+				if playerInButton.PlayerId != 0 && playerInButton.Stack >= buttonStraddleBet {
+					if playerInButton.Stack == buttonStraddleBet {
+						h.actionReceived(&HandAction{
+							SeatNo: h.ButtonPos,
+							Action: ACTION_ALLIN,
+							Amount: playerInBB.Stack,
+						}, 0)
+					} else {
+						h.actionReceived(&HandAction{
+							SeatNo: h.ButtonPos,
+							Action: ACTION_STRADDLE,
+							Amount: buttonStraddleBet,
+						}, 0)
+						h.Straddle = buttonStraddleBet
+					}
 				}
 			}
 		}
