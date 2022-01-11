@@ -4,19 +4,19 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/db47h/rand64/v3/xoroshiro"
+	"github.com/db47h/rand64/v3/xoshiro"
 	"voyager.com/server/util/random"
 )
 
 var (
 	fullDeck *Deck
-	rndSrc   xoroshiro.Rng128P
+	rndSrc   xoshiro.Rng256SS
 	rng      *rand.Rand
 )
 
 func init() {
 	fullDeck = &Deck{cards: initializeFullCards()}
-	rndSrc = xoroshiro.Rng128P{}
+	rndSrc = xoshiro.Rng256SS{}
 	rndSrc.Seed(random.NewSeed())
 	rng = rand.New(&rndSrc)
 }
