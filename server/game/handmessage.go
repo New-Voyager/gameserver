@@ -857,7 +857,9 @@ func (g *Game) getPlayerCardRank(handState *HandState, boardCards []uint32) map[
 		} else if handState.GameType == GameType_PLO ||
 			handState.GameType == GameType_PLO_HILO ||
 			handState.GameType == GameType_FIVE_CARD_PLO_HILO ||
-			handState.GameType == GameType_FIVE_CARD_PLO {
+			handState.GameType == GameType_FIVE_CARD_PLO ||
+			handState.GameType == GameType_SIX_CARD_PLO_HILO ||
+			handState.GameType == GameType_SIX_CARD_PLO {
 			result := poker.EvaluateOmaha(pokerPlayerCards, pokerBoardCards)
 			rank = result.HiRank
 		}

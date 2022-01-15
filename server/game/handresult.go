@@ -22,9 +22,13 @@ func NewHandResultProcessor(handState *HandState, chipUnit ChipUnit, maxSeats ui
 	hiLoGame := false
 	if handState.GameType == GameType_HOLDEM {
 		evaluator = NewHoldemWinnerEvaluate(handState, includeHighHand, maxSeats)
-	} else if handState.GameType == GameType_PLO || handState.GameType == GameType_FIVE_CARD_PLO {
+	} else if handState.GameType == GameType_PLO ||
+		handState.GameType == GameType_FIVE_CARD_PLO ||
+		handState.GameType == GameType_SIX_CARD_PLO {
 		evaluator = NewPloWinnerEvaluate(handState, includeHighHand, false, maxSeats)
-	} else if handState.GameType == GameType_PLO_HILO || handState.GameType == GameType_FIVE_CARD_PLO_HILO {
+	} else if handState.GameType == GameType_PLO_HILO ||
+		handState.GameType == GameType_FIVE_CARD_PLO_HILO ||
+		handState.GameType == GameType_SIX_CARD_PLO_HILO {
 		evaluator = NewPloWinnerEvaluate(handState, includeHighHand, true, maxSeats)
 		hiLoGame = true
 	}

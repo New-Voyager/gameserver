@@ -30,6 +30,8 @@ enum GameType {
     PLO_HILO = 3;
     FIVE_CARD_PLO = 4;
     FIVE_CARD_PLO_HILO = 5;
+    SIX_CARD_PLO = 6;
+    SIX_CARD_PLO_HILO = 7;
   }
   
   // GameStatus is controlled by the Host of the game

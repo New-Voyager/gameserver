@@ -397,6 +397,10 @@ func (g *Game) NumCards(gameType GameType) uint32 {
 		noCards = 5
 	case GameType_FIVE_CARD_PLO_HILO:
 		noCards = 5
+	case GameType_SIX_CARD_PLO:
+		noCards = 6
+	case GameType_SIX_CARD_PLO_HILO:
+		noCards = 6
 	}
 	return uint32(noCards)
 }
