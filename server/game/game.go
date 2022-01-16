@@ -380,7 +380,7 @@ func (g *Game) MaskCards(playerCards []byte, gameToken uint64) ([]uint32, uint64
 	if mask != 0 {
 		maskCards = uint64(cardsUint64 ^ mask)
 	}
-	maskedCards := uint64(maskCards) & uint64(0x000000FFFFFFFFFF)
+	maskedCards := uint64(maskCards) & uint64(0x0000FFFFFFFFFFFF)
 	return cards, maskedCards
 }
 
