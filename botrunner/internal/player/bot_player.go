@@ -491,6 +491,10 @@ func (bp *BotPlayer) processHandTextMessage(message *gamescript.HandTextMessage)
 				gameType = game.GameType_FIVE_CARD_PLO
 			case "FIVE_CARD_PLO_HILO":
 				gameType = game.GameType_FIVE_CARD_PLO_HILO
+			case "SIX_CARD_PLO":
+				gameType = game.GameType_SIX_CARD_PLO
+			case "SIX_CARD_PLO_HILO":
+				gameType = game.GameType_SIX_CARD_PLO_HILO
 			}
 
 			bp.logger.Info().
