@@ -24,7 +24,7 @@ game:
   buy-in-min: 100
   buy-in-max: 300
   action-time: 100
-  dealer-choice-games: ['HOLDEM', 'PLO', 'PLO_HILO', 'FIVE_CARD_PLO', 'FIVE_CARD_PLO_HILO']
+  dealer-choice-games: ['HOLDEM', 'PLO', 'PLO_HILO', 'FIVE_CARD_PLO', 'FIVE_CARD_PLO_HILO', 'SIX_CARD_PLO', 'SIX_CARD_PLO_HILO']
   dealer-choice-orbit: false
 
 starting-seats:
@@ -84,3 +84,17 @@ hands:
         choice: HOLDEM
       verify:
         game-type: HOLDEM
+  - setup:
+      auto: true
+      dealer-choice:
+        seat: 3          # seat 3 has dealer choice
+        choice: SIX_CARD_PLO
+      verify:
+        game-type: SIX_CARD_PLO
+  - setup:
+      auto: true
+      dealer-choice:
+        seat: 1          # seat 1 has dealer choice
+        choice: SIX_CARD_PLO_HILO
+      verify:
+        game-type: SIX_CARD_PLO_HILO

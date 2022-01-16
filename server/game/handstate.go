@@ -865,6 +865,10 @@ func (h *HandState) getPlayersCards(deck *poker.Deck, scriptedCardsBySeat map[ui
 		noOfCards = 5
 	case GameType_FIVE_CARD_PLO_HILO:
 		noOfCards = 5
+	case GameType_SIX_CARD_PLO:
+		noOfCards = 6
+	case GameType_SIX_CARD_PLO_HILO:
+		noOfCards = 6
 	}
 
 	activeSeats := h.activeSeatsCount()
