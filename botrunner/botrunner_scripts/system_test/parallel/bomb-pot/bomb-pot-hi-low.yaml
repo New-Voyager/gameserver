@@ -50,15 +50,25 @@ hands:
       board2: ["8c", "4d", "6c", "7d", "Ks"]
       seat-cards:
         - seat: 1
-          cards: ["9h", "2s", "Kd", "4d"]
+          cards: ["9h", "2s", "Kd", "4h"]
         - seat: 2
-          cards: ["Kh", "Qd", "9d", "Td"]
+          cards: ["Kh", "Qd", "9d", "Th"]
         - seat: 3
           cards: ["3s", "7s", "Js", "Qc"]
         - seat: 4
           cards: ["5s", "3c", "Jd", "9s"]
 
     flop:
+      verify:
+        ranks:
+          - seat: 1
+            rank: "Two Pair,Pair"
+          - seat: 2
+            rank: "Pair,High Card"
+          - seat: 3
+            rank: "Pair,High Card"
+          - seat: 4
+            rank: "Pair,High Card"
       seat-actions:
         - action: 2, ALLIN
         - action: 3, ALLIN
