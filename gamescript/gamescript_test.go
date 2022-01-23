@@ -366,7 +366,7 @@ func TestReadGameScript(t *testing.T) {
 							},
 							{
 								Seat:    5,
-								RankStr: "Pair",
+								RankStr: "Pair,Two Pair",
 							},
 						},
 					},

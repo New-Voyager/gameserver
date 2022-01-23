@@ -673,9 +673,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		/* MessageType: FLOP */
 		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.flopCards = msgItem.GetFlop().GetBoard()
-		if bp.IsHuman() || bp.IsObserver() {
-			bp.logger.Debug().Msgf("%s: Flop cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetFlop().GetCardsStr(), msgItem.GetFlop().PlayerCardRanks)
-		}
+		bp.logger.Debug().Msgf("%s: Flop cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetFlop().GetCardsStr(), bp.decryptRankStr(msgItem.GetFlop().PlayerCardRanks[bp.seatNo]))
 		if bp.IsHost() {
 			bp.verifyBoard()
 		}
@@ -693,9 +691,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		/* MessageType: TURN */
 		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.turnCards = msgItem.GetTurn().GetBoard()
-		if bp.IsHuman() || bp.IsObserver() {
-			bp.logger.Debug().Msgf("%s: Turn cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetTurn().GetCardsStr(), msgItem.GetTurn().PlayerCardRanks)
-		}
+		bp.logger.Debug().Msgf("%s: Turn cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetTurn().GetCardsStr(), bp.decryptRankStr(msgItem.GetTurn().PlayerCardRanks[bp.seatNo]))
 		bp.verifyBoard()
 		bp.verifyCardRank(msgItem.GetTurn().GetPlayerCardRanks())
 		bp.updateBalance(msgItem.GetTurn().GetPlayerBalance())
@@ -706,9 +702,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		/* MessageType: RIVER */
 		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.riverCards = msgItem.GetRiver().GetBoard()
-		if bp.IsHuman() || bp.IsObserver() {
-			bp.logger.Debug().Msgf("%s: River cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetRiver().GetCardsStr(), msgItem.GetRiver().PlayerCardRanks)
-		}
+		bp.logger.Debug().Msgf("%s: River cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetRiver().GetCardsStr(), bp.decryptRankStr(msgItem.GetRiver().PlayerCardRanks[bp.seatNo]))
 		bp.verifyBoard()
 		bp.verifyCardRank(msgItem.GetRiver().GetPlayerCardRanks())
 		bp.updateBalance(msgItem.GetRiver().GetPlayerBalance())
@@ -992,21 +986,28 @@ func (bp *BotPlayer) verifyCardRank(currentRanks map[uint32]string) {
 		// Player rank string is encrypted and base64 encoded by the game server.
 		// It first needs to be b64 decoded and then decrypted using the player's
 		// encryption key.
-		decodedRankStr, err := encryption.B64DecodeString(actualRank)
-		if err != nil {
-			bp.logger.Panic().Msgf("%s: Unable to decode player rank string %s", bp.logPrefix, actualRank)
-		}
-		decrypted, err := encryption.DecryptWithUUIDStrKey(decodedRankStr, bp.EncryptionKey)
-		if err != nil {
-			bp.logger.Error().Msgf("%s: Error [%s] while decrypting private hand message", bp.logPrefix, err)
-			return
-		}
-		actualRank = string(decrypted)
+		actualRank = bp.decryptRankStr(actualRank)
 	}
 
 	if actualRank != expectedRank {
-		bp.logger.Panic().Msgf("%s: Hand %d %s verify failed. Player rank string does not match the expected. Current rank: %s. Expected rank: %s.", bp.logPrefix, bp.game.handNum, bp.game.handStatus, actualRank, expectedRank)
+		bp.logger.Panic().Msgf("%s: Hand %d %s verify failed. Seat %d rank string does not match the expected. Current rank: %s. Expected rank: %s.", bp.logPrefix, bp.game.handNum, bp.game.handStatus, bp.seatNo, actualRank, expectedRank)
 	}
+}
+
+func (bp *BotPlayer) decryptRankStr(rankStr string) string {
+	if !util.Env.IsEncryptionEnabled() {
+		return rankStr
+	}
+
+	decodedRankStr, err := encryption.B64DecodeString(rankStr)
+	if err != nil {
+		bp.logger.Panic().Msgf("%s: Unable to decode player rank string %s", bp.logPrefix, rankStr)
+	}
+	decrypted, err := encryption.DecryptWithUUIDStrKey(decodedRankStr, bp.EncryptionKey)
+	if err != nil {
+		bp.logger.Panic().Msgf("%s: Error [%s] while decrypting private hand message", bp.logPrefix, err)
+	}
+	return string(decrypted)
 }
 
 func (bp *BotPlayer) verifyNewHand(handNum uint32, newHand *game.NewHand) {
