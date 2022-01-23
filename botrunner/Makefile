@@ -175,9 +175,9 @@ gcp-login:
 #################
 
 # These images are downloaded.
-API_SERVER_IMAGE := $(REGISTRY)/api-server:0.7.184
+API_SERVER_IMAGE := $(REGISTRY)/api-server:0.7.191
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
-REDIS_IMAGE := $(REGISTRY)/redis:6.0.9
+REDIS_IMAGE := $(REGISTRY)/redis:6.2.6
 POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5
 
 TEST_DOCKER_NET := $(shell $(BUILD_HELPER)/get_local_docker_net.sh system_test)
