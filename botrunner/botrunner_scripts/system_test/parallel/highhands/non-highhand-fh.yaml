@@ -1,4 +1,4 @@
-app-game: High hand tracking (Quad)
+app-game: High hand tracking (Full House)
 
 club:
   name: Manchester Club
@@ -46,13 +46,13 @@ auto-play:
 hands:
   - setup:
       button-pos: 1
-      board: ["5d", "5s", "5h", "3s", "Ad"]
+      board: ["Ad", "As", "8h", "8s", "2d"]
       seat-cards:
         - seat: 1
-          cards: ["8s", "7c"]
+          cards: ["2s", "Ah"]
         - seat: 2
-          # 4oak but not HH rank (6c not used because the kicker is Ad from the board)
-          cards: ["5c", "6c"]
+          # Full House but not HH rank
+          cards: ["Ac", "Kd"]
         - seat: 3
           cards: ["9c", "8c"]
 

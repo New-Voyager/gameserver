@@ -7,7 +7,7 @@ set -e
 #
 # # SYSTEM_TEST_TIMEOUT_SEC:180
 #
-DEFAULT_TIMEOUT_SEC=${DEFAULT_TIMEOUT_SEC:-90}
+DEFAULT_TIMEOUT_SEC=${DEFAULT_TIMEOUT_SEC:-120}
 
 serial_scripts=(
     $(find . -path './botrunner_scripts/system_test/serial/*.yaml')
@@ -94,7 +94,7 @@ rm -rf test_log
 mkdir test_log
 for script in "${parallel_scripts[@]}"; do
     echo "Launching ${script}"
-    ( runscript $script ) > test_log/$(basename ${script}).log 2>&1 &
+    ( runscript $script ) > test_log/$(basename ${script})-${RANDOM}.log 2>&1 &
 done
 
 echo
