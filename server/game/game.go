@@ -956,6 +956,14 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 		boardCards[i] = uint32(card)
 	}
 
+	var board2Cards []uint32
+	if len(handState.Boards) >= 2 {
+		board2Cards = make([]uint32, len(handState.Boards[1].Cards))
+		for i, card := range handState.Boards[1].Cards {
+			board2Cards[i] = uint32(card)
+		}
+	}
+
 	pots := make([]float64, 0)
 	for _, pot := range handState.Pots {
 		pots = append(pots, pot.Pot)
@@ -988,21 +996,45 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 		boardCardsOut = boardCards[:4]
 
 	case HandStatus_RIVER:
+		boardCardsOut = boardCards
 	case HandStatus_RESULT:
+		boardCardsOut = boardCards
 	case HandStatus_SHOW_DOWN:
 		boardCardsOut = boardCards
 
 	default:
 		boardCardsOut = make([]uint32, 0)
 	}
+
+	var board2CardsOut []uint32
+	if len(board2Cards) >= 5 {
+		switch handState.CurrentState {
+		case HandStatus_FLOP:
+			board2CardsOut = board2Cards[:3]
+		case HandStatus_TURN:
+			board2CardsOut = board2Cards[:4]
+
+		case HandStatus_RIVER:
+			board2CardsOut = board2Cards
+		case HandStatus_RESULT:
+			board2CardsOut = board2Cards
+		case HandStatus_SHOW_DOWN:
+			board2CardsOut = boardCards
+
+		default:
+			board2CardsOut = make([]uint32, 0)
+		}
+	}
 	cardsStr := poker.CardsToString(boardCardsOut)
+	cards2Str := poker.CardsToString(board2CardsOut)
 
 	currentHandState := CurrentHandState{
 		HandNum:       handState.HandNum,
 		GameType:      handState.GameType,
 		CurrentRound:  handState.CurrentState,
 		BoardCards:    boardCardsOut,
-		BoardCards_2:  nil,
+		BoardCards_2:  board2CardsOut,
+		Cards2Str:     cards2Str,
 		CardsStr:      cardsStr,
 		Pots:          pots,
 		PotUpdates:    currentPot,
@@ -1030,7 +1062,7 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 		currentHandState.PlayersActed[uint32(seatNo)] = action
 	}
 
-	if playerSeatNo != 0 {
+	if playerSeatNo != 0 && len(g.PlayersInSeats) > 0 {
 		player := g.PlayersInSeats[playerSeatNo]
 		_, maskedCards := g.MaskCards(handState.GetPlayersCards()[playerSeatNo], player.GameTokenInt)
 		currentHandState.PlayerCards = fmt.Sprintf("%d", maskedCards)
