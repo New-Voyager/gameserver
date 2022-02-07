@@ -48,7 +48,7 @@ const (
 	HandDeal             string = "DEAL"
 	HandNewHand          string = "NEW_HAND"
 	HandNextAction       string = "NEXT_ACTION"
-	HandPlayerAction     string = "YOUR_ACTION"
+	HandYourAction       string = "YOUR_ACTION"
 	HandMsgAck           string = "MSG_ACK"
 	HandFlop             string = "FLOP"
 	HandTurn             string = "TURN"

@@ -97,7 +97,7 @@ func (p *Player) handleHandMessage(messageBytes []byte, message *HandMessage) {
 			p.onCardsDealt(messageBytes, message, msgItem)
 		} else if msgItem.MessageType == HandNextAction {
 			p.onNextAction(messageBytes, message, msgItem)
-		} else if msgItem.MessageType == HandPlayerAction && msgItem.GetSeatAction().SeatNo == p.SeatNo {
+		} else if msgItem.MessageType == HandYourAction && msgItem.GetSeatAction().SeatNo == p.SeatNo {
 			p.onPlayerAction(messageBytes, message, msgItem)
 		} else if msgItem.MessageType == HandNewHand {
 			p.onPlayerNewHand(messageBytes, message, msgItem)

@@ -1283,7 +1283,7 @@ func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error
 	}
 	// tell the next player to act
 	yourActionMsg := &HandMessageItem{
-		MessageType: HandPlayerAction,
+		MessageType: HandYourAction,
 		Content:     &HandMessageItem_SeatAction{SeatAction: handState.NextSeatAction},
 	}
 	player := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]

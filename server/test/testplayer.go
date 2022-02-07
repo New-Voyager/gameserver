@@ -135,7 +135,7 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 	}
 
 	if t.testObserver {
-		if msgItem.MessageType == game.HandPlayerAction ||
+		if msgItem.MessageType == game.HandYourAction ||
 			// handMessage.MessageType == game.HandNextAction ||
 			msgItem.MessageType == game.HandNewHand ||
 			msgItem.MessageType == game.HandResultMessage2 ||
@@ -191,7 +191,7 @@ func (t *TestPlayer) HandMessageFromGame(messageBytes []byte, handMessage *game.
 			}
 		}
 	} else {
-		if msgItem.MessageType == game.HandPlayerAction {
+		if msgItem.MessageType == game.HandYourAction {
 			t.yourAction = msgItem
 			// tell observer to consume
 			if t.observer != nil {

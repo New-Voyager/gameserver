@@ -38,7 +38,7 @@ func (g *Game) convertToClientUnits(message *HandMessage, outMsg *HandMessage) e
 			s2cPlayerActed(msgItem)
 		case HandNextAction:
 			s2cNextAction(msgItem)
-		case HandPlayerAction:
+		case HandYourAction:
 			s2cYourAction(msgItem)
 		case HandFlop:
 			s2cFlop(msgItem)
