@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"voyager.com/logging"
 	"voyager.com/server/poker"
@@ -1720,6 +1721,8 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 		nextAction.AllInAmount = allIn
 	}
 	nextAction.AvailableActions = availableActions
+
+	nextAction.ActionId = uuid.NewString()
 
 	return nextAction
 }
