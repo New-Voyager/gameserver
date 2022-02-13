@@ -192,17 +192,20 @@ func NewTestPokerGame(
 		Str(logging.GameCodeKey, gameCode).
 		Int(logging.TimerIDKey, 2).
 		Logger()
+
 	g.actionTimer2 = timer.NewActionTimer(&timer2Logger, g.queueActionTimeoutMsg, g.crashHandler)
 
 	networkCheckLogger := logging.GetZeroLogger("NetworkCheck", nil).
 		With().Uint64(logging.GameIDKey, gameID).
 		Str(logging.GameCodeKey, gameCode).
 		Logger()
+
 	g.networkCheck = networkcheck.NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, g.crashHandler, g.onClientConnLost, g.onClientConnRestored)
 
 	if g.isScriptTest {
 		g.initTestGameState()
 	}
+
 	return &g, nil
 }
 

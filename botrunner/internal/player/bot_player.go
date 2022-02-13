@@ -709,7 +709,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		//time.Sleep(1 * time.Second)
 		bp.game.table.playersActed = make(map[uint32]*game.PlayerActRound)
 
-	case game.HandPlayerAction:
+	case game.HandYourAction:
 		/* MessageType: YOUR_ACTION */
 		seatAction := msgItem.GetSeatAction()
 		seatNo := seatAction.GetSeatNo()
@@ -721,7 +721,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if err != nil {
 			// State transition failed due to unexpected YOUR_ACTION message. Possible cause is game server sent a duplicate
 			// YOUR_ACTION message as part of the crash recovery. Ignore the message.
-			bp.logger.Info().Msgf("%s: Ignoring unexpected %s message.", bp.logPrefix, game.HandPlayerAction)
+			bp.logger.Info().Msgf("%s: Ignoring unexpected %s message.", bp.logPrefix, game.HandYourAction)
 			break
 		}
 		bp.game.handStatus = message.GetHandStatus()
@@ -2630,6 +2630,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		resetTimer := game.ResetTimer{
 			SeatNo:       bp.seatNo,
 			RemainingSec: resetActionTimerToSec,
+			ActionId:     seatAction.ActionId,
 		}
 		resetTimerMsg := game.HandMessage{
 			GameCode:   bp.gameCode,
@@ -2654,6 +2655,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		extendTimer := game.ExtendTimer{
 			SeatNo:      bp.seatNo,
 			ExtendBySec: extendActionTimeoutBySec,
+			ActionId:    seatAction.ActionId,
 		}
 		extendTimerMsg := game.HandMessage{
 			GameCode:   bp.gameCode,
@@ -2706,9 +2708,10 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		}
 	} else {
 		handAction = game.HandAction{
-			SeatNo: bp.seatNo,
-			Action: nextAction,
-			Amount: nextAmt,
+			SeatNo:   bp.seatNo,
+			Action:   nextAction,
+			Amount:   nextAmt,
+			ActionId: seatAction.ActionId,
 		}
 	}
 	msgType := game.HandPlayerActed

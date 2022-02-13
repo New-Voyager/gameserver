@@ -16,18 +16,21 @@ type TimerMsg struct {
 	CanCheck         bool
 	ExpireAt         time.Time
 	RunItTwice       bool
+	ActionID         string
 }
 
 type TimerExtendMsg struct {
 	SeatNo   uint32
 	PlayerID uint64
 	ExtendBy time.Duration
+	ActionID string
 }
 
 type TimerResetTimeMsg struct {
 	SeatNo        uint32
 	PlayerID      uint64
 	RemainingTime time.Duration
+	ActionID      string
 }
 
 type ActionTimer struct {
@@ -166,6 +169,9 @@ func (a *ActionTimer) Extend(t TimerExtendMsg) (uint32, error) {
 	if t.PlayerID == 0 {
 		errMsgs = append(errMsgs, "invalid playerID")
 	}
+	if t.ActionID != a.currentTimerMsg.ActionID {
+		errMsgs = append(errMsgs, fmt.Sprintf("invalid action ID %s expected %s", t.ActionID, a.currentTimerMsg.ActionID))
+	}
 	if len(errMsgs) > 0 {
 		return 0, fmt.Errorf(strings.Join(errMsgs, "; "))
 	}
@@ -180,6 +186,9 @@ func (a *ActionTimer) ResetTime(t TimerResetTimeMsg) (uint32, error) {
 	}
 	if t.PlayerID == 0 {
 		errMsgs = append(errMsgs, "invalid playerID")
+	}
+	if t.ActionID != a.currentTimerMsg.ActionID {
+		errMsgs = append(errMsgs, fmt.Sprintf("invalid action ID %s expected %s", t.ActionID, a.currentTimerMsg.ActionID))
 	}
 	if len(errMsgs) > 0 {
 		return 0, fmt.Errorf(strings.Join(errMsgs, "; "))

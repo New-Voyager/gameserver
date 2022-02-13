@@ -239,7 +239,7 @@ func (h *TestHand) performBettingRound(t *TestDriver, bettingRound *game.Betting
 
 func (h *TestHand) waitForRunItTwicePrompt() {
 	lastHandMsgItem := h.getObserverLastHandMessageItem()
-	if lastHandMsgItem.MessageType == game.HandPlayerAction {
+	if lastHandMsgItem.MessageType == game.HandYourAction {
 		seatAction := lastHandMsgItem.GetSeatAction()
 		if seatAction.AvailableActions != nil && len(seatAction.AvailableActions) >= 1 {
 			if seatAction.AvailableActions[0] == game.ACTION_RUN_IT_TWICE_PROMPT {

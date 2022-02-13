@@ -99,7 +99,7 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 		SecondsTillTimesout: uint32(h.RunItTwiceTimeout),
 	}
 	player1MsgItem := &HandMessageItem{
-		MessageType: HandPlayerAction,
+		MessageType: HandYourAction,
 		Content:     &HandMessageItem_SeatAction{SeatAction: seatAction},
 	}
 	msgItems = append(msgItems, player1MsgItem)
@@ -112,7 +112,7 @@ func (g *Game) runItTwicePrompt(h *HandState) ([]*HandMessageItem, error) {
 		SecondsTillTimesout: uint32(h.RunItTwiceTimeout),
 	}
 	player2MsgItem := &HandMessageItem{
-		MessageType: HandPlayerAction,
+		MessageType: HandYourAction,
 		Content:     &HandMessageItem_SeatAction{SeatAction: seatAction},
 	}
 	msgItems = append(msgItems, player2MsgItem)

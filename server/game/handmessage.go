@@ -134,7 +134,7 @@ func (g *Game) onExtendTimer(playerMsg *HandMessage) error {
 		return fmt.Errorf("Too large value (%d) for extendBySec", extendBySec)
 	}
 	extendBy := time.Duration(extendBySec) * time.Second
-	remainingSec, err := g.extendTimer(seatNo, playerID, extendBy)
+	remainingSec, err := g.extendTimer(seatNo, playerID, extendBy, extendTimer.ActionId)
 	if err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func (g *Game) onResetCurrentTimer(playerMsg *HandMessage) error {
 	}
 	newRemainingSec := resetTimer.GetRemainingSec()
 	newRemainingTime := time.Duration(newRemainingSec) * time.Second
-	err = g.resetTime(seatNo, playerID, newRemainingTime)
+	err = g.resetTime(seatNo, playerID, newRemainingTime, resetTimer.ActionId)
 	if err != nil {
 		return err
 	}
@@ -348,7 +348,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 			}
 			player := handState.PlayersInSeats[nextSeatAction.SeatNo]
 			if nextSeatAction.ActionTimesoutAt != 0 {
-				g.resetTimer(nextSeatAction.SeatNo, player.PlayerId, canCheck, actionExpiresAt)
+				g.resetTimer(nextSeatAction.SeatNo, player.PlayerId, canCheck, actionExpiresAt, nextSeatAction.ActionId)
 			}
 			return nil
 		}
@@ -446,7 +446,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 func validatePlayerAction(playerMsg *HandMessage, actionMsg *HandMessageItem, handState *HandState, isScriptTest bool) error {
 	action := actionMsg.GetPlayerActed()
 	if action == nil {
-		errMsg := "Invalid action. Msg item does not containe playerActed"
+		errMsg := "Invalid action. Msg item does not contain playerActed"
 		return InvalidMessageError{Msg: errMsg}
 	}
 
@@ -470,6 +470,16 @@ func validatePlayerAction(playerMsg *HandMessage, actionMsg *HandMessageItem, ha
 				handState.NextSeatAction.SeatNo)
 			return InvalidMessageError{Msg: errMsg}
 		}
+
+		if action.ActionId != handState.NextSeatAction.ActionId && !isScriptTest {
+			errMsg := fmt.Sprintf("Action ID does not match the expected. ID=%s Expected=%s", action.ActionId, handState.NextSeatAction.ActionId)
+			// There was an issue where the client sent 2 action messages at the same time
+			// for the same player (a call followed by a bogus timeout/fold). The game processed
+			// the call but it was at the end of TURN and the same player was to be act first in RIVER,
+			// so the timeout message also got processed when the game moved to RIVER and the player got immeidately
+			// folded. This check is introduced so that the server can drop bogus actions such as this.
+			return InvalidMessageError{Msg: errMsg}
+		}
 	}
 
 	if (messageSeatNo == 0 || playerMsg.PlayerId == 0) && !isScriptTest {
@@ -477,7 +487,7 @@ func validatePlayerAction(playerMsg *HandMessage, actionMsg *HandMessageItem, ha
 		return InvalidMessageError{Msg: errMsg}
 	}
 
-	if !actionMsg.GetPlayerActed().GetTimedOut() {
+	if !action.GetTimedOut() {
 		if playerMsg.MessageId == "" && !isScriptTest {
 			b, err := protojson.Marshal(actionMsg)
 			var msgStr string
@@ -522,7 +532,7 @@ func validatePlayerAction(playerMsg *HandMessage, actionMsg *HandMessageItem, ha
 			}
 		}
 
-		seatNo := actionMsg.GetPlayerActed().GetSeatNo()
+		seatNo := action.GetSeatNo()
 		runItTwiceState := handState.GetRunItTwice()
 		if (seatNo == runItTwiceState.Seat1 && runItTwiceState.Seat1Responded) ||
 			(seatNo == runItTwiceState.Seat2 && runItTwiceState.Seat2Responded) {
@@ -1283,7 +1293,7 @@ func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error
 	}
 	// tell the next player to act
 	yourActionMsg := &HandMessageItem{
-		MessageType: HandPlayerAction,
+		MessageType: HandYourAction,
 		Content:     &HandMessageItem_SeatAction{SeatAction: handState.NextSeatAction},
 	}
 	player := handState.PlayersInSeats[handState.NextSeatAction.SeatNo]
@@ -1293,7 +1303,7 @@ func (g *Game) moveToNextAction(handState *HandState) ([]*HandMessageItem, error
 	// in case the client is unable to do that.
 	actionTimesoutAt := time.Now().Add(time.Duration(handState.ActionTime+g.timerCushionSec) * time.Second)
 	handState.NextSeatAction.ActionTimesoutAt = actionTimesoutAt.Unix()
-	g.resetTimer(handState.NextSeatAction.SeatNo, player.PlayerId, canCheck, actionTimesoutAt)
+	g.resetTimer(handState.NextSeatAction.SeatNo, player.PlayerId, canCheck, actionTimesoutAt, handState.NextSeatAction.ActionId)
 	allMsgItems = append(allMsgItems, yourActionMsg)
 
 	pots := make([]float64, 0)
