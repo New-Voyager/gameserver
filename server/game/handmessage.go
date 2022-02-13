@@ -470,6 +470,16 @@ func validatePlayerAction(playerMsg *HandMessage, actionMsg *HandMessageItem, ha
 				handState.NextSeatAction.SeatNo)
 			return InvalidMessageError{Msg: errMsg}
 		}
+
+		if action.ActionId != handState.NextSeatAction.ActionId && !isScriptTest {
+			errMsg := fmt.Sprintf("Action ID does not match the expected. ID=%s Expected=%s", action.ActionId, handState.NextSeatAction.ActionId)
+			// There was an issue where the client sent 2 action messages at the same time
+			// for the same player (a call followed by a bogus timeout/fold). The game processed
+			// the call but it was at the end of TURN and the same player was to be act first in RIVER,
+			// so the timeout message also got processed when the game moved to RIVER and the player got immeidately
+			// folded. This check is introduced so that the server can drop bogus actions such as this.
+			return InvalidMessageError{Msg: errMsg}
+		}
 	}
 
 	if (messageSeatNo == 0 || playerMsg.PlayerId == 0) && !isScriptTest {
@@ -502,16 +512,6 @@ func validatePlayerAction(playerMsg *HandMessage, actionMsg *HandMessageItem, ha
 		errMsg := "Unexpected player action. Hand is in show-down state"
 		// This can happen if the action was already processed, but the client is retrying
 		// because the acnowledgement got lost in the network.
-		return InvalidMessageError{Msg: errMsg}
-	}
-
-	if action.ActionId != handState.NextSeatAction.ActionId && !isScriptTest {
-		errMsg := fmt.Sprintf("Unexpected player action. Action ID does not match the expected. ID=%s Expected=%s", action.ActionId, handState.NextSeatAction.ActionId)
-		// There was an issue where the client sent 2 action messages at the same time
-		// for the same player (a call followed by a bogus timeout/fold). The game processed
-		// the call but it was at the end of TURN and the same player was to be act first in RIVER,
-		// so the timeout message also got processed when the game moved to RIVER and the player got immeidately
-		// folded. This check is introduced so that the server can drop bogus actions such as this.
 		return InvalidMessageError{Msg: errMsg}
 	}
 
