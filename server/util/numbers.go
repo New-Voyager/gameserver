@@ -2,14 +2,8 @@ package util
 
 import (
 	"fmt"
-	"hash/fnv"
 	"math"
-	"math/rand"
-
-	"voyager.com/logging"
 )
-
-var numbersLogger = logging.GetZeroLogger("util::numbers", nil)
 
 const epsilon = 0.000001
 
@@ -107,14 +101,4 @@ func SplitDollars(totalAmt float64, numSplits int, splits []float64) {
 			remaining -= 100
 		}
 	}
-}
-
-func GenerateUint32Hash(data string) uint32 {
-	hash := fnv.New32()
-	_, err := hash.Write([]byte(data))
-	if err != nil {
-		numbersLogger.Warn().Msgf("Could not generate a uint32 hash from data (%s). Using a random number instead.", data)
-		return rand.Uint32()
-	}
-	return hash.Sum32()
 }

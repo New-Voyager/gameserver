@@ -31,7 +31,7 @@ message HandAction {
   uint32 action_time = 5;
   double stack = 6;        // player current stack (populated by game)
   double pot_updates = 7;  // pot updated by the action
-  uint32 action_id = 8;
+  string action_id = 8;
 }
 
 message HandActionLog {
@@ -45,13 +45,13 @@ message ExtendTimer {
   uint32 seat_no = 1;
   uint32 extend_by_sec = 2;
   uint32 remaining_sec = 3;
-  uint32 action_id = 4;
+  string action_id = 4;
 }
 
 message ResetTimer {
   uint32 seat_no = 1;
   uint32 remaining_sec = 2;
-  uint32 action_id = 3;
+  string action_id = 3;
 }
 
 message BetRaiseOption {
@@ -74,7 +74,7 @@ message NextSeatAction {
   int64 actionTimesoutAt = 12;   // Unix time that the player's action times out
   uint32 secondsTillTimesout = 13;  // Seconds left until the player's action times out
   double seatInSoFar = 14;       // amount of chips this seat put in this round
-  uint32 actionId = 15;          // Unique identifier for this action agreed between the server and the client used for filtering bogus messages
+  string actionId = 15;          // Unique identifier for this action agreed between the server and the client used for filtering bogus messages
 }
 
 message PlayerInSeatState {

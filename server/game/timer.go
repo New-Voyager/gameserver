@@ -8,7 +8,7 @@ import (
 	"voyager.com/server/timer"
 )
 
-func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireAt time.Time, actionID uint32) {
+func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireAt time.Time, actionID string) {
 	g.logger.Debug().
 		Msgf("Resetting timer. Current timer seat: %d, player ID: %d, expires at %s (%.3f seconds from now)", seatNo, playerID, expireAt.Format(time.RFC3339), expireAt.Sub(time.Now()).Seconds())
 	g.actionTimer.NewAction(timer.TimerMsg{
@@ -23,7 +23,7 @@ func (g *Game) resetTimer(seatNo uint32, playerID uint64, canCheck bool, expireA
 	})
 }
 
-func (g *Game) resetTime(seatNo uint32, playerID uint64, remainingTime time.Duration, actionID uint32) error {
+func (g *Game) resetTime(seatNo uint32, playerID uint64, remainingTime time.Duration, actionID string) error {
 	g.logger.Debug().
 		Msgf("Resetting time for the current timer. Seat: %d, player ID: %d, remaining: %s", seatNo, playerID, remainingTime)
 	_, err := g.actionTimer.ResetTime(timer.TimerResetTimeMsg{
@@ -35,7 +35,7 @@ func (g *Game) resetTime(seatNo uint32, playerID uint64, remainingTime time.Dura
 	return err
 }
 
-func (g *Game) extendTimer(seatNo uint32, playerID uint64, extendBy time.Duration, actionID uint32) (uint32, error) {
+func (g *Game) extendTimer(seatNo uint32, playerID uint64, extendBy time.Duration, actionID string) (uint32, error) {
 	g.logger.Debug().
 		Msgf("Extending timer. Seat: %d, Extend by %s", seatNo, extendBy)
 	return g.actionTimer.Extend(timer.TimerExtendMsg{
