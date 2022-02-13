@@ -472,7 +472,7 @@ func validatePlayerAction(playerMsg *HandMessage, actionMsg *HandMessageItem, ha
 		}
 
 		if action.ActionId != handState.NextSeatAction.ActionId && !isScriptTest {
-			errMsg := fmt.Sprintf("Action ID does not match the expected. ID=%d Expected=%d", action.ActionId, handState.NextSeatAction.ActionId)
+			errMsg := fmt.Sprintf("Action ID does not match the expected. ID=%s Expected=%s", action.ActionId, handState.NextSeatAction.ActionId)
 			// There was an issue where the client sent 2 action messages at the same time
 			// for the same player (a call followed by a bogus timeout/fold). The game processed
 			// the call but it was at the end of TURN and the same player was to be act first in RIVER,
