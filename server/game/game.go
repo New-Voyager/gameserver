@@ -184,7 +184,6 @@ func NewTestPokerGame(
 		Str(logging.GameCodeKey, gameCode).
 		Int(logging.TimerIDKey, 1).
 		Logger()
-	fmt.Printf("NewTestPokerGame 1\n")
 	g.actionTimer = timer.NewActionTimer(&timer1Logger, g.queueActionTimeoutMsg, g.crashHandler)
 
 	// Timer 2 is used for run-it-twice player 2.
@@ -194,7 +193,6 @@ func NewTestPokerGame(
 		Int(logging.TimerIDKey, 2).
 		Logger()
 
-	fmt.Printf("NewTestPokerGame 2\n")
 	g.actionTimer2 = timer.NewActionTimer(&timer2Logger, g.queueActionTimeoutMsg, g.crashHandler)
 
 	networkCheckLogger := logging.GetZeroLogger("NetworkCheck", nil).
@@ -202,14 +200,12 @@ func NewTestPokerGame(
 		Str(logging.GameCodeKey, gameCode).
 		Logger()
 
-	fmt.Printf("NewTestPokerGame 3\n")
 	g.networkCheck = networkcheck.NewNetworkCheck(&networkCheckLogger, g.gameID, g.gameCode, g.crashHandler, g.onClientConnLost, g.onClientConnRestored)
 
 	if g.isScriptTest {
 		g.initTestGameState()
 	}
 
-	fmt.Printf("NewTestPokerGame 4\n")
 	return &g, nil
 }
 
