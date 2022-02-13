@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"voyager.com/logging"
 	"voyager.com/server/poker"
@@ -1722,7 +1721,11 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 	}
 	nextAction.AvailableActions = availableActions
 
-	nextAction.ActionId = uuid.NewString()
+	// Generate the action ID deterministically instead of a randomly in case the server crashes
+	// between sending YOUR_ACTION and persisting the hand state. When the server comes back from
+	// the crash, it will generate and store the same action ID in the hand state this way
+	// and successfully validate the client action generated from the action ID before the crash.
+	nextAction.ActionId = util.GenerateUint32Hash(fmt.Sprintf("%d|%s|%d|%d", h.HandNum, h.CurrentState, actionSeat, h.CurrentActionNum+1))
 
 	return nextAction
 }

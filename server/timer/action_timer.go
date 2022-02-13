@@ -16,21 +16,21 @@ type TimerMsg struct {
 	CanCheck         bool
 	ExpireAt         time.Time
 	RunItTwice       bool
-	ActionID         string
+	ActionID         uint32
 }
 
 type TimerExtendMsg struct {
 	SeatNo   uint32
 	PlayerID uint64
 	ExtendBy time.Duration
-	ActionID string
+	ActionID uint32
 }
 
 type TimerResetTimeMsg struct {
 	SeatNo        uint32
 	PlayerID      uint64
 	RemainingTime time.Duration
-	ActionID      string
+	ActionID      uint32
 }
 
 type ActionTimer struct {
