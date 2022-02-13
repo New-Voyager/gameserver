@@ -2630,6 +2630,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		resetTimer := game.ResetTimer{
 			SeatNo:       bp.seatNo,
 			RemainingSec: resetActionTimerToSec,
+			ActionId:     seatAction.ActionId,
 		}
 		resetTimerMsg := game.HandMessage{
 			GameCode:   bp.gameCode,
@@ -2654,6 +2655,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		extendTimer := game.ExtendTimer{
 			SeatNo:      bp.seatNo,
 			ExtendBySec: extendActionTimeoutBySec,
+			ActionId:    seatAction.ActionId,
 		}
 		extendTimerMsg := game.HandMessage{
 			GameCode:   bp.gameCode,
@@ -2706,9 +2708,10 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		}
 	} else {
 		handAction = game.HandAction{
-			SeatNo: bp.seatNo,
-			Action: nextAction,
-			Amount: nextAmt,
+			SeatNo:   bp.seatNo,
+			Action:   nextAction,
+			Amount:   nextAmt,
+			ActionId: seatAction.ActionId,
 		}
 	}
 	msgType := game.HandPlayerActed
