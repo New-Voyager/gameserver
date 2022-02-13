@@ -10,6 +10,7 @@ import (
 	"voyager.com/logging"
 	"voyager.com/server/poker"
 	"voyager.com/server/util"
+	"voyager.com/server/util/hashing"
 )
 
 var handLogger = logging.GetZeroLogger("game::hand", nil)
@@ -1725,7 +1726,7 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 	// between sending YOUR_ACTION and persisting the hand state. When the server comes back from
 	// the crash, it will generate and store the same action ID in the hand state this way
 	// and successfully validate the client action generated from the action ID before the crash.
-	nextAction.ActionId = fmt.Sprintf("%d|%s|%d|%d", h.HandNum, h.CurrentState, actionSeat, h.CurrentActionNum+1)
+	nextAction.ActionId = hashing.GenerateStringHash(fmt.Sprintf("%d|%s|%d|%d", h.HandNum, h.CurrentState, actionSeat, h.CurrentActionNum+1))
 
 	return nextAction
 }
