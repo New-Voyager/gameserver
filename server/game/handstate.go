@@ -73,55 +73,6 @@ func (h *HandState) initializeBettingRound() {
 	h.resetPlayerActions()
 }
 
-// func (h *HandState) boardOld(deck *poker.Deck) []byte {
-// 	board := make([]byte, 5)
-// 	// setup board 1
-// 	if h.BurnCards {
-// 		deck.Draw(1)
-// 		h.DeckIndex++
-// 	}
-
-// 	cards := deck.Draw(3)
-// 	h.DeckIndex += 3
-// 	//fmt.Printf("Flop Cards: ")
-// 	for i, card := range cards {
-// 		board[i] = card.GetByte()
-// 		// fmt.Printf("%s", poker.CardToString(uint32(card.GetByte())))
-// 	}
-// 	// fmt.Printf("\n")
-
-// 	// var burnCard uint32
-// 	if h.BurnCards {
-// 		// burn card
-// 		cards = deck.Draw(1)
-// 		// burnCard = uint32(cards[0].GetByte())
-// 		// fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
-// 		h.DeckIndex++
-// 	}
-
-// 	// turn card
-// 	cards = deck.Draw(1)
-// 	h.DeckIndex++
-// 	board[3] = cards[0].GetByte()
-// 	//fmt.Printf("Turn card: %s\n", poker.CardToString(cards[0]))
-
-// 	// burn card
-// 	if h.BurnCards {
-// 		cards = deck.Draw(1)
-// 		h.DeckIndex++
-// 		// burnCard = uint32(cards[0].GetByte())
-// 		// fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
-// 	}
-
-// 	// river card
-// 	cards = deck.Draw(1)
-// 	h.DeckIndex++
-// 	board[4] = cards[0].GetByte()
-// 	//fmt.Printf("River card: %s\n", poker.CardToString(board[4]))
-
-// 	return board
-// }
-
 // WARNING: Keep this method idempotent (no mutate HandState). It could get retried in case of reshuffle.
 func (h *HandState) board(deck *poker.Deck) ([]poker.Card, int) {
 	numCardsUsed := 0
