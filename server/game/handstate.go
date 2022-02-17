@@ -347,8 +347,8 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 				poker.NewCard(testHandSetup.River),
 				false /* burn card */)
 		}
-		h.Deck = deck.GetBytes()
 		playerCardsMap, b1Cards, b2Cards, numCardsUsed = h.pickScriptedCardsFromDeck(deck, testHandSetup.PlayerCardsBySeat)
+		h.Deck = deck.GetBytes()
 	}
 
 	h.DeckIndex = uint32(numCardsUsed)
