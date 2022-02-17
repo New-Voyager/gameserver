@@ -13,6 +13,18 @@ import (
 	"voyager.com/server/util/hashing"
 )
 
+const (
+	// https://wizardofodds.com/games/poker/
+	// Probability is assuming 4-player hand.
+	// Probability of Straight Flush in a 4-player hand = 0.001058
+	// Same for 4OK = 0.005998
+	// The following constants represent the minimum number of hands that must be played until the next high hand can appear.
+	// For example we will allow no more than one straight flush every minHandsForStraightFlush hands.
+	// If we have not reached the first minHandsForStraightFlush hands, no straight flush will be allowed.
+	minHandsForStraightFlush = 945 // 1/0.001058
+	minHandsFor4OK           = 166 // 1/0.005998
+)
+
 var handLogger = logging.GetZeroLogger("game::hand", nil)
 var preFlopBets = []int{3, 5, 10}     // big blinds
 var postFlopBets = []int{30, 50, 100} // % of pot
@@ -60,55 +72,6 @@ func (h *HandState) initializeBettingRound() {
 	}
 	h.resetPlayerActions()
 }
-
-// func (h *HandState) boardOld(deck *poker.Deck) []byte {
-// 	board := make([]byte, 5)
-// 	// setup board 1
-// 	if h.BurnCards {
-// 		deck.Draw(1)
-// 		h.DeckIndex++
-// 	}
-
-// 	cards := deck.Draw(3)
-// 	h.DeckIndex += 3
-// 	//fmt.Printf("Flop Cards: ")
-// 	for i, card := range cards {
-// 		board[i] = card.GetByte()
-// 		// fmt.Printf("%s", poker.CardToString(uint32(card.GetByte())))
-// 	}
-// 	// fmt.Printf("\n")
-
-// 	// var burnCard uint32
-// 	if h.BurnCards {
-// 		// burn card
-// 		cards = deck.Draw(1)
-// 		// burnCard = uint32(cards[0].GetByte())
-// 		// fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
-// 		h.DeckIndex++
-// 	}
-
-// 	// turn card
-// 	cards = deck.Draw(1)
-// 	h.DeckIndex++
-// 	board[3] = cards[0].GetByte()
-// 	//fmt.Printf("Turn card: %s\n", poker.CardToString(cards[0]))
-
-// 	// burn card
-// 	if h.BurnCards {
-// 		cards = deck.Draw(1)
-// 		h.DeckIndex++
-// 		// burnCard = uint32(cards[0].GetByte())
-// 		// fmt.Printf("Burn Card: %s\n", poker.CardToString(burnCard))
-// 	}
-
-// 	// river card
-// 	cards = deck.Draw(1)
-// 	h.DeckIndex++
-// 	board[4] = cards[0].GetByte()
-// 	//fmt.Printf("River card: %s\n", poker.CardToString(board[4]))
-
-// 	return board
-// }
 
 // WARNING: Keep this method idempotent (no mutate HandState). It could get retried in case of reshuffle.
 func (h *HandState) board(deck *poker.Deck) ([]poker.Card, int) {
@@ -328,6 +291,15 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	if testHandSetup == nil || testHandSetup.PlayerCards == nil {
 		// Real game or auto-play script.
 		playerCardsMap, b1Cards, b2Cards, deck, numCardsUsed = h.shuffleAndPickCards()
+		reshuffles := 0
+		for reshuffles < 10 && TooManyHighHands(newHandInfo, h.GameType, playerCardsMap, b1Cards, b2Cards) {
+			reshuffles++
+			handLogger.Debug().
+				Uint64(logging.GameIDKey, h.GetGameId()).
+				Uint32(logging.HandNumKey, h.GetHandNum()).
+				Msgf("Reshuffling for too many high hands. TotalHands=%d StraightFlushCount=%d FourKindCount=%d minHandsForStraightFlush=%d minHandsFor4OK=%d", newHandInfo.TotalHands, newHandInfo.StraightFlushCount, newHandInfo.FourKindCount, minHandsForStraightFlush, minHandsFor4OK)
+			playerCardsMap, b1Cards, b2Cards, deck, numCardsUsed = h.shuffleAndPickCards()
+		}
 		h.Deck = deck.GetBytes()
 	} else {
 		// running script test, botrunner script, etc.
@@ -347,6 +319,8 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 				poker.NewCard(testHandSetup.River),
 				false /* burn card */)
 		}
+
+		// Ordering of the following 2 lines seems significant for run-it-twice unit tests.
 		h.Deck = deck.GetBytes()
 		playerCardsMap, b1Cards, b2Cards, numCardsUsed = h.pickScriptedCardsFromDeck(deck, testHandSetup.PlayerCardsBySeat)
 	}
@@ -399,6 +373,42 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	// setup hand for preflop
 	h.setupPreflop(postedBlinds)
 	return nil
+}
+
+func TooManyHighHands(newHandInfo *NewHandInfo, gameType GameType, playerCards map[uint32][]poker.Card, b1Cards []poker.Card, b2Cards []poker.Card) bool {
+	if AnyoneHasHighHand(playerCards, b1Cards, gameType, poker.MaxStraightFlush) ||
+		AnyoneHasHighHand(playerCards, b2Cards, gameType, poker.MaxStraightFlush) {
+		if newHandInfo.TotalHands < newHandInfo.StraightFlushCount {
+			handLogger.Warn().Msgf("newHandInfo.TotalHands < newHandInfo.StraightFlushCount (%d < %d)", newHandInfo.TotalHands, newHandInfo.StraightFlushCount)
+			return true
+		}
+		if newHandInfo.TotalHands < minHandsForStraightFlush {
+			return true
+		}
+		if newHandInfo.StraightFlushCount == 0 {
+			return false
+		}
+		handsPerSF := (newHandInfo.TotalHands - minHandsForStraightFlush) / newHandInfo.StraightFlushCount
+		return handsPerSF < minHandsForStraightFlush
+	}
+
+	if AnyoneHasHighHand(playerCards, b1Cards, gameType, poker.MaxFourOfAKind) ||
+		AnyoneHasHighHand(playerCards, b2Cards, gameType, poker.MaxFourOfAKind) {
+		if newHandInfo.TotalHands < newHandInfo.FourKindCount {
+			handLogger.Warn().Msgf("newHandInfo.TotalHands < newHandInfo.FourKindCount (%d < %d)", newHandInfo.TotalHands, newHandInfo.FourKindCount)
+			return true
+		}
+		if newHandInfo.TotalHands < minHandsFor4OK {
+			return true
+		}
+		if newHandInfo.FourKindCount == 0 {
+			return false
+		}
+		handsPer4OK := (newHandInfo.TotalHands - minHandsFor4OK) / newHandInfo.FourKindCount
+		return handsPer4OK < minHandsFor4OK
+	}
+
+	return false
 }
 
 func (h *HandState) shuffleAndPickCards() (map[uint32][]poker.Card, []poker.Card, []poker.Card, *poker.Deck, int) {
