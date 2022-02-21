@@ -135,7 +135,7 @@ docker-build: compile-proto
 		rsync -avu --delete $(PROJECT_ROOT)/caching/ build/caching; \
 		rsync -avu --delete $(PROJECT_ROOT)/logging/ build/logging; \
 	fi
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(GAME_SERVER_IMAGE)
+	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(GAME_SERVER_IMAGE) --network host
 	rm -rf build/
 
 .PHONY: create-network

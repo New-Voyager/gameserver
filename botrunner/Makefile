@@ -71,7 +71,7 @@ docker-build: compile-proto
 		rsync -avu --delete $(PROJECT_ROOT)/caching/ build/caching; \
 		rsync -avu --delete $(PROJECT_ROOT)/logging/ build/logging; \
 	fi
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(BOTRUNNER_IMAGE)
+	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(BOTRUNNER_IMAGE) --network host
 	rm -rf build/
 
 .PHONY: build
@@ -175,7 +175,7 @@ gcp-login:
 #################
 
 # These images are downloaded.
-API_SERVER_IMAGE := $(REGISTRY)/api-server:0.7.204
+API_SERVER_IMAGE := $(REGISTRY)/api-server:0.7.208
 NATS_SERVER_IMAGE := $(REGISTRY)/nats:2.1.7-alpine3.11
 REDIS_IMAGE := $(REGISTRY)/redis:6.2.6
 POSTGRES_IMAGE := $(REGISTRY)/postgres:12.5

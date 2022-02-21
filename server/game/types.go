@@ -341,33 +341,38 @@ export interface NewHandInfo {
   playersInSeats: Array<PlayerInSeat>;
 }*/
 type NewHandInfo struct {
-	GameID            uint64 `json:"gameId"`
-	GameCode          string
-	GameType          GameType
-	MaxPlayers        uint32
-	SmallBlind        float64
-	BigBlind          float64
-	Ante              float64
-	ButtonPos         uint32
-	HandNum           uint32
-	ActionTime        uint32
-	StraddleBet       float64
-	ChipUnit          ChipUnit
-	RakePercentage    float64
-	RakeCap           float64
-	AnnounceGameType  bool
-	PlayersInSeats    []SeatPlayer
-	GameStatus        GameStatus
-	TableStatus       TableStatus
-	SbPos             uint32
-	BbPos             uint32
-	ResultPauseTime   uint32
-	BombPot           bool
-	DoubleBoard       bool
-	BombPotBet        float64
-	BringIn           float64
-	RunItTwiceTimeout uint32
-	HighHandRank      uint32
-	HighHandTracked   bool
-	MandatoryStraddle bool
+	GameID               uint64 `json:"gameId"`
+	GameCode             string
+	GameType             GameType
+	MaxPlayers           uint32
+	SmallBlind           float64
+	BigBlind             float64
+	Ante                 float64
+	ButtonPos            uint32
+	HandNum              uint32
+	ActionTime           uint32
+	StraddleBet          float64
+	ChipUnit             ChipUnit
+	RakePercentage       float64
+	RakeCap              float64
+	AnnounceGameType     bool
+	PlayersInSeats       []SeatPlayer
+	GameStatus           GameStatus
+	TableStatus          TableStatus
+	SbPos                uint32
+	BbPos                uint32
+	ResultPauseTime      uint32
+	BombPot              bool
+	DoubleBoard          bool
+	BombPotBet           float64
+	BringIn              float64
+	RunItTwiceTimeout    uint32
+	HighHandRank         uint32
+	HighHandTracked      bool
+	MandatoryStraddle    bool
+	TotalHands           int
+	StraightFlushCount   int
+	FourKindCount        int
+	StraightFlushAllowed bool
+	FourKindAllowed      bool
 }
