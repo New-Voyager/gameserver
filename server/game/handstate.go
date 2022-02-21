@@ -13,18 +13,6 @@ import (
 	"voyager.com/server/util/hashing"
 )
 
-const (
-	// https://wizardofodds.com/games/poker/
-	// Probability is assuming 4-player hand.
-	// Probability of Straight Flush in a 4-player hand = 0.001058
-	// Same for 4OK = 0.005998
-	// The following constants represent the minimum number of hands that must be played until the next high hand can appear.
-	// For example we will allow no more than one straight flush every minHandsForStraightFlush hands.
-	// If we have not reached the first minHandsForStraightFlush hands, no straight flush will be allowed.
-	minHandsForStraightFlush = 945 // 1/0.001058
-	minHandsFor4OK           = 166 // 1/0.005998
-)
-
 var handLogger = logging.GetZeroLogger("game::hand", nil)
 var preFlopBets = []int{3, 5, 10}     // big blinds
 var postFlopBets = []int{30, 50, 100} // % of pot
@@ -297,7 +285,7 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 			handLogger.Debug().
 				Uint64(logging.GameIDKey, h.GetGameId()).
 				Uint32(logging.HandNumKey, h.GetHandNum()).
-				Msgf("Reshuffling for too many high hands. TotalHands=%d StraightFlushCount=%d FourKindCount=%d minHandsForStraightFlush=%d minHandsFor4OK=%d", newHandInfo.TotalHands, newHandInfo.StraightFlushCount, newHandInfo.FourKindCount, minHandsForStraightFlush, minHandsFor4OK)
+				Msgf("Reshuffling for too many high hands. TotalHands=%d StraightFlushCount=%d FourKindCount=%d StraightFlushAllowed=%v FourKindAllowed=%v", newHandInfo.TotalHands, newHandInfo.StraightFlushCount, newHandInfo.FourKindCount, newHandInfo.StraightFlushAllowed, newHandInfo.FourKindAllowed)
 			playerCardsMap, b1Cards, b2Cards, deck, numCardsUsed = h.shuffleAndPickCards()
 		}
 		h.Deck = deck.GetBytes()
@@ -376,36 +364,14 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 }
 
 func TooManyHighHands(newHandInfo *NewHandInfo, gameType GameType, playerCards map[uint32][]poker.Card, b1Cards []poker.Card, b2Cards []poker.Card) bool {
-	if AnyoneHasHighHand(playerCards, b1Cards, gameType, poker.MaxStraightFlush) ||
-		AnyoneHasHighHand(playerCards, b2Cards, gameType, poker.MaxStraightFlush) {
-		if newHandInfo.TotalHands < newHandInfo.StraightFlushCount {
-			handLogger.Warn().Msgf("newHandInfo.TotalHands < newHandInfo.StraightFlushCount (%d < %d)", newHandInfo.TotalHands, newHandInfo.StraightFlushCount)
-			return true
-		}
-		if newHandInfo.TotalHands < minHandsForStraightFlush {
-			return true
-		}
-		if newHandInfo.StraightFlushCount == 0 {
-			return false
-		}
-		handsPerSF := (newHandInfo.TotalHands - minHandsForStraightFlush) / newHandInfo.StraightFlushCount
-		return handsPerSF < minHandsForStraightFlush
+	if !newHandInfo.StraightFlushAllowed {
+		return AnyoneHasHighHand(playerCards, b1Cards, gameType, poker.MaxStraightFlush) ||
+			AnyoneHasHighHand(playerCards, b2Cards, gameType, poker.MaxStraightFlush)
 	}
 
-	if AnyoneHasHighHand(playerCards, b1Cards, gameType, poker.MaxFourOfAKind) ||
-		AnyoneHasHighHand(playerCards, b2Cards, gameType, poker.MaxFourOfAKind) {
-		if newHandInfo.TotalHands < newHandInfo.FourKindCount {
-			handLogger.Warn().Msgf("newHandInfo.TotalHands < newHandInfo.FourKindCount (%d < %d)", newHandInfo.TotalHands, newHandInfo.FourKindCount)
-			return true
-		}
-		if newHandInfo.TotalHands < minHandsFor4OK {
-			return true
-		}
-		if newHandInfo.FourKindCount == 0 {
-			return false
-		}
-		handsPer4OK := (newHandInfo.TotalHands - minHandsFor4OK) / newHandInfo.FourKindCount
-		return handsPer4OK < minHandsFor4OK
+	if !newHandInfo.FourKindAllowed {
+		return AnyoneHasHighHand(playerCards, b1Cards, gameType, poker.MaxFourOfAKind) ||
+			AnyoneHasHighHand(playerCards, b2Cards, gameType, poker.MaxFourOfAKind)
 	}
 
 	return false
