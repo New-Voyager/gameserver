@@ -1722,6 +1722,12 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 	}
 	nextAction.AvailableActions = availableActions
 
+	totalPot := float64(0)
+	for _, pot := range h.Pots {
+		totalPot += pot.Pot
+	}
+	nextAction.PotAmount = totalPot
+
 	// Generate the action ID deterministically instead of a randomly in case the server crashes
 	// between sending YOUR_ACTION and persisting the hand state. When the server comes back from
 	// the crash, it will generate and store the same action ID in the hand state this way

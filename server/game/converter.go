@@ -138,6 +138,7 @@ func convertNextSeatAction(a *NextSeatAction) {
 	for _, bo := range a.BetOptions {
 		bo.Amount = util.CentsToChips(bo.Amount)
 	}
+	a.PotAmount = util.CentsToChips(a.PotAmount)
 }
 
 func s2cNextAction(msgItem *HandMessageItem) {

@@ -75,6 +75,7 @@ message NextSeatAction {
   uint32 secondsTillTimesout = 13;  // Seconds left until the player's action times out
   double seatInSoFar = 14;       // amount of chips this seat put in this round
   string actionId = 15;          // Unique identifier for this action agreed between the server and the client used for filtering bogus messages
+  double potAmount = 16;         // total pot amount 
 }
 
 message PlayerInSeatState {
