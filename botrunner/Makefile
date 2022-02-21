@@ -71,7 +71,7 @@ docker-build: compile-proto
 		rsync -avu --delete $(PROJECT_ROOT)/caching/ build/caching; \
 		rsync -avu --delete $(PROJECT_ROOT)/logging/ build/logging; \
 	fi
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(BOTRUNNER_IMAGE)
+	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(BOTRUNNER_IMAGE) --network host
 	rm -rf build/
 
 .PHONY: build

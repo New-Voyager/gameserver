@@ -22,7 +22,7 @@ docker-build:
 	else \
 		rsync -avu --delete $(PROJECT_ROOT)/logging/ build/logging; \
 	fi
-	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(SCHEDULER_IMAGE)
+	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build . -t $(SCHEDULER_IMAGE) --network host
 	rm -rf build/
 
 .PHONY: build
