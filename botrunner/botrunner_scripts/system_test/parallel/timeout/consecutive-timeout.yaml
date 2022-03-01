@@ -1,4 +1,4 @@
-# SYSTEM_TEST_TIMEOUT_SEC:240
+# SYSTEM_TEST_TIMEOUT_SEC:300
 
 app-game: Three Pots Game
 
