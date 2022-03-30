@@ -17,10 +17,11 @@ type HumanGame struct {
 	gameCode string
 	gameID   uint64
 	instance *driver.BotRunner
+	demoGame bool
 }
 
 // NewHumanGame creates a new instance of HumanGame.
-func NewHumanGame(clubCode string, gameID uint64, gameCode string, players *gamescript.Players, script *gamescript.Script) (*HumanGame, error) {
+func NewHumanGame(clubCode string, gameID uint64, gameCode string, players *gamescript.Players, script *gamescript.Script, demoGame bool) (*HumanGame, error) {
 	logger := logging.GetZeroLogger("HumanGame", nil).With().
 		Uint64(logging.GameIDKey, gameID).
 		Str(logging.GameCodeKey, gameCode).
@@ -33,6 +34,7 @@ func NewHumanGame(clubCode string, gameID uint64, gameCode string, players *game
 		clubCode: clubCode,
 		gameCode: gameCode,
 		gameID:   gameID,
+		demoGame: demoGame,
 	}
 	return &b, nil
 }
@@ -53,7 +55,7 @@ func (b *HumanGame) Launch() error {
 	if b.clubCode == "" {
 		playerGame = true
 	}
-	botRunner, err := driver.NewBotRunner(b.clubCode, b.gameCode, b.script, b.players, &botRunnerLogger, &botPlayerLogger, false, playerGame)
+	botRunner, err := driver.NewBotRunner(b.clubCode, b.gameCode, b.script, b.players, &botRunnerLogger, &botPlayerLogger, false, playerGame, b.demoGame)
 	if err != nil {
 		errors.Wrap(err, "Error while creating a BotRunner")
 	}

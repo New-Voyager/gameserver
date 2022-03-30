@@ -41,10 +41,11 @@ type BotRunner struct {
 	shouldTerminate bool
 	resetDB         bool
 	playerGame      bool
+	demoGame        bool
 }
 
 // NewBotRunner creates new instance of BotRunner.
-func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, players *gamescript.Players, driverLogger *zerolog.Logger, playerLogger *zerolog.Logger, resetDB bool, playerGame bool) (*BotRunner, error) {
+func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, players *gamescript.Players, driverLogger *zerolog.Logger, playerLogger *zerolog.Logger, resetDB bool, playerGame bool, demoGame bool) (*BotRunner, error) {
 	natsURL := util.Env.GetNatsURL()
 	nc, err := natsgo.Connect(natsURL)
 	if err != nil {
@@ -71,6 +72,7 @@ func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, p
 		currentHandNum: 0,
 		resetDB:        resetDB,
 		playerGame:     playerGame,
+		demoGame:       demoGame,
 	}
 	return &d, nil
 }
@@ -518,11 +520,18 @@ func (br *BotRunner) RunOneGame() error {
 				continue
 			}
 			gameInfo = &gi
+
+			if br.demoGame {
+				if len(gi.SeatInfo.AvailableSeats) == 1 {
+					br.logger.Info().Msg("All seats are filled.")
+					break
+				}
+			}
 			if len(gi.SeatInfo.AvailableSeats) == 0 {
 				br.logger.Info().Msg("All seats are filled.")
 				break
 			}
-			err = br.bots[nextBotIdx].JoinUnscriptedGame(gameCode)
+			err = br.bots[nextBotIdx].JoinUnscriptedGame(gameCode, br.demoGame)
 			if err != nil {
 				br.logger.Error().Msgf("Bot %d unable to join game [%s]: %s", nextBotIdx, gameCode, err)
 				time.Sleep(1000 * time.Second)

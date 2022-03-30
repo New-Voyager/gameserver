@@ -2163,7 +2163,7 @@ func (bp *BotPlayer) autoReloadBalance() error {
 
 // JoinUnscriptedGame joins a game without using the yaml script. This is used for joining
 // a human-created game where you can freely grab whatever seat available.
-func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
+func (bp *BotPlayer) JoinUnscriptedGame(gameCode string, demoGame bool) error {
 	if !bp.config.Script.AutoPlay.Enabled {
 		return fmt.Errorf("%s: JoinUnscriptedGame called with a non-autoplay script", bp.logPrefix)
 	}
@@ -2176,6 +2176,9 @@ func (bp *BotPlayer) JoinUnscriptedGame(gameCode string) error {
 		return fmt.Errorf("%s: Unable to join game [%s]. Seats are full", bp.logPrefix, gameCode)
 	}
 	seatNo := bp.gameInfo.SeatInfo.AvailableSeats[0]
+	if demoGame {
+		seatNo = bp.gameInfo.SeatInfo.AvailableSeats[1]
+	}
 
 	bp.event(BotEvent__REQUEST_SIT)
 
