@@ -224,9 +224,9 @@ func getAppGameTitle(scriptFile string) (string, error) {
 
 func joinHumanGame(c *gin.Context) {
 	clubCode := c.Query("club-code")
-	if clubCode == "" {
-		c.String(400, "Failed to read club-code param from join-human-game endpoint")
-	}
+	// if clubCode == "" {
+	// 	//c.String(400, "Failed to read club-code param from join-human-game endpoint")
+	// }
 	gameCode := c.Query("game-code")
 	if gameCode == "" {
 		c.String(400, "Failed to read game-code param from join-human-game endpoint.")
@@ -241,6 +241,12 @@ func joinHumanGame(c *gin.Context) {
 	gameID, err := strconv.ParseUint(gameIDStr, 10, 64)
 	if err != nil {
 		c.String(400, "Failed to parse game-id [%s] from join-human-game endpoint.", gameIDStr)
+	}
+
+	demoGame := false
+	demoGameStr := c.Query("demo-game")
+	if demoGameStr != "" && demoGameStr == "true" {
+		demoGame = true
 	}
 
 	err = caches.GameCodeCache.Add(gameID, gameCode)
@@ -266,7 +272,7 @@ func joinHumanGame(c *gin.Context) {
 	}
 
 	launcher := GetLauncher()
-	err = launcher.JoinHumanGame(clubCode, gameID, gameCode, players, script)
+	err = launcher.JoinHumanGame(clubCode, gameID, gameCode, players, script, demoGame)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error while joining human game. Error: %s", err)
 		restLogger.Error().Msg(errMsg)

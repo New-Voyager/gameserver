@@ -105,7 +105,7 @@ func (b *BotRunnerBatch) mainLoop() {
 		botPlayerLogger := logging.GetZeroLogger("BotPlayer", f)
 
 		b.logger.Info().Msgf("Launching bot runner instance [%d]. Logging to %s.", nextInstanceNo, logFileName)
-		botRunner, err := driver.NewBotRunner("", "", b.script, b.players, botRunnerLogger, botPlayerLogger, false, false)
+		botRunner, err := driver.NewBotRunner("", "", b.script, b.players, botRunnerLogger, botPlayerLogger, false, false, false)
 		if err != nil {
 			b.logger.Error().Msgf("Error while creating a BotRunner: %s", err)
 			time.Sleep(2 * time.Second)
