@@ -152,23 +152,23 @@ run-redis: create-network
 	docker rm -f redis || true
 	docker run -d --name redis --network $(TEST_DOCKER_NET) -p 6379:6379 redis:$(REDIS_VERSION)
 
-.PHONY: run-server
-run-server: export PERSIST_METHOD=redis
-run-server: export REDIS_HOST=$(DEV_REDIS_HOST)
-run-server: export REDIS_PORT=$(DEV_REDIS_PORT)
-run-server: export REDIS_DB=$(DEV_REDIS_DB)
-run-server: export API_SERVER_INTERNAL_URL=$(DEV_API_SERVER_INTERNAL_URL)
-run-server: export NATS_URL=$(DEV_NATS_URL)
-run-server: export POSTGRES_HOST=$(DEV_POSTGRES_HOST)
-run-server: export POSTGRES_PORT=$(DEV_POSTGRES_PORT)
-run-server: export POSTGRES_CRASH_DB=$(DEV_POSTGRES_CRASH_DB)
-run-server: export POSTGRES_USER=$(DEV_POSTGRES_USER)
-run-server: export POSTGRES_PASSWORD=$(DEV_POSTGRES_PASSWORD)
-run-server: export ENABLE_ENCRYPTION=$(DEV_ENABLE_ENCRYPTION)
-run-server: export DISABLE_DELAYS=$(DEV_DISABLE_DELAYS)
-run-server: export LOG_LEVEL=$(DEV_LOG_LEVEL)
-run-server: export SYSTEM_TEST=$(DEV_SYSTEM_TEST)
-run-server:
+.PHONY: run
+run: export PERSIST_METHOD=redis
+run: export REDIS_HOST=$(DEV_REDIS_HOST)
+run: export REDIS_PORT=$(DEV_REDIS_PORT)
+run: export REDIS_DB=$(DEV_REDIS_DB)
+run: export API_SERVER_INTERNAL_URL=$(DEV_API_SERVER_INTERNAL_URL)
+run: export NATS_URL=$(DEV_NATS_URL)
+run: export POSTGRES_HOST=$(DEV_POSTGRES_HOST)
+run: export POSTGRES_PORT=$(DEV_POSTGRES_PORT)
+run: export POSTGRES_CRASH_DB=$(DEV_POSTGRES_CRASH_DB)
+run: export POSTGRES_USER=$(DEV_POSTGRES_USER)
+run: export POSTGRES_PASSWORD=$(DEV_POSTGRES_PASSWORD)
+run: export ENABLE_ENCRYPTION=$(DEV_ENABLE_ENCRYPTION)
+run: export DISABLE_DELAYS=$(DEV_DISABLE_DELAYS)
+run: export LOG_LEVEL=$(DEV_LOG_LEVEL)
+run: export SYSTEM_TEST=$(DEV_SYSTEM_TEST)
+run:
 	go run ./main.go --server
 
 .PHONY: docker-test-up

@@ -21,7 +21,7 @@ apiserver git:(master) make debug
 
 timer git:(master) make run
 scheduler git:(master) make run
-server git:(master) make run-server
+server git:(master) make run
 ```
 
 ### Botrunner (bots only)

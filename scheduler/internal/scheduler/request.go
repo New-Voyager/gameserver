@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	requestLogger = logging.GetZeroLogger("scheduler::request", nil)
-	APIServerURL  = util.Env.GetAPIServerInternalURL()
+	requestLogger         = logging.GetZeroLogger("scheduler::request", nil)
+	APIServerURL          = util.Env.GetAPIServerInternalURL()
+	generalHttpTimeoutSec = 10 * time.Second
 )
 
 func requestPostProcess(gameID uint64) ([]uint64, bool, error) {
@@ -141,6 +142,42 @@ func requestDataRetention() (dataRetentionResp, error) {
 	err = json.Unmarshal(bodyBytes, &body)
 	if err != nil {
 		return dataRetentionResp{}, errors.Wrap(err, "Unable to unmarshal json body")
+	}
+
+	return body, nil
+}
+
+type lobbyGamesResp struct{}
+
+func requestStartLobbyGames() (lobbyGamesResp, error) {
+	requestLogger.Info().Msgf("Requesting to start lobby games.")
+	httpClient := &http.Client{
+		Timeout: generalHttpTimeoutSec,
+	}
+	path := "/internal/refresh-lobby-games"
+	url := fmt.Sprintf("%s%s", APIServerURL, path)
+	resp, err := httpClient.Post(url, "application/json", nil)
+
+	if err != nil {
+		return lobbyGamesResp{}, errors.Wrap(err, "Error from http post")
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return lobbyGamesResp{}, errors.Wrapf(err, "Cannot read response from %s", url)
+	}
+	requestLogger.Debug().
+		Msgf("Response from %s: %s", url, string(bodyBytes))
+
+	if resp.StatusCode != http.StatusOK {
+		return lobbyGamesResp{}, fmt.Errorf("%s returned HTTP status %d", url, resp.StatusCode)
+	}
+
+	var body lobbyGamesResp
+	err = json.Unmarshal(bodyBytes, &body)
+	if err != nil {
+		return lobbyGamesResp{}, errors.Wrap(err, "Unable to unmarshal json body")
 	}
 
 	return body, nil

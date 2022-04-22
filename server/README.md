@@ -52,7 +52,7 @@ make run-redis
 # Run game server
 Run the game server.
 ```
-make run-server
+make run
 ```
 
 # Run bot testing
@@ -73,7 +73,7 @@ make run-redis
 # Run the game server and the bot.
 # Either run them from the shell using below commands
 # or run them from VS code for debugging.
-make run-server
+make run
 make run-bot
 
 # Stop and clean up the running containers.

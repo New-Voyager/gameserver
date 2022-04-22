@@ -45,6 +45,9 @@ func main() {
 	// Periodic clean up of data.
 	go scheduler.DataRetention()
 
+	// Start lobby games.
+	go scheduler.LobbyGames()
+
 	select {}
 }
 
