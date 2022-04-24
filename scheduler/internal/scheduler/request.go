@@ -149,7 +149,7 @@ func requestDataRetention() (dataRetentionResp, error) {
 
 type lobbyGamesResp struct{}
 
-func requestStartLobbyGames() (lobbyGamesResp, error) {
+func requestRefreshLobbyGames() (lobbyGamesResp, error) {
 	requestLogger.Info().Msgf("Requesting to start lobby games.")
 	httpClient := &http.Client{
 		Timeout: generalHttpTimeoutSec,

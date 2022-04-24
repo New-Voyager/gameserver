@@ -145,6 +145,10 @@ func (e *environment) GetDataRetentionIntervalMin() int {
 	return sec
 }
 
+func (e *environment) GetRefreshLobbyGamesIntervalMin() int {
+	return 5
+}
+
 func (e *environment) GetLogLevel() string {
 	v := os.Getenv(e.LogLevel)
 	if v == "" {
