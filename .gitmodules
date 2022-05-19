@@ -1,0 +1,3 @@
+[submodule "proto-shared"]
+	path = proto-shared
+	url = git@github.com:New-Voyager/protobuf.git
