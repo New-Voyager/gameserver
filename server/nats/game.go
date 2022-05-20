@@ -47,9 +47,11 @@ Test driver scenario:
 */
 
 type NatsGame struct {
-	logger   *zerolog.Logger
-	gameID   uint64
-	gameCode string
+	logger       *zerolog.Logger
+	gameID       uint64
+	gameCode     string
+	tournamentID uint64
+	tableNo      uint32
 
 	chEndGame    chan bool
 	chManageGame chan []byte
@@ -109,6 +111,61 @@ func newNatsGame(nc *natsgo.Conn, gameID uint64, gameCode string) (*NatsGame, er
 	}
 
 	serverGame, gameID, err := game.GameManager.InitializeGame(natsGame, gameID, gameCode)
+	if err != nil {
+		return nil, err
+	}
+	natsGame.serverGame = serverGame
+	err = natsGame.serverGame.GameStarted()
+	if err != nil {
+		return nil, err
+	}
+	return natsGame, nil
+}
+
+func newTournamentGame(nc *natsgo.Conn, tournamentID uint64, tableNo uint32, gameID uint64, gameCode string) (*NatsGame, error) {
+	logger := logging.GetZeroLogger("nats::NatsGame", nil).With().
+		Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
+		Logger()
+
+	// game subjects
+	game2AllPlayersSubject := GetGame2AllPlayerSubject(gameCode)
+
+	// hand subjects
+	player2HandSubject := GetPlayer2HandSubject(gameCode)
+	hand2AllPlayersSubject := GetHand2AllPlayerSubject(gameCode)
+
+	// we need to use the API to get the game configuration
+	natsGame := &NatsGame{
+		logger:                 &logger,
+		tournamentID:           tournamentID,
+		tableNo:                tableNo,
+		gameID:                 gameID,
+		gameCode:               gameCode,
+		chEndGame:              make(chan bool),
+		chManageGame:           make(chan []byte),
+		game2AllPlayersSubject: game2AllPlayersSubject,
+		hand2AllPlayersSubject: hand2AllPlayersSubject,
+		natsConn:               nc,
+		maxRetries:             10,
+		retryDelayMillis:       1500,
+	}
+
+	// subscribe to topics
+	var e error
+	natsGame.player2HandSubscription, e = nc.Subscribe(player2HandSubject, natsGame.player2Hand)
+	if e != nil {
+		return nil, errors.Wrapf(e, "Failed to subscribe to %s", player2HandSubject)
+	}
+
+	// for receiving ping response
+	clientAliveSubject := GetClientAliveSubject(gameCode)
+	natsGame.clientAliveSubscription, e = nc.Subscribe(clientAliveSubject, natsGame.clientAlive)
+	if e != nil {
+		return nil, errors.Wrapf(e, "Failed to subscribe to %s", clientAliveSubject)
+	}
+
+	serverGame, _, err := game.GameManager.InitializeGame(natsGame, gameID, gameCode)
 	if err != nil {
 		return nil, err
 	}

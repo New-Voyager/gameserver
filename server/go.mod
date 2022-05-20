@@ -55,6 +55,10 @@ replace voyager.com/server/rest => ./rest
 
 replace voyager.com/server/timer => ./timer
 
+replace voyager.com/server/rpc => ./rpc
+
+replace voyager.com/server/grpc => ./grpc
+
 replace voyager.com/encryption => ../encryption
 
 replace voyager.com/caching => ../caching

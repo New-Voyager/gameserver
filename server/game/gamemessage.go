@@ -120,7 +120,7 @@ func (g *Game) onResume(message *GameMessage) error {
 
 	switch handState.FlowState {
 	case FlowState_DEAL_HAND:
-		err = g.dealNewHand()
+		err = g.dealNewHand(nil)
 	case FlowState_WAIT_FOR_NEXT_ACTION:
 		err = g.onPlayerActed(nil, handState)
 	case FlowState_PREPARE_NEXT_ACTION:
@@ -302,7 +302,7 @@ func (g *Game) onNextHandSetup(message *GameMessage) error {
 }
 
 func (g *Game) onDealHand(message *GameMessage) error {
-	return g.dealNewHand()
+	return g.dealNewHand(nil)
 }
 
 func (g *Game) broadcastTableState() error {

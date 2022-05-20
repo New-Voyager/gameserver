@@ -375,4 +375,5 @@ type NewHandInfo struct {
 	FourKindCount        int
 	StraightFlushAllowed bool
 	FourKindAllowed      bool
+	Tournament           bool
 }

@@ -71,9 +71,26 @@ func (gm *GameManager) NewGame(gameID uint64, gameCode string) (*NatsGame, error
 	return game, nil
 }
 
+func (gm *GameManager) NewTournamentGame(gameCode string, tournamentID uint64, tableNo uint32) (*NatsGame, error) {
+	gameID := tournamentID<<32 | uint64(tableNo)
+	natsGMLogger.Info().
+		Uint64(logging.GameIDKey, gameID).Str(logging.GameCodeKey, gameCode).
+		Msgf("New Tournament game %d:%s", gameID, gameCode)
+	gameIDStr := fmt.Sprintf("%d", gameID)
+	game, err := newTournamentGame(gm.nc, tournamentID, tableNo, gameID, gameCode)
+	if err != nil {
+		return nil, errors.Wrap(err, "Could create new NATS game")
+	}
+	gm.activeGames.Set(gameIDStr, game)
+	gm.gameIDToCode.Set(gameIDStr, gameCode)
+	gm.gameCodeToID.Set(gameCode, gameIDStr)
+	util.Metrics.SetActiveGamesMapCount(gm.activeGames.Count())
+	return game, nil
+}
+
 func (gm *GameManager) GetGames() ([]GameListItem, error) {
 	games := make([]GameListItem, 0)
-	for item := range gm.activeGames.Iter() {
+	for item := range gm.activeGames.IterBuffered() {
 		gameIDStr := item.Key
 		game, ok := item.Val.(*NatsGame)
 		if !ok {
