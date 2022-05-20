@@ -9,7 +9,7 @@ require (
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/go-redis/redis/v8 v8.3.3
 	github.com/golang/protobuf v1.5.2
-	github.com/google/go-cmp v0.5.5
+	github.com/google/go-cmp v0.5.6
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/jmoiron/sqlx v1.3.1
 	github.com/json-iterator/go v1.1.11
@@ -22,10 +22,10 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/rs/zerolog v1.25.0
 	github.com/sirupsen/logrus v1.6.0
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/ugorji/go v1.2.0 // indirect
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
-	google.golang.org/grpc v1.28.0
+	google.golang.org/grpc v1.46.2
 	google.golang.org/protobuf v1.28.0
 	gopkg.in/godo.v2 v2.0.9
 	gopkg.in/yaml.v2 v2.3.0
