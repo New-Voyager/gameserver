@@ -14,6 +14,7 @@ import (
 
 	"voyager.com/server/crashtest"
 	"voyager.com/server/game"
+	rpc "voyager.com/server/grpc"
 	"voyager.com/server/nats"
 	"voyager.com/server/rest"
 	"voyager.com/server/util"
@@ -35,6 +36,7 @@ var testDeal *bool
 var numDeals *uint
 var exit bool
 var mainLogger = logging.GetZeroLogger("main::main", nil)
+var rpcPort = 9000
 
 func init() {
 	runServer = flag.Bool("server", true, "runs game server")
@@ -147,6 +149,9 @@ func runWithNats(gameManager *game.Manager) {
 
 	// run rest server
 	go rest.RunRestServer(natsGameManager, setupExit)
+
+	// run grpc server
+	go rpc.Start(rpcPort)
 
 	// restart games
 	time.Sleep(3 * time.Second)
