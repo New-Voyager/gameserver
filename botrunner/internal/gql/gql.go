@@ -929,6 +929,25 @@ func (g *GQLHelper) PostBlind(gameCode string) (bool, error) {
 	return respData.Status, nil
 }
 
+// ResumeGame pauses the game in next hand
+func (g *GQLHelper) RegisterTournament(tournamentID uint64) error {
+	req := graphql.NewRequest(RegisterTournamentGQL)
+
+	req.Var("tournamentId", tournamentID)
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", g.authToken)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+	var resp interface{}
+	err := g.client.Run(ctx, req, &resp)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GameInfoGQL is the gql query string for gameinfo api.
 const GameInfoGQL = `query game_info($gameCode: String!) {
     gameInfo(gameCode: $gameCode) {
@@ -1455,6 +1474,12 @@ const PauseGameGQL = `mutation pauseGame($gameCode: String!) {
 const ResumeGameGQL = `mutation resumeGame($gameCode: String!) {
 	resumeGame(
 		gameCode: $gameCode
+	)
+}`
+
+const RegisterTournamentGQL = `mutation registerTournament($tournamentId: Int!) {
+	registerTournament(
+		tournamentId: $tournamentId
 	)
 }`
 

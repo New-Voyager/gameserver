@@ -16,6 +16,8 @@ import (
 
 type TournamentRunner struct {
 	logger            *zerolog.Logger
+	tournamentID      uint64
+	botCount          uint32
 	bots              []*player.BotPlayer
 	observerBot       *player.BotPlayer
 	botsByName        map[string]*player.BotPlayer
@@ -33,6 +35,8 @@ var TOURNAMENT_DEVICE_START_ID = "f0a675ef-0000-4963-%04x-75a7d1735665"
 func NewTournamentRunner(tournamentID uint64, clubCode string, botCount int32) (*TournamentRunner, error) {
 	return &TournamentRunner{
 		logger:            logging.GetZeroLogger("TournamentRunner", nil),
+		tournamentID:      tournamentID,
+		botCount:          uint32(botCount),
 		bots:              make([]*player.BotPlayer, 0),
 		botsByName:        make(map[string]*player.BotPlayer),
 		tables:            make([]*TournamentTable, 0),
@@ -44,7 +48,8 @@ func NewTournamentRunner(tournamentID uint64, clubCode string, botCount int32) (
 // launch a go routine to listen for tournament messages
 // when the bots join the tournament, we will start go routine for each bot to listen for hand/game messages
 
-func (tr *TournamentRunner) RegisterBots() error {
+// RegisterBots registers the bots for the tournament
+func (tr *TournamentRunner) CreateBots() error {
 	fileName := "botrunner_scripts/players/tournament-players.csv"
 	bytes, err := ioutil.ReadFile(fileName)
 	if err != nil {
@@ -116,4 +121,28 @@ func (tr *TournamentRunner) BotsSignIn() error {
 	}
 
 	return nil
+}
+
+func (tr *TournamentRunner) RegisterBots() error {
+	var err error
+	// register bots for the tournament
+	for i, b := range tr.bots {
+		if i >= int(tr.botCount) {
+			// reached max number of bots
+			break
+		}
+
+		err = b.RegisterTournament(tr.tournamentID)
+		if err != nil {
+			return errors.Wrapf(err, "%s cannot register for tournament", b.GetName())
+		}
+	}
+	return nil
+}
+
+func (br *TournamentRunner) ResetBots() {
+	for _, bot := range br.bots {
+		bot.Reset()
+	}
+	//br.observerBot.Reset()
 }

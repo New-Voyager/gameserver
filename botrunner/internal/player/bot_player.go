@@ -61,6 +61,10 @@ type GameMessageChannelItem struct {
 	NonProtoGameMsg *gamescript.NonProtoMessage
 }
 
+type TournamentMessageChannelItem struct {
+	NonProtoMsg *gamescript.NonProtoTournamentMsg
+}
+
 // BotPlayer represents a bot user.
 type BotPlayer struct {
 	logger *zerolog.Logger
@@ -80,7 +84,8 @@ type BotPlayer struct {
 	RewardsNameToID map[string]uint32
 
 	// tournament flag
-	tournament bool
+	tournament   bool
+	tournamentID uint64
 
 	// initial seat information (used for determining whether bot or human)
 	seatInfo map[uint32]game.SeatInfo // initial seat info (used in auto play games)
@@ -106,11 +111,12 @@ type BotPlayer struct {
 	serverLastMsgIDs *util.Queue
 
 	// Message channels
-	chGame     chan *GameMessageChannelItem
-	chHand     chan *game.HandMessage
-	chHandText chan *gamescript.HandTextMessage
-	end        chan bool
-	endPing    chan bool
+	chGame       chan *GameMessageChannelItem
+	chHand       chan *game.HandMessage
+	chHandText   chan *gamescript.HandTextMessage
+	chTournament chan *TournamentMessageChannelItem
+	end          chan bool
+	endPing      chan bool
 
 	// GameInfo received from the api server.
 	gameInfo *game.GameInfo
@@ -122,6 +128,7 @@ type BotPlayer struct {
 	// Nats subjects
 	meToHandSubjectName    string
 	clientAliveSubjectName string
+	tournamentChannelName  string
 
 	// Nats subscription objects
 	gameMsgSubscription           *natsgo.Subscription
@@ -129,6 +136,7 @@ type BotPlayer struct {
 	handMsgPlayerSubscription     *natsgo.Subscription
 	handMsgPlayerTextSubscription *natsgo.Subscription
 	playerMsgPlayerSubscription   *natsgo.Subscription
+	tournamentMsgSubscription     *natsgo.Subscription
 
 	game      *gameView
 	seatNo    uint32
@@ -137,9 +145,10 @@ type BotPlayer struct {
 	logPrefix string
 
 	// Print nats messages for debugging.
-	printGameMsg  bool
-	printHandMsg  bool
-	printStateMsg bool
+	printGameMsg       bool
+	printHandMsg       bool
+	printStateMsg      bool
+	printTournamentMsg bool
 
 	decision ScriptBasedDecision
 
@@ -156,6 +165,9 @@ type BotPlayer struct {
 	PrivateMessages     []map[string]interface{}
 	PrivateTextMessages []*gamescript.HandTextMessage
 	GameMessages        []*gamescript.NonProtoMessage
+
+	// tournament messages
+	TournamentMessages []map[string]interface{}
 
 	// For periodically notifying server the client is alive
 	clientAliveCheck *networkcheck.ClientAliveCheck
@@ -174,23 +186,25 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 	restHelper := rest.NewRestClient(util.GetInternalRestURL(playerConfig.APIServerURL), uint32(playerConfig.GQLTimeoutSec), "")
 
 	bp := BotPlayer{
-		logger:          logger,
-		config:          playerConfig,
-		PlayerUUID:      playerConfig.DeviceID,
-		gqlHelper:       gqlHelper,
-		restHelper:      restHelper,
-		natsConn:        nc,
-		chGame:          make(chan *GameMessageChannelItem, 10),
-		chHand:          make(chan *game.HandMessage, 10),
-		chHandText:      make(chan *gamescript.HandTextMessage, 10),
-		end:             make(chan bool),
-		endPing:         make(chan bool),
-		printGameMsg:    util.Env.ShouldPrintGameMsg(),
-		printHandMsg:    util.Env.ShouldPrintHandMsg(),
-		printStateMsg:   util.Env.ShouldPrintStateMsg(),
-		RewardsNameToID: make(map[string]uint32),
-		maxRetry:        300,
-		tournament:      playerConfig.IsTournamentBot,
+		logger:             logger,
+		config:             playerConfig,
+		PlayerUUID:         playerConfig.DeviceID,
+		gqlHelper:          gqlHelper,
+		restHelper:         restHelper,
+		natsConn:           nc,
+		chGame:             make(chan *GameMessageChannelItem, 10),
+		chHand:             make(chan *game.HandMessage, 10),
+		chHandText:         make(chan *gamescript.HandTextMessage, 10),
+		chTournament:       make(chan *TournamentMessageChannelItem, 10),
+		end:                make(chan bool),
+		endPing:            make(chan bool),
+		printGameMsg:       util.Env.ShouldPrintGameMsg(),
+		printHandMsg:       util.Env.ShouldPrintHandMsg(),
+		printStateMsg:      util.Env.ShouldPrintStateMsg(),
+		printTournamentMsg: util.Env.ShouldPrintTournamentMsg(),
+		RewardsNameToID:    make(map[string]uint32),
+		maxRetry:           300,
+		tournament:         playerConfig.IsTournamentBot,
 	}
 
 	bp.sm = fsm.NewFSM(
@@ -282,6 +296,7 @@ func (bp *BotPlayer) Reset() {
 	bp.handMsgPlayerSubscription = nil
 	bp.handMsgPlayerTextSubscription = nil
 	bp.playerMsgPlayerSubscription = nil
+	bp.tournamentMsgSubscription = nil
 	bp.game = nil
 	bp.observing = false
 	bp.hasNextHandBeenSetup = false
@@ -290,6 +305,7 @@ func (bp *BotPlayer) Reset() {
 	bp.PrivateMessages = make([]map[string]interface{}, 0)
 	bp.GameMessages = make([]*gamescript.NonProtoMessage, 0)
 	bp.PrivateTextMessages = make([]*gamescript.HandTextMessage, 0)
+	bp.tournamentID = 0
 	bp.updateLogPrefix()
 	bp.UpdateLogger(0, "")
 	go bp.messageLoop()
@@ -452,6 +468,8 @@ func (bp *BotPlayer) messageLoop() {
 			bp.processHandMessage(message)
 		case message := <-bp.chHandText:
 			bp.processHandTextMessage(message)
+		case message := <-bp.chTournament:
+			bp.processTournamentMessage(message)
 		}
 		time.Sleep(10 * time.Millisecond)
 	}

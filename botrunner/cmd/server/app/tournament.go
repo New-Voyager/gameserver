@@ -36,17 +36,28 @@ func (t *Tournament) Launch() error {
 		t.logger.Error().Msgf("Launching tournament runner %d failed.", t.tournamentID)
 		return err
 	}
-	err = t.instance.RegisterBots()
+	err = t.instance.CreateBots()
 	if err != nil {
 		t.logger.Error().Msgf("Registering bots for tournament %d failed.", t.tournamentID)
 		return err
 	}
+	// we are going to signup all the known bots to the system
 	err = t.instance.BotsSignIn()
 	if err != nil {
 		t.logger.Error().Msgf("Registering bots for tournament %d failed.", t.tournamentID)
 		return err
 	}
-	// we are going to register all the known bots to the system
+
+	// register bots to the tournament
+	err = t.instance.RegisterBots()
+	if err != nil {
+		t.logger.Error().Msgf("Registering bots for tournament %d failed.", t.tournamentID)
+		return err
+	}
+
+	// launch bots message loop
+	t.instance.ResetBots()
+
 	// the  bots will signup for the tournament
 	// bots will listen for the tournament messages
 	return err
