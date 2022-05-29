@@ -35,6 +35,7 @@ func RunRestServer(portNo uint, logDir string) {
 	r.POST("/join-human-game", joinHumanGame)
 	r.POST("/delete-human-game", deleteHumanGame)
 	r.POST("/start-app-game", startAppGame)
+	r.POST("/register-tournament", registerTournament)
 	r.GET("/app-games", listAppGames)
 	r.Run(fmt.Sprintf(":%d", portNo))
 }
@@ -358,6 +359,36 @@ func deleteHumanGame(c *gin.Context) {
 	err := launcher.DeleteHumanGame(gameCode)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error while deleting human game tracker. Error: %s", err)
+		restLogger.Error().Msg(errMsg)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "Accepted"})
+}
+
+func registerTournament(c *gin.Context) {
+	type Payload struct {
+		TournamentId uint64 `json:"tournamentId"`
+		BotCount     int32  `json:"botCount"`
+		ClubCode     string `json:"clubCode"`
+	}
+	var payload Payload
+	err := c.BindJSON(&payload)
+	if err != nil {
+		errMsg := fmt.Sprintf("Failed to parse payload. Error: %s", err)
+		restLogger.Error().Msg(errMsg)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
+		return
+	}
+	clubCode := payload.ClubCode
+	tournamentID := payload.TournamentId
+	botCount := payload.BotCount
+
+	launcher := GetLauncher()
+	err = launcher.RegisterTournament(clubCode, tournamentID, botCount)
+	if err != nil {
+		errMsg := fmt.Sprintf("Error while starting app game. Error: %s", err)
 		restLogger.Error().Msg(errMsg)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
 		return

@@ -37,22 +37,23 @@ import (
 
 // Config holds the configuration for a bot object.
 type Config struct {
-	Name           string
-	DeviceID       string
-	Email          string
-	Password       string
-	IsHuman        bool
-	IsObserver     bool
-	IsHost         bool
-	MinActionDelay uint32
-	MaxActionDelay uint32
-	APIServerURL   string
-	NatsURL        string
-	GQLTimeoutSec  int
-	Gps            *gamescript.GpsLocation
-	IpAddress      string
-	Players        *gamescript.Players
-	Script         *gamescript.Script
+	Name            string
+	DeviceID        string
+	Email           string
+	Password        string
+	IsHuman         bool
+	IsObserver      bool
+	IsHost          bool
+	MinActionDelay  uint32
+	MaxActionDelay  uint32
+	APIServerURL    string
+	NatsURL         string
+	GQLTimeoutSec   int
+	Gps             *gamescript.GpsLocation
+	IpAddress       string
+	Players         *gamescript.Players
+	Script          *gamescript.Script
+	IsTournamentBot bool
 }
 
 type GameMessageChannelItem struct {
@@ -77,6 +78,9 @@ type BotPlayer struct {
 	PlayerUUID      string
 	EncryptionKey   string
 	RewardsNameToID map[string]uint32
+
+	// tournament flag
+	tournament bool
 
 	// initial seat information (used for determining whether bot or human)
 	seatInfo map[uint32]game.SeatInfo // initial seat info (used in auto play games)
@@ -186,6 +190,7 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 		printStateMsg:   util.Env.ShouldPrintStateMsg(),
 		RewardsNameToID: make(map[string]uint32),
 		maxRetry:        300,
+		tournament:      playerConfig.IsTournamentBot,
 	}
 
 	bp.sm = fsm.NewFSM(
