@@ -84,8 +84,9 @@ type BotPlayer struct {
 	RewardsNameToID map[string]uint32
 
 	// tournament flag
-	tournament   bool
-	tournamentID uint64
+	tournament     bool
+	tournamentID   uint64
+	tournamentInfo game.TournamentInfo
 
 	// initial seat information (used for determining whether bot or human)
 	seatInfo map[uint32]game.SeatInfo // initial seat info (used in auto play games)

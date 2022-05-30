@@ -22,17 +22,21 @@ func (bp *BotPlayer) RegisterTournament(tournamentID uint64) error {
 
 // enterGame enters a game without taking a seat as a player.
 func (bp *BotPlayer) enterTournament() error {
-	tournamentChannelName := fmt.Sprintf("tournament.%d", bp.tournamentID)
-	bp.tournamentChannelName = tournamentChannelName
+	var e error
+	bp.tournamentInfo, e = bp.gqlHelper.GetTournamentInfo(bp.tournamentID)
+	if e != nil {
+		return errors.Wrapf(e, "Error getting tournament info for tournament [%d]", bp.tournamentID)
+	}
+
 	bp.logger.Info().Msgf("%s: Entering tournament [%d]", bp.logPrefix, bp.tournamentID)
 	if bp.tournamentMsgSubscription == nil || !bp.tournamentMsgSubscription.IsValid() {
-		bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand messages sent to tournament channel: %s", bp.logPrefix, tournamentChannelName, bp.config.Name)
-		sub, err := bp.natsConn.Subscribe(tournamentChannelName, bp.handleTournamentMsg)
+		bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand messages sent to tournament channel: %s", bp.logPrefix, bp.tournamentInfo.TournamentChannel, bp.config.Name)
+		sub, err := bp.natsConn.Subscribe(bp.tournamentInfo.TournamentChannel, bp.handleTournamentMsg)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the tournament channel subject [%s]", bp.logPrefix, tournamentChannelName))
+			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the tournament channel subject [%s]", bp.logPrefix, bp.tournamentInfo.TournamentChannel))
 		}
 		bp.tournamentMsgSubscription = sub
-		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, tournamentChannelName)
+		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, bp.tournamentInfo.TournamentChannel)
 	}
 
 	return nil

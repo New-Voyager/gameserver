@@ -948,6 +948,25 @@ func (g *GQLHelper) RegisterTournament(tournamentID uint64) error {
 	return nil
 }
 
+// GetTournamentInfo queries the game info from the api server.
+func (g *GQLHelper) GetTournamentInfo(tournamentID uint64) (tournamentInfo game.TournamentInfo, err error) {
+	req := graphql.NewRequest(TournamentInfoGQL)
+	req.Var("tournamentId", tournamentID)
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", fmt.Sprintf("%s", g.authToken))
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+
+	var respData TournamentInfoResp
+	err = g.client.Run(ctx, req, &respData)
+	if err != nil {
+		return
+	}
+	tournamentInfo = respData.TournamentInfo
+	return
+}
+
 // GameInfoGQL is the gql query string for gameinfo api.
 const GameInfoGQL = `query game_info($gameCode: String!) {
     gameInfo(gameCode: $gameCode) {
@@ -1570,3 +1589,21 @@ const PostBlindGQL = `mutation post_blind($gameCode: String!) {
 		gameCode: $gameCode
 	)
 }`
+
+type TournamentInfoResp struct {
+	TournamentInfo game.TournamentInfo `json:"tournamentInfo"`
+}
+
+// TournamentInfoGQL is the gql query string for tournament api.
+const TournamentInfoGQL = `query tournament_info($tournamentId: Int!) {
+    tournamentInfo: getTournamentInfo(tournamentId: $tournamentId) {
+		id
+		tournamentChannel
+	}
+}
+`
+
+// minPlayers
+// startingChips
+// maxPlayers
+// maxPlayersInTable
