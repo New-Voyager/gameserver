@@ -569,6 +569,7 @@ type NonProtoTournamentMsg struct {
 	PlayerUUID   string `yaml:"playerUuid" json:"playerUuid"`
 	TableNo      uint32 `yaml:"tableNo" json:"tableNo"`
 	GameCode     string `yaml:"gameCode" json:"gameCode"`
+	SeatNo       uint32 `yaml:"seatNo" json:"seatNo"`
 }
 
 type HandTextMessage struct {

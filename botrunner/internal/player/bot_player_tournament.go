@@ -77,4 +77,29 @@ func (bp *BotPlayer) processTournamentNonProtoMsg(message *gamescript.NonProtoTo
 	// if util.Env.ShouldPrintTournamentMsg() {
 	// 	fmt.Printf("[%s] HANDLING TOURNAMENT MESSAGE: %+v\n", bp.logPrefix, message.Type)
 	// }
+
+	switch message.Type {
+	case "TOURNAMENT_STARTED":
+		bp.tournamentStarted(message.TournamentId)
+	case "TOURNAMENT_INITIAL_PLAYER_TABLE":
+		bp.setTournamentPlayerSeat(message)
+	}
+}
+
+func (bp *BotPlayer) tournamentStarted(tournamentID uint64) {
+	bp.logger.Info().Msgf("%s: Tournament [%d] has started.", bp.logPrefix, tournamentID)
+	bp.tournamentID = tournamentID
+	var e error
+	bp.tournamentTableInfo, e = bp.gqlHelper.GetTournamentTableInfo(bp.tournamentID, bp.tournamentTableNo)
+	if e != nil {
+		return
+	}
+}
+
+func (bp *BotPlayer) setTournamentPlayerSeat(message *gamescript.NonProtoTournamentMsg) {
+	if message.PlayerID != bp.PlayerID {
+		return
+	}
+	bp.tournamentTableNo = message.TableNo
+	bp.tournamentSeatNo = message.SeatNo
 }
