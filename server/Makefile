@@ -68,7 +68,7 @@ compile-proto-shared: install-protoc
 	cp ../proto-shared/rpc/*.pb.go ./rpc
 
 .PHONY: compile-proto
-compile-proto: install-protoc compile-proto-shared
+compile-proto: 
 	go get -u github.com/golang/protobuf/protoc-gen-go
 	rm -f game/*.pb.go
 	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/enums.proto

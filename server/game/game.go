@@ -415,6 +415,11 @@ func (g *Game) NumCards(gameType GameType) uint32 {
 	return uint32(noCards)
 }
 
+func (g *Game) DealTournamentHand(newHandInfo *NewHandInfo) error {
+	g.dealNewHand(newHandInfo)
+	return nil
+}
+
 func (g *Game) dealNewHand(newHandInfo *NewHandInfo) error {
 	var handState *HandState
 	var testHandSetup *TestHandSetup
@@ -442,8 +447,21 @@ func (g *Game) dealNewHand(newHandInfo *NewHandInfo) error {
 		}
 	}
 
+	// tournament hand
+	if newHandInfo != nil {
+		buttonPos = newHandInfo.ButtonPos
+		sbPos = newHandInfo.SbPos
+		bbPos = newHandInfo.BbPos
+		g.PlayersInSeats = make([]SeatPlayer, newHandInfo.MaxPlayers+1) // 0 is dealer/observer
+		for _, playerInSeat := range newHandInfo.PlayersInSeats {
+			if playerInSeat.SeatNo <= uint32(newHandInfo.MaxPlayers) {
+				g.PlayersInSeats[playerInSeat.SeatNo] = playerInSeat
+			}
+		}
+	}
+
 	var resultPauseTime uint32
-	if !g.isScriptTest {
+	if !g.isScriptTest && g.tournamentID == 0 {
 		// we are not running tests
 		// get new hand information from the API server
 		// new hand information contains players in seats/balance/status, game type, announce new game
@@ -514,7 +532,7 @@ func (g *Game) dealNewHand(newHandInfo *NewHandInfo) error {
 				g.PlayersInSeats[playerInSeat.SeatNo] = playerInSeat
 			}
 		}
-	} else {
+	} else if g.isScriptTest {
 		// We're in a script test (no api server).
 		gameType = g.testGameConfig.GameType
 		if g.testGameConfig.ChipUnit == "CENT" {

@@ -36,13 +36,13 @@ func NewGameManager(isScriptTest bool, apiServerURL string, handPersist PersistH
 	}, nil
 }
 
-func (gm *Manager) InitializeGame(messageSender MessageSender, gameID uint64, gameCode string) (*Game, uint64, error) {
+func (gm *Manager) InitializeGame(messageSender MessageSender, gameID uint64, gameCode string, tournamentID uint64, tableNo uint32) (*Game, uint64, error) {
 	gameIDStr := fmt.Sprintf("%d", gameID)
 	game, err := NewPokerGame(
 		gameID,
 		gameCode,
-		0,
-		0,
+		tournamentID,
+		tableNo,
 		gm.isScriptTest,
 		gm,
 		&messageSender,

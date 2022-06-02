@@ -6,6 +6,8 @@ import (
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
+	"voyager.com/botrunner/internal/game"
+	"voyager.com/botrunner/internal/networkcheck"
 	"voyager.com/gamescript"
 )
 
@@ -20,7 +22,7 @@ func (bp *BotPlayer) RegisterTournament(tournamentID uint64) error {
 	return err
 }
 
-// enterGame enters a game without taking a seat as a player.
+// enterTournament enters a game without taking a seat as a player.
 func (bp *BotPlayer) enterTournament() error {
 	var e error
 	bp.tournamentInfo, e = bp.gqlHelper.GetTournamentInfo(bp.tournamentID)
@@ -94,6 +96,34 @@ func (bp *BotPlayer) tournamentStarted(tournamentID uint64) {
 	if e != nil {
 		return
 	}
+
+	bp.game = &gameView{
+		table: &tableView{
+			playersBySeat: make(map[uint32]*player),
+			actionTracker: game.NewHandActionTracker(),
+			playersActed:  make(map[uint32]*game.PlayerActRound),
+		},
+	}
+
+	bp.gameCode = bp.tournamentTableInfo.GameCode
+	bp.gameID = 0
+
+	playerChannelName := fmt.Sprintf("player.%d", bp.PlayerID)
+	var err error
+	err = bp.Subscribe(bp.tournamentTableInfo.GameToPlayerChannel,
+		bp.tournamentTableInfo.HandToAllChannel, bp.tournamentTableInfo.HandToPlayerChannel,
+		bp.tournamentTableInfo.HandToPlayerTextChannel, playerChannelName)
+	if err != nil {
+		// return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to game %s channels",
+		// 	bp.logPrefix, bp.gameCode))
+	}
+
+	bp.meToHandSubjectName = bp.tournamentTableInfo.PlayerToHandChannel
+	bp.clientAliveSubjectName = bp.tournamentTableInfo.ClientAliveChannel
+
+	bp.logger.Info().Msgf("%s: Starting network check client", bp.logPrefix)
+	bp.clientAliveCheck = networkcheck.NewClientAliveCheck(bp.gameID, bp.gameCode, bp.sendAliveMsg)
+	bp.clientAliveCheck.Run()
 }
 
 func (bp *BotPlayer) setTournamentPlayerSeat(message *gamescript.NonProtoTournamentMsg) {
@@ -102,4 +132,6 @@ func (bp *BotPlayer) setTournamentPlayerSeat(message *gamescript.NonProtoTournam
 	}
 	bp.tournamentTableNo = message.TableNo
 	bp.tournamentSeatNo = message.SeatNo
+	bp.logger.Info().Msgf("%s: Tournament [%d] Player [%s] has taken seat %d on table %d.",
+		bp.logPrefix, message.TournamentId, bp.GetName(), bp.tournamentSeatNo, bp.tournamentTableNo)
 }

@@ -12,6 +12,7 @@ type TournamentInfo struct {
 
 type TournamentTableInfo struct {
 	ID                      uint64     `json:"id"`
+	GameCode                string     `json:"gameCode"`
 	TournamentChannel       string     `json:"tournamentChannel"`
 	MinPlayers              int32      `json:"minPlayers"`
 	MaxPlayers              int32      `json:"maxPlayers"`

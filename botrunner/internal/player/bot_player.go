@@ -344,6 +344,10 @@ func (bp *BotPlayer) enterState(e *fsm.Event) {
 }
 
 func (bp *BotPlayer) event(event string) error {
+	if bp.tournament {
+		// skip the event check temporarily for tournament bots
+		return nil
+	}
 	err := bp.sm.Event(event)
 	if err != nil {
 		bp.logger.Warn().Msgf("%s: Error from state machine: %s", bp.logPrefix, err.Error())
@@ -663,36 +667,38 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 				break
 			}
 		}
-		// update player config
-		bp.updatePlayersConfig()
+		if !bp.tournament {
+			// update player config
+			bp.updatePlayersConfig()
 
-		// setup seat change requests
-		bp.setupSeatChange()
+			// setup seat change requests
+			bp.setupSeatChange()
 
-		// setup run-it-twice prompt/response
-		bp.setupRunItTwice()
+			// setup run-it-twice prompt/response
+			bp.setupRunItTwice()
 
-		// setup take break request
-		bp.setupTakeBreak()
+			// setup take break request
+			bp.setupTakeBreak()
 
-		// setup sit back request
-		bp.setupSitBack()
+			// setup sit back request
+			bp.setupSitBack()
 
-		// process any leave game requests
-		// the player will after this hand
-		bp.setupLeaveGame()
+			// process any leave game requests
+			// the player will after this hand
+			bp.setupLeaveGame()
 
-		// setup switch seats
-		bp.setupSwitchSeats()
+			// setup switch seats
+			bp.setupSwitchSeats()
 
-		// setup reload chips
-		bp.setupReloadChips()
+			// setup reload chips
+			bp.setupReloadChips()
 
-		if bp.balance == 0 {
-			err := bp.autoReloadBalance()
-			if err != nil {
-				errMsg := fmt.Sprintf("%s: Could not reload chips when balance is 0. Current hand num: %d. Error: %v", bp.logPrefix, bp.game.handNum, err)
-				bp.logger.Error().Msg(errMsg)
+			if bp.balance == 0 {
+				err := bp.autoReloadBalance()
+				if err != nil {
+					errMsg := fmt.Sprintf("%s: Could not reload chips when balance is 0. Current hand num: %d. Error: %v", bp.logPrefix, bp.game.handNum, err)
+					bp.logger.Error().Msg(errMsg)
+				}
 			}
 		}
 
@@ -804,7 +810,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if seatNo == bp.seatNo && isTimedOut {
 			bp.event(BotEvent__ACTION_TIMEDOUT)
 		}
-		if seatNo == bp.seatNo && !bp.config.Script.AutoPlay.Enabled {
+		if seatNo == bp.seatNo && !bp.tournament && !bp.config.Script.AutoPlay.Enabled {
 			// verify the player action
 			verify, err := bp.decision.GetPrevActionToVerify(bp)
 			if err == nil {
@@ -910,6 +916,9 @@ func (bp *BotPlayer) chooseNextGame(gameType game.GameType) {
 }
 
 func (bp *BotPlayer) verifyBoard() {
+	if bp.tournament {
+		return
+	}
 	// if the script is configured to auto play, return
 	if bp.config.Script.AutoPlay.Enabled {
 		return
@@ -969,6 +978,10 @@ func (bp *BotPlayer) updateBalance(playerBalances map[uint32]float64) {
 }
 
 func (bp *BotPlayer) verifyCardRank(currentRanks map[uint32]string) {
+	if bp.tournament {
+		return
+	}
+
 	// if the script is configured to auto play, return
 	if bp.config.Script.AutoPlay.Enabled {
 		return
@@ -2478,13 +2491,16 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 	nextAction := game.ACTION_CHECK
 	nextAmt := float64(0)
 	autoPlay := false
-
-	if bp.config.Script.AutoPlay.Enabled {
+	if bp.tournament {
 		autoPlay = true
-	} else if len(bp.config.Script.Hands) >= int(bp.game.handNum) {
-		handScript := bp.config.Script.GetHand(bp.game.handNum)
-		if !bp.doesScriptActionExists(handScript, bp.game.handStatus) {
+	} else {
+		if bp.config.Script.AutoPlay.Enabled {
 			autoPlay = true
+		} else if len(bp.config.Script.Hands) >= int(bp.game.handNum) {
+			handScript := bp.config.Script.GetHand(bp.game.handNum)
+			if !bp.doesScriptActionExists(handScript, bp.game.handStatus) {
+				autoPlay = true
+			}
 		}
 	}
 	runItTwiceActionPrompt := false
@@ -2596,7 +2612,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		// if the human player action is ALLIN, check how many players are active
 		// if more than 2 players are active, then fold
 		// if only two players are active, then the remaining bot will go all in
-		if bp.gameInfo.RunItTwiceAllowed {
+		if !bp.tournament && bp.gameInfo.RunItTwiceAllowed {
 			players := bp.humanPlayers()
 			if len(players) == 1 {
 				player := players[0]
@@ -3198,6 +3214,13 @@ func (bp *BotPlayer) isGamePaused() (bool, error) {
 }
 
 func (bp *BotPlayer) getPlayerNameBySeatNo(seatNo uint32) string {
+	if bp.tournament {
+		for _, p := range bp.tournamentTableInfo.Players {
+			if p.SeatNo == seatNo {
+				return p.Name
+			}
+		}
+	}
 	for _, p := range bp.gameInfo.SeatInfo.PlayersInSeats {
 		if p.SeatNo == seatNo {
 			return p.Name
@@ -3207,6 +3230,13 @@ func (bp *BotPlayer) getPlayerNameBySeatNo(seatNo uint32) string {
 }
 
 func (bp *BotPlayer) getPlayerIDBySeatNo(seatNo uint32) uint64 {
+	if bp.tournament {
+		for _, p := range bp.tournamentTableInfo.Players {
+			if p.SeatNo == seatNo {
+				return p.PlayerId
+			}
+		}
+	}
 	for _, p := range bp.gameInfo.SeatInfo.PlayersInSeats {
 		if p.SeatNo == seatNo {
 			return p.PlayerId

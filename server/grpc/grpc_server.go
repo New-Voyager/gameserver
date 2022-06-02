@@ -63,5 +63,14 @@ func (s *TableServer) TerimateTable(ctx context.Context, in *rpc.TerminateTableI
 }
 
 func (s *TableServer) RunHand(ctx context.Context, in *rpc.HandInfo) (*rpc.RunHandResult, error) {
+	err := natsGameManager.DealTournamentHand(in.GameCode, in)
+	if err != nil {
+		grpcLogger.Error().Msgf("Could not host table for tournament: %d, table: %d Error: %v", in.TournamentId, in.TableNo, err)
+		return &rpc.RunHandResult{
+			Success: false,
+			Error:   err.Error(),
+		}, err
+	}
+
 	return nil, nil
 }

@@ -213,6 +213,10 @@ func (bp *BotPlayer) seatWaitList(message *gamescript.NonProtoMessage) {
 }
 
 func (bp *BotPlayer) setupSeatChange() error {
+	if bp.tournament {
+		return nil
+	}
+
 	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
 		return nil
 	}
@@ -276,6 +280,10 @@ func (bp *BotPlayer) setupSitBack() error {
 }
 
 func (bp *BotPlayer) setupRunItTwice() error {
+	if bp.tournament {
+		return nil
+	}
+
 	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
 		return nil
 	}
@@ -513,6 +521,11 @@ func (bp *BotPlayer) JoinWaitlist(gameCode string, observer *gamescript.Observer
 }
 
 func (bp *BotPlayer) updatePlayersConfig() error {
+	// tournament is auto play
+	if bp.tournament {
+		return nil
+	}
+
 	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
 		return nil
 	}

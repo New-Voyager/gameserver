@@ -110,7 +110,7 @@ func newNatsGame(nc *natsgo.Conn, gameID uint64, gameCode string) (*NatsGame, er
 		return nil, errors.Wrapf(e, "Failed to subscribe to %s", clientAliveSubject)
 	}
 
-	serverGame, gameID, err := game.GameManager.InitializeGame(natsGame, gameID, gameCode)
+	serverGame, gameID, err := game.GameManager.InitializeGame(natsGame, gameID, gameCode, 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +165,7 @@ func newTournamentGame(nc *natsgo.Conn, tournamentID uint64, tableNo uint32, gam
 		return nil, errors.Wrapf(e, "Failed to subscribe to %s", clientAliveSubject)
 	}
 
-	serverGame, _, err := game.GameManager.InitializeGame(natsGame, gameID, gameCode)
+	serverGame, _, err := game.GameManager.InitializeGame(natsGame, gameID, gameCode, tournamentID, tableNo)
 	if err != nil {
 		return nil, err
 	}

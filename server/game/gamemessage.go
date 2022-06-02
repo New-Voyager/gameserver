@@ -205,6 +205,11 @@ func (g *Game) moveToNextHand(handState *HandState) (bool, error) {
 		return false, fmt.Errorf("Hand state is nil in moveToNextHand")
 	}
 
+	// for tournaments don't move to next hand, the tournament server is responsible to move to next hand
+	if g.tournamentID != 0 {
+		return false, nil
+	}
+
 	isPausedForPendingUpdates := false
 
 	expectedState := FlowState_MOVE_TO_NEXT_HAND
@@ -248,6 +253,10 @@ func (g *Game) moveToNextHand(handState *HandState) (bool, error) {
 }
 
 func (g *Game) moveAPIServerToNextHandAndQueueDeal(handState *HandState) error {
+	if g.tournamentID != 0 {
+		// don't move for tournaments
+		return nil
+	}
 	var currentHandNum uint32
 	if handState == nil {
 		currentHandNum = 0

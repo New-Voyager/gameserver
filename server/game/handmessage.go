@@ -1568,12 +1568,22 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 
 	sendResultToAPI := !g.isScriptTest
 	if sendResultToAPI {
-		saveResult, err := g.saveHandResult2ToAPIServer(handResultServer)
-		if err != nil {
-			return nil, errors.Wrapf(err, "Could not save hand result to api server")
-		}
-		if saveResult != nil {
-			// retry here
+		if g.tournamentID != 0 {
+			saveResult, err := g.saveTournamentHandResult2ToAPIServer(handResultServer)
+			if err != nil {
+				return nil, errors.Wrapf(err, "Could not save hand result to api server")
+			}
+			if saveResult != nil {
+				// retry here
+			}
+		} else {
+			saveResult, err := g.saveHandResult2ToAPIServer(handResultServer)
+			if err != nil {
+				return nil, errors.Wrapf(err, "Could not save hand result to api server")
+			}
+			if saveResult != nil {
+				// retry here
+			}
 		}
 	}
 
