@@ -9,9 +9,9 @@ COPY build/encryption /build/encryption
 COPY build/caching /build/caching
 COPY build/logging /build/logging
 WORKDIR /build/botrunner
-RUN --mount=type=cache,target=/go --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o botrunner ./cmd/botrunner
-RUN --mount=type=cache,target=/go --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o tester ./cmd/tester
-RUN --mount=type=cache,target=/go --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o server ./cmd/server
+RUN --mount=type=cache,target=/go --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o botrunner ./cmd/botrunner
+RUN --mount=type=cache,target=/go --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o tester ./cmd/tester
+RUN --mount=type=cache,target=/go --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o server ./cmd/server
 
 FROM alpine:3.12.1
 RUN apk add --no-cache bash tmux curl
