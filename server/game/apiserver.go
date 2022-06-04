@@ -63,6 +63,45 @@ func (g *Game) saveHandResult2ToAPIServer(result2 *HandResultServer) (*SaveHandR
 	return &saveResult, nil
 }
 
+func (g *Game) saveTournamentHandResult2ToAPIServer(result2 *HandResultServer) (*SaveHandResult, error) {
+	// call the API server to save the hand result
+	var m protojson.MarshalOptions
+	m.EmitUnpopulated = true
+	data, _ := m.Marshal(result2)
+	g.logger.Debug().Msgf("Result to API server: %s", string(data))
+	url := fmt.Sprintf("%s/internal/save-hand/tournamentId/%d/tableNo/%d", g.apiServerURL, g.tournamentID, g.tableNo)
+	retries := 0
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
+	for err != nil && retries < int(g.maxRetries) {
+		retries++
+		g.logger.Error().
+			Msgf("Error in post %s: %s. Retrying (%d/%d)", url, err, retries, g.maxRetries)
+		time.Sleep(time.Duration(g.retryDelayMillis) * time.Millisecond)
+		resp, err = http.Post(url, "application/json", bytes.NewBuffer(data))
+	}
+	// if the api server returns nil, do nothing
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error from post %s", url)
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Unable to read response body from %s", url)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Received HTTP status %d from %s. Response body: %s", resp.StatusCode, url, string(bodyBytes))
+	}
+
+	var saveResult SaveHandResult
+	err = json.Unmarshal(bodyBytes, &saveResult)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to parse response body json into struct")
+	}
+	return &saveResult, nil
+}
+
 func (g *Game) getNewHandInfo() (*NewHandInfo, error) {
 	url := fmt.Sprintf("%s/internal/next-hand-info/game_num/%s", g.apiServerURL, g.gameCode)
 

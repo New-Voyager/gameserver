@@ -1,6 +1,8 @@
 package timer
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -17,17 +19,41 @@ var (
 
 func notifyTimeout(t *Timer) {
 	timerLogger.Info().
+		Str(logging.TimerPayloadKey, t.payload).
 		Uint64(logging.GameIDKey, t.gameID).
 		Uint64(logging.PlayerIDKey, t.playerID).
 		Str(logging.TimerPurposeKey, t.purpose).
 		Msgf("Notifying timeout")
-	url := fmt.Sprintf("%s/internal/timer-callback/gameId/%d/playerId/%d/purpose/%s", APIServerURL, t.gameID, t.playerID, t.purpose)
+
+	var data []byte
+	var url string
+	if t.payload != "" {
+		type payloadStruct struct {
+			Payload string `json:"payload"`
+		}
+		payload := payloadStruct{
+			Payload: t.payload,
+		}
+		var err error
+		data, err = json.Marshal(payload)
+		if err != nil {
+			timerLogger.Error().
+				Err(err).
+				Str(logging.TimerPayloadKey, t.payload).
+				Msgf("Failed to marshal payload")
+			return
+		}
+		url = fmt.Sprintf("%s/internal/timer-callback-generic", APIServerURL)
+	} else {
+		url = fmt.Sprintf("%s/internal/timer-callback/gameId/%d/playerId/%d/purpose/%s", APIServerURL, t.gameID, t.playerID, t.purpose)
+	}
 
 	retries := 0
-	resp, err := http.Post(url, "application/json", nil)
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
 	for err != nil && retries < int(maxRetries) {
 		retries++
 		timerLogger.Error().
+			Str(logging.TimerPayloadKey, t.payload).
 			Uint64(logging.GameIDKey, t.gameID).
 			Uint64(logging.PlayerIDKey, t.playerID).
 			Str(logging.TimerPurposeKey, t.purpose).
@@ -38,6 +64,7 @@ func notifyTimeout(t *Timer) {
 
 	if err != nil {
 		timerLogger.Error().
+			Str(logging.TimerPayloadKey, t.payload).
 			Uint64(logging.GameIDKey, t.gameID).
 			Uint64(logging.PlayerIDKey, t.playerID).
 			Str(logging.TimerPurposeKey, t.purpose).
@@ -48,6 +75,7 @@ func notifyTimeout(t *Timer) {
 
 	if resp.StatusCode != 200 {
 		timerLogger.Error().
+			Str(logging.TimerPayloadKey, t.payload).
 			Uint64(logging.GameIDKey, t.gameID).
 			Uint64(logging.PlayerIDKey, t.playerID).
 			Str(logging.TimerPurposeKey, t.purpose).

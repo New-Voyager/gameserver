@@ -46,6 +46,7 @@ type Timers struct {
 
 // Timer is an instance of a notifiable timer.
 type Timer struct {
+	payload     string
 	gameID      uint64
 	playerID    uint64
 	purpose     string
@@ -75,9 +76,10 @@ func (c *Controller) Stop() {
 }
 
 // AddTimer creates a new Timer to track.
-func (c *Controller) AddTimer(gameID uint64, playerID uint64, purpose string, expireTs int64) {
-	timerKey := c.getTimerKey(gameID, playerID, purpose)
+func (c *Controller) AddTimer(payload string, gameID uint64, playerID uint64, purpose string, expireTs int64) {
+	timerKey := c.getTimerKey(payload, gameID, playerID, purpose)
 	timer := Timer{
+		payload:  payload,
 		gameID:   gameID,
 		playerID: playerID,
 		purpose:  purpose,
@@ -120,8 +122,8 @@ func (c *Controller) AddTimer(gameID uint64, playerID uint64, purpose string, ex
 }
 
 // CancelTimer marks a timer as cancelled.
-func (c *Controller) CancelTimer(gameID uint64, playerID uint64, purpose string) {
-	timerKey := c.getTimerKey(gameID, playerID, purpose)
+func (c *Controller) CancelTimer(payload string, gameID uint64, playerID uint64, purpose string) {
+	timerKey := c.getTimerKey(payload, gameID, playerID, purpose)
 	c.timerByKeyLock.RLock()
 	timer, exists := c.timerByKey[timerKey]
 	c.timerByKeyLock.RUnlock()
@@ -161,7 +163,10 @@ func (c *Controller) runMainLoop() {
 	}
 }
 
-func (c *Controller) getTimerKey(gameID uint64, playerID uint64, purpose string) string {
+func (c *Controller) getTimerKey(payload string, gameID uint64, playerID uint64, purpose string) string {
+	if payload != "" {
+		return payload
+	}
 	return fmt.Sprintf("%d|%d|%s", gameID, playerID, purpose)
 }
 

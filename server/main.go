@@ -14,6 +14,7 @@ import (
 
 	"voyager.com/server/crashtest"
 	"voyager.com/server/game"
+	"voyager.com/server/grpc"
 	"voyager.com/server/nats"
 	"voyager.com/server/rest"
 	"voyager.com/server/util"
@@ -35,6 +36,8 @@ var testDeal *bool
 var numDeals *uint
 var exit bool
 var mainLogger = logging.GetZeroLogger("main::main", nil)
+var rpcPort = 9000
+var natsGameManager *nats.GameManager
 
 func init() {
 	runServer = flag.Bool("server", true, "runs game server")
@@ -122,7 +125,7 @@ func runWithNats(gameManager *game.Manager) {
 		mainLogger.Error().Msgf("Error connecting to NATS server, error: %v", err)
 		return
 	}
-	natsGameManager, err := nats.NewGameManager(nc)
+	natsGameManager, err = nats.NewGameManager(nc)
 	// initialize nats game manager
 	if err != nil {
 		mainLogger.Error().Msgf("Error creating NATS game manager, error: %v", err)
@@ -147,6 +150,9 @@ func runWithNats(gameManager *game.Manager) {
 
 	// run rest server
 	go rest.RunRestServer(natsGameManager, setupExit)
+
+	// run grpc server
+	go grpc.Start(natsGameManager, rpcPort)
 
 	// restart games
 	time.Sleep(3 * time.Second)

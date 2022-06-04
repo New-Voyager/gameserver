@@ -52,8 +52,23 @@ pull:
 	docker pull nats:$(NATS_VERSION)
 	docker pull redis:$(REDIS_VERSION)
 
+.PHONY: install-protoc
+install-protoc:
+	if ! which protoc; then \
+		curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.7.1/$(PROTOC_ZIP) && \
+		sudo unzip -o $(PROTOC_ZIP) -d /usr/local bin/protoc && \
+		sudo unzip -o $(PROTOC_ZIP) -d /usr/local 'include/*' && \
+		rm -f $(PROTOC_ZIP); \
+	fi
+
+.PHONY: compile-proto-shared
+compile-proto-shared: install-protoc
+	$(MAKE) -C ../proto-shared compile-proto
+	mkdir -p ./rpc
+	cp ../proto-shared/rpc/*.pb.go ./rpc
+
 .PHONY: compile-proto
-compile-proto: install-protoc
+compile-proto: 
 	go get -u github.com/golang/protobuf/protoc-gen-go
 	rm -f game/*.pb.go
 	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/enums.proto
@@ -63,15 +78,6 @@ compile-proto: install-protoc
 	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/gamemessage.proto
 	protoc -I=$(PROTO_DIR) --go_out=./ $(PROTO_DIR)/handmessage.proto
 	ls game/*.pb.go | xargs -n1 -IX bash -c 'sed s/,omitempty// X > X.tmp && mv X{.tmp,}'
-
-.PHONY: install-protoc
-install-protoc:
-	if ! which protoc; then \
-		curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.7.1/$(PROTOC_ZIP) && \
-		sudo unzip -o $(PROTOC_ZIP) -d /usr/local bin/protoc && \
-		sudo unzip -o $(PROTOC_ZIP) -d /usr/local 'include/*' && \
-		rm -f $(PROTOC_ZIP); \
-	fi
 
 .PHONY: build
 build: 

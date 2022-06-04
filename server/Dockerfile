@@ -18,8 +18,11 @@ WORKDIR /build/server
 RUN --mount=type=cache,target=/go --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 \
     GOOS=linux \
+    GOARCH=amd64 \
     go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o game-server
 RUN --mount=type=cache,target=/go --mount=type=cache,target=/root/.cache/go-build \
+    GOOS=linux \
+    GOARCH=amd64 \
     go test -coverpkg=./... -c -o game-server.test
 
 FROM alpine:latest

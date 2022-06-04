@@ -26,6 +26,7 @@ const (
 	TimerIDKey      string = "timerID"
 	TimerPurposeKey string = "purpose"
 	NatsSubjectKey  string = "subject"
+	TimerPayloadKey string = "timerPayload"
 )
 
 func getEnableColorLog() string {

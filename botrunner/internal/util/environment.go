@@ -36,6 +36,7 @@ type environment struct {
 	PrintGameMsg         string
 	PrintHandMsg         string
 	PrintStateMsg        string
+	PrintTournamentMsg   string
 	EnableEncryption     string
 	LogLevel             string
 	GqlTimeoutSec        string
@@ -59,6 +60,7 @@ var Env = &environment{
 	PrintGameMsg:         "PRINT_GAME_MSG",
 	PrintHandMsg:         "PRINT_HAND_MSG",
 	PrintStateMsg:        "PRINT_STATE_MSG",
+	PrintTournamentMsg:   "PRINT_TOURNAMENT_MSG",
 	EnableEncryption:     "ENABLE_ENCRYPTION",
 	LogLevel:             "LOG_LEVEL",
 	GqlTimeoutSec:        "GQL_TIMEOUT_SEC",
@@ -262,6 +264,14 @@ func (e *environment) GetPrintStateMsg() string {
 	return v
 }
 
+func (e *environment) GetPrintTournamentMsg() string {
+	v := os.Getenv(e.PrintTournamentMsg)
+	if v == "" {
+		return "false"
+	}
+	return v
+}
+
 func (e *environment) GetEnableEncryption() string {
 	v := os.Getenv(e.EnableEncryption)
 	if v == "" {
@@ -284,6 +294,10 @@ func (e *environment) ShouldPrintStateMsg() bool {
 
 func (e *environment) IsEncryptionEnabled() bool {
 	return e.GetEnableEncryption() == "1" || strings.ToLower(e.GetEnableEncryption()) == "true"
+}
+
+func (e *environment) ShouldPrintTournamentMsg() bool {
+	return e.GetPrintTournamentMsg() == "1" || strings.ToLower(e.GetPrintTournamentMsg()) == "true"
 }
 
 func (e *environment) GetGQLTimeoutSec() int {

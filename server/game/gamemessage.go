@@ -120,7 +120,7 @@ func (g *Game) onResume(message *GameMessage) error {
 
 	switch handState.FlowState {
 	case FlowState_DEAL_HAND:
-		err = g.dealNewHand()
+		err = g.dealNewHand(nil)
 	case FlowState_WAIT_FOR_NEXT_ACTION:
 		err = g.onPlayerActed(nil, handState)
 	case FlowState_PREPARE_NEXT_ACTION:
@@ -205,6 +205,11 @@ func (g *Game) moveToNextHand(handState *HandState) (bool, error) {
 		return false, fmt.Errorf("Hand state is nil in moveToNextHand")
 	}
 
+	// for tournaments don't move to next hand, the tournament server is responsible to move to next hand
+	if g.tournamentID != 0 {
+		return false, nil
+	}
+
 	isPausedForPendingUpdates := false
 
 	expectedState := FlowState_MOVE_TO_NEXT_HAND
@@ -248,6 +253,10 @@ func (g *Game) moveToNextHand(handState *HandState) (bool, error) {
 }
 
 func (g *Game) moveAPIServerToNextHandAndQueueDeal(handState *HandState) error {
+	if g.tournamentID != 0 {
+		// don't move for tournaments
+		return nil
+	}
 	var currentHandNum uint32
 	if handState == nil {
 		currentHandNum = 0
@@ -302,7 +311,7 @@ func (g *Game) onNextHandSetup(message *GameMessage) error {
 }
 
 func (g *Game) onDealHand(message *GameMessage) error {
-	return g.dealNewHand()
+	return g.dealNewHand(nil)
 }
 
 func (g *Game) broadcastTableState() error {

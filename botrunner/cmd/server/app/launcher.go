@@ -25,8 +25,9 @@ func GetLauncher() *Launcher {
 // NewLauncher creates an instance of Launcher.
 func NewLauncher() *Launcher {
 	return &Launcher{
-		batches:    make(map[string]*BotRunnerBatch),
-		humanGames: make(map[string]*HumanGame),
+		batches:     make(map[string]*BotRunnerBatch),
+		humanGames:  make(map[string]*HumanGame),
+		tournaments: make(map[uint64]*Tournament),
 	}
 }
 
@@ -39,6 +40,9 @@ type Launcher struct {
 	// Key: game code
 	// Value: Single bot runner to join the human game.
 	humanGames map[string]*HumanGame
+
+	// tournaments
+	tournaments map[uint64]*Tournament
 }
 
 // ApplyToBatch schedules the requested number of games to be applied to the batch.
@@ -137,5 +141,22 @@ func (l *Launcher) StartAppGame(clubCode string, name string, players *gamescrip
 		return err
 	}
 	h.Launch()
+	return nil
+}
+
+// JoinHumanGame starts a BotRunner that joins a human-created game.
+func (l *Launcher) RegisterTournament(clubCode string, tournamentID uint64, botCount int32) error {
+	_, exists := l.tournaments[tournamentID]
+	if exists {
+		return fmt.Errorf("There is already a tournament registered with id [%d]", tournamentID)
+	}
+	h, err := NewTournament(clubCode, tournamentID, botCount)
+	if err != nil {
+		return err
+	}
+	// will register bots and launch bots
+	// bots will listen on the tournament channel for tournament messages
+	h.Launch()
+	l.tournaments[tournamentID] = h
 	return nil
 }

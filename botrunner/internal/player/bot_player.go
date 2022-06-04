@@ -37,27 +37,32 @@ import (
 
 // Config holds the configuration for a bot object.
 type Config struct {
-	Name           string
-	DeviceID       string
-	Email          string
-	Password       string
-	IsHuman        bool
-	IsObserver     bool
-	IsHost         bool
-	MinActionDelay uint32
-	MaxActionDelay uint32
-	APIServerURL   string
-	NatsURL        string
-	GQLTimeoutSec  int
-	Gps            *gamescript.GpsLocation
-	IpAddress      string
-	Players        *gamescript.Players
-	Script         *gamescript.Script
+	Name            string
+	DeviceID        string
+	Email           string
+	Password        string
+	IsHuman         bool
+	IsObserver      bool
+	IsHost          bool
+	MinActionDelay  uint32
+	MaxActionDelay  uint32
+	APIServerURL    string
+	NatsURL         string
+	GQLTimeoutSec   int
+	Gps             *gamescript.GpsLocation
+	IpAddress       string
+	Players         *gamescript.Players
+	Script          *gamescript.Script
+	IsTournamentBot bool
 }
 
 type GameMessageChannelItem struct {
 	ProtoGameMsg    *game.GameMessage
 	NonProtoGameMsg *gamescript.NonProtoMessage
+}
+
+type TournamentMessageChannelItem struct {
+	NonProtoMsg *gamescript.NonProtoTournamentMsg
 }
 
 // BotPlayer represents a bot user.
@@ -77,6 +82,14 @@ type BotPlayer struct {
 	PlayerUUID      string
 	EncryptionKey   string
 	RewardsNameToID map[string]uint32
+
+	// tournament flag
+	tournament          bool
+	tournamentID        uint64
+	tournamentInfo      game.TournamentInfo
+	tournamentTableInfo game.TournamentTableInfo
+	tournamentSeatNo    uint32
+	tournamentTableNo   uint32
 
 	// initial seat information (used for determining whether bot or human)
 	seatInfo map[uint32]game.SeatInfo // initial seat info (used in auto play games)
@@ -102,11 +115,12 @@ type BotPlayer struct {
 	serverLastMsgIDs *util.Queue
 
 	// Message channels
-	chGame     chan *GameMessageChannelItem
-	chHand     chan *game.HandMessage
-	chHandText chan *gamescript.HandTextMessage
-	end        chan bool
-	endPing    chan bool
+	chGame       chan *GameMessageChannelItem
+	chHand       chan *game.HandMessage
+	chHandText   chan *gamescript.HandTextMessage
+	chTournament chan *TournamentMessageChannelItem
+	end          chan bool
+	endPing      chan bool
 
 	// GameInfo received from the api server.
 	gameInfo *game.GameInfo
@@ -118,6 +132,7 @@ type BotPlayer struct {
 	// Nats subjects
 	meToHandSubjectName    string
 	clientAliveSubjectName string
+	tournamentChannelName  string
 
 	// Nats subscription objects
 	gameMsgSubscription           *natsgo.Subscription
@@ -125,6 +140,7 @@ type BotPlayer struct {
 	handMsgPlayerSubscription     *natsgo.Subscription
 	handMsgPlayerTextSubscription *natsgo.Subscription
 	playerMsgPlayerSubscription   *natsgo.Subscription
+	tournamentMsgSubscription     *natsgo.Subscription
 
 	game      *gameView
 	seatNo    uint32
@@ -133,9 +149,10 @@ type BotPlayer struct {
 	logPrefix string
 
 	// Print nats messages for debugging.
-	printGameMsg  bool
-	printHandMsg  bool
-	printStateMsg bool
+	printGameMsg       bool
+	printHandMsg       bool
+	printStateMsg      bool
+	printTournamentMsg bool
 
 	decision ScriptBasedDecision
 
@@ -152,6 +169,9 @@ type BotPlayer struct {
 	PrivateMessages     []map[string]interface{}
 	PrivateTextMessages []*gamescript.HandTextMessage
 	GameMessages        []*gamescript.NonProtoMessage
+
+	// tournament messages
+	TournamentMessages []map[string]interface{}
 
 	// For periodically notifying server the client is alive
 	clientAliveCheck *networkcheck.ClientAliveCheck
@@ -170,22 +190,25 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 	restHelper := rest.NewRestClient(util.GetInternalRestURL(playerConfig.APIServerURL), uint32(playerConfig.GQLTimeoutSec), "")
 
 	bp := BotPlayer{
-		logger:          logger,
-		config:          playerConfig,
-		PlayerUUID:      playerConfig.DeviceID,
-		gqlHelper:       gqlHelper,
-		restHelper:      restHelper,
-		natsConn:        nc,
-		chGame:          make(chan *GameMessageChannelItem, 10),
-		chHand:          make(chan *game.HandMessage, 10),
-		chHandText:      make(chan *gamescript.HandTextMessage, 10),
-		end:             make(chan bool),
-		endPing:         make(chan bool),
-		printGameMsg:    util.Env.ShouldPrintGameMsg(),
-		printHandMsg:    util.Env.ShouldPrintHandMsg(),
-		printStateMsg:   util.Env.ShouldPrintStateMsg(),
-		RewardsNameToID: make(map[string]uint32),
-		maxRetry:        300,
+		logger:             logger,
+		config:             playerConfig,
+		PlayerUUID:         playerConfig.DeviceID,
+		gqlHelper:          gqlHelper,
+		restHelper:         restHelper,
+		natsConn:           nc,
+		chGame:             make(chan *GameMessageChannelItem, 10),
+		chHand:             make(chan *game.HandMessage, 10),
+		chHandText:         make(chan *gamescript.HandTextMessage, 10),
+		chTournament:       make(chan *TournamentMessageChannelItem, 10),
+		end:                make(chan bool),
+		endPing:            make(chan bool),
+		printGameMsg:       util.Env.ShouldPrintGameMsg(),
+		printHandMsg:       util.Env.ShouldPrintHandMsg(),
+		printStateMsg:      util.Env.ShouldPrintStateMsg(),
+		printTournamentMsg: util.Env.ShouldPrintTournamentMsg(),
+		RewardsNameToID:    make(map[string]uint32),
+		maxRetry:           300,
+		tournament:         playerConfig.IsTournamentBot,
 	}
 
 	bp.sm = fsm.NewFSM(
@@ -277,6 +300,7 @@ func (bp *BotPlayer) Reset() {
 	bp.handMsgPlayerSubscription = nil
 	bp.handMsgPlayerTextSubscription = nil
 	bp.playerMsgPlayerSubscription = nil
+	bp.tournamentMsgSubscription = nil
 	bp.game = nil
 	bp.observing = false
 	bp.hasNextHandBeenSetup = false
@@ -285,6 +309,7 @@ func (bp *BotPlayer) Reset() {
 	bp.PrivateMessages = make([]map[string]interface{}, 0)
 	bp.GameMessages = make([]*gamescript.NonProtoMessage, 0)
 	bp.PrivateTextMessages = make([]*gamescript.HandTextMessage, 0)
+	bp.tournamentID = 0
 	bp.updateLogPrefix()
 	bp.UpdateLogger(0, "")
 	go bp.messageLoop()
@@ -319,6 +344,10 @@ func (bp *BotPlayer) enterState(e *fsm.Event) {
 }
 
 func (bp *BotPlayer) event(event string) error {
+	if bp.tournament {
+		// skip the event check temporarily for tournament bots
+		return nil
+	}
 	err := bp.sm.Event(event)
 	if err != nil {
 		bp.logger.Warn().Msgf("%s: Error from state machine: %s", bp.logPrefix, err.Error())
@@ -447,6 +476,8 @@ func (bp *BotPlayer) messageLoop() {
 			bp.processHandMessage(message)
 		case message := <-bp.chHandText:
 			bp.processHandTextMessage(message)
+		case message := <-bp.chTournament:
+			bp.processTournamentMessage(message)
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
@@ -636,36 +667,38 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 				break
 			}
 		}
-		// update player config
-		bp.updatePlayersConfig()
+		if !bp.tournament {
+			// update player config
+			bp.updatePlayersConfig()
 
-		// setup seat change requests
-		bp.setupSeatChange()
+			// setup seat change requests
+			bp.setupSeatChange()
 
-		// setup run-it-twice prompt/response
-		bp.setupRunItTwice()
+			// setup run-it-twice prompt/response
+			bp.setupRunItTwice()
 
-		// setup take break request
-		bp.setupTakeBreak()
+			// setup take break request
+			bp.setupTakeBreak()
 
-		// setup sit back request
-		bp.setupSitBack()
+			// setup sit back request
+			bp.setupSitBack()
 
-		// process any leave game requests
-		// the player will after this hand
-		bp.setupLeaveGame()
+			// process any leave game requests
+			// the player will after this hand
+			bp.setupLeaveGame()
 
-		// setup switch seats
-		bp.setupSwitchSeats()
+			// setup switch seats
+			bp.setupSwitchSeats()
 
-		// setup reload chips
-		bp.setupReloadChips()
+			// setup reload chips
+			bp.setupReloadChips()
 
-		if bp.balance == 0 {
-			err := bp.autoReloadBalance()
-			if err != nil {
-				errMsg := fmt.Sprintf("%s: Could not reload chips when balance is 0. Current hand num: %d. Error: %v", bp.logPrefix, bp.game.handNum, err)
-				bp.logger.Error().Msg(errMsg)
+			if bp.balance == 0 {
+				err := bp.autoReloadBalance()
+				if err != nil {
+					errMsg := fmt.Sprintf("%s: Could not reload chips when balance is 0. Current hand num: %d. Error: %v", bp.logPrefix, bp.game.handNum, err)
+					bp.logger.Error().Msg(errMsg)
+				}
 			}
 		}
 
@@ -777,7 +810,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if seatNo == bp.seatNo && isTimedOut {
 			bp.event(BotEvent__ACTION_TIMEDOUT)
 		}
-		if seatNo == bp.seatNo && !bp.config.Script.AutoPlay.Enabled {
+		if seatNo == bp.seatNo && !bp.tournament && !bp.config.Script.AutoPlay.Enabled {
 			// verify the player action
 			verify, err := bp.decision.GetPrevActionToVerify(bp)
 			if err == nil {
@@ -883,6 +916,9 @@ func (bp *BotPlayer) chooseNextGame(gameType game.GameType) {
 }
 
 func (bp *BotPlayer) verifyBoard() {
+	if bp.tournament {
+		return
+	}
 	// if the script is configured to auto play, return
 	if bp.config.Script.AutoPlay.Enabled {
 		return
@@ -942,6 +978,10 @@ func (bp *BotPlayer) updateBalance(playerBalances map[uint32]float64) {
 }
 
 func (bp *BotPlayer) verifyCardRank(currentRanks map[uint32]string) {
+	if bp.tournament {
+		return
+	}
+
 	// if the script is configured to auto play, return
 	if bp.config.Script.AutoPlay.Enabled {
 		return
@@ -2451,13 +2491,16 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 	nextAction := game.ACTION_CHECK
 	nextAmt := float64(0)
 	autoPlay := false
-
-	if bp.config.Script.AutoPlay.Enabled {
+	if bp.tournament {
 		autoPlay = true
-	} else if len(bp.config.Script.Hands) >= int(bp.game.handNum) {
-		handScript := bp.config.Script.GetHand(bp.game.handNum)
-		if !bp.doesScriptActionExists(handScript, bp.game.handStatus) {
+	} else {
+		if bp.config.Script.AutoPlay.Enabled {
 			autoPlay = true
+		} else if len(bp.config.Script.Hands) >= int(bp.game.handNum) {
+			handScript := bp.config.Script.GetHand(bp.game.handNum)
+			if !bp.doesScriptActionExists(handScript, bp.game.handStatus) {
+				autoPlay = true
+			}
 		}
 	}
 	runItTwiceActionPrompt := false
@@ -2569,7 +2612,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		// if the human player action is ALLIN, check how many players are active
 		// if more than 2 players are active, then fold
 		// if only two players are active, then the remaining bot will go all in
-		if bp.gameInfo.RunItTwiceAllowed {
+		if !bp.tournament && bp.gameInfo.RunItTwiceAllowed {
 			players := bp.humanPlayers()
 			if len(players) == 1 {
 				player := players[0]
@@ -3171,6 +3214,13 @@ func (bp *BotPlayer) isGamePaused() (bool, error) {
 }
 
 func (bp *BotPlayer) getPlayerNameBySeatNo(seatNo uint32) string {
+	if bp.tournament {
+		for _, p := range bp.tournamentTableInfo.Players {
+			if p.SeatNo == seatNo {
+				return p.Name
+			}
+		}
+	}
 	for _, p := range bp.gameInfo.SeatInfo.PlayersInSeats {
 		if p.SeatNo == seatNo {
 			return p.Name
@@ -3180,6 +3230,13 @@ func (bp *BotPlayer) getPlayerNameBySeatNo(seatNo uint32) string {
 }
 
 func (bp *BotPlayer) getPlayerIDBySeatNo(seatNo uint32) uint64 {
+	if bp.tournament {
+		for _, p := range bp.tournamentTableInfo.Players {
+			if p.SeatNo == seatNo {
+				return p.PlayerId
+			}
+		}
+	}
 	for _, p := range bp.gameInfo.SeatInfo.PlayersInSeats {
 		if p.SeatNo == seatNo {
 			return p.PlayerId

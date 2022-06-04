@@ -929,6 +929,64 @@ func (g *GQLHelper) PostBlind(gameCode string) (bool, error) {
 	return respData.Status, nil
 }
 
+// ResumeGame pauses the game in next hand
+func (g *GQLHelper) RegisterTournament(tournamentID uint64) error {
+	req := graphql.NewRequest(RegisterTournamentGQL)
+
+	req.Var("tournamentId", tournamentID)
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", g.authToken)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+	var resp interface{}
+	err := g.client.Run(ctx, req, &resp)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetTournamentInfo queries the game info from the api server.
+func (g *GQLHelper) GetTournamentInfo(tournamentID uint64) (tournamentInfo game.TournamentInfo, err error) {
+	req := graphql.NewRequest(TournamentInfoGQL)
+	req.Var("tournamentId", tournamentID)
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", fmt.Sprintf("%s", g.authToken))
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+
+	var respData TournamentInfoResp
+	err = g.client.Run(ctx, req, &respData)
+	if err != nil {
+		return
+	}
+	tournamentInfo = respData.TournamentInfo
+	return
+}
+
+// GetTournamentInfo queries the game info from the api server.
+func (g *GQLHelper) GetTournamentTableInfo(tournamentID uint64, tableNo uint32) (tournamentInfo game.TournamentTableInfo, err error) {
+	req := graphql.NewRequest(TournamentTableInfoGQL)
+	req.Var("tournamentId", tournamentID)
+	req.Var("tableNo", tableNo)
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", fmt.Sprintf("%s", g.authToken))
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+
+	var respData TournamentTableInfoResp
+	err = g.client.Run(ctx, req, &respData)
+	if err != nil {
+		return
+	}
+	tournamentInfo = respData.TournamentTableInfo
+	return
+}
+
 // GameInfoGQL is the gql query string for gameinfo api.
 const GameInfoGQL = `query game_info($gameCode: String!) {
     gameInfo(gameCode: $gameCode) {
@@ -1458,6 +1516,12 @@ const ResumeGameGQL = `mutation resumeGame($gameCode: String!) {
 	)
 }`
 
+const RegisterTournamentGQL = `mutation registerTournament($tournamentId: Int!) {
+	registerTournament(
+		tournamentId: $tournamentId
+	)
+}`
+
 type DeclineWaitListResp struct {
 	Confirmed bool
 }
@@ -1545,3 +1609,53 @@ const PostBlindGQL = `mutation post_blind($gameCode: String!) {
 		gameCode: $gameCode
 	)
 }`
+
+type TournamentInfoResp struct {
+	TournamentInfo game.TournamentInfo `json:"tournamentInfo"`
+}
+
+type TournamentTableInfoResp struct {
+	TournamentTableInfo game.TournamentTableInfo `json:"tournamentTableInfo"`
+}
+
+// TournamentInfoGQL is the gql query string for tournament api.
+const TournamentInfoGQL = `query tournament_info($tournamentId: Int!) {
+    tournamentInfo: getTournamentInfo(tournamentId: $tournamentId) {
+		id
+		tournamentChannel
+	}
+}
+`
+
+// TournamentTableInfoGQL is the gql query string for tournament api.
+const TournamentTableInfoGQL = `query tournament_table_info($tournamentId: Int!, $tableNo: Int!) {
+    tournamentTableInfo: getTournamentTableInfo(tournamentId: $tournamentId, tableNo: $tableNo) {
+		smallBlind
+		bigBlind
+		level
+		nextLevel
+		nextLevelTimeInSecs
+		gameChatChannel
+		gameToPlayerChannel
+		playerToHandChannel
+		handToPlayerChannel
+		handToAllChannel
+		clientAliveChannel
+		players {
+		  playerId
+		  playerUuid
+		  playerName
+		  stack
+		  seatNo
+		  status
+		}
+		handToPlayerTextChannel
+	
+	}
+}
+`
+
+// minPlayers
+// startingChips
+// maxPlayers
+// maxPlayersInTable

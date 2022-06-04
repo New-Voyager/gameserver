@@ -145,4 +145,6 @@ message HandState {
   // from pot contribution
   uint32 raise_seat_no = 83;
   double raise_amount = 84;  
+
+  bool tournament = 85;
 }

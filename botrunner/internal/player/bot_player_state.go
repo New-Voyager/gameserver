@@ -20,4 +20,6 @@ const (
 	BotEvent__RECEIVE_ACK         string = "RECEIVE_ACK"
 	BotEvent__ACTION_TIMEDOUT     string = "ACTION_TIMEDOUT"
 	BotEvent__UNSUBSCRIBE         string = "UNSUBSCRIBE"
+
+	BotState__IN_TOURNAMENT string = "IN_TOURNAMENT"
 )

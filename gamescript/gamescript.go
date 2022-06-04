@@ -560,6 +560,18 @@ type NonProtoMessage struct {
 	Verified         bool
 }
 
+type NonProtoTournamentMsg struct {
+	TournamentId uint64 `yaml:"tournamentId" json:"tournamentId"`
+	Type         string `yaml:"type" json:"type"`
+	SubType      string `yaml:"subType" json:"subType"`
+	PlayerName   string `yaml:"playerName" json:"playerName"`
+	PlayerID     uint64 `yaml:"playerId" json:"playerId"`
+	PlayerUUID   string `yaml:"playerUuid" json:"playerUuid"`
+	TableNo      uint32 `yaml:"tableNo" json:"tableNo"`
+	GameCode     string `yaml:"gameCode" json:"gameCode"`
+	SeatNo       uint32 `yaml:"seatNo" json:"seatNo"`
+}
+
 type HandTextMessage struct {
 	MessageType       string   `yaml:"type" json:"messageType"`
 	MessageId         string   `yaml:"messageId" json:"messageId"`

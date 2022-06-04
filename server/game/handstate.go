@@ -102,7 +102,11 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	playersInSeats []SeatPlayer,
 	chipUnit ChipUnit) error {
 
+	h.Tournament = newHandInfo.Tournament
 	h.ChipUnit = chipUnit
+	if playersInSeats == nil {
+		playersInSeats = newHandInfo.PlayersInSeats
+	}
 
 	// settle players in the seats
 	if testGameConfig != nil {
@@ -551,10 +555,23 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 			}
 			seatNo := uint32(seatNoIdx)
 			player := h.PlayersInSeats[seatNo]
-			player.Stack -= h.Ante
-			// update player balance
-			pot += h.Ante
-			collectedAnte += h.Ante
+
+			if player.Stack <= h.Ante {
+				// we need to handle when the player has less than the ante
+				// player is all-in
+				h.actionReceived(&HandAction{
+					SeatNo: seatNo,
+					Action: ACTION_ALLIN,
+					Amount: player.Stack,
+				}, 0)
+				pot += player.Stack
+				collectedAnte += player.Stack
+				player.Stack = 0
+			} else {
+				player.Stack -= h.Ante
+				// update player balance
+				pot += h.Ante
+			}
 		}
 		h.CollectedAnte = collectedAnte
 		h.PreflopActions.PotStart = pot

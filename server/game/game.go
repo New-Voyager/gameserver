@@ -20,6 +20,7 @@ import (
 	"voyager.com/server/internal/encryptionkey"
 	"voyager.com/server/networkcheck"
 	"voyager.com/server/poker"
+	"voyager.com/server/rpc"
 	"voyager.com/server/timer"
 	"voyager.com/server/util"
 )
@@ -35,8 +36,10 @@ type MessageSender interface {
 	SendGameMessageToPlayer(message *GameMessage, playerID uint64)
 }
 type Game struct {
-	gameID   uint64
-	gameCode string
+	gameID       uint64
+	gameCode     string
+	tournamentID uint64
+	tableNo      uint32
 
 	logger *zerolog.Logger
 
@@ -82,6 +85,8 @@ type Game struct {
 func NewPokerGame(
 	gameID uint64,
 	gameCode string,
+	tournamentID uint64,
+	tableNo uint32,
 	isScriptTest bool,
 	gameManager *Manager,
 	messageSender *MessageSender,
@@ -97,6 +102,8 @@ func NewPokerGame(
 		Logger()
 	g := Game{
 		logger:             &logger,
+		tournamentID:       tournamentID,
+		tableNo:            tableNo,
 		gameID:             gameID,
 		gameCode:           gameCode,
 		isScriptTest:       isScriptTest,
@@ -408,7 +415,12 @@ func (g *Game) NumCards(gameType GameType) uint32 {
 	return uint32(noCards)
 }
 
-func (g *Game) dealNewHand() error {
+func (g *Game) DealTournamentHand(newHandInfo *NewHandInfo) error {
+	g.dealNewHand(newHandInfo)
+	return nil
+}
+
+func (g *Game) dealNewHand(newHandInfo *NewHandInfo) error {
 	var handState *HandState
 	var testHandSetup *TestHandSetup
 	var buttonPos uint32
@@ -416,7 +428,6 @@ func (g *Game) dealNewHand() error {
 	var bbPos uint32
 	var newHandNum uint32
 	var gameType GameType
-	var newHandInfo *NewHandInfo
 	var err error
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_1, 0)
@@ -436,8 +447,21 @@ func (g *Game) dealNewHand() error {
 		}
 	}
 
+	// tournament hand
+	if newHandInfo != nil {
+		buttonPos = newHandInfo.ButtonPos
+		sbPos = newHandInfo.SbPos
+		bbPos = newHandInfo.BbPos
+		g.PlayersInSeats = make([]SeatPlayer, newHandInfo.MaxPlayers+1) // 0 is dealer/observer
+		for _, playerInSeat := range newHandInfo.PlayersInSeats {
+			if playerInSeat.SeatNo <= uint32(newHandInfo.MaxPlayers) {
+				g.PlayersInSeats[playerInSeat.SeatNo] = playerInSeat
+			}
+		}
+	}
+
 	var resultPauseTime uint32
-	if !g.isScriptTest {
+	if !g.isScriptTest && g.tournamentID == 0 {
 		// we are not running tests
 		// get new hand information from the API server
 		// new hand information contains players in seats/balance/status, game type, announce new game
@@ -508,7 +532,7 @@ func (g *Game) dealNewHand() error {
 				g.PlayersInSeats[playerInSeat.SeatNo] = playerInSeat
 			}
 		}
-	} else {
+	} else if g.isScriptTest {
 		// We're in a script test (no api server).
 		gameType = g.testGameConfig.GameType
 		if g.testGameConfig.ChipUnit == "CENT" {
@@ -815,6 +839,47 @@ func (g *Game) dealNewHand() error {
 	}
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_6, 0)
 	g.handleHandEnded(handState, handState.TotalResultPauseTime, allMsgItems)
+	return nil
+}
+
+func (g *Game) dealTournamentHand(handInfo *rpc.HandInfo) error {
+	// construct old new hand info and continue
+	newHandInfo := NewHandInfo{
+		GameID:          handInfo.GameId,
+		GameCode:        handInfo.GameCode,
+		GameType:        GameType(handInfo.HandDetails.GameType),
+		MaxPlayers:      handInfo.HandDetails.MaxPlayers,
+		SmallBlind:      handInfo.HandDetails.Sb,
+		BigBlind:        handInfo.HandDetails.Bb,
+		Ante:            handInfo.HandDetails.Ante,
+		ButtonPos:       handInfo.HandDetails.ButtonPos,
+		HandNum:         handInfo.HandDetails.HandNum,
+		ActionTime:      handInfo.HandDetails.ActionTime,
+		ChipUnit:        ChipUnit_DOLLAR,
+		GameStatus:      GameStatus(GameStatus_ACTIVE),
+		TableStatus:     TableStatus(TableStatus_GAME_RUNNING),
+		SbPos:           handInfo.HandDetails.SbPos,
+		BbPos:           handInfo.HandDetails.BbPos,
+		ResultPauseTime: handInfo.HandDetails.ResultPauseTime,
+		Tournament:      true,
+	}
+
+	newHandInfo.PlayersInSeats = make([]SeatPlayer, len(handInfo.Seats))
+	for i, seat := range handInfo.Seats {
+		playerInSeat := SeatPlayer{
+			SeatNo:     seat.SeatNo,
+			PlayerID:   seat.PlayerId,
+			PlayerUUID: seat.PlayerUuid,
+			Name:       seat.Name,
+			Stack:      seat.Stack,
+			Inhand:     seat.Inhand,
+			OpenSeat:   seat.OpenSeat,
+			Status:     PlayerStatus(PlayerStatus_PLAYING),
+		}
+		newHandInfo.PlayersInSeats[i] = playerInSeat
+	}
+	// deal a new hand
+	g.dealNewHand(&newHandInfo)
 	return nil
 }
 
