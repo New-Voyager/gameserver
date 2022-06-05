@@ -245,6 +245,7 @@ func (gm *GameManager) DealTournamentHand(gameCode string, in *rpc.HandInfo) err
 	hand.GameCode = in.GameCode
 	hand.GameID = in.GameId
 	hand.Tournament = true
+	hand.HandNum = in.HandDetails.HandNum
 	hand.GameType = game.GameType(in.HandDetails.GameType)
 	hand.MaxPlayers = in.HandDetails.MaxPlayers
 	hand.SbPos = in.HandDetails.SbPos

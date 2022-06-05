@@ -103,6 +103,10 @@ func (h *HandState) initialize(testGameConfig *TestGameConfig,
 	chipUnit ChipUnit) error {
 
 	h.Tournament = newHandInfo.Tournament
+	if h.Tournament {
+		h.HandNum = newHandInfo.HandNum
+	}
+
 	h.ChipUnit = chipUnit
 	if playersInSeats == nil {
 		playersInSeats = newHandInfo.PlayersInSeats

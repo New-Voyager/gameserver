@@ -2797,7 +2797,12 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		if actionDelayOverride > 0 {
 			bp.logger.Info().Msgf("%s: Seat %d (%s) sleeping for %d milliseconds", bp.logPrefix, bp.seatNo, playerName, actionDelayOverride)
 		}
-		time.Sleep(bp.getActionDelay(actionDelayOverride))
+		if bp.tournament {
+			time.Sleep(5 * time.Second)
+		} else {
+			time.Sleep(bp.getActionDelay(actionDelayOverride))
+		}
+
 		go bp.publishAndWaitForAck(bp.meToHandSubjectName, &actionMsg)
 	}
 }
