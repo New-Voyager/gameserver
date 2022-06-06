@@ -1,11 +1,17 @@
 package networkcheck
 
-import "time"
+import (
+	"time"
+
+	"github.com/rs/zerolog"
+)
 
 type ClientAliveCheck struct {
-	gameID   uint64
-	gameCode string
-	inAction bool
+	logger    *zerolog.Logger
+	logPrefix string
+	gameID    uint64
+	gameCode  string
+	inAction  bool
 
 	chEnd      chan bool
 	chInAction chan bool
@@ -13,8 +19,9 @@ type ClientAliveCheck struct {
 	sendAliveMsg func()
 }
 
-func NewClientAliveCheck(gameID uint64, gameCode string, sendAliveMsg func()) *ClientAliveCheck {
+func NewClientAliveCheck(logger *zerolog.Logger, logPrefix string, gameID uint64, gameCode string, sendAliveMsg func()) *ClientAliveCheck {
 	c := ClientAliveCheck{
+		logger:       logger,
 		gameID:       gameID,
 		gameCode:     gameCode,
 		chEnd:        make(chan bool, 10),
@@ -48,6 +55,7 @@ func (c *ClientAliveCheck) loop() {
 		case <-c.chEnd:
 			return
 		case isInAction := <-c.chInAction:
+			c.logger.Info().Msgf("[%s] INACTION: %v", c.logPrefix, isInAction)
 			c.inAction = isInAction
 			if isInAction {
 				// Immediately send one without waiting for the tick.

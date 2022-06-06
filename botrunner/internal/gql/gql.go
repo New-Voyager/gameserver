@@ -1630,6 +1630,8 @@ const TournamentInfoGQL = `query tournament_info($tournamentId: Int!) {
 // TournamentTableInfoGQL is the gql query string for tournament api.
 const TournamentTableInfoGQL = `query tournament_table_info($tournamentId: Int!, $tableNo: Int!) {
     tournamentTableInfo: getTournamentTableInfo(tournamentId: $tournamentId, tableNo: $tableNo) {
+		gameID
+		gameCode
 		smallBlind
 		bigBlind
 		level
