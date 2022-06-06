@@ -735,6 +735,7 @@ func (g *Game) dealNewHand(newHandInfo *NewHandInfo) error {
 		playersCards[player.SeatNo] = fmt.Sprintf("%d", maskedCards)
 		dealCards.Cards = fmt.Sprintf("%d", maskedCards)
 		dealCards.CardsStr = poker.CardsToString(cards)
+		dealCards.CardsInt = poker.ByteCardsToUint32Cards(playerCards)
 
 		//messageData, _ := proto.Marshal(&message)
 		handMessage := HandMessage{
