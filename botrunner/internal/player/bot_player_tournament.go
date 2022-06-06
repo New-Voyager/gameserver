@@ -89,7 +89,7 @@ func (bp *BotPlayer) processTournamentNonProtoMsg(message *gamescript.NonProtoTo
 }
 
 func (bp *BotPlayer) tournamentStarted(tournamentID uint64) {
-	bp.logger.Info().Msgf("%s: Tournament [%d] has started.", bp.logPrefix, tournamentID)
+	bp.logger.Info().Msgf("%s: Tournament started. Tournament ID [%d]", bp.logPrefix, tournamentID)
 	bp.tournamentID = tournamentID
 	var e error
 	bp.tournamentTableInfo, e = bp.gqlHelper.GetTournamentTableInfo(bp.tournamentID, bp.tournamentTableNo)
@@ -106,7 +106,7 @@ func (bp *BotPlayer) tournamentStarted(tournamentID uint64) {
 	}
 
 	bp.gameCode = bp.tournamentTableInfo.GameCode
-	bp.gameID = 0
+	bp.gameID = bp.tournamentTableInfo.GameID
 
 	playerChannelName := fmt.Sprintf("player.%d", bp.PlayerID)
 	var err error
@@ -122,7 +122,7 @@ func (bp *BotPlayer) tournamentStarted(tournamentID uint64) {
 	bp.clientAliveSubjectName = bp.tournamentTableInfo.ClientAliveChannel
 
 	bp.logger.Info().Msgf("%s: Starting network check client", bp.logPrefix)
-	bp.clientAliveCheck = networkcheck.NewClientAliveCheck(bp.gameID, bp.gameCode, bp.sendAliveMsg)
+	bp.clientAliveCheck = networkcheck.NewClientAliveCheck(bp.logger, bp.logPrefix, bp.gameID, bp.gameCode, bp.sendAliveMsg)
 	bp.clientAliveCheck.Run()
 }
 

@@ -11,7 +11,7 @@ type TournamentInfo struct {
 }
 
 type TournamentTableInfo struct {
-	ID                      uint64     `json:"id"`
+	GameID                  uint64     `json:"gameID"`
 	GameCode                string     `json:"gameCode"`
 	TournamentChannel       string     `json:"tournamentChannel"`
 	MinPlayers              int32      `json:"minPlayers"`

@@ -330,17 +330,17 @@ func (bp *BotPlayer) enterState(e *fsm.Event) {
 		bp.logger.Info().Msgf("%s: [%s] ===> [%s]", bp.logPrefix, e.Src, e.Dst)
 	}
 
-	if e.Dst == BotState__MY_TURN {
-		if bp.clientAliveCheck == nil {
-			bp.logger.Error().Msgf("%s: Entered %s state, but clientAliveCheck is nil", bp.logPrefix, BotState__MY_TURN)
-		} else {
-			bp.clientAliveCheck.InAction()
-		}
-	} else {
-		if bp.clientAliveCheck != nil {
-			bp.clientAliveCheck.NotInAction()
-		}
-	}
+	// if e.Dst == BotState__MY_TURN {
+	// 	if bp.clientAliveCheck == nil {
+	// 		bp.logger.Error().Msgf("%s: Entered %s state, but clientAliveCheck is nil", bp.logPrefix, BotState__MY_TURN)
+	// 	} else {
+	// 		bp.clientAliveCheck.InAction()
+	// 	}
+	// } else {
+	// 	if bp.clientAliveCheck != nil {
+	// 		bp.clientAliveCheck.NotInAction()
+	// 	}
+	// }
 }
 
 func (bp *BotPlayer) event(event string) error {
@@ -748,8 +748,12 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		seatNo := seatAction.GetSeatNo()
 		if seatNo != bp.seatNo {
 			// It's not my turn.
+			bp.clientAliveCheck.NotInAction()
 			break
 		}
+		bp.logger.Info().Msgf("%s: Toggling inaction.", bp.logPrefix, game.HandYourAction)
+		bp.clientAliveCheck.InAction()
+		bp.logger.Info().Msgf("%s: Toggling inaction done.", bp.logPrefix, game.HandYourAction)
 		err := bp.event(BotEvent__RECEIVE_YOUR_ACTION)
 		if err != nil {
 			// State transition failed due to unexpected YOUR_ACTION message. Possible cause is game server sent a duplicate
@@ -1970,7 +1974,7 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 	bp.clientAliveSubjectName = gi.ClientAliveChannel
 
 	bp.logger.Info().Msgf("%s: Starting network check client", bp.logPrefix)
-	bp.clientAliveCheck = networkcheck.NewClientAliveCheck(gi.GameID, gameCode, bp.sendAliveMsg)
+	bp.clientAliveCheck = networkcheck.NewClientAliveCheck(bp.logger, bp.logPrefix, gi.GameID, gameCode, bp.sendAliveMsg)
 	bp.clientAliveCheck.Run()
 
 	return nil

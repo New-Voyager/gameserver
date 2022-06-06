@@ -67,6 +67,7 @@ message HandDealCards {
   string cards = 2; // masked cards in string format
   //map <uint32, uint64> player_cards = 2;  // key: seat no, value: encrypted cards
   string cardsStr = 3; // string representation of the cards for logging
+  repeated uint32 cardsInt = 4; // cards array
 }
 
 // Indicates to the players that has action has changed
