@@ -320,7 +320,7 @@ func (n *NatsGame) clientAlive(msg *natsgo.Msg) {
 		return
 	}
 
-	if message.GameId != n.gameID || message.GameCode != n.gameCode {
+	if message.GameCode != n.gameCode {
 		n.logger.Error().Msgf("Discarding client alive message. Unexpected game ID or game code. Game ID: %d, game code: %s", message.GameId, message.GameCode)
 		return
 	}
