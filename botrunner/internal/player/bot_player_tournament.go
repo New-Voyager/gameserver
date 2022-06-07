@@ -103,6 +103,7 @@ func (bp *BotPlayer) tournamentStarted(tournamentID uint64) {
 			actionTracker: game.NewHandActionTracker(),
 			playersActed:  make(map[uint32]*game.PlayerActRound),
 		},
+		handNum: 1,
 	}
 
 	bp.gameCode = bp.tournamentTableInfo.GameCode
@@ -132,6 +133,7 @@ func (bp *BotPlayer) setTournamentPlayerSeat(message *gamescript.NonProtoTournam
 	}
 	bp.tournamentTableNo = message.TableNo
 	bp.tournamentSeatNo = message.SeatNo
+	bp.seatNo = message.SeatNo
 	bp.logger.Info().Msgf("%s: Tournament [%d] Player [%s] has taken seat %d on table %d.",
 		bp.logPrefix, message.TournamentId, bp.GetName(), bp.tournamentSeatNo, bp.tournamentTableNo)
 }
