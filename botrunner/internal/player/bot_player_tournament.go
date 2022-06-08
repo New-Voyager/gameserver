@@ -85,6 +85,8 @@ func (bp *BotPlayer) processTournamentNonProtoMsg(message *gamescript.NonProtoTo
 		bp.tournamentStarted(message.TournamentId)
 	case "TOURNAMENT_INITIAL_PLAYER_TABLE":
 		bp.setTournamentPlayerSeat(message)
+	case "TOURNAMENT_PLAYER_MOVED_TABLE":
+		bp.tournamentPlayerMoved(message)
 	}
 }
 
@@ -136,4 +138,52 @@ func (bp *BotPlayer) setTournamentPlayerSeat(message *gamescript.NonProtoTournam
 	bp.seatNo = message.SeatNo
 	bp.logger.Info().Msgf("%s: Tournament [%d] Player [%s] has taken seat %d on table %d.",
 		bp.logPrefix, message.TournamentId, bp.GetName(), bp.tournamentSeatNo, bp.tournamentTableNo)
+}
+
+func (bp *BotPlayer) tournamentPlayerMoved(message *gamescript.NonProtoTournamentMsg) {
+	if message.PlayerID != bp.PlayerID {
+		return
+	}
+	bp.tournamentTableNo = message.NewTableNo
+	bp.tournamentSeatNo = message.SeatNo
+	bp.seatNo = message.SeatNo
+	bp.logger.Info().Msgf("%s: Tournament [%d] Player [%s] moved to table %d:%d from table %d.",
+		bp.logPrefix, message.TournamentId, bp.GetName(),
+		bp.tournamentSeatNo, bp.tournamentTableNo,
+		message.CurrentTableNo)
+	var e error
+	bp.tournamentTableInfo, e = bp.gqlHelper.GetTournamentTableInfo(bp.tournamentID, bp.tournamentTableNo)
+	if e != nil {
+		return
+	}
+
+	bp.game = &gameView{
+		table: &tableView{
+			playersBySeat: make(map[uint32]*player),
+			actionTracker: game.NewHandActionTracker(),
+			playersActed:  make(map[uint32]*game.PlayerActRound),
+		},
+		handNum: 1,
+	}
+	// re-establish connection with new table
+	bp.unsubscribe()
+	bp.gameCode = bp.tournamentTableInfo.GameCode
+	bp.gameID = bp.tournamentTableInfo.GameID
+
+	playerChannelName := fmt.Sprintf("player.%d", bp.PlayerID)
+	var err error
+	err = bp.Subscribe(bp.tournamentTableInfo.GameToPlayerChannel,
+		bp.tournamentTableInfo.HandToAllChannel, bp.tournamentTableInfo.HandToPlayerChannel,
+		bp.tournamentTableInfo.HandToPlayerTextChannel, playerChannelName)
+	if err != nil {
+		bp.logger.Error().Msgf("%s: Unable to subscribe to game %s channels",
+			bp.logPrefix, bp.gameCode)
+	}
+
+	bp.meToHandSubjectName = bp.tournamentTableInfo.PlayerToHandChannel
+	bp.clientAliveSubjectName = bp.tournamentTableInfo.ClientAliveChannel
+
+	bp.logger.Info().Msgf("%s: Starting network check client", bp.logPrefix)
+	bp.clientAliveCheck = networkcheck.NewClientAliveCheck(bp.logger, bp.logPrefix, bp.gameID, bp.gameCode, bp.sendAliveMsg)
+	bp.clientAliveCheck.Run()
 }

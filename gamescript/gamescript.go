@@ -561,15 +561,17 @@ type NonProtoMessage struct {
 }
 
 type NonProtoTournamentMsg struct {
-	TournamentId uint64 `yaml:"tournamentId" json:"tournamentId"`
-	Type         string `yaml:"type" json:"type"`
-	SubType      string `yaml:"subType" json:"subType"`
-	PlayerName   string `yaml:"playerName" json:"playerName"`
-	PlayerID     uint64 `yaml:"playerId" json:"playerId"`
-	PlayerUUID   string `yaml:"playerUuid" json:"playerUuid"`
-	TableNo      uint32 `yaml:"tableNo" json:"tableNo"`
-	GameCode     string `yaml:"gameCode" json:"gameCode"`
-	SeatNo       uint32 `yaml:"seatNo" json:"seatNo"`
+	TournamentId   uint64 `yaml:"tournamentId" json:"tournamentId"`
+	Type           string `yaml:"type" json:"type"`
+	SubType        string `yaml:"subType" json:"subType"`
+	PlayerName     string `yaml:"playerName" json:"playerName"`
+	PlayerID       uint64 `yaml:"playerId" json:"playerId"`
+	PlayerUUID     string `yaml:"playerUuid" json:"playerUuid"`
+	TableNo        uint32 `yaml:"tableNo" json:"tableNo"`
+	GameCode       string `yaml:"gameCode" json:"gameCode"`
+	SeatNo         uint32 `yaml:"seatNo" json:"seatNo"`
+	NewTableNo     uint32 `yaml:"newTableNo" json:"newTableNo"`
+	CurrentTableNo uint32 `yaml:"currentTableNo" json:"currentTableNo"`
 }
 
 type HandTextMessage struct {
