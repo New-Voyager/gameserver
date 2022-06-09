@@ -51,6 +51,7 @@ type Game struct {
 	chPlayTimedOut chan timer.TimerMsg
 	messageSender  *MessageSender // receives messages
 	apiServerURL   string
+	tournamentURL  string
 
 	// test driver specific variables
 	isScriptTest          bool
@@ -458,6 +459,7 @@ func (g *Game) dealNewHand(newHandInfo *NewHandInfo) error {
 				g.PlayersInSeats[playerInSeat.SeatNo] = playerInSeat
 			}
 		}
+		g.tournamentURL = newHandInfo.TournamentURL
 	}
 
 	var resultPauseTime uint32

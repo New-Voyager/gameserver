@@ -63,13 +63,13 @@ func (g *Game) saveHandResult2ToAPIServer(result2 *HandResultServer) (*SaveHandR
 	return &saveResult, nil
 }
 
-func (g *Game) saveTournamentHandResult2ToAPIServer(result2 *HandResultServer) (*SaveHandResult, error) {
+func (g *Game) saveTournamentHandResult2ToAPIServer(tournamentURL string, result2 *HandResultServer) (*SaveHandResult, error) {
 	// call the API server to save the hand result
 	var m protojson.MarshalOptions
 	m.EmitUnpopulated = true
 	data, _ := m.Marshal(result2)
 	g.logger.Debug().Msgf("Result to API server: %s", string(data))
-	url := fmt.Sprintf("%s/internal/save-hand/tournamentId/%d/tableNo/%d", g.apiServerURL, g.tournamentID, g.tableNo)
+	url := fmt.Sprintf("%s/internal/save-hand/tournamentId/%d/tableNo/%d", tournamentURL, g.tournamentID, g.tableNo)
 	retries := 0
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
 	for err != nil && retries < int(g.maxRetries) {

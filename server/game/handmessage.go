@@ -1569,7 +1569,7 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	sendResultToAPI := !g.isScriptTest
 	if sendResultToAPI {
 		if g.tournamentID != 0 {
-			saveResult, err := g.saveTournamentHandResult2ToAPIServer(handResultServer)
+			saveResult, err := g.saveTournamentHandResult2ToAPIServer(g.tournamentURL, handResultServer)
 			if err != nil {
 				return nil, errors.Wrapf(err, "Could not save hand result to api server")
 			}

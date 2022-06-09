@@ -269,6 +269,7 @@ func (gm *GameManager) DealTournamentHand(gameCode string, in *rpc.HandInfo) err
 		sp.Status = game.PlayerStatus_PLAYING
 		hand.PlayersInSeats = append(hand.PlayersInSeats, sp)
 	}
+	hand.TournamentURL = in.TournamentUrl
 	go natsGame.serverGame.DealTournamentHand(&hand)
 	return nil
 }

@@ -376,4 +376,5 @@ type NewHandInfo struct {
 	StraightFlushAllowed bool
 	FourKindAllowed      bool
 	Tournament           bool
+	TournamentURL        string
 }
