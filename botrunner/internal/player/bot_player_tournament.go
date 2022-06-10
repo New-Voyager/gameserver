@@ -110,6 +110,7 @@ func (bp *BotPlayer) tournamentStarted(tournamentID uint64) {
 
 	bp.gameCode = bp.tournamentTableInfo.GameCode
 	bp.gameID = bp.tournamentTableInfo.GameID
+	bp.UpdateLogger(bp.gameID, bp.gameCode)
 
 	playerChannelName := fmt.Sprintf("player.%d", bp.PlayerID)
 	var err error
@@ -172,6 +173,7 @@ func (bp *BotPlayer) tournamentPlayerMoved(message *gamescript.NonProtoTournamen
 	bp.unsubscribe()
 	bp.gameCode = bp.tournamentTableInfo.GameCode
 	bp.gameID = bp.tournamentTableInfo.GameID
+	bp.UpdateLogger(bp.gameID, bp.gameCode)
 
 	playerChannelName := fmt.Sprintf("player.%d", bp.PlayerID)
 	err := bp.Subscribe(bp.tournamentTableInfo.GameToPlayerChannel,

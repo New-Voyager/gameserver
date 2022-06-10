@@ -311,7 +311,7 @@ func (bp *BotPlayer) Reset() {
 	bp.GameMessages = make([]*gamescript.NonProtoMessage, 0)
 	bp.PrivateTextMessages = make([]*gamescript.HandTextMessage, 0)
 	bp.tournamentID = 0
-	bp.updateLogPrefix()
+	bp.needsTournamentTableRefresh = false
 	bp.UpdateLogger(0, "")
 	go bp.messageLoop()
 }
@@ -1852,6 +1852,7 @@ func (bp *BotPlayer) CreateGame(gameOpt game.GameCreateOpt) (uint64, string, err
 	bp.logger.Info().Msgf("%s: Successfully created a new game. Game Code: [%s]", bp.logPrefix, gameCode)
 	bp.gameID = gameID
 	bp.gameCode = gameCode
+	bp.UpdateLogger(bp.gameID, bp.gameCode)
 	return bp.gameID, bp.gameCode, nil
 }
 
@@ -1965,6 +1966,7 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 
 	bp.gameCode = gameCode
 	bp.gameID = gi.GameID
+	bp.UpdateLogger(bp.gameID, bp.gameCode)
 	bp.gameInfo = &gi
 
 	playerChannelName := fmt.Sprintf("player.%d", bp.PlayerID)
@@ -2308,6 +2310,7 @@ func (bp *BotPlayer) LeaveGameImmediately() error {
 	bp.updateSeatNo(0)
 	bp.gameCode = ""
 	bp.gameID = 0
+	bp.UpdateLogger(bp.gameID, bp.gameCode)
 	bp.clientAliveCheck.Destroy()
 	bp.clientAliveCheck = nil
 	return nil
