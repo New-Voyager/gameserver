@@ -2434,7 +2434,7 @@ func (bp *BotPlayer) sendAliveMsg() {
 		bp.logger.Error().Err(err).Msgf("%s: Could not proto-marshal client-alive message", bp.logPrefix)
 		return
 	}
-	bp.logger.Info().Msgf("%s: Sending client-alive message to %s", bp.logPrefix, bp.clientAliveSubjectName)
+	bp.logger.Debug().Msgf("%s: Sending client-alive message to %s", bp.logPrefix, bp.clientAliveSubjectName)
 	err = bp.natsConn.Publish(bp.clientAliveSubjectName, protoData)
 	if err != nil {
 		bp.logger.Error().Err(err).Msgf("%s: Unable to publish client-alive message to nats channel %s", bp.logPrefix, bp.clientAliveSubjectName)
