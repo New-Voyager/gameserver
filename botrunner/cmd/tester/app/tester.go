@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/pkg/errors"
@@ -42,7 +43,6 @@ func (t *Tester) Run() error {
 		return fmt.Errorf("No player found in the setup script")
 	}
 
-	playerLogger := logging.GetZeroLogger("TesterPlayer", nil)
 	player, err := _player.NewBotPlayer(_player.Config{
 		Name:          playerConf.Name,
 		DeviceID:      playerConf.DeviceID,
@@ -55,7 +55,7 @@ func (t *Tester) Run() error {
 		GQLTimeoutSec: 10,
 		Script:        t.script,
 		Players:       t.players,
-	}, playerLogger)
+	}, os.Stdout)
 	if err != nil {
 		return err
 	}

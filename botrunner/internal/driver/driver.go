@@ -4,6 +4,7 @@ package driver
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -22,8 +23,9 @@ import (
 
 // BotRunner is the main driver object that sets up the bots for a game.
 type BotRunner struct {
+	logFile         *os.File
+	playerLogFile   *os.File
 	logger          *zerolog.Logger
-	playerLogger    *zerolog.Logger
 	clubCode        string
 	botIsClubOwner  bool
 	players         *gamescript.Players
@@ -45,7 +47,7 @@ type BotRunner struct {
 }
 
 // NewBotRunner creates new instance of BotRunner.
-func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, players *gamescript.Players, driverLogger *zerolog.Logger, playerLogger *zerolog.Logger, resetDB bool, playerGame bool, demoGame bool) (*BotRunner, error) {
+func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, players *gamescript.Players, driverLogFile *os.File, playerLogFile *os.File, resetDB bool, playerGame bool, demoGame bool) (*BotRunner, error) {
 	natsURL := util.Env.GetNatsURL()
 	nc, err := natsgo.Connect(natsURL)
 	if err != nil {
@@ -55,9 +57,15 @@ func NewBotRunner(clubCode string, gameCode string, script *gamescript.Script, p
 		clubCode = ""
 	}
 
+	logger := logging.GetZeroLogger("BotRunner", driverLogFile)
+	if gameCode != "" {
+		l := logger.With().Str(logging.GameCodeKey, gameCode).Logger()
+		logger = &l
+	}
+
 	d := BotRunner{
-		logger:         driverLogger,
-		playerLogger:   playerLogger,
+		logger:         logger,
+		playerLogFile:  playerLogFile,
 		clubCode:       clubCode,
 		botIsClubOwner: clubCode == "",
 		humanGameCode:  gameCode,
@@ -102,7 +110,7 @@ func (br *BotRunner) Run() error {
 			GQLTimeoutSec:  util.Env.GetGQLTimeoutSec(),
 			Script:         br.script,
 			Players:        br.players,
-		}, br.playerLogger)
+		}, br.playerLogFile)
 		if err != nil {
 			return errors.Wrap(err, "Unable to create a new bot")
 		}
@@ -125,7 +133,7 @@ func (br *BotRunner) Run() error {
 		GQLTimeoutSec:  util.Env.GetGQLTimeoutSec(),
 		Script:         br.script,
 		Players:        br.players,
-	}, br.playerLogger)
+	}, br.playerLogFile)
 	if err != nil {
 		return errors.Wrap(err, "Unable to create observer bot")
 	}
@@ -376,8 +384,6 @@ func (br *BotRunner) RunOneGame() error {
 
 	br.logger.Info().Msgf("New game is created")
 
-	br.UpdateBotLoggers(gameID, gameCode)
-
 	// Let the observer bot start watching the game.
 	br.observerBot.ObserveGame(gameCode)
 	allJoinedGame := false
@@ -626,11 +632,11 @@ func (br *BotRunner) ResetBots() {
 	br.observerBot.Reset()
 }
 
-func (br *BotRunner) UpdateBotLoggers(gameID uint64, gameCode string) {
+func (br *BotRunner) UpdateBotLoggers() {
 	for _, bot := range br.bots {
-		bot.UpdateLogger(gameID, gameCode)
+		bot.UpdateLogger()
 	}
-	br.observerBot.UpdateLogger(gameID, gameCode)
+	br.observerBot.UpdateLogger()
 }
 
 func (br *BotRunner) GetRewardIds() ([]uint32, error) {
@@ -735,7 +741,7 @@ func (br *BotRunner) processAfterGameAssertions(gameCode string) error {
 				verifyGameMessage.SubType == "HostSeatChangeMove" {
 				error := false
 				if len(verifyGameMessage.SeatMoves) != len(gameMessageVerified.SeatMoves) {
-					errMsgs = append(errMsgs, fmt.Sprintf("Incorrect number of seat moves "))
+					errMsgs = append(errMsgs, "Incorrect number of seat moves ")
 					error = true
 				}
 				if !error {
@@ -745,7 +751,7 @@ func (br *BotRunner) processAfterGameAssertions(gameCode string) error {
 							expectedMove.OldSeatNo != actualMove.OldSeatNo ||
 							expectedMove.NewSeatNo != actualMove.NewSeatNo ||
 							expectedMove.OpenSeat != actualMove.OpenSeat {
-							errMsgs = append(errMsgs, fmt.Sprintf("Incorrect data in seat moves"))
+							errMsgs = append(errMsgs, "Incorrect data in seat moves")
 						}
 					}
 				}
@@ -753,13 +759,13 @@ func (br *BotRunner) processAfterGameAssertions(gameCode string) error {
 			} else if verifyGameMessage.Type == "PLAYER_SEAT_CHANGE_PROMPT" {
 				if verifyGameMessage.PlayerName != gameMessageVerified.PlayerName ||
 					verifyGameMessage.OpenedSeat != gameMessageVerified.OpenedSeat {
-					errMsgs = append(errMsgs, fmt.Sprintf("Invalid data in PLAYER_SEAT_CHANGE_PROMPT"))
+					errMsgs = append(errMsgs, "Invalid data in PLAYER_SEAT_CHANGE_PROMPT")
 				}
 			} else if verifyGameMessage.Type == "PLAYER_SEAT_MOVE" {
 				if verifyGameMessage.PlayerName != gameMessageVerified.PlayerName ||
 					uint32(verifyGameMessage.OldSeatNo) != uint32(gameMessageVerified.OldSeatNo) ||
 					verifyGameMessage.NewSeatNo != gameMessageVerified.NewSeatNo {
-					errMsgs = append(errMsgs, fmt.Sprintf("Invalid data in PLAYER_SEAT_MOVE"))
+					errMsgs = append(errMsgs, "Invalid data in PLAYER_SEAT_MOVE")
 				}
 			}
 		}

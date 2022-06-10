@@ -13,7 +13,7 @@ func (bp *BotPlayer) processPreActions(seatAction *game.NextSeatAction, preActio
 	for _, pa := range preActions {
 		errs := bp.verifyPreAction(seatAction, pa.Verify)
 		if errs != nil {
-			bp.logger.Error().Msgf("%s: Pre action verification failed.", bp.logPrefix)
+			bp.logger.Error().Msgf("Pre action verification failed.")
 			for _, e := range errs {
 				bp.logger.Error().Err(e).Msg("Pre action verification")
 			}
@@ -129,13 +129,13 @@ func (bp *BotPlayer) setupServerCrashWithRetry(crashPoint string, playerID uint6
 	err := bp.setupServerCrash(crashPoint, playerID)
 	retries := 0
 	for err != nil && retries < maxRetries {
-		bp.logger.Warn().Msgf("%s: Could not setup game server crash: %v", bp.logPrefix, err)
+		bp.logger.Warn().Msgf("Could not setup game server crash: %v", err)
 		time.Sleep(2 * time.Second)
 		err = bp.setupServerCrash(crashPoint, playerID)
 		retries++
 	}
 	if err != nil {
-		bp.logger.Fatal().Msgf("%s: Unable to setup game server crash: %s", bp.logPrefix, err)
+		bp.logger.Fatal().Msgf("Unable to setup game server crash: %s", err)
 	}
 }
 

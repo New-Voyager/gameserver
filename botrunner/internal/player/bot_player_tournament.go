@@ -30,15 +30,15 @@ func (bp *BotPlayer) enterTournament() error {
 		return errors.Wrapf(e, "Error getting tournament info for tournament [%d]", bp.tournamentID)
 	}
 
-	bp.logger.Info().Msgf("%s: Entering tournament [%d]", bp.logPrefix, bp.tournamentID)
+	bp.logger.Info().Msgf("Entering tournament [%d]", bp.tournamentID)
 	if bp.tournamentMsgSubscription == nil || !bp.tournamentMsgSubscription.IsValid() {
-		bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand messages sent to tournament channel: %s", bp.logPrefix, bp.tournamentInfo.TournamentChannel, bp.config.Name)
+		bp.logger.Info().Msgf("Subscribing to %s to receive hand messages sent to tournament channel: %s", bp.tournamentInfo.TournamentChannel, bp.config.Name)
 		sub, err := bp.natsConn.Subscribe(bp.tournamentInfo.TournamentChannel, bp.handleTournamentMsg)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the tournament channel subject [%s]", bp.logPrefix, bp.tournamentInfo.TournamentChannel))
+			return errors.Wrap(err, fmt.Sprintf("Unable to subscribe to the tournament channel subject [%s]", bp.tournamentInfo.TournamentChannel))
 		}
 		bp.tournamentMsgSubscription = sub
-		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, bp.tournamentInfo.TournamentChannel)
+		bp.logger.Info().Msgf("Successfully subscribed to %s.", bp.tournamentInfo.TournamentChannel)
 	}
 
 	return nil
@@ -46,7 +46,7 @@ func (bp *BotPlayer) enterTournament() error {
 
 func (bp *BotPlayer) handleTournamentMsg(msg *natsgo.Msg) {
 	if bp.printTournamentMsg {
-		bp.logger.Info().Msgf("%s: Received game message %s", bp.logPrefix, string(msg.Data))
+		bp.logger.Info().Msgf("Received game message %s", string(msg.Data))
 	}
 	var jsonMessage *gamescript.NonProtoTournamentMsg
 	err := json.Unmarshal(msg.Data, &jsonMessage)
@@ -61,7 +61,7 @@ func (bp *BotPlayer) handleTournamentMsg(msg *natsgo.Msg) {
 
 func (bp *BotPlayer) processTournamentMessage(message *TournamentMessageChannelItem) {
 	if bp.IsErrorState() {
-		bp.logger.Info().Msgf("%s: Bot is in error state. Ignoring hand message.", bp.logPrefix)
+		bp.logger.Info().Msgf("Bot is in error state. Ignoring hand message.")
 		return
 	}
 
@@ -72,12 +72,12 @@ func (bp *BotPlayer) processTournamentMessage(message *TournamentMessageChannelI
 
 func (bp *BotPlayer) processTournamentNonProtoMsg(message *gamescript.NonProtoTournamentMsg) {
 	if bp.IsErrorState() {
-		bp.logger.Info().Msgf("%s: Bot is in error state. Ignoring hand message.", bp.logPrefix)
+		bp.logger.Info().Msgf("Bot is in error state. Ignoring hand message.")
 		return
 	}
-	fmt.Printf("[%s] HANDLING TOURNAMENT MESSAGE: %+v\n", bp.logPrefix, message.Type)
+	fmt.Printf("HANDLING TOURNAMENT MESSAGE: %+v\n", message.Type)
 	// if util.Env.ShouldPrintTournamentMsg() {
-	// 	fmt.Printf("[%s] HANDLING TOURNAMENT MESSAGE: %+v\n", bp.logPrefix, message.Type)
+	// 	fmt.Printf("HANDLING TOURNAMENT MESSAGE: %+v\n", message.Type)
 	// }
 
 	switch message.Type {
@@ -91,7 +91,7 @@ func (bp *BotPlayer) processTournamentNonProtoMsg(message *gamescript.NonProtoTo
 }
 
 func (bp *BotPlayer) tournamentStarted(tournamentID uint64) {
-	bp.logger.Info().Msgf("%s: Tournament started. Tournament ID [%d]", bp.logPrefix, tournamentID)
+	bp.logger.Info().Msgf("Tournament started. Tournament ID [%d]", tournamentID)
 	bp.tournamentID = tournamentID
 	var e error
 	bp.tournamentTableInfo, e = bp.gqlHelper.GetTournamentTableInfo(bp.tournamentID, bp.tournamentTableNo)
@@ -110,7 +110,7 @@ func (bp *BotPlayer) tournamentStarted(tournamentID uint64) {
 
 	bp.gameCode = bp.tournamentTableInfo.GameCode
 	bp.gameID = bp.tournamentTableInfo.GameID
-	bp.UpdateLogger(bp.gameID, bp.gameCode)
+	bp.UpdateLogger()
 
 	playerChannelName := fmt.Sprintf("player.%d", bp.PlayerID)
 	var err error
@@ -118,15 +118,15 @@ func (bp *BotPlayer) tournamentStarted(tournamentID uint64) {
 		bp.tournamentTableInfo.HandToAllChannel, bp.tournamentTableInfo.HandToPlayerChannel,
 		bp.tournamentTableInfo.HandToPlayerTextChannel, playerChannelName)
 	if err != nil {
-		// return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to game %s channels",
-		// 	bp.logPrefix, bp.gameCode))
+		// return errors.Wrap(err, fmt.Sprintf("Unable to subscribe to game %s channels",
+		// 	bp.gameCode))
 	}
 
 	bp.meToHandSubjectName = bp.tournamentTableInfo.PlayerToHandChannel
 	bp.clientAliveSubjectName = bp.tournamentTableInfo.ClientAliveChannel
 
-	bp.logger.Info().Msgf("%s: Starting network check client", bp.logPrefix)
-	bp.clientAliveCheck = networkcheck.NewClientAliveCheck(bp.logger, bp.logPrefix, bp.gameID, bp.gameCode, bp.sendAliveMsg)
+	bp.logger.Info().Msgf("Starting network check client")
+	bp.clientAliveCheck = networkcheck.NewClientAliveCheck(bp.logger, bp.gameID, bp.gameCode, bp.sendAliveMsg)
 	bp.clientAliveCheck.Run()
 }
 
@@ -137,8 +137,8 @@ func (bp *BotPlayer) setTournamentPlayerSeat(message *gamescript.NonProtoTournam
 	bp.tournamentTableNo = message.TableNo
 	bp.tournamentSeatNo = message.SeatNo
 	bp.seatNo = message.SeatNo
-	bp.logger.Info().Msgf("%s: Tournament [%d] Player [%s] has taken seat %d on table %d.",
-		bp.logPrefix, message.TournamentId, bp.GetName(), bp.tournamentSeatNo, bp.tournamentTableNo)
+	bp.logger.Info().Msgf("Tournament [%d] Player [%s] has taken seat %d on table %d.",
+		message.TournamentId, bp.GetName(), bp.tournamentSeatNo, bp.tournamentTableNo)
 }
 
 func (bp *BotPlayer) tournamentPlayerMoved(message *gamescript.NonProtoTournamentMsg) {
@@ -155,8 +155,8 @@ func (bp *BotPlayer) tournamentPlayerMoved(message *gamescript.NonProtoTournamen
 	bp.tournamentTableNo = message.NewTableNo
 	bp.tournamentSeatNo = message.SeatNo
 	bp.seatNo = message.SeatNo
-	bp.logger.Info().Msgf("%s: Tournament [%d] Player [%s] moved to table %d:%d from table %d.",
-		bp.logPrefix, message.TournamentId, bp.GetName(),
+	bp.logger.Info().Msgf("Tournament [%d] Player [%s] moved to table %d:%d from table %d.",
+		message.TournamentId, bp.GetName(),
 		bp.tournamentSeatNo, bp.tournamentTableNo,
 		message.CurrentTableNo)
 	bp.refreshTournamentTableInfo()
@@ -173,22 +173,21 @@ func (bp *BotPlayer) tournamentPlayerMoved(message *gamescript.NonProtoTournamen
 	bp.unsubscribe()
 	bp.gameCode = bp.tournamentTableInfo.GameCode
 	bp.gameID = bp.tournamentTableInfo.GameID
-	bp.UpdateLogger(bp.gameID, bp.gameCode)
+	bp.UpdateLogger()
 
 	playerChannelName := fmt.Sprintf("player.%d", bp.PlayerID)
 	err := bp.Subscribe(bp.tournamentTableInfo.GameToPlayerChannel,
 		bp.tournamentTableInfo.HandToAllChannel, bp.tournamentTableInfo.HandToPlayerChannel,
 		bp.tournamentTableInfo.HandToPlayerTextChannel, playerChannelName)
 	if err != nil {
-		bp.logger.Error().Msgf("%s: Unable to subscribe to game %s channels",
-			bp.logPrefix, bp.gameCode)
+		bp.logger.Error().Msgf("Unable to subscribe to game %s channels", bp.gameCode)
 	}
 
 	bp.meToHandSubjectName = bp.tournamentTableInfo.PlayerToHandChannel
 	bp.clientAliveSubjectName = bp.tournamentTableInfo.ClientAliveChannel
 
-	bp.logger.Info().Msgf("%s: Starting network check client", bp.logPrefix)
-	bp.clientAliveCheck = networkcheck.NewClientAliveCheck(bp.logger, bp.logPrefix, bp.gameID, bp.gameCode, bp.sendAliveMsg)
+	bp.logger.Info().Msgf("Starting network check client")
+	bp.clientAliveCheck = networkcheck.NewClientAliveCheck(bp.logger, bp.gameID, bp.gameCode, bp.sendAliveMsg)
 	bp.clientAliveCheck.Run()
 }
 
@@ -196,7 +195,7 @@ func (bp *BotPlayer) refreshTournamentTableInfo() error {
 	var err error
 	bp.tournamentTableInfo, err = bp.gqlHelper.GetTournamentTableInfo(bp.tournamentID, bp.tournamentTableNo)
 	if err != nil {
-		bp.logger.Error().Err(err).Msgf("%s: Could not get tournament table info", bp.logPrefix)
+		bp.logger.Error().Err(err).Msgf("Could not get tournament table info")
 		return err
 	}
 	bp.needsTournamentTableRefresh = false

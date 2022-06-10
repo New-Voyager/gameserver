@@ -3,6 +3,7 @@ package driver
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -81,7 +82,7 @@ func (tr *TournamentRunner) CreateBots() error {
 			NatsURL:         util.Env.GetNatsURL(),
 			GQLTimeoutSec:   util.Env.GetGQLTimeoutSec(),
 			IsTournamentBot: true,
-		}, tr.logger)
+		}, os.Stdout)
 		if err != nil {
 			return errors.Wrap(err, "Unable to create a new bot")
 		}
