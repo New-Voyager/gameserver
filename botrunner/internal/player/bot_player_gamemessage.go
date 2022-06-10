@@ -13,7 +13,7 @@ import (
 
 func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMessage) {
 	if util.Env.ShouldPrintGameMsg() {
-		fmt.Printf("[%s] HANDLING NON-PROTO GAME MESSAGE: %+v\n", bp.logPrefix, message)
+		fmt.Printf("HANDLING NON-PROTO GAME MESSAGE: %+v\n", message)
 	}
 	bp.GameMessages = append(bp.GameMessages, message)
 	switch message.Type {
@@ -22,25 +22,25 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 		ts := game.TableStatus(game.TableStatus_value[message.TableStatus])
 		bp.game.status = gs
 		bp.game.tableStatus = ts
-		bp.logger.Info().Msgf("%s: Received game status message. Game Status: %s Table Status: %s", bp.logPrefix, gs, ts)
+		bp.logger.Info().Msgf("Received game status message. Game Status: %s Table Status: %s", gs, ts)
 		if ts == game.TableStatus_GAME_RUNNING {
 			err := bp.queryCurrentHandState()
 			if err != nil {
-				bp.logger.Error().Msgf("%s: Error while querying current hand state. Error: %v", bp.logPrefix, err)
+				bp.logger.Error().Msgf("Error while querying current hand state. Error: %v", err)
 			}
 		}
 		if gs == game.GameStatus_ENDED {
 			// The game just ended. Player should leave the game.
 			err := bp.LeaveGameImmediately()
 			if err != nil {
-				bp.logger.Error().Msgf("%s: Error while leaving game: %s", bp.logPrefix, err)
+				bp.logger.Error().Msgf("Error while leaving game: %s", err)
 			}
 		}
 		if ts == game.TableStatus_NOT_ENOUGH_PLAYERS {
 			if bp.IsHost() {
 				err := bp.processNotEnoughPlayers()
 				if err != nil {
-					errMsg := fmt.Sprintf("%s: Error while processing not-enough-players: %s", bp.logPrefix, err)
+					errMsg := fmt.Sprintf("Error while processing not-enough-players: %s", err)
 					bp.logger.Error().Msg(errMsg)
 					bp.errorStateMsg = errMsg
 					bp.sm.SetState(BotState__ERROR)
@@ -70,7 +70,7 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 					// The hand can't continue unless someone buys in now.
 					err := bp.autoReloadBalance()
 					if err != nil {
-						errMsg := fmt.Sprintf("%s: Could not reload chips when status is WAIT_FOR_BUYIN. Current hand num: %d. Error: %v", bp.logPrefix, bp.game.handNum, err)
+						errMsg := fmt.Sprintf("Could not reload chips when status is WAIT_FOR_BUYIN. Current hand num: %d. Error: %v", bp.game.handNum, err)
 						bp.logger.Error().Msg(errMsg)
 						bp.errorStateMsg = errMsg
 						bp.sm.SetState(BotState__ERROR)
@@ -90,8 +90,8 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 				bp.observing = false
 			}
 		}
-		bp.logger.Info().Msgf("%s: PlayerUpdate: ID: %d Seat No: %d Stack: %v Status: %s",
-			bp.logPrefix, playerID, message.SeatNo, message.Stack, message.Status)
+		bp.logger.Info().Msgf("PlayerUpdate: ID: %d Seat No: %d Stack: %v Status: %s",
+			playerID, message.SeatNo, message.Stack, message.Status)
 	case "PLAYER_SEAT_CHANGE_PROMPT":
 		if message.PlayerID != bp.PlayerID {
 			// This message is for some other player.
@@ -102,10 +102,10 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 		for _, sc := range scriptHandConf.Setup.SeatChange {
 			if sc.Seat == bp.seatNo {
 				if sc.Confirm {
-					bp.logger.Info().Msgf("%s: CONFIRM seat change (per hand %d setup)", bp.logPrefix, bp.game.handNum)
+					bp.logger.Info().Msgf("CONFIRM seat change (per hand %d setup)", bp.game.handNum)
 					bp.gqlHelper.ConfirmSeatChange(bp.gameCode, openedSeatNo)
 				} else {
-					bp.logger.Info().Msgf("%s: DECLINE seat change (per hand %d setup)", bp.logPrefix, bp.game.handNum)
+					bp.logger.Info().Msgf("DECLINE seat change (per hand %d setup)", bp.game.handNum)
 					bp.gqlHelper.DeclineSeatChange(bp.gameCode)
 				}
 			}
@@ -129,7 +129,7 @@ func (bp *BotPlayer) processNonProtoGameMessage(message *gamescript.NonProtoMess
 	case "WAITLIST_SEATING":
 		bp.seatWaitList(message)
 	case "GAME_ENDING":
-		bp.logger.Info().Msgf("%s: Received game ending notification", bp.logPrefix)
+		bp.logger.Info().Msgf("Received game ending notification")
 	}
 }
 
@@ -143,7 +143,7 @@ func (bp *BotPlayer) onTableUpdate(message *gamescript.NonProtoMessage) {
 func (bp *BotPlayer) processNotEnoughPlayers() error {
 	scriptHand := bp.config.Script.GetHand(bp.game.handNum)
 	if scriptHand.WhenNotEnoughPlayers.RequestEndGame {
-		bp.logger.Info().Msgf("%s: Requesting to end the game [%s] due to not enough players", bp.logPrefix, bp.gameCode)
+		bp.logger.Info().Msgf("Requesting to end the game [%s] due to not enough players", bp.gameCode)
 		return bp.RequestEndGame(bp.gameCode)
 	}
 	if len(scriptHand.WhenNotEnoughPlayers.AddPlayers) > 0 {
@@ -153,7 +153,7 @@ func (bp *BotPlayer) processNotEnoughPlayers() error {
 }
 
 func (bp *BotPlayer) seatWaitList(message *gamescript.NonProtoMessage) {
-	bp.logger.Info().Msgf("[%s] Waitlist seating message received In Waitlist: %v", bp.logPrefix, bp.inWaitList)
+	bp.logger.Info().Msgf("Waitlist seating message received In Waitlist: %v", bp.inWaitList)
 	if !bp.inWaitList {
 		return
 	}
@@ -162,26 +162,26 @@ func (bp *BotPlayer) seatWaitList(message *gamescript.NonProtoMessage) {
 		// not my turn
 		return
 	}
-	bp.logger.Info().Msgf("[%s] My turn to take a seat: Confirm Waitlist: %v", bp.logPrefix, bp.confirmWaitlist)
+	bp.logger.Info().Msgf("My turn to take a seat: Confirm Waitlist: %v", bp.confirmWaitlist)
 
 	if !bp.confirmWaitlist {
 		// decline wait list
-		bp.logger.Info().Msgf("%s: declining to take the open seat.", bp.logPrefix)
+		bp.logger.Info().Msgf("declining to take the open seat.")
 		confirmed, err := bp.gqlHelper.DeclineWaitListSeat(bp.gameCode)
 		if err != nil {
-			panic(fmt.Sprintf("%s: Error while declining waitlist seat", bp.logPrefix))
+			panic("Error while declining waitlist seat")
 		}
 		if !confirmed {
-			panic(fmt.Sprintf("%s: Response from DeclineWaitListSeat has confirmed = false", bp.logPrefix))
+			panic("Response from DeclineWaitListSeat has confirmed = false")
 		}
 		return
 	}
 
-	bp.logger.Info().Msgf("%s: Accepting to take the open seat.", bp.logPrefix)
+	bp.logger.Info().Msgf("Accepting to take the open seat.")
 	// get open seats
 	gi, err := bp.GetGameInfo(bp.gameCode)
 	if err != nil {
-		bp.logger.Error().Msgf("%s: Unable to get game info %s", bp.logPrefix, bp.gameCode)
+		bp.logger.Error().Msgf("Unable to get game info %s", bp.gameCode)
 	}
 	openSeat := uint32(0)
 	for _, seatNo := range gi.SeatInfo.AvailableSeats {
@@ -189,23 +189,23 @@ func (bp *BotPlayer) seatWaitList(message *gamescript.NonProtoMessage) {
 		break
 	}
 	if openSeat == 0 {
-		bp.logger.Error().Msgf("%s: No open seat available %s", bp.logPrefix, bp.gameCode)
+		bp.logger.Error().Msgf("No open seat available %s", bp.gameCode)
 		return
 	}
 	bp.event(BotEvent__REQUEST_SIT)
 	// confirm join game
 	err = bp.SitIn(bp.gameCode, openSeat, nil)
 	if err != nil {
-		panic(fmt.Sprintf("%s: [%s] Player could not take seat %d: %s", bp.logPrefix, bp.gameCode, openSeat, err))
+		panic(fmt.Sprintf("Player could not take seat %d: %s", openSeat, err))
 	} else {
 		// buyin
 		if bp.buyInAmount != 0 {
 			err := bp.BuyIn(bp.gameCode, float64(bp.buyInAmount))
 			if err != nil {
-				bp.logger.Error().Msgf("%s: Unable to buy in %d chips while sitting from waitlist: %s", bp.logPrefix, bp.buyInAmount, err.Error())
+				bp.logger.Error().Msgf("Unable to buy in %d chips while sitting from waitlist: %s", bp.buyInAmount, err.Error())
 			} else {
-				bp.logger.Info().Msgf("%s: [%s] Player bought in for: %d. Current hand num: %d",
-					bp.logPrefix, bp.gameCode, bp.buyInAmount, bp.game.handNum)
+				bp.logger.Info().Msgf("Player bought in for: %d. Current hand num: %d",
+					bp.buyInAmount, bp.game.handNum)
 				bp.event(BotEvent__SUCCEED_BUYIN)
 			}
 		}
@@ -230,7 +230,7 @@ func (bp *BotPlayer) setupSeatChange() error {
 	// using seat no, get the bot player and make seat change request
 	for _, seatChangeRequest := range seatChanges {
 		if seatChangeRequest.Seat == bp.seatNo {
-			bp.logger.Info().Msgf("%s: Player [%s] requesting seat change.", bp.logPrefix, bp.config.Name)
+			bp.logger.Info().Msgf("Requesting seat change.")
 			bp.gqlHelper.RequestSeatChange(bp.gameCode)
 		}
 	}
@@ -251,7 +251,7 @@ func (bp *BotPlayer) setupTakeBreak() error {
 	// using seat no, get the bot player and make seat change request
 	for _, breakConfig := range breakConfigs {
 		if breakConfig.Seat == bp.seatNo {
-			bp.logger.Info().Msgf("%s: Player [%s] requesting to take a break.", bp.logPrefix, bp.config.Name)
+			bp.logger.Info().Msgf("Requesting to take a break.")
 			bp.gqlHelper.RequestTakeBreak(bp.gameCode)
 		}
 	}
@@ -272,7 +272,7 @@ func (bp *BotPlayer) setupSitBack() error {
 	// using seat no, get the bot player and make seat change request
 	for _, sitbackConfig := range sitbackConfigs {
 		if sitbackConfig.Seat == bp.seatNo {
-			bp.logger.Info().Msgf("%s: Player [%s] sitting back.", bp.logPrefix, bp.config.Name)
+			bp.logger.Info().Msgf("Player [%s] sitting back.", bp.config.Name)
 			bp.gqlHelper.RequestSitBack(bp.gameCode, bp.config.Gps)
 		}
 	}
@@ -329,7 +329,7 @@ func (bp *BotPlayer) pauseGameIfNeeded() error {
 
 	currentHand := bp.config.Script.GetHand(bp.game.handNum)
 	if currentHand.PauseGame {
-		bp.logger.Info().Msgf("%s: Player [%s] requested to pause the game.", bp.logPrefix, bp.config.Name)
+		bp.logger.Info().Msgf("Player [%s] requested to pause the game.", bp.config.Name)
 		bp.gqlHelper.PauseGame(bp.gameCode)
 	}
 	return nil
@@ -339,11 +339,11 @@ func (bp *BotPlayer) processPostHandSteps() error {
 	if int(bp.game.handNum) > len(bp.config.Script.Hands) {
 		return nil
 	}
-	bp.logger.Info().Msgf("%s: Running post hand steps.", bp.logPrefix)
+	bp.logger.Info().Msgf("Running post hand steps.")
 
 	currentHand := bp.config.Script.GetHand(bp.game.handNum)
 	if len(currentHand.PostHandSteps) == 0 {
-		bp.logger.Info().Msgf("%s: No post hand steps.", bp.logPrefix)
+		bp.logger.Info().Msgf("No post hand steps.")
 		return nil
 	}
 
@@ -366,19 +366,19 @@ func (bp *BotPlayer) processPostHandSteps() error {
 
 	for _, step := range currentHand.PostHandSteps {
 		if step.Sleep != 0 {
-			bp.logger.Info().Msgf("%s: Post hand step: Sleeping %d", bp.logPrefix, step.Sleep)
+			bp.logger.Info().Msgf("Post hand step: Sleeping %d", step.Sleep)
 			time.Sleep(time.Duration(step.Sleep) * time.Second)
-			bp.logger.Info().Msgf("%s: Post hand step: Sleeping %d done", bp.logPrefix, step.Sleep)
+			bp.logger.Info().Msgf("Post hand step: Sleeping %d done", step.Sleep)
 			continue
 		}
 		if step.ResumeGame {
-			bp.logger.Info().Msgf("%s: Post hand step: Resume game %s", bp.logPrefix, bp.gameCode)
+			bp.logger.Info().Msgf("Post hand step: Resume game %s", bp.gameCode)
 			// resume game
 			attempts := 1
 			err := bp.gqlHelper.ResumeGame(bp.gameCode)
 			for err != nil && attempts < bp.maxRetry {
 				attempts++
-				bp.logger.Error().Msgf("%s: Error while resuming game %s: %s. Retrying... (%d)", bp.logPrefix, bp.gameCode, err, attempts)
+				bp.logger.Error().Msgf("Error while resuming game %s: %s. Retrying... (%d)", bp.gameCode, err, attempts)
 				time.Sleep(2 * time.Second)
 				err = bp.gqlHelper.ResumeGame(bp.gameCode)
 			}
@@ -394,38 +394,38 @@ func (bp *BotPlayer) processPostHandSteps() error {
 		if step.BuyCoins > 0 {
 			err := bp.restHelper.BuyAppCoins(bp.PlayerUUID, step.BuyCoins)
 			if err != nil {
-				bp.logger.Error().Msgf("%s: Error when buying app coins %s: %s", bp.logPrefix, bp.gameCode, err)
+				bp.logger.Error().Msgf("Error when buying app coins %s: %s", bp.gameCode, err)
 			}
 			continue
 		}
 	}
-	bp.logger.Info().Msgf("%s: Running post hand steps done", bp.logPrefix)
+	bp.logger.Info().Msgf("Running post hand steps done")
 	return nil
 }
 
 func (bp *BotPlayer) hostSeatChange(hostSeatChange *gamescript.HostSeatChange) error {
 	// initiate seat change process
-	bp.logger.Error().Msgf("%s: Initiating host seat change process game %s: %s", bp.logPrefix, bp.gameCode)
+	bp.logger.Error().Msgf("Initiating host seat change process game %s: %s", bp.gameCode)
 	_, err := bp.gqlHelper.HostRequestSeatChange(bp.gameCode)
 	if err != nil {
-		bp.logger.Error().Msgf("%s: Error setting up host seat change process game %s: %s", bp.logPrefix, bp.gameCode, err)
+		bp.logger.Error().Msgf("Error setting up host seat change process game %s: %s", bp.gameCode, err)
 		return err
 	}
 	// make seat changes
 	for _, change := range hostSeatChange.Changes {
-		bp.logger.Error().Msgf("%s: game %s: Swapping seat: %d to seat2: %d", bp.logPrefix, bp.gameCode, change.Seat1, change.Seat2)
+		bp.logger.Error().Msgf("game %s: Swapping seat: %d to seat2: %d", bp.gameCode, change.Seat1, change.Seat2)
 		_, err := bp.gqlHelper.HostRequestSeatChangeSwap(bp.gameCode, change.Seat1, change.Seat2)
 		if err != nil {
-			bp.logger.Error().Msgf("%s: Error swapping seat1: %d to seat2: %d failed. game %s: %s", bp.logPrefix, change.Seat1, change.Seat2, bp.gameCode, err)
+			bp.logger.Error().Msgf("Error swapping seat1: %d to seat2: %d failed. game %s: %s", change.Seat1, change.Seat2, bp.gameCode, err)
 			return err
 		}
 	}
 
-	bp.logger.Error().Msgf("%s: game %s: Completing seat change updates", bp.logPrefix, bp.gameCode)
+	bp.logger.Error().Msgf("game %s: Completing seat change updates", bp.gameCode)
 	// complete seat change process
 	_, err = bp.gqlHelper.HostRequestSeatChangeComplete(bp.gameCode)
 	if err != nil {
-		bp.logger.Error().Msgf("%s: Error completing host seat change process game %s: %s", bp.logPrefix, bp.gameCode, err)
+		bp.logger.Error().Msgf("Error completing host seat change process game %s: %s", bp.gameCode, err)
 		return err
 	}
 	return nil

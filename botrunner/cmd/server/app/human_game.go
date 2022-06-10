@@ -1,6 +1,8 @@
 package app
 
 import (
+	"os"
+
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"voyager.com/botrunner/internal/driver"
@@ -41,21 +43,12 @@ func NewHumanGame(clubCode string, gameID uint64, gameCode string, players *game
 
 // Launch launches the BotRunner.
 func (b *HumanGame) Launch() error {
-	botRunnerLogger := logging.GetZeroLogger("BotRunner", nil).With().
-		Uint64(logging.GameIDKey, b.gameID).
-		Str(logging.GameCodeKey, b.gameCode).
-		Logger()
-	botPlayerLogger := logging.GetZeroLogger("BotPlayer", nil).With().
-		Uint64(logging.GameIDKey, b.gameID).
-		Str(logging.GameCodeKey, b.gameCode).
-		Logger()
-
 	b.logger.Info().Msgf("Launching bot runner to join a human game.")
 	playerGame := false
 	if b.clubCode == "" {
 		playerGame = true
 	}
-	botRunner, err := driver.NewBotRunner(b.clubCode, b.gameCode, b.script, b.players, &botRunnerLogger, &botPlayerLogger, false, playerGame, b.demoGame)
+	botRunner, err := driver.NewBotRunner(b.clubCode, b.gameCode, b.script, b.players, os.Stdout, os.Stdout, false, playerGame, b.demoGame)
 	if err != nil {
 		errors.Wrap(err, "Error while creating a BotRunner")
 	}

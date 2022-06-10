@@ -95,28 +95,27 @@ func (b *BotRunnerBatch) mainLoop() {
 			continue
 		}
 		logFileName := b.getLogFileName(b.botRunnerLogDir, nextInstanceNo)
-		f, err := os.Create(logFileName)
+		logFile, err := os.Create(logFileName)
 		if err != nil {
 			b.logger.Error().Msgf("Unable to create log file %s: %s", logFileName, err)
 			time.Sleep(2 * time.Second)
 			continue
 		}
-		botRunnerLogger := logging.GetZeroLogger("BotRunner", f)
-		botPlayerLogger := logging.GetZeroLogger("BotPlayer", f)
 
 		b.logger.Info().Msgf("Launching bot runner instance [%d]. Logging to %s.", nextInstanceNo, logFileName)
-		botRunner, err := driver.NewBotRunner("", "", b.script, b.players, botRunnerLogger, botPlayerLogger, false, false, false)
+		botRunner, err := driver.NewBotRunner("", "", b.script, b.players, logFile, logFile, false, false, false)
 		if err != nil {
 			b.logger.Error().Msgf("Error while creating a BotRunner: %s", err)
 			time.Sleep(2 * time.Second)
 			continue
 		}
 		go func() {
+			logger := logging.GetZeroLogger("BotRunnerBatch", logFile)
 			err := botRunner.Run()
 			if err != nil {
-				errMsg := fmt.Sprintf("Error from botrunner: %s", err)
-				botRunnerLogger.Error().Msg(errMsg)
-				fmt.Println(errMsg)
+				errMsg := "Error from botrunner"
+				logger.Error().Err(err).Msg(errMsg)
+				fmt.Println(errMsg + ": " + err.Error())
 			}
 		}()
 		b.instances = append(b.instances, botRunner)

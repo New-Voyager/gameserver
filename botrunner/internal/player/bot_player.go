@@ -67,8 +67,9 @@ type TournamentMessageChannelItem struct {
 
 // BotPlayer represents a bot user.
 type BotPlayer struct {
-	logger *zerolog.Logger
-	config Config
+	logger  *zerolog.Logger
+	logFile *os.File
+	config  Config
 
 	gqlHelper       *gql.GQLHelper
 	restHelper      *rest.RestClient
@@ -147,8 +148,6 @@ type BotPlayer struct {
 	seatNo    uint32
 	observing bool // if a player is playing, then he is also an observer
 
-	logPrefix string
-
 	// Print nats messages for debugging.
 	printGameMsg       bool
 	printHandMsg       bool
@@ -179,10 +178,13 @@ type BotPlayer struct {
 }
 
 // NewBotPlayer creates an instance of BotPlayer.
-func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, error) {
+func NewBotPlayer(playerConfig Config, logFile *os.File) (*BotPlayer, error) {
+	logger := logging.GetZeroLogger("BotPlayer", logFile).With().
+		Str(logging.PlayerNameKey, playerConfig.Name).Logger()
 	logger.Info().Msgf("Bot player connecting to NATS URL: %s", playerConfig.NatsURL)
 	nc, err := natsgo.Connect(playerConfig.NatsURL)
 	if err != nil {
+		logger.Error().Err(err).Msgf("Could not connect to NATS server at %s", playerConfig.NatsURL)
 		return nil, errors.Wrap(err, fmt.Sprintf("Error connecting to NATS server [%s]", playerConfig.NatsURL))
 	}
 
@@ -191,7 +193,8 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 	restHelper := rest.NewRestClient(util.GetInternalRestURL(playerConfig.APIServerURL), uint32(playerConfig.GQLTimeoutSec), "")
 
 	bp := BotPlayer{
-		logger:             logger,
+		logger:             &logger,
+		logFile:            logFile,
 		config:             playerConfig,
 		PlayerUUID:         playerConfig.DeviceID,
 		gqlHelper:          gqlHelper,
@@ -211,6 +214,7 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 		maxRetry:           300,
 		tournament:         playerConfig.IsTournamentBot,
 	}
+	bp.UpdateLogger()
 
 	bp.sm = fsm.NewFSM(
 		BotState__NOT_IN_GAME,
@@ -272,7 +276,6 @@ func NewBotPlayer(playerConfig Config, logger *zerolog.Logger) (*BotPlayer, erro
 			"enter_state": func(e *fsm.Event) { bp.enterState(e) },
 		},
 	)
-	bp.updateLogPrefix()
 	return &bp, nil
 }
 
@@ -312,14 +315,32 @@ func (bp *BotPlayer) Reset() {
 	bp.PrivateTextMessages = make([]*gamescript.HandTextMessage, 0)
 	bp.tournamentID = 0
 	bp.needsTournamentTableRefresh = false
-	bp.UpdateLogger(0, "")
+	bp.UpdateLogger()
+
 	go bp.messageLoop()
 }
 
-func (bp *BotPlayer) UpdateLogger(gameID uint64, gameCode string) {
-	newLogger := bp.logger.With().Uint64(logging.GameIDKey, gameID).Str(logging.GameCodeKey, gameCode).Logger()
+func (bp *BotPlayer) getLogPrefix() string {
+	if bp.config.IsHuman {
+		return fmt.Sprintf("Player [%s:%d:%d]", bp.config.Name, bp.PlayerID, bp.seatNo)
+	} else {
+		return fmt.Sprintf("Bot [%s:%d:%d]", bp.config.Name, bp.PlayerID, bp.seatNo)
+	}
+}
+
+func (bp *BotPlayer) FormatLogMsg(msg interface{}) string {
+	return fmt.Sprintf("%s: %s", bp.getLogPrefix(), msg)
+}
+
+func (bp *BotPlayer) UpdateLogger() {
+	gameID := bp.gameID
+	gameCode := bp.gameCode
+	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339, FormatMessage: bp.FormatLogMsg}
+	newLogger := bp.logger.Output(output).With().
+		Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
+		Logger()
 	bp.logger = &newLogger
-	bp.updateLogPrefix()
 }
 
 func (bp *BotPlayer) SetBotsInGame(bots []*BotPlayer) {
@@ -328,12 +349,12 @@ func (bp *BotPlayer) SetBotsInGame(bots []*BotPlayer) {
 
 func (bp *BotPlayer) enterState(e *fsm.Event) {
 	if bp.printStateMsg {
-		bp.logger.Info().Msgf("%s: [%s] ===> [%s]", bp.logPrefix, e.Src, e.Dst)
+		bp.logger.Info().Msgf("[%s] ===> [%s]", e.Src, e.Dst)
 	}
 
 	// if e.Dst == BotState__MY_TURN {
 	// 	if bp.clientAliveCheck == nil {
-	// 		bp.logger.Error().Msgf("%s: Entered %s state, but clientAliveCheck is nil", bp.logPrefix, BotState__MY_TURN)
+	// 		bp.logger.Error().Msgf("Entered %s state, but clientAliveCheck is nil", BotState__MY_TURN)
 	// 	} else {
 	// 		bp.clientAliveCheck.InAction()
 	// 	}
@@ -351,17 +372,9 @@ func (bp *BotPlayer) event(event string) error {
 	}
 	err := bp.sm.Event(event)
 	if err != nil {
-		bp.logger.Warn().Msgf("%s: Error from state machine: %s", bp.logPrefix, err.Error())
+		bp.logger.Warn().Msgf("Error from state machine: %s", err.Error())
 	}
 	return err
-}
-
-func (bp *BotPlayer) updateLogPrefix() {
-	if bp.config.IsHuman {
-		bp.logPrefix = fmt.Sprintf("Player [%s:%d:%d]", bp.config.Name, bp.PlayerID, bp.seatNo)
-	} else {
-		bp.logPrefix = fmt.Sprintf("Bot [%s:%d:%d]", bp.config.Name, bp.PlayerID, bp.seatNo)
-	}
 }
 
 func (bp *BotPlayer) SetIPAddress(ipAddress string) {
@@ -375,17 +388,17 @@ func (bp *BotPlayer) SetGpsLocation(gps *gamescript.GpsLocation) {
 
 func (bp *BotPlayer) handleGameMsg(msg *natsgo.Msg) {
 	if bp.printGameMsg {
-		bp.logger.Info().Msgf("%s: Received game message %s", bp.logPrefix, string(msg.Data))
+		bp.logger.Info().Msgf("Received game message %s", string(msg.Data))
 	}
 
 	var message game.GameMessage
 	var nonProtoMsg gamescript.NonProtoMessage
 	err := protojson.Unmarshal(msg.Data, &message)
 	if err != nil {
-		// bp.logger.Debug().Msgf("%s: Error [%s] while unmarshalling protobuf game message [%s]. Assuming non-protobuf message", bp.logPrefix, err, string(msg.Data))
+		// bp.logger.Debug().Msgf("Error [%s] while unmarshalling protobuf game message [%s]. Assuming non-protobuf message", err, string(msg.Data))
 		err = json.Unmarshal(msg.Data, &nonProtoMsg)
 		if err != nil {
-			bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling non-protobuf game message [%s]", bp.logPrefix, err, string(msg.Data))
+			bp.logger.Error().Msgf("Error [%s] while unmarshalling non-protobuf game message [%s]", err, string(msg.Data))
 			return
 		}
 		bp.chGame <- &GameMessageChannelItem{
@@ -409,7 +422,7 @@ func (bp *BotPlayer) handlePrivateHandMsg(msg *natsgo.Msg) {
 	if util.Env.IsEncryptionEnabled() {
 		decryptedMsg, err := encryption.DecryptWithUUIDStrKey(msg.Data, bp.EncryptionKey)
 		if err != nil {
-			bp.logger.Error().Msgf("%s: Error [%s] while decrypting private hand message", bp.logPrefix, err)
+			bp.logger.Error().Msgf("Error [%s] while decrypting private hand message", err)
 			return
 		}
 		data = decryptedMsg
@@ -422,12 +435,12 @@ func (bp *BotPlayer) handlePrivateHandTextMsg(msg *natsgo.Msg) {
 	var message gamescript.HandTextMessage
 	data := msg.Data
 	if util.Env.ShouldPrintHandMsg() {
-		bp.logger.Debug().Msgf("%s: Received hand msg (text): %s\n", bp.logPrefix, string(data))
+		bp.logger.Debug().Msgf("Received hand msg (text): %s\n", string(data))
 	}
 
 	err := json.Unmarshal(msg.Data, &message)
 	if err != nil {
-		panic(fmt.Sprintf("%s: Unable to unmarshal hand text msg. Msg: %s", bp.logPrefix, string(msg.Data)))
+		panic(fmt.Sprintf("Unable to unmarshal hand text msg. Msg: %s", string(msg.Data)))
 	}
 
 	bp.PrivateTextMessages = append(bp.PrivateTextMessages, &message)
@@ -446,12 +459,12 @@ func (bp *BotPlayer) unmarshalAndQueueHandMsg(data []byte) {
 	var message game.HandMessage
 	err := proto.Unmarshal(data, &message)
 	if err != nil {
-		bp.logger.Error().Msgf("%s: Error [%s] while unmarshalling protobuf hand message [%s]", bp.logPrefix, err, string(data))
+		bp.logger.Error().Msgf("Error [%s] while unmarshalling protobuf hand message [%s]", err, string(data))
 		return
 	}
 
 	if util.Env.ShouldPrintHandMsg() {
-		fmt.Printf("%s: Received hand msg (proto): %s\n", bp.logPrefix, message.String())
+		fmt.Printf("Received hand msg (proto): %s\n", message.String())
 	}
 
 	bp.chHand <- &message
@@ -487,12 +500,12 @@ func (bp *BotPlayer) messageLoop() {
 
 func (bp *BotPlayer) processHandTextMessage(message *gamescript.HandTextMessage) {
 	if bp.IsErrorState() {
-		bp.logger.Info().Msgf("%s: Bot is in error state. Ignoring hand message.", bp.logPrefix)
+		bp.logger.Info().Msgf("Bot is in error state. Ignoring hand message.")
 		return
 	}
 
 	if message.MessageId == "" {
-		bp.logger.Panic().Msgf("%s: Hand message from server is missing message ID. Message: %s", bp.logPrefix, message.MessageType)
+		bp.logger.Panic().Msgf("Hand message from server is missing message ID. Message: %s", message.MessageType)
 	}
 
 	if bp.config.Script.AutoPlay.Enabled {
@@ -531,10 +544,10 @@ func (bp *BotPlayer) processHandTextMessage(message *gamescript.HandTextMessage)
 			}
 
 			bp.logger.Info().
-				Msgf("%s: Submitting dealer choice for hand %d: %s", bp.logPrefix, message.HandNum, gameType)
+				Msgf("Submitting dealer choice for hand %d: %s", message.HandNum, gameType)
 			_, err := bp.gqlHelper.DealerChoice(bp.gameCode, gameType)
 			if err != nil {
-				errMsg := fmt.Sprintf("%s: Error submitting dealer choice: %s", bp.logPrefix, err)
+				errMsg := fmt.Sprintf("Error submitting dealer choice: %s", err)
 				bp.logger.Error().Msg(errMsg)
 				panic(errMsg)
 			}
@@ -544,17 +557,17 @@ func (bp *BotPlayer) processHandTextMessage(message *gamescript.HandTextMessage)
 
 func (bp *BotPlayer) processHandMessage(message *game.HandMessage) {
 	if bp.IsErrorState() {
-		bp.logger.Info().Msgf("%s: Bot is in error state. Ignoring hand message.", bp.logPrefix)
+		bp.logger.Info().Msgf("Bot is in error state. Ignoring hand message.")
 		return
 	}
 
 	if message.MessageId == "" {
-		bp.logger.Panic().Msgf("%s: Hand message from server is missing message ID. Message: %s", bp.logPrefix, message.String())
+		bp.logger.Panic().Msgf("Hand message from server is missing message ID. Message: %s", message.String())
 	}
 
 	if bp.serverLastMsgIDs.Contains(message.MessageId) {
 		// Duplicate message potentially due to server restart. Ignore it.
-		bp.logger.Info().Msgf("%s: Ignoring duplicate hand message ID: %s", bp.logPrefix, message.MessageId)
+		bp.logger.Info().Msgf("Ignoring duplicate hand message ID: %s", message.MessageId)
 		return
 	}
 	bp.serverLastMsgIDs.Push(message.MessageId)
@@ -602,11 +615,11 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 				}
 			}
 		}
-		bp.logger.Debug().Msgf("%s: Received cards: %s (%+v)", bp.logPrefix, poker.CardsToString(cards), cards)
+		bp.logger.Debug().Msgf("Received cards: %s (%+v)", poker.CardsToString(cards), cards)
 
 	case game.HandDealerChoice:
 		dealerChoice := msgItem.GetDealerChoice()
-		bp.logger.Info().Msgf("%s: Dealer choice games: (%+v)", bp.logPrefix, dealerChoice.Games)
+		bp.logger.Info().Msgf("Dealer choice games: (%+v)", dealerChoice.Games)
 		nextGameIdx := rand.Intn(len(dealerChoice.Games))
 		nextGame := dealerChoice.Games[nextGameIdx]
 		bp.chooseNextGame(nextGame)
@@ -638,17 +651,17 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 				if handsPerGame != 0 && message.HandNum >= handsPerGame {
 					err := bp.RequestEndGame(bp.gameCode)
 					if err != nil {
-						bp.logger.Error().Msgf("%s: Could not schedule to end game: %s", bp.logPrefix, err.Error())
+						bp.logger.Error().Msgf("Could not schedule to end game: %s", err.Error())
 					}
 				}
 			} else {
 				if int(message.HandNum) == len(bp.config.Script.Hands) {
-					bp.logger.Info().Msgf("%s: Last hand: %d Game will be ended in next hand", bp.logPrefix, message.HandNum)
+					bp.logger.Info().Msgf("Last hand: %d Game will be ended in next hand", message.HandNum)
 
 					// The host bot should schedule to end the game after this hand is over.
 					err := bp.RequestEndGame(bp.gameCode)
 					if err != nil {
-						bp.logger.Error().Msgf("%s: Could not schedule to end game: %s", bp.logPrefix, err.Error())
+						bp.logger.Error().Msgf("Could not schedule to end game: %s", err.Error())
 					}
 				}
 			}
@@ -666,7 +679,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 				if bp.seatNo == 0 {
 					bp.updateSeatNo(seatNo)
 				} else if bp.seatNo != seatNo {
-					bp.logger.Info().Msgf("%s: Player: %s changed seat from %d to %d", bp.logPrefix, player.Name, bp.seatNo, seatNo)
+					bp.logger.Info().Msgf("Player: %s changed seat from %d to %d", player.Name, bp.seatNo, seatNo)
 					bp.updateSeatNo(seatNo)
 				}
 				break
@@ -701,7 +714,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			if bp.balance == 0 {
 				err := bp.autoReloadBalance()
 				if err != nil {
-					errMsg := fmt.Sprintf("%s: Could not reload chips when balance is 0. Current hand num: %d. Error: %v", bp.logPrefix, bp.game.handNum, err)
+					errMsg := fmt.Sprintf("Could not reload chips when balance is 0. Current hand num: %d. Error: %v", bp.game.handNum, err)
 					bp.logger.Error().Msg(errMsg)
 				}
 			}
@@ -711,7 +724,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		/* MessageType: FLOP */
 		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.flopCards = msgItem.GetFlop().GetBoard()
-		bp.logger.Debug().Msgf("%s: Flop cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetFlop().GetCardsStr(), bp.decryptRankStr(msgItem.GetFlop().PlayerCardRanks[bp.seatNo]))
+		bp.logger.Debug().Msgf("Flop cards shown: %s Rank: %v", msgItem.GetFlop().GetCardsStr(), bp.decryptRankStr(msgItem.GetFlop().PlayerCardRanks[bp.seatNo]))
 		if bp.IsHost() {
 			bp.verifyBoard()
 		}
@@ -729,7 +742,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		/* MessageType: TURN */
 		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.turnCards = msgItem.GetTurn().GetBoard()
-		bp.logger.Debug().Msgf("%s: Turn cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetTurn().GetCardsStr(), bp.decryptRankStr(msgItem.GetTurn().PlayerCardRanks[bp.seatNo]))
+		bp.logger.Debug().Msgf("Turn cards shown: %s Rank: %v", msgItem.GetTurn().GetCardsStr(), bp.decryptRankStr(msgItem.GetTurn().PlayerCardRanks[bp.seatNo]))
 		bp.verifyBoard()
 		bp.verifyCardRank(msgItem.GetTurn().GetPlayerCardRanks())
 		bp.updateBalance(msgItem.GetTurn().GetPlayerBalance())
@@ -740,7 +753,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		/* MessageType: RIVER */
 		bp.game.handStatus = message.GetHandStatus()
 		bp.game.table.riverCards = msgItem.GetRiver().GetBoard()
-		bp.logger.Debug().Msgf("%s: River cards shown: %s Rank: %v", bp.logPrefix, msgItem.GetRiver().GetCardsStr(), bp.decryptRankStr(msgItem.GetRiver().PlayerCardRanks[bp.seatNo]))
+		bp.logger.Debug().Msgf("River cards shown: %s Rank: %v", msgItem.GetRiver().GetCardsStr(), bp.decryptRankStr(msgItem.GetRiver().PlayerCardRanks[bp.seatNo]))
 		bp.verifyBoard()
 		bp.verifyCardRank(msgItem.GetRiver().GetPlayerCardRanks())
 		bp.updateBalance(msgItem.GetRiver().GetPlayerBalance())
@@ -761,12 +774,12 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if err != nil {
 			// State transition failed due to unexpected YOUR_ACTION message. Possible cause is game server sent a duplicate
 			// YOUR_ACTION message as part of the crash recovery. Ignore the message.
-			bp.logger.Info().Msgf("%s: Ignoring unexpected %s message.", bp.logPrefix, game.HandYourAction)
+			bp.logger.Info().Msgf("Ignoring unexpected %s message.", game.HandYourAction)
 			break
 		}
 		bp.game.handStatus = message.GetHandStatus()
 		if bp.IsObserver() && bp.config.Script.IsSeatHuman(seatNo) {
-			bp.logger.Info().Msgf("%s: Waiting on seat %d (%s/human) to act.", bp.logPrefix, seatNo, bp.getPlayerNameBySeatNo(seatNo))
+			bp.logger.Info().Msgf("Waiting on seat %d (%s/human) to act.", seatNo, bp.getPlayerNameBySeatNo(seatNo))
 		}
 		bp.act(seatAction, message.GetHandStatus())
 
@@ -777,7 +790,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			// round is in progress and we are now ready to setup the next hand.
 			err := bp.setupNextHand()
 			if err != nil {
-				errMsg := fmt.Sprintf("%s: Could not setup next hand. Current hand num: %d. Error: %v", bp.logPrefix, bp.game.handNum, err)
+				errMsg := fmt.Sprintf("Could not setup next hand. Current hand num: %d. Error: %v", bp.game.handNum, err)
 				bp.logger.Error().Msg(errMsg)
 				bp.errorStateMsg = errMsg
 				bp.sm.SetState(BotState__ERROR)
@@ -808,11 +821,11 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			if bp.config.Script.IsSeatHuman(seatNo) {
 				actedPlayerType = "human"
 			}
-			bp.logger.Debug().Msgf("%s: Seat %d (%s/%s) acted%s [%s %v] Stage:%s.", bp.logPrefix, seatNo, actedPlayerName, actedPlayerType, timedout, action, amount, bp.game.handStatus)
+			bp.logger.Debug().Msgf("Seat %d (%s/%s) acted%s [%s %v] Stage:%s.", seatNo, actedPlayerName, actedPlayerType, timedout, action, amount, bp.game.handStatus)
 		}
 		if bp.IsHuman() && seatNo != bp.seatNo {
 			// I'm a human and I see another player acted.
-			bp.logger.Debug().Msgf("%s: Seat %d: %s %v%s", bp.logPrefix, seatNo, action, amount, timedout)
+			bp.logger.Debug().Msgf("Seat %d: %s %v%s", seatNo, action, amount, timedout)
 		}
 		if seatNo == bp.seatNo && isTimedOut {
 			bp.event(BotEvent__ACTION_TIMEDOUT)
@@ -824,14 +837,14 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 				if verify != nil {
 					bp.logger.Info().Msg("Verify previous action")
 					if verify.Stack != playerActed.Stack {
-						bp.logger.Panic().Msgf("%s: Hand %d Seat No: %d verify seat action failed. Player stack: %v expected: %v",
-							bp.logPrefix, bp.game.handNum, bp.seatNo, playerActed.Stack, verify.Stack)
+						bp.logger.Panic().Msgf("Hand %d Seat No: %d verify seat action failed. Player stack: %v expected: %v",
+							bp.game.handNum, bp.seatNo, playerActed.Stack, verify.Stack)
 					}
 
 					// TODO: enable this later
 					// if verify.PotUpdates != playerActed.PotUpdates {
-					// 	bp.logger.Panic().Msgf("%s: Hand %d Seat No: %d  verify seat action failed. Pot updates: %v expected: %v",
-					// 		bp.logPrefix, bp.game.handNum, bp.seatNo, playerActed.PotUpdates, verify.PotUpdates)
+					// 	bp.logger.Panic().Msgf("Hand %d Seat No: %d  verify seat action failed. Pot updates: %v expected: %v",
+					// 		bp.game.handNum, bp.seatNo, playerActed.PotUpdates, verify.PotUpdates)
 					// }
 				}
 			}
@@ -841,7 +854,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		/* MessageType: MSG_ACK */
 		msgType := msgItem.GetMsgAck().GetMessageType()
 		msgID := msgItem.GetMsgAck().GetMessageId()
-		msg := fmt.Sprintf("%s: Ignoring unexpected %s msg - %s:%s BotState: %s, CurrentMsgType: %s, CurrentMsgID: %s", bp.logPrefix, game.HandMsgAck, msgType, msgID, bp.sm.Current(), bp.clientLastMsgType, bp.clientLastMsgID)
+		msg := fmt.Sprintf("Ignoring unexpected %s msg - %s:%s BotState: %s, CurrentMsgType: %s, CurrentMsgID: %s", game.HandMsgAck, msgType, msgID, bp.sm.Current(), bp.clientLastMsgType, bp.clientLastMsgID)
 		if msgType != bp.clientLastMsgType {
 			bp.logger.Info().Msg(msg)
 			return
@@ -881,17 +894,17 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if bp.hasSentLeaveGameRequest {
 			bp.LeaveGameImmediately()
 		}
-		bp.logger.Debug().Msgf("%s: IsHost: %v handNum: %d ended", bp.logPrefix, bp.IsHost(), message.HandNum)
+		bp.logger.Debug().Msgf("IsHost: %v handNum: %d ended", bp.IsHost(), message.HandNum)
 
 	case game.HandQueryCurrentHand:
 		currentState := msgItem.GetCurrentHandState()
-		bp.logger.Info().Msgf("%s: Received current hand state: %+v", bp.logPrefix, currentState)
+		bp.logger.Info().Msgf("Received current hand state: %+v", currentState)
 		if message.HandNum == 0 {
-			bp.logger.Info().Msgf("%s: Ignoring current hand state message (handNum = 0)", bp.logPrefix)
+			bp.logger.Info().Msgf("Ignoring current hand state message (handNum = 0)")
 			return
 		}
 		if message.HandNum < bp.game.handNum {
-			bp.logger.Info().Msgf("%s: Ignoring current hand state message (message handNum = %d, hand in progress = %d)", bp.logPrefix, message.HandNum, bp.game.handNum)
+			bp.logger.Info().Msgf("Ignoring current hand state message (message handNum = %d, hand in progress = %d)", message.HandNum, bp.game.handNum)
 			return
 		}
 		handStatus := currentState.GetCurrentRound()
@@ -973,7 +986,7 @@ func (bp *BotPlayer) verifyBoard() {
 	}
 
 	if !match {
-		bp.logger.Panic().Msgf("%s: Hand %d %s verify failed. Board does not match the expected. Current board: %v. Expected board: %v.", bp.logPrefix, bp.game.handNum, bp.game.handStatus, currentBoardCards, expectedBoardCards)
+		bp.logger.Panic().Msgf("Hand %d %s verify failed. Board does not match the expected. Current board: %v. Expected board: %v.", bp.game.handNum, bp.game.handStatus, currentBoardCards, expectedBoardCards)
 	}
 }
 
@@ -1037,7 +1050,7 @@ func (bp *BotPlayer) verifyCardRank(currentRanks map[uint32]string) {
 	}
 
 	if actualRank != expectedRank {
-		bp.logger.Panic().Msgf("%s: Hand %d %s verify failed. Seat %d rank string does not match the expected. Current rank: %s. Expected rank: %s.", bp.logPrefix, bp.game.handNum, bp.game.handStatus, bp.seatNo, actualRank, expectedRank)
+		bp.logger.Panic().Msgf("Hand %d %s verify failed. Seat %d rank string does not match the expected. Current rank: %s. Expected rank: %s.", bp.game.handNum, bp.game.handStatus, bp.seatNo, actualRank, expectedRank)
 	}
 }
 
@@ -1048,11 +1061,11 @@ func (bp *BotPlayer) decryptRankStr(rankStr string) string {
 
 	decodedRankStr, err := encryption.B64DecodeString(rankStr)
 	if err != nil {
-		bp.logger.Panic().Msgf("%s: Unable to decode player rank string %s", bp.logPrefix, rankStr)
+		bp.logger.Panic().Msgf("Unable to decode player rank string %s", rankStr)
 	}
 	decrypted, err := encryption.DecryptWithUUIDStrKey(decodedRankStr, bp.EncryptionKey)
 	if err != nil {
-		bp.logger.Panic().Msgf("%s: Error [%s] while decrypting private hand message", bp.logPrefix, err)
+		bp.logger.Panic().Msgf("Error [%s] while decrypting private hand message", err)
 	}
 	return string(decrypted)
 }
@@ -1192,7 +1205,7 @@ func (bp *BotPlayer) verifyBoardWinners(scriptBoard *gamescript.BoardWinner, act
 			}
 		}
 		if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
-			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
+			bp.logger.Error().Msgf("Hand %d result verify failed. Winners: %v. Expected: %v.", bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
 			passed = false
 		}
 	}
@@ -1214,7 +1227,7 @@ func (bp *BotPlayer) verifyBoardWinners(scriptBoard *gamescript.BoardWinner, act
 			}
 		}
 		if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
-			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Low Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
+			bp.logger.Error().Msgf("Hand %d result verify failed. Low Winners: %v. Expected: %v.", bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
 			passed = false
 		}
 	}
@@ -1231,12 +1244,12 @@ func (bp *BotPlayer) verifyResult2() {
 		return
 	}
 
-	bp.logger.Info().Msgf("%s: Verifying result for hand %d", bp.logPrefix, bp.game.handNum)
+	bp.logger.Info().Msgf("Verifying result for hand %d", bp.game.handNum)
 	scriptResult := bp.config.Script.GetHand(bp.game.handNum).Result
 
 	actualResult := bp.GetHandResult2()
 	if actualResult == nil {
-		panic(fmt.Sprintf("%s: Hand %d result verify failed. Unable to get the result", bp.logPrefix, bp.game.handNum))
+		panic(fmt.Sprintf("Hand %d result verify failed. Unable to get the result", bp.game.handNum))
 	}
 
 	playerInfo := actualResult.PlayerInfo
@@ -1247,7 +1260,7 @@ func (bp *BotPlayer) verifyResult2() {
 		expectedWonAt := scriptResult.ActionEndedAt
 		wonAt := actualResult.WonAt
 		if wonAt.String() != expectedWonAt {
-			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Won at: %s. Expected won at: %s.", bp.logPrefix, bp.game.handNum, wonAt, expectedWonAt)
+			bp.logger.Error().Msgf("Hand %d result verify failed. Won at: %s. Expected won at: %s.", bp.game.handNum, wonAt, expectedWonAt)
 		}
 	}
 
@@ -1308,7 +1321,7 @@ func (bp *BotPlayer) verifyResult2() {
 			for seatNo, expectedWinnerBySeat := range expectedWinnersBySeat {
 				actualWinnerBySeat := actualWinnersBySeat[seatNo]
 				if !cmp.Equal(expectedWinnerBySeat, actualWinnerBySeat) {
-					bp.logger.Error().Msgf("%s: Hand %d result verify failed. Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnerBySeat, expectedWinnerBySeat)
+					bp.logger.Error().Msgf("Hand %d result verify failed. Winners: %v. Expected: %v.", bp.game.handNum, actualWinnerBySeat, expectedWinnerBySeat)
 					passed = false
 				}
 			}
@@ -1353,7 +1366,7 @@ func (bp *BotPlayer) verifyResult2() {
 				}
 			}
 			if !cmp.Equal(expectedWinnersBySeat, actualWinnersBySeat) {
-				bp.logger.Error().Msgf("%s: Hand %d result verify failed. Low Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
+				bp.logger.Error().Msgf("Hand %d result verify failed. Low Winners: %v. Expected: %v.", bp.game.handNum, actualWinnersBySeat, expectedWinnersBySeat)
 				passed = false
 			}
 		}
@@ -1364,7 +1377,7 @@ func (bp *BotPlayer) verifyResult2() {
 		for _, scriptResultPlayer := range scriptResult.Players {
 			seatNo := scriptResultPlayer.Seat
 			if _, exists := resultPlayers[seatNo]; !exists {
-				bp.logger.Error().Msgf("%s: Hand %d result verify failed. Expected seat# %d to be found in the result, but the result does not contain that seat.", bp.logPrefix, bp.game.handNum, seatNo)
+				bp.logger.Error().Msgf("Hand %d result verify failed. Expected seat# %d to be found in the result, but the result does not contain that seat.", bp.game.handNum, seatNo)
 				passed = false
 				continue
 			}
@@ -1373,7 +1386,7 @@ func (bp *BotPlayer) verifyResult2() {
 			if expectedBalanceBefore != nil {
 				actualBalanceBefore := resultPlayers[seatNo].GetBalance().Before
 				if actualBalanceBefore != *expectedBalanceBefore {
-					bp.logger.Error().Msgf("%s: Hand %d result verify failed. Starting balance for seat# %d: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, seatNo, actualBalanceBefore, *expectedBalanceBefore)
+					bp.logger.Error().Msgf("Hand %d result verify failed. Starting balance for seat# %d: %v. Expected: %v.", bp.game.handNum, seatNo, actualBalanceBefore, *expectedBalanceBefore)
 					passed = false
 				}
 			}
@@ -1381,7 +1394,7 @@ func (bp *BotPlayer) verifyResult2() {
 			if expectedBalanceAfter != nil {
 				actualBalanceAfter := resultPlayers[seatNo].GetBalance().After
 				if actualBalanceAfter != *expectedBalanceAfter {
-					bp.logger.Error().Msgf("%s: Hand %d result verify failed. Remaining balance for seat# %d: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, seatNo, actualBalanceAfter, *expectedBalanceAfter)
+					bp.logger.Error().Msgf("Hand %d result verify failed. Remaining balance for seat# %d: %v. Expected: %v.", bp.game.handNum, seatNo, actualBalanceAfter, *expectedBalanceAfter)
 					passed = false
 				}
 			}
@@ -1390,7 +1403,7 @@ func (bp *BotPlayer) verifyResult2() {
 				actualRank := actualResult.Boards[0].PlayerRank[seatNo].HhRank
 				//actualHhRank := resultPlayers[seatNo].GetHhRank()
 				if actualRank != *expectedHhRank {
-					bp.logger.Error().Msgf("%s: Hand %d result verify failed. HhRank for seat# %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, actualRank, *expectedHhRank)
+					bp.logger.Error().Msgf("Hand %d result verify failed. HhRank for seat# %d: %d. Expected: %d.", bp.game.handNum, seatNo, actualRank, *expectedHhRank)
 					passed = false
 				}
 			}
@@ -1398,7 +1411,7 @@ func (bp *BotPlayer) verifyResult2() {
 			if expectedPotContribution != nil {
 				actualContribution := resultPlayers[seatNo].GetPotContribution()
 				if actualContribution != *expectedPotContribution {
-					bp.logger.Error().Msgf("%s: Hand %d result verify failed. PotContribution for seat# %d: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, seatNo, actualContribution, *expectedPotContribution)
+					bp.logger.Error().Msgf("Hand %d result verify failed. PotContribution for seat# %d: %v. Expected: %v.", bp.game.handNum, seatNo, actualContribution, *expectedPotContribution)
 					passed = false
 				}
 			}
@@ -1409,7 +1422,7 @@ func (bp *BotPlayer) verifyResult2() {
 		var expectedTips float64 = *scriptResult.TipsCollected
 		var actualTips float64 = actualResult.GetTipsCollected()
 		if actualTips != expectedTips {
-			bp.logger.Error().Msgf("%s: Hand %d result verify failed. Tips collected: %v, Expected: %v", bp.logPrefix, bp.game.handNum, actualTips, expectedTips)
+			bp.logger.Error().Msgf("Hand %d result verify failed. Tips collected: %v, Expected: %v", bp.game.handNum, actualTips, expectedTips)
 			passed = false
 		}
 	}
@@ -1422,13 +1435,13 @@ func (bp *BotPlayer) verifyResult2() {
 			actualTimeouts := actualPlayerStats[playerID].ConsecutiveActionTimeouts
 			expectedTimeouts := scriptStat.ConsecutiveActionTimeouts
 			if actualTimeouts != expectedTimeouts {
-				bp.logger.Error().Msgf("%s: Hand %d result verify failed. Consecutive Action Timeouts for seat# %d player ID %d: %d. Expected: %d.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actualTimeouts, expectedTimeouts)
+				bp.logger.Error().Msgf("Hand %d result verify failed. Consecutive Action Timeouts for seat# %d player ID %d: %d. Expected: %d.", bp.game.handNum, seatNo, playerID, actualTimeouts, expectedTimeouts)
 				passed = false
 			}
 			actualActedAtLeastOnce := actualPlayerStats[playerID].ActedAtLeastOnce
 			expectedActedAtLeastOnce := scriptStat.ActedAtLeastOnce
 			if actualActedAtLeastOnce != expectedActedAtLeastOnce {
-				bp.logger.Error().Msgf("%s: Hand %d result verify failed. ActedAtLeastOnce for seat# %d player ID %d: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, seatNo, playerID, actualActedAtLeastOnce, expectedActedAtLeastOnce)
+				bp.logger.Error().Msgf("Hand %d result verify failed. ActedAtLeastOnce for seat# %d player ID %d: %v. Expected: %v.", bp.game.handNum, seatNo, playerID, actualActedAtLeastOnce, expectedActedAtLeastOnce)
 				passed = false
 			}
 		}
@@ -1436,7 +1449,7 @@ func (bp *BotPlayer) verifyResult2() {
 
 	if len(scriptResult.HighHands) > 0 {
 		if len(scriptResult.HighHands) != len(actualResult.HighHandWinners) {
-			bp.logger.Error().Msgf("%s: Hand %d result verify failed. High hand winners expected: %d actual: %d", bp.logPrefix, bp.game.handNum, len(scriptResult.HighHands), len(actualResult.HighHandWinners))
+			bp.logger.Error().Msgf("Hand %d result verify failed. High hand winners expected: %d actual: %d", bp.game.handNum, len(scriptResult.HighHands), len(actualResult.HighHandWinners))
 			passed = false
 		} else {
 			for idx, expectedHHWinner := range scriptResult.HighHands {
@@ -1448,7 +1461,7 @@ func (bp *BotPlayer) verifyResult2() {
 				if expectedHHWinner.PlayerName != actualHHWinner.PlayerName ||
 					!cmp.Equal(expectedHHWinner.HhCards, actualHHWinner.HhCards) ||
 					!cmp.Equal(expectedHHWinner.PlayerCards, actualHHWinner.PlayerCards) {
-					bp.logger.Error().Msgf("%s: Hand %d result verify failed. High hand winners expected: %+v actual: %+v", bp.logPrefix, bp.game.handNum, expectedHHWinner, actualHHWinner)
+					bp.logger.Error().Msgf("Hand %d result verify failed. High hand winners expected: %+v actual: %+v", bp.game.handNum, expectedHHWinner, actualHHWinner)
 					passed = false
 				}
 			}
@@ -1488,7 +1501,7 @@ func (bp *BotPlayer) verifyPotWinners(actualPot *game.PotWinners, expectedPot ga
 		}
 	}
 	if !cmp.Equal(expectedHiWinnersBySeat, actualHiWinnersBySeat) {
-		bp.logger.Error().Msgf("%s: Hand %d result verify failed. RunItTwice board %d pot %d HI Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, boardNum, potNum, actualHiWinnersBySeat, expectedHiWinnersBySeat)
+		bp.logger.Error().Msgf("Hand %d result verify failed. RunItTwice board %d pot %d HI Winners: %v. Expected: %v.", bp.game.handNum, boardNum, potNum, actualHiWinnersBySeat, expectedHiWinnersBySeat)
 		passed = false
 	}
 
@@ -1509,7 +1522,7 @@ func (bp *BotPlayer) verifyPotWinners(actualPot *game.PotWinners, expectedPot ga
 		}
 	}
 	if !cmp.Equal(expectedLoWinnersBySeat, actualLoWinnersBySeat) {
-		bp.logger.Error().Msgf("%s: Hand %d result verify failed. RunItTwice board %d pot %d LO Winners: %v. Expected: %v.", bp.logPrefix, bp.game.handNum, boardNum, potNum, actualLoWinnersBySeat, expectedLoWinnersBySeat)
+		bp.logger.Error().Msgf("Hand %d result verify failed. RunItTwice board %d pot %d LO Winners: %v. Expected: %v.", bp.game.handNum, boardNum, potNum, actualLoWinnersBySeat, expectedLoWinnersBySeat)
 		passed = false
 	}
 
@@ -1521,7 +1534,7 @@ func (bp *BotPlayer) verifyAPIRespForHand() {
 		return
 	}
 
-	bp.logger.Info().Msgf("%s: Verifying api responses", bp.logPrefix)
+	bp.logger.Info().Msgf("Verifying api responses")
 
 	if bp.config.Script.AutoPlay.Enabled {
 		return
@@ -1537,7 +1550,7 @@ func (bp *BotPlayer) VerifyAPIResponses(gameCode string, apiVerification gamescr
 	if apiVerification.GameResultTable != nil {
 		err := bp.verifyGameResultTable(gameCode, apiVerification.GameResultTable)
 		if err != nil {
-			bp.logger.Error().Msgf("%s: Failed to verify the response from game result table API: %s", bp.logPrefix, err)
+			bp.logger.Error().Msgf("Failed to verify the response from game result table API: %s", err)
 			passed = false
 		}
 	}
@@ -1601,7 +1614,7 @@ func (bp *BotPlayer) verifyGameResultTable(gameCode string, expectedRows []games
 		return fmt.Errorf("Row data does not match the expected")
 	}
 
-	bp.logger.Info().Msgf("%s: Successfully verified %d rows from game result table response", bp.logPrefix, len(rows))
+	bp.logger.Info().Msgf("Successfully verified %d rows from game result table response", len(rows))
 	return nil
 }
 
@@ -1622,7 +1635,7 @@ func (bp *BotPlayer) SetSeatInfo(seatInfo map[uint32]game.SeatInfo) {
 }
 
 func (bp *BotPlayer) SignUp() error {
-	bp.logger.Info().Msgf("%s: Signing up as a user.", bp.logPrefix)
+	bp.logger.Info().Msgf("Signing up as a user.")
 
 	type reqData struct {
 		ScreenName  string `json:"screen-name"`
@@ -1668,11 +1681,11 @@ func (bp *BotPlayer) SignUp() error {
 
 	encryptionKey, err := bp.getEncryptionKey()
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get the player encryption key", bp.logPrefix))
+		return errors.Wrap(err, "Unable to get the player encryption key")
 	}
 
 	bp.EncryptionKey = encryptionKey
-	bp.logger.Info().Msgf("%s: Successfully signed up as a user. Player UUID: [%s] Player ID: [%d].", bp.logPrefix, bp.PlayerUUID, bp.PlayerID)
+	bp.logger.Info().Msgf("Successfully signed up as a user. Player UUID: [%s] Player ID: [%d].", bp.PlayerUUID, bp.PlayerID)
 	return nil
 }
 
@@ -1715,41 +1728,41 @@ func (bp *BotPlayer) Login() error {
 
 	encryptionKey, err := bp.getEncryptionKey()
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get the player encryption key", bp.logPrefix))
+		return errors.Wrap(err, "Unable to get the player encryption key")
 	}
 
 	bp.EncryptionKey = encryptionKey
-	bp.logger.Info().Msgf("%s: Successfully logged in.", bp.logPrefix)
+	bp.logger.Info().Msgf("Successfully logged in.")
 	return nil
 }
 
 // CreateClub creates a new club.
 func (bp *BotPlayer) CreateClub(name string, description string) (string, error) {
-	bp.logger.Info().Msgf("%s: Creating a new club [%s].", bp.logPrefix, name)
+	bp.logger.Info().Msgf("Creating a new club [%s].", name)
 
 	clubCode, err := bp.gqlHelper.CreateClub(name, description)
 	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("%s: Unable to create a new club", bp.logPrefix))
+		return "", errors.Wrap(err, "Unable to create a new club")
 	}
 
-	bp.logger.Info().Msgf("%s: Successfully created a new club. Club Code: [%s]", bp.logPrefix, clubCode)
+	bp.logger.Info().Msgf("Successfully created a new club. Club Code: [%s]", clubCode)
 	bp.clubCode = clubCode
 	return bp.clubCode, nil
 }
 
 // JoinClub joins the bot to a club.
 func (bp *BotPlayer) JoinClub(clubCode string) error {
-	bp.logger.Info().Msgf("%s: Applying to club [%s].", bp.logPrefix, clubCode)
+	bp.logger.Info().Msgf("Applying to club [%s].", clubCode)
 
 	status, err := bp.gqlHelper.JoinClub(clubCode)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to apply to the club", bp.logPrefix))
+		return errors.Wrap(err, "Unable to apply to the club")
 	}
-	bp.logger.Info().Msgf("%s: Successfully applied to club [%s]. Member Status: [%s]", bp.logPrefix, clubCode, status)
+	bp.logger.Info().Msgf("Successfully applied to club [%s]. Member Status: [%s]", clubCode, status)
 
 	bp.clubID, err = bp.GetClubID(clubCode)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get the club ID", bp.logPrefix))
+		return errors.Wrap(err, "Unable to get the club ID")
 	}
 	bp.clubCode = clubCode
 
@@ -1758,14 +1771,14 @@ func (bp *BotPlayer) JoinClub(clubCode string) error {
 
 // GetClubMemberStatus returns the club member status of this bot.
 func (bp *BotPlayer) GetClubMemberStatus(clubCode string) (int, error) {
-	bp.logger.Info().Msgf("%s: Querying member status for club [%s].", bp.logPrefix, clubCode)
+	bp.logger.Info().Msgf("Querying member status for club [%s].", clubCode)
 
 	resp, err := bp.gqlHelper.GetClubMemberStatus(clubCode)
 	if err != nil {
-		return -1, errors.Wrap(err, fmt.Sprintf("%s: Unable to get club member status", bp.logPrefix))
+		return -1, errors.Wrap(err, "Unable to get club member status")
 	}
 	status := int(game.ClubMemberStatus_value[resp.Status])
-	bp.logger.Info().Msgf("%s: Club member Status: [%s] StatusInt: %d", bp.logPrefix, resp.Status, status)
+	bp.logger.Info().Msgf("Club member Status: [%s] StatusInt: %d", resp.Status, status)
 	return status, nil
 }
 
@@ -1786,18 +1799,18 @@ func (bp *BotPlayer) GetRewardID(clubCode string, name string) (uint32, error) {
 
 // CreateClubReward creates a new club reward.
 func (bp *BotPlayer) CreateClubReward(clubCode string, name string, rewardType string, scheduleType string, amount float64) (uint32, error) {
-	bp.logger.Info().Msgf("%s: Creating a new club reward [%s].", bp.logPrefix, name)
+	bp.logger.Info().Msgf("Creating a new club reward [%s].", name)
 	rewardID, err := bp.GetRewardID(clubCode, name)
 
 	if rewardID == 0 {
 		rewardID, err = bp.gqlHelper.CreateClubReward(clubCode, name, rewardType, scheduleType, amount)
 		if err != nil {
-			return 0, errors.Wrap(err, fmt.Sprintf("%s: Unable to create a new club", bp.logPrefix))
+			return 0, errors.Wrap(err, "Unable to create a new club")
 		}
 	}
 	bp.RewardsNameToID[name] = rewardID
-	bp.logger.Info().Msgf("%s: Successfully created a new club reward. Club Code: [%s], rewardId: %d, name: %s, type: %s",
-		bp.logPrefix, clubCode, rewardID, name, rewardType)
+	bp.logger.Info().Msgf("Successfully created a new club reward. Club Code: [%s], rewardId: %d, name: %s, type: %s",
+		clubCode, rewardID, name, rewardType)
 	return rewardID, nil
 }
 
@@ -1805,21 +1818,21 @@ func (bp *BotPlayer) CreateClubReward(clubCode string, name string, rewardType s
 func (bp *BotPlayer) GetClubID(clubCode string) (uint64, error) {
 	clubID, err := bp.gqlHelper.GetClubID(clubCode)
 	if err != nil {
-		return 0, errors.Wrap(err, fmt.Sprintf("%s: Unable to get club ID for club code [%s]", bp.logPrefix, clubCode))
+		return 0, errors.Wrap(err, fmt.Sprintf("Unable to get club ID for club code [%s]", clubCode))
 	}
 	return clubID, nil
 }
 
 // ApproveClubMembers checks and approves the pending club membership applications.
 func (bp *BotPlayer) ApproveClubMembers() error {
-	bp.logger.Info().Msgf("%s: Checking for pending application for the club [%s].", bp.logPrefix, bp.clubCode)
+	bp.logger.Info().Msgf("Checking for pending application for the club [%s].", bp.clubCode)
 	if bp.clubCode == "" {
-		return fmt.Errorf("%s: clubCode is missing", bp.logPrefix)
+		return fmt.Errorf("clubCode is missing")
 	}
 
 	clubMembers, err := bp.gqlHelper.GetClubMembers(bp.clubCode)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to query for club members", bp.logPrefix))
+		return errors.Wrap(err, "Unable to query for club members")
 	}
 
 	// Now go through each member and approve all pending members.
@@ -1829,30 +1842,30 @@ func (bp *BotPlayer) ApproveClubMembers() error {
 		}
 		newStatus, err := bp.gqlHelper.ApproveClubMember(bp.clubCode, member.PlayerID)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("%s: Unable to approve member [%s] player ID [%s]", bp.logPrefix, member.Name, member.PlayerID))
+			return errors.Wrap(err, fmt.Sprintf("Unable to approve member [%s] player ID [%s]", member.Name, member.PlayerID))
 		}
 		if newStatus != "ACTIVE" {
-			return fmt.Errorf("%s: Unable to approve member [%s] player ID [%s]. Member Status is [%s]", bp.logPrefix, member.Name, member.PlayerID, newStatus)
+			return fmt.Errorf("Unable to approve member [%s] player ID [%s]. Member Status is [%s]", member.Name, member.PlayerID, newStatus)
 		}
-		bp.logger.Info().Msgf("%s: Successfully approved [%s] for club [%s]. Member Status: [%s]", bp.logPrefix, member.Name, bp.clubCode, newStatus)
+		bp.logger.Info().Msgf("Successfully approved [%s] for club [%s]. Member Status: [%s]", member.Name, bp.clubCode, newStatus)
 	}
 	return nil
 }
 
 // CreateGame creates a new game.
 func (bp *BotPlayer) CreateGame(gameOpt game.GameCreateOpt) (uint64, string, error) {
-	bp.logger.Info().Msgf("%s: Creating a new game [%s].", bp.logPrefix, gameOpt.Title)
+	bp.logger.Info().Msgf("Creating a new game [%s].", gameOpt.Title)
 
 	created, err := bp.gqlHelper.CreateGame(bp.clubCode, gameOpt)
 	if err != nil {
-		return 0, "", errors.Wrap(err, fmt.Sprintf("%s: Unable to create new game", bp.logPrefix))
+		return 0, "", errors.Wrap(err, "Unable to create new game")
 	}
 	gameID := created.ConfiguredGame.GameID
 	gameCode := created.ConfiguredGame.GameCode
-	bp.logger.Info().Msgf("%s: Successfully created a new game. Game Code: [%s]", bp.logPrefix, gameCode)
+	bp.logger.Info().Msgf("Successfully created a new game. Game Code: [%s]", gameCode)
 	bp.gameID = gameID
 	bp.gameCode = gameCode
-	bp.UpdateLogger(bp.gameID, bp.gameCode)
+	bp.UpdateLogger()
 	return bp.gameID, bp.gameCode, nil
 }
 
@@ -1864,53 +1877,53 @@ func (bp *BotPlayer) Subscribe(gameToAllSubjectName string,
 	playerChannelName string) error {
 
 	if bp.gameMsgSubscription == nil || !bp.gameMsgSubscription.IsValid() {
-		bp.logger.Info().Msgf("%s: Subscribing to %s to receive game messages sent to players/observers", bp.logPrefix, gameToAllSubjectName)
+		bp.logger.Info().Msgf("Subscribing to %s to receive game messages sent to players/observers", gameToAllSubjectName)
 		gameToAllSub, err := bp.natsConn.Subscribe(gameToAllSubjectName, bp.handleGameMsg)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the game message subject [%s]", bp.logPrefix, gameToAllSubjectName))
+			return errors.Wrap(err, fmt.Sprintf("Unable to subscribe to the game message subject [%s]", gameToAllSubjectName))
 		}
 		bp.gameMsgSubscription = gameToAllSub
-		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, gameToAllSubjectName)
+		bp.logger.Info().Msgf("Successfully subscribed to %s.", gameToAllSubjectName)
 	}
 
 	if bp.handMsgAllSubscription == nil || !bp.handMsgAllSubscription.IsValid() {
-		bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand messages sent to players/observers", bp.logPrefix, handToAllSubjectName)
+		bp.logger.Info().Msgf("Subscribing to %s to receive hand messages sent to players/observers", handToAllSubjectName)
 		handToAllSub, err := bp.natsConn.Subscribe(handToAllSubjectName, bp.handleHandMsg)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the hand message subject [%s]", bp.logPrefix, handToAllSubjectName))
+			return errors.Wrap(err, fmt.Sprintf("Unable to subscribe to the hand message subject [%s]", handToAllSubjectName))
 		}
 		bp.handMsgAllSubscription = handToAllSub
-		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, handToAllSubjectName)
+		bp.logger.Info().Msgf("Successfully subscribed to %s.", handToAllSubjectName)
 	}
 
 	if bp.handMsgPlayerSubscription == nil || !bp.handMsgPlayerSubscription.IsValid() {
-		bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand messages sent to player: %s", bp.logPrefix, handToPlayerSubjectName, bp.config.Name)
+		bp.logger.Info().Msgf("Subscribing to %s to receive hand messages sent to player: %s", handToPlayerSubjectName, bp.config.Name)
 		handToPlayerSub, err := bp.natsConn.Subscribe(handToPlayerSubjectName, bp.handlePrivateHandMsg)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the hand message subject [%s]", bp.logPrefix, handToPlayerSubjectName))
+			return errors.Wrap(err, fmt.Sprintf("Unable to subscribe to the hand message subject [%s]", handToPlayerSubjectName))
 		}
 		bp.handMsgPlayerSubscription = handToPlayerSub
-		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, handToPlayerSubjectName)
+		bp.logger.Info().Msgf("Successfully subscribed to %s.", handToPlayerSubjectName)
 	}
 
 	if bp.handMsgPlayerTextSubscription == nil || !bp.handMsgPlayerTextSubscription.IsValid() {
-		bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand text messages sent to player: %s", bp.logPrefix, handToPlayerTextSubjectName, bp.config.Name)
+		bp.logger.Info().Msgf("Subscribing to %s to receive hand text messages sent to player: %s", handToPlayerTextSubjectName, bp.config.Name)
 		handToPlayerTextSub, err := bp.natsConn.Subscribe(handToPlayerTextSubjectName, bp.handlePrivateHandTextMsg)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the hand (text channel) message subject [%s]", bp.logPrefix, handToPlayerTextSubjectName))
+			return errors.Wrap(err, fmt.Sprintf("Unable to subscribe to the hand (text channel) message subject [%s]", handToPlayerTextSubjectName))
 		}
 		bp.handMsgPlayerTextSubscription = handToPlayerTextSub
-		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, handToPlayerTextSubjectName)
+		bp.logger.Info().Msgf("Successfully subscribed to %s.", handToPlayerTextSubjectName)
 	}
 
 	if bp.playerMsgPlayerSubscription == nil || !bp.playerMsgPlayerSubscription.IsValid() {
-		bp.logger.Info().Msgf("%s: Subscribing to %s to receive hand messages sent to player: %s", bp.logPrefix, handToPlayerSubjectName, bp.config.Name)
+		bp.logger.Info().Msgf("Subscribing to %s to receive hand messages sent to player: %s", handToPlayerSubjectName, bp.config.Name)
 		sub, err := bp.natsConn.Subscribe(playerChannelName, bp.handlePlayerPrivateMsg)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to the hand message subject [%s]", bp.logPrefix, handToPlayerSubjectName))
+			return errors.Wrap(err, fmt.Sprintf("Unable to subscribe to the hand message subject [%s]", handToPlayerSubjectName))
 		}
 		bp.playerMsgPlayerSubscription = sub
-		bp.logger.Info().Msgf("%s: Successfully subscribed to %s.", bp.logPrefix, handToPlayerSubjectName)
+		bp.logger.Info().Msgf("Successfully subscribed to %s.", handToPlayerSubjectName)
 	}
 
 	bp.event(BotEvent__SUBSCRIBE)
@@ -1953,7 +1966,7 @@ func (bp *BotPlayer) unsubscribe() error {
 func (bp *BotPlayer) enterGame(gameCode string) error {
 	gi, err := bp.GetGameInfo(gameCode)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to get game info %s", bp.logPrefix, gameCode))
+		return errors.Wrap(err, fmt.Sprintf("Unable to get game info %s", gameCode))
 	}
 
 	bp.game = &gameView{
@@ -1966,20 +1979,20 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 
 	bp.gameCode = gameCode
 	bp.gameID = gi.GameID
-	bp.UpdateLogger(bp.gameID, bp.gameCode)
+	bp.UpdateLogger()
 	bp.gameInfo = &gi
 
 	playerChannelName := fmt.Sprintf("player.%d", bp.PlayerID)
 	err = bp.Subscribe(gi.GameToPlayerChannel, gi.HandToAllChannel, gi.HandToPlayerChannel, gi.HandToPlayerTextChannel, playerChannelName)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to subscribe to game %s channels", bp.logPrefix, gameCode))
+		return errors.Wrap(err, fmt.Sprintf("Unable to subscribe to game %s channels", gameCode))
 	}
 
 	bp.meToHandSubjectName = gi.PlayerToHandChannel
 	bp.clientAliveSubjectName = gi.ClientAliveChannel
 
-	bp.logger.Info().Msgf("%s: Starting network check client", bp.logPrefix)
-	bp.clientAliveCheck = networkcheck.NewClientAliveCheck(bp.logger, bp.logPrefix, gi.GameID, gameCode, bp.sendAliveMsg)
+	bp.logger.Info().Msgf("Starting network check client")
+	bp.clientAliveCheck = networkcheck.NewClientAliveCheck(bp.logger, gi.GameID, gameCode, bp.sendAliveMsg)
 	bp.clientAliveCheck.Run()
 
 	return nil
@@ -1988,10 +2001,10 @@ func (bp *BotPlayer) enterGame(gameCode string) error {
 // ObserveGame enters the game without taking a seat as a player.
 // Every player must call either JoinGame or ObserveGame in order to participate in a game.
 func (bp *BotPlayer) ObserveGame(gameCode string) error {
-	bp.logger.Info().Msgf("%s: Observing game %s", bp.logPrefix, gameCode)
+	bp.logger.Info().Msgf("Observing game %s", gameCode)
 	err := bp.enterGame(gameCode)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to enter game %s", bp.logPrefix, gameCode))
+		return errors.Wrap(err, fmt.Sprintf("Unable to enter game %s", gameCode))
 	}
 	return nil
 }
@@ -2001,16 +2014,16 @@ func (bp *BotPlayer) ObserveGame(gameCode string) error {
 func (bp *BotPlayer) JoinGame(gameCode string, gps *gamescript.GpsLocation) error {
 	scriptSeatNo := bp.config.Script.GetSeatNoByPlayerName(bp.config.Name)
 	if scriptSeatNo == 0 {
-		return fmt.Errorf("%s: Unable to get the scripted seat number", bp.logPrefix)
+		return fmt.Errorf("Unable to get the scripted seat number")
 	}
 	scriptBuyInAmount := bp.config.Script.GetInitialBuyInAmount(scriptSeatNo)
 	if scriptBuyInAmount == 0 {
-		return fmt.Errorf("%s: Unable to get the scripted buy-in amount", bp.logPrefix)
+		return fmt.Errorf("Unable to get the scripted buy-in amount")
 	}
 
 	err := bp.enterGame(gameCode)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to enter game %s", bp.logPrefix, gameCode))
+		return errors.Wrap(err, fmt.Sprintf("Unable to enter game %s", gameCode))
 	}
 
 	playerInMySeat := bp.getPlayerInSeat(scriptSeatNo)
@@ -2023,12 +2036,12 @@ func (bp *BotPlayer) JoinGame(gameCode string, gps *gamescript.GpsLocation) erro
 			// I was sitting, but crashed before submitting a buy-in.
 			// The game's waiting for me to buy in, so that it can start a hand. Go ahead and submit a buy-in request.
 			if bp.IsHuman() {
-				bp.logger.Info().Msgf("%s: Press ENTER to buy in [%v] chips...", bp.logPrefix, scriptBuyInAmount)
+				bp.logger.Info().Msgf("Press ENTER to buy in [%v] chips...", scriptBuyInAmount)
 				bufio.NewReader(os.Stdin).ReadBytes('\n')
 			}
 			err := bp.BuyIn(gameCode, scriptBuyInAmount)
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("%s: Unable to buy in after rejoining game", bp.logPrefix))
+				return errors.Wrap(err, "Unable to buy in after rejoining game")
 			}
 			bp.balance = scriptBuyInAmount
 
@@ -2037,13 +2050,13 @@ func (bp *BotPlayer) JoinGame(gameCode string, gps *gamescript.GpsLocation) erro
 			// I was playing, but crashed in the middle of an ongoing hand. What is the state of the hand now?
 			err := bp.queryCurrentHandState()
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("%s: Unable to query current hand state", bp.logPrefix))
+				return errors.Wrap(err, "Unable to query current hand state")
 			}
 		}
 	} else {
 		// Joining a game from fresh.
 		if bp.IsHuman() {
-			bp.logger.Info().Msgf("%s: Press ENTER to take seat [%d]...", bp.logPrefix, scriptSeatNo)
+			bp.logger.Info().Msgf("Press ENTER to take seat [%d]...", scriptSeatNo)
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
 		} else {
 
@@ -2055,11 +2068,11 @@ func (bp *BotPlayer) JoinGame(gameCode string, gps *gamescript.GpsLocation) erro
 		}
 		err := bp.SitIn(gameCode, scriptSeatNo, gps)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("%s: Unable to sit in", bp.logPrefix))
+			return errors.Wrap(err, "Unable to sit in")
 		}
 
 		if bp.IsHuman() {
-			bp.logger.Info().Msgf("%s: Press ENTER to buy in [%v] chips...", bp.logPrefix, scriptBuyInAmount)
+			bp.logger.Info().Msgf("Press ENTER to buy in [%v] chips...", scriptBuyInAmount)
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
 		} else {
 			// update player config
@@ -2078,7 +2091,7 @@ func (bp *BotPlayer) JoinGame(gameCode string, gps *gamescript.GpsLocation) erro
 		bp.buyInAmount = uint32(scriptBuyInAmount)
 		err = bp.BuyIn(gameCode, scriptBuyInAmount)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("%s: Unable to buy in", bp.logPrefix))
+			return errors.Wrap(err, "Unable to buy in")
 		}
 
 		bp.event(BotEvent__SUCCEED_BUYIN)
@@ -2091,20 +2104,20 @@ func (bp *BotPlayer) JoinGame(gameCode string, gps *gamescript.GpsLocation) erro
 }
 
 func (bp *BotPlayer) NewPlayer(gameCode string, startingSeat *gamescript.StartingSeat) error {
-	bp.logger.Info().Msgf("%s: Player joining the game next hand.", bp.logPrefix)
+	bp.logger.Info().Msgf("Player joining the game next hand.")
 	bp.observing = true
 	scriptSeatNo := startingSeat.Seat
 	if scriptSeatNo == 0 {
-		return fmt.Errorf("%s: Unable to get the scripted seat number", bp.logPrefix)
+		return fmt.Errorf("Unable to get the scripted seat number")
 	}
 	scriptBuyInAmount := startingSeat.BuyIn
 	if scriptBuyInAmount == 0 {
-		return fmt.Errorf("%s: Unable to get the scripted buy-in amount", bp.logPrefix)
+		return fmt.Errorf("Unable to get the scripted buy-in amount")
 	}
 
 	err := bp.enterGame(gameCode)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to enter game %s", bp.logPrefix, gameCode))
+		return errors.Wrap(err, fmt.Sprintf("Unable to enter game %s", gameCode))
 	}
 
 	playerInMySeat := bp.getPlayerInSeat(scriptSeatNo)
@@ -2117,12 +2130,12 @@ func (bp *BotPlayer) NewPlayer(gameCode string, startingSeat *gamescript.Startin
 			// I was sitting, but crashed before submitting a buy-in.
 			// The game's waiting for me to buy in, so that it can start a hand. Go ahead and submit a buy-in request.
 			if bp.IsHuman() {
-				bp.logger.Info().Msgf("%s: Press ENTER to buy in [%v] chips...", bp.logPrefix, scriptBuyInAmount)
+				bp.logger.Info().Msgf("Press ENTER to buy in [%v] chips...", scriptBuyInAmount)
 				bufio.NewReader(os.Stdin).ReadBytes('\n')
 			}
 			err := bp.BuyIn(gameCode, scriptBuyInAmount)
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("%s: Unable to buy in after rejoining game", bp.logPrefix))
+				return errors.Wrap(err, "Unable to buy in after rejoining game")
 			}
 			bp.balance = scriptBuyInAmount
 
@@ -2131,13 +2144,13 @@ func (bp *BotPlayer) NewPlayer(gameCode string, startingSeat *gamescript.Startin
 			// I was playing, but crashed in the middle of an ongoing hand. What is the state of the hand now?
 			err := bp.queryCurrentHandState()
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("%s: Unable to query current hand state", bp.logPrefix))
+				return errors.Wrap(err, "Unable to query current hand state")
 			}
 		}
 	} else {
 		// Joining a game from fresh.
 		if bp.IsHuman() {
-			bp.logger.Info().Msgf("%s: Press ENTER to take seat [%d]...", bp.logPrefix, scriptSeatNo)
+			bp.logger.Info().Msgf("Press ENTER to take seat [%d]...", scriptSeatNo)
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
 		} else {
 
@@ -2150,11 +2163,11 @@ func (bp *BotPlayer) NewPlayer(gameCode string, startingSeat *gamescript.Startin
 		}
 		err := bp.SitIn(gameCode, scriptSeatNo, startingSeat.Gps)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("%s: Unable to sit in", bp.logPrefix))
+			return errors.Wrap(err, "Unable to sit in")
 		}
 
 		if bp.IsHuman() {
-			bp.logger.Info().Msgf("%s: Press ENTER to buy in [%v] chips...", bp.logPrefix, scriptBuyInAmount)
+			bp.logger.Info().Msgf("Press ENTER to buy in [%v] chips...", scriptBuyInAmount)
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
 		} else {
 			// update player config
@@ -2166,14 +2179,14 @@ func (bp *BotPlayer) NewPlayer(gameCode string, startingSeat *gamescript.Startin
 		bp.buyInAmount = uint32(scriptBuyInAmount)
 		err = bp.BuyIn(gameCode, scriptBuyInAmount)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("%s: Unable to buy in", bp.logPrefix))
+			return errors.Wrap(err, "Unable to buy in")
 		}
 
 		bp.event(BotEvent__SUCCEED_BUYIN)
 
 		// post blind
 		if startingSeat.PostBlind {
-			bp.logger.Info().Msgf("%s: Posted blind", bp.logPrefix)
+			bp.logger.Info().Msgf("Posted blind")
 			bp.gqlHelper.PostBlind(bp.gameCode)
 		}
 	}
@@ -2193,17 +2206,17 @@ func (bp *BotPlayer) autoReloadBalance() error {
 		// This player is explicitly set to not reload.
 		return nil
 	}
-	bp.logger.Info().Msgf("%s: [%s] Buyin %v.", bp.logPrefix, bp.gameCode, bp.gameInfo.BuyInMax)
+	bp.logger.Info().Msgf("[%s] Buyin %v.", bp.gameCode, bp.gameInfo.BuyInMax)
 	err := bp.BuyIn(bp.gameCode, bp.gameInfo.BuyInMax)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to buy in", bp.logPrefix))
+		return errors.Wrap(err, "Unable to buy in")
 	}
 
 	// automaticaly post blind
 	if bp.config.Script.BotConfig.AutoPostBlind {
 		_, err = bp.gqlHelper.PostBlind(bp.gameCode)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("%s: Unable to post blind", bp.logPrefix))
+			return errors.Wrap(err, "Unable to post blind")
 		}
 	}
 	bp.balance = bp.gameInfo.BuyInMax
@@ -2214,15 +2227,15 @@ func (bp *BotPlayer) autoReloadBalance() error {
 // a human-created game where you can freely grab whatever seat available.
 func (bp *BotPlayer) JoinUnscriptedGame(gameCode string, demoGame bool) error {
 	if !bp.config.Script.AutoPlay.Enabled {
-		return fmt.Errorf("%s: JoinUnscriptedGame called with a non-autoplay script", bp.logPrefix)
+		return fmt.Errorf("JoinUnscriptedGame called with a non-autoplay script")
 	}
 
 	err := bp.enterGame(gameCode)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to enter game %s", bp.logPrefix, gameCode))
+		return errors.Wrap(err, fmt.Sprintf("Unable to enter game %s", gameCode))
 	}
 	if len(bp.gameInfo.SeatInfo.AvailableSeats) == 0 {
-		return fmt.Errorf("%s: Unable to join game [%s]. Seats are full", bp.logPrefix, gameCode)
+		return fmt.Errorf("Unable to join game [%s]. Seats are full", gameCode)
 	}
 	seatNo := bp.gameInfo.SeatInfo.AvailableSeats[0]
 	if demoGame {
@@ -2233,12 +2246,12 @@ func (bp *BotPlayer) JoinUnscriptedGame(gameCode string, demoGame bool) error {
 
 	err = bp.SitIn(gameCode, seatNo, bp.config.Gps)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to sit in", bp.logPrefix))
+		return errors.Wrap(err, "Unable to sit in")
 	}
 	buyInAmt := bp.gameInfo.BuyInMax
 	err = bp.BuyIn(gameCode, buyInAmt)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to buy in", bp.logPrefix))
+		return errors.Wrap(err, "Unable to buy in")
 	}
 	bp.updateSeatNo(seatNo)
 
@@ -2258,33 +2271,33 @@ func (bp *BotPlayer) SitIn(gameCode string, seatNo uint32, gps *gamescript.GpsLo
 	if seatNo == 0 {
 		panic("seatNo == 0 in SitIn")
 	}
-	bp.logger.Info().Msgf("%s: Grabbing seat [%d] in game [%s].", bp.logPrefix, seatNo, gameCode)
+	bp.logger.Info().Msgf("Grabbing seat [%d] in game [%s].", seatNo, gameCode)
 	bp.gqlHelper.IpAddress = bp.config.IpAddress
 	status, err := bp.gqlHelper.SitIn(gameCode, seatNo, gps)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to sit in game [%s]", bp.logPrefix, gameCode))
+		return errors.Wrap(err, fmt.Sprintf("Unable to sit in game [%s]", gameCode))
 	}
 
 	bp.observing = false
 	bp.inWaitList = false
 	bp.updateSeatNo(seatNo)
-	bp.logger.Info().Msgf("%s: Successfully took a seat %d in game [%s]. Status: [%s]", bp.logPrefix, status.Seat.SeatNo, gameCode, status.Seat.Status)
+	bp.logger.Info().Msgf("Successfully took a seat %d in game [%s]. Status: [%s]", status.Seat.SeatNo, gameCode, status.Seat.Status)
 	return nil
 }
 
 // BuyIn is where you buy the chips once seated in a game.
 func (bp *BotPlayer) BuyIn(gameCode string, amount float64) error {
-	//bp.logger.Info().Msgf("%s: Buying in amount [%v].", bp.logPrefix, amount)
+	//bp.logger.Info().Msgf("Buying in amount [%v].", amount)
 
 	resp, err := bp.gqlHelper.BuyIn(gameCode, amount)
 	if err != nil {
-		return errors.Wrapf(err, "%s: Error from GQL helper while trying to buy in %v chips", bp.logPrefix, amount)
+		return errors.Wrapf(err, "Error from GQL helper while trying to buy in %v chips", amount)
 	}
 
 	if resp.Status.Approved {
-		bp.logger.Info().Msgf("%s: Successfully bought in [%v] chips.", bp.logPrefix, amount)
+		bp.logger.Info().Msgf("Successfully bought in [%v] chips.", amount)
 	} else {
-		bp.logger.Info().Msgf("%s: Requested to buy in [%v] chips. Needs approval.", bp.logPrefix, amount)
+		bp.logger.Info().Msgf("Requested to buy in [%v] chips. Needs approval.", amount)
 	}
 
 	return nil
@@ -2292,7 +2305,7 @@ func (bp *BotPlayer) BuyIn(gameCode string, amount float64) error {
 
 // LeaveGameImmediately makes the bot leave the game.
 func (bp *BotPlayer) LeaveGameImmediately() error {
-	bp.logger.Info().Msgf("%s: Leaving game [%s].", bp.logPrefix, bp.gameCode)
+	bp.logger.Info().Msgf("Leaving game [%s].", bp.gameCode)
 	err := bp.unsubscribe()
 	if err != nil {
 		return errors.Wrap(err, "Error while unsubscribing from NATS subjects")
@@ -2310,7 +2323,7 @@ func (bp *BotPlayer) LeaveGameImmediately() error {
 	bp.updateSeatNo(0)
 	bp.gameCode = ""
 	bp.gameID = 0
-	bp.UpdateLogger(bp.gameID, bp.gameCode)
+	bp.UpdateLogger()
 	bp.clientAliveCheck.Destroy()
 	bp.clientAliveCheck = nil
 	return nil
@@ -2330,7 +2343,7 @@ func (bp *BotPlayer) GetGameResultTable(gameCode string) (gameInfo []game.GameRe
 func (bp *BotPlayer) GetPlayersInSeat(gameCode string) ([]game.SeatInfo, error) {
 	gameInfo, err := bp.GetGameInfo(gameCode)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("%s: Unable to get players in seat", bp.logPrefix))
+		return nil, errors.Wrap(err, "Unable to get players in seat")
 	}
 	return gameInfo.SeatInfo.PlayersInSeats, nil
 }
@@ -2343,10 +2356,10 @@ func (bp *BotPlayer) GetGameID(gameCode string) (uint64, error) {
 func (bp *BotPlayer) getPlayerID() (uint64, error) {
 	playerID, err := bp.gqlHelper.GetPlayerID()
 	if err != nil {
-		return 0, errors.Wrap(err, fmt.Sprintf("%s: Unable to get player ID", bp.logPrefix))
+		return 0, errors.Wrap(err, "Unable to get player ID")
 	}
 	if playerID.Name != bp.config.Name {
-		return 0, fmt.Errorf("%s: Unable to get player ID. Player name [%s] does not match the bot player's name [%s]", bp.logPrefix, playerID.Name, bp.config.Name)
+		return 0, fmt.Errorf("Unable to get player ID. Player name [%s] does not match the bot player's name [%s]", playerID.Name, bp.config.Name)
 	}
 	return playerID.ID, nil
 }
@@ -2354,20 +2367,20 @@ func (bp *BotPlayer) getPlayerID() (uint64, error) {
 func (bp *BotPlayer) getEncryptionKey() (string, error) {
 	encryptionKey, err := bp.gqlHelper.GetEncryptionKey()
 	if err != nil {
-		return "", errors.Wrapf(err, "%s: Unable to get encryption key", bp.logPrefix)
+		return "", errors.Wrapf(err, "Unable to get encryption key")
 	}
 	return encryptionKey, nil
 }
 
 // StartGame starts the game.
 func (bp *BotPlayer) StartGame(gameCode string) error {
-	bp.logger.Info().Msgf("%s: Starting the game [%s].", bp.logPrefix, gameCode)
+	bp.logger.Info().Msgf("Starting the game [%s].", gameCode)
 
 	// setup first deck if not auto play
 	if bp.IsHost() && !bp.config.Script.AutoPlay.Enabled {
 		err := bp.setupNextHand()
 		if err != nil {
-			return errors.Wrapf(err, "%s: Unable to setup next hand", bp.logPrefix)
+			return errors.Wrapf(err, "Unable to setup next hand")
 		}
 		// Wait for the first hand to be setup before starting the game.
 		time.Sleep(500 * time.Millisecond)
@@ -2375,26 +2388,26 @@ func (bp *BotPlayer) StartGame(gameCode string) error {
 
 	status, err := bp.gqlHelper.StartGame(gameCode)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to start the game [%s]", bp.logPrefix, gameCode))
+		return errors.Wrap(err, fmt.Sprintf("Unable to start the game [%s]", gameCode))
 	}
 	if status != "ACTIVE" {
-		return fmt.Errorf("%s: Unable to start the game [%s]. Status is [%s]", bp.logPrefix, gameCode, status)
+		return fmt.Errorf("Unable to start the game [%s]. Status is [%s]", gameCode, status)
 	}
 
-	bp.logger.Info().Msgf("%s: Successfully started the game [%s]. Status: [%s]", bp.logPrefix, gameCode, status)
+	bp.logger.Info().Msgf("Successfully started the game [%s]. Status: [%s]", gameCode, status)
 	return nil
 }
 
 // RequestEndGame schedules to end the game after the current hand is finished.
 func (bp *BotPlayer) RequestEndGame(gameCode string) error {
-	bp.logger.Info().Msgf("%s: Requesting to end the game [%s].", bp.logPrefix, gameCode)
+	bp.logger.Info().Msgf("Requesting to end the game [%s].", gameCode)
 
 	status, err := bp.gqlHelper.EndGame(gameCode)
 	if err != nil {
 		return errors.Wrapf(err, "Error while requesting to end the game")
 	}
 
-	bp.logger.Info().Msgf("%s: Successfully requested to end the game [%s]. Status: [%s]", bp.logPrefix, gameCode, status)
+	bp.logger.Info().Msgf("Successfully requested to end the game [%s]. Status: [%s]", gameCode, status)
 	return nil
 }
 
@@ -2414,13 +2427,13 @@ func (bp *BotPlayer) queryCurrentHandState() error {
 	}
 	protoData, err := proto.Marshal(&msg)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Could not create query hand message.", bp.logPrefix))
+		return errors.Wrap(err, "Could not create query hand message.")
 	}
-	bp.logger.Info().Msgf("%s: Querying current hand. Msg: %s", bp.logPrefix, string(protoData))
+	bp.logger.Info().Msgf("Querying current hand. Msg: %s", string(protoData))
 	// Send to hand subject.
 	err = bp.natsConn.Publish(bp.meToHandSubjectName, protoData)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to publish to nats", bp.logPrefix))
+		return errors.Wrap(err, "Unable to publish to nats")
 	}
 	return nil
 }
@@ -2434,13 +2447,13 @@ func (bp *BotPlayer) sendAliveMsg() {
 
 	protoData, err := proto.Marshal(&msg)
 	if err != nil {
-		bp.logger.Error().Err(err).Msgf("%s: Could not proto-marshal client-alive message", bp.logPrefix)
+		bp.logger.Error().Err(err).Msgf("Could not proto-marshal client-alive message")
 		return
 	}
-	bp.logger.Debug().Msgf("%s: Sending client-alive message to %s", bp.logPrefix, bp.clientAliveSubjectName)
+	bp.logger.Debug().Msgf("Sending client-alive message to %s", bp.clientAliveSubjectName)
 	err = bp.natsConn.Publish(bp.clientAliveSubjectName, protoData)
 	if err != nil {
-		bp.logger.Error().Err(err).Msgf("%s: Unable to publish client-alive message to nats channel %s", bp.logPrefix, bp.clientAliveSubjectName)
+		bp.logger.Error().Err(err).Msgf("Unable to publish client-alive message to nats channel %s", bp.clientAliveSubjectName)
 	}
 }
 
@@ -2462,8 +2475,8 @@ func (bp *BotPlayer) UpdateGamePlayerSettings(
 	if muckLosingHand != nil {
 		mlhStr = fmt.Sprintf("%v", *muckLosingHand)
 	}
-	bp.logger.Info().Msgf("%s: Updating player configuration [runItTwiceAllowed: %s, muckLosingHand: %s] game [%s].",
-		bp.logPrefix, ritStr, mlhStr, gameCode)
+	bp.logger.Info().Msgf("Updating player configuration [runItTwiceAllowed: %s, muckLosingHand: %s] game [%s].",
+		ritStr, mlhStr, gameCode)
 	settings := gql.GamePlayerSettingsUpdateInput{
 		AutoStraddle:      autoStraddle,
 		Straddle:          straddle,
@@ -2474,7 +2487,7 @@ func (bp *BotPlayer) UpdateGamePlayerSettings(
 	}
 	err := bp.gqlHelper.UpdateGamePlayerSettings(gameCode, settings)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Unable to update game config [%s]", bp.logPrefix, gameCode))
+		return errors.Wrap(err, fmt.Sprintf("Unable to update game config [%s]", gameCode))
 	}
 	return nil
 }
@@ -2519,7 +2532,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 	var extendActionTimeoutBySec uint32
 	var resetActionTimerToSec uint32
 	if autoPlay {
-		bp.logger.Debug().Msgf("%s: Seat %d Available actions: %+v", bp.logPrefix, bp.seatNo, seatAction.AvailableActions)
+		bp.logger.Debug().Msgf("Seat %d Available actions: %+v", bp.seatNo, seatAction.AvailableActions)
 		canBet := false
 		canRaise := false
 		checkAvailable := false
@@ -2663,10 +2676,10 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 			var err error
 			scriptAction, err := bp.decision.GetNextAction(bp, availableActions)
 			if scriptAction.Action.Seat != bp.seatNo {
-				bp.logger.Panic().Msgf("%s: Bot seatNo (%d) != script seatNo (%d)", bp.logPrefix, bp.seatNo, scriptAction.Action.Seat)
+				bp.logger.Panic().Msgf("Bot seatNo (%d) != script seatNo (%d)", bp.seatNo, scriptAction.Action.Seat)
 			}
 			if err != nil {
-				bp.logger.Error().Msgf("%s: Unable to get the next action %+v", bp.logPrefix, err)
+				bp.logger.Error().Msgf("Unable to get the next action %+v", err)
 				return
 			}
 			nextAction = game.ActionStringToAction(scriptAction.Action.Action)
@@ -2682,7 +2695,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 
 	playerName := bp.getPlayerNameBySeatNo(bp.seatNo)
 	if resetActionTimerToSec > 0 {
-		bp.logger.Info().Msgf("%s: Seat %d (%s) requesting to restart action timer at %d seconds", bp.logPrefix, bp.seatNo, playerName, resetActionTimerToSec)
+		bp.logger.Info().Msgf("Seat %d (%s) requesting to restart action timer at %d seconds", bp.seatNo, playerName, resetActionTimerToSec)
 		resetTimer := game.ResetTimer{
 			SeatNo:       bp.seatNo,
 			RemainingSec: resetActionTimerToSec,
@@ -2707,7 +2720,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		bp.publishHandMsg(bp.meToHandSubjectName, &resetTimerMsg)
 	}
 	if extendActionTimeoutBySec > 0 {
-		bp.logger.Info().Msgf("%s: Seat %d (%s) requesting to extend action timeout by %d seconds", bp.logPrefix, bp.seatNo, playerName, extendActionTimeoutBySec)
+		bp.logger.Info().Msgf("Seat %d (%s) requesting to extend action timeout by %d seconds", bp.seatNo, playerName, extendActionTimeoutBySec)
 		extendTimer := game.ExtendTimer{
 			SeatNo:      bp.seatNo,
 			ExtendBySec: extendActionTimeoutBySec,
@@ -2733,7 +2746,7 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 	}
 
 	if bp.IsHuman() {
-		bp.logger.Info().Msgf("%s: Seat %d: Your Turn. Press ENTER to continue with [%s %v] (Hand Status: %s)...", bp.logPrefix, bp.seatNo, nextAction, nextAmt, bp.game.handStatus)
+		bp.logger.Info().Msgf("Seat %d: Your Turn. Press ENTER to continue with [%s %v] (Hand Status: %s)...", bp.seatNo, nextAction, nextAmt, bp.game.handStatus)
 		bufio.NewReader(os.Stdin).ReadBytes('\n')
 	}
 
@@ -2794,18 +2807,18 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 	if timeout || runItTwiceTimeout {
 		go func() {
 			if runItTwiceTimeout {
-				bp.logger.Info().Msgf("%s: Seat %d (%s) is going to time out the run-it-twice prompt. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, bp.game.handStatus)
+				bp.logger.Info().Msgf("Seat %d (%s) is going to time out the run-it-twice prompt. Stage: %s.", bp.seatNo, playerName, bp.game.handStatus)
 			} else {
-				bp.logger.Info().Msgf("%s: Seat %d (%s) is going to time out. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, bp.game.handStatus)
+				bp.logger.Info().Msgf("Seat %d (%s) is going to time out. Stage: %s.", bp.seatNo, playerName, bp.game.handStatus)
 			}
 			// sleep more than action time
 			time.Sleep(time.Duration(bp.config.Script.Game.ActionTime) * time.Second)
 			time.Sleep(2 * time.Second)
 		}()
 	} else {
-		bp.logger.Debug().Msgf("%s: Seat %d (%s) is about to act [%s %v]. Stage: %s.", bp.logPrefix, bp.seatNo, playerName, handAction.Action, handAction.Amount, bp.game.handStatus)
+		bp.logger.Debug().Msgf("Seat %d (%s) is about to act [%s %v]. Stage: %s.", bp.seatNo, playerName, handAction.Action, handAction.Amount, bp.game.handStatus)
 		if actionDelayOverride > 0 {
-			bp.logger.Info().Msgf("%s: Seat %d (%s) sleeping for %d milliseconds", bp.logPrefix, bp.seatNo, playerName, actionDelayOverride)
+			bp.logger.Info().Msgf("Seat %d (%s) sleeping for %d milliseconds", bp.seatNo, playerName, actionDelayOverride)
 		}
 		if bp.tournament {
 			time.Sleep(1 * time.Second)
@@ -2831,7 +2844,7 @@ func (bp *BotPlayer) getActionDelay(override uint32) time.Duration {
 func (bp *BotPlayer) publishHandMsg(subj string, msg *game.HandMessage) {
 	protoData, err := proto.Marshal(msg)
 	if err != nil {
-		errMsg := fmt.Sprintf("%s: Could not serialize hand message [%+v]. Error: %v", bp.logPrefix, msg, err)
+		errMsg := fmt.Sprintf("Could not serialize hand message [%+v]. Error: %v", msg, err)
 		bp.logger.Error().Msg(errMsg)
 		bp.errorStateMsg = errMsg
 		bp.sm.SetState(BotState__ERROR)
@@ -2839,7 +2852,7 @@ func (bp *BotPlayer) publishHandMsg(subj string, msg *game.HandMessage) {
 	}
 	err = bp.natsConn.Publish(bp.meToHandSubjectName, protoData)
 	if err != nil {
-		errMsg := fmt.Sprintf("%s: Could not publish hand message [%+v]. Error: %v", bp.logPrefix, msg, err)
+		errMsg := fmt.Sprintf("Could not publish hand message [%+v]. Error: %v", msg, err)
 		bp.logger.Error().Msg(errMsg)
 		bp.errorStateMsg = errMsg
 		bp.sm.SetState(BotState__ERROR)
@@ -2850,7 +2863,7 @@ func (bp *BotPlayer) publishHandMsg(subj string, msg *game.HandMessage) {
 func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 	protoData, err := proto.Marshal(msg)
 	if err != nil {
-		errMsg := fmt.Sprintf("%s: Could not serialize hand message [%+v]. Error: %v", bp.logPrefix, msg, err)
+		errMsg := fmt.Sprintf("Could not serialize hand message [%+v]. Error: %v", msg, err)
 		bp.logger.Error().Msg(errMsg)
 		bp.errorStateMsg = errMsg
 		bp.sm.SetState(BotState__ERROR)
@@ -2862,9 +2875,9 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 		if attempts > bp.maxRetry {
 			var errMsg string
 			if !published {
-				errMsg = fmt.Sprintf("%s: Retry (%d) exhausted while publishing message type: %s, message ID: %s", bp.logPrefix, bp.maxRetry, game.HandPlayerActed, msg.GetMessageId())
+				errMsg = fmt.Sprintf("Retry (%d) exhausted while publishing message type: %s, message ID: %s", bp.maxRetry, game.HandPlayerActed, msg.GetMessageId())
 			} else {
-				errMsg = fmt.Sprintf("%s: Retry (%d) exhausted while waiting for game server acknowledgement for message type: %s, message ID: %s", bp.logPrefix, bp.maxRetry, game.HandPlayerActed, msg.GetMessageId())
+				errMsg = fmt.Sprintf("Retry (%d) exhausted while waiting for game server acknowledgement for message type: %s, message ID: %s", bp.maxRetry, game.HandPlayerActed, msg.GetMessageId())
 			}
 			bp.logger.Error().Msg(errMsg)
 			bp.errorStateMsg = errMsg
@@ -2872,10 +2885,10 @@ func (bp *BotPlayer) publishAndWaitForAck(subj string, msg *game.HandMessage) {
 			return
 		}
 		if attempts > 1 {
-			bp.logger.Info().Msgf("%s: Attempt (%d) to publish message type: %s, message ID: %s", bp.logPrefix, attempts, game.HandPlayerActed, msg.GetMessageId())
+			bp.logger.Info().Msgf("Attempt (%d) to publish message type: %s, message ID: %s", attempts, game.HandPlayerActed, msg.GetMessageId())
 		}
 		if err := bp.natsConn.Publish(bp.meToHandSubjectName, protoData); err != nil {
-			bp.logger.Error().Msgf("%s: Error [%s] while publishing message %+v", bp.logPrefix, err, msg)
+			bp.logger.Error().Msgf("Error [%s] while publishing message %+v", err, msg)
 			time.Sleep(2 * time.Second)
 			continue
 		}
@@ -2953,7 +2966,6 @@ func (bp *BotPlayer) IsSeated() bool {
 
 func (bp *BotPlayer) updateSeatNo(seatNo uint32) {
 	bp.seatNo = seatNo
-	bp.updateLogPrefix()
 }
 
 // IsGameOver returns true if the bot has finished the game.
@@ -3005,7 +3017,7 @@ func (bp *BotPlayer) PrintHandResult() {
 				if cardsStr != "" {
 					winningCards = fmt.Sprintf(" Winning Cards: %s (%s)", cardsStr, rankStr)
 				}
-				bp.logger.Info().Msgf("%s: Pot %d Hi-Winner %d: Seat %d (%s) Amount: %v%s", bp.logPrefix, potNum+1, i+1, seatNo, playerName, amount, winningCards)
+				bp.logger.Info().Msgf("Pot %d Hi-Winner %d: Seat %d (%s) Amount: %v%s", potNum+1, i+1, seatNo, playerName, amount, winningCards)
 			}
 			for i, winner := range board.LowWinners {
 				seatNo := winner.GetSeatNo()
@@ -3018,7 +3030,7 @@ func (bp *BotPlayer) PrintHandResult() {
 				if cardsStr != "" {
 					winningCards = fmt.Sprintf(" Lo Winning Cards: %s", cardsStr)
 				}
-				bp.logger.Info().Msgf("%s: Pot %d Low-Winner %d: Seat %d (%s) Amount: %v%s", bp.logPrefix, potNum+1, i+1, seatNo, playerName, amount, winningCards)
+				bp.logger.Info().Msgf("Pot %d Low-Winner %d: Seat %d (%s) Amount: %v%s", potNum+1, i+1, seatNo, playerName, amount, winningCards)
 			}
 		}
 	}
@@ -3041,7 +3053,7 @@ func (bp *BotPlayer) setupServerCrash(crashPoint string, playerID uint64) error 
 	}
 	url := fmt.Sprintf("%s/setup-crash", util.Env.GetGameServerURL(bp.gameCode))
 
-	bp.logger.Info().Msgf("%s: Setting up game server crash. URL: %s, Payload: %s", bp.logPrefix, url, jsonBytes)
+	bp.logger.Info().Msgf("Setting up game server crash. URL: %s, Payload: %s", url, jsonBytes)
 	client := http.Client{Timeout: 3 * time.Second}
 	resp, err := client.Post(url, "application/json", bytes.NewBuffer(jsonBytes))
 	if err != nil {
@@ -3052,7 +3064,7 @@ func (bp *BotPlayer) setupServerCrash(crashPoint string, playerID uint64) error 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Game server returned http %d: %s", resp.StatusCode, string(body))
 	}
-	bp.logger.Info().Msgf("%s: Successfully setup game server crash.", bp.logPrefix)
+	bp.logger.Info().Msgf("Successfully setup game server crash.")
 	return nil
 }
 
@@ -3106,7 +3118,7 @@ func (bp *BotPlayer) setupNextHand() error {
 	if nextHand.Setup.ButtonPos != 0 {
 		err := bp.setupButtonPos(nextHand.Setup.ButtonPos)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("Unable to set button position"))
+			return errors.Wrap(err, "Unable to set button position")
 		}
 	}
 
@@ -3174,7 +3186,7 @@ func (bp *BotPlayer) reloadBotFromGameInfo(newHand *game.NewHand) error {
 	if newHand.HandNum == 1 {
 		gameInfo, err := bp.GetGameInfo(bp.gameCode)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("%s: Unable to get game info %s", bp.logPrefix, bp.gameCode))
+			return errors.Wrap(err, fmt.Sprintf("Unable to get game info %s", bp.gameCode))
 		}
 		bp.gameInfo = &gameInfo
 	}
@@ -3216,10 +3228,10 @@ func (bp *BotPlayer) reloadBotFromGameInfo(newHand *game.NewHand) error {
 func (bp *BotPlayer) isGamePaused() (bool, error) {
 	gi, err := bp.GetGameInfo(bp.gameCode)
 	if err != nil {
-		return false, errors.Wrap(err, fmt.Sprintf("%s: Unable to get game info %s", bp.logPrefix, bp.gameCode))
+		return false, errors.Wrap(err, fmt.Sprintf("Unable to get game info %s", bp.gameCode))
 	}
 	if gi.Status == game.GameStatus_ENDED.String() {
-		return false, fmt.Errorf("%s: Game ended %s. Unexpected", bp.logPrefix, bp.gameCode)
+		return false, fmt.Errorf("Game ended %s. Unexpected", bp.gameCode)
 	}
 
 	if gi.Status == game.GameStatus_PAUSED.String() {
@@ -3267,14 +3279,14 @@ func (bp *BotPlayer) GetName() string {
 
 // GetClubCode finds club code by club name.
 func (bp *BotPlayer) GetClubCode(name string) (string, error) {
-	bp.logger.Info().Msgf("%s: Locating club code using name [%s].", bp.logPrefix, name)
+	bp.logger.Info().Msgf("Locating club code using name [%s].", name)
 
 	clubCode, err := bp.gqlHelper.GetClubCode(name)
 	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("%s: Unable to get clubs", bp.logPrefix))
+		return "", errors.Wrap(err, "Unable to get clubs")
 	}
 	if name == "" {
-		bp.logger.Info().Msgf("%s: No club found with name: [%s]", bp.logPrefix, name)
+		bp.logger.Info().Msgf("No club found with name: [%s]", name)
 		return "", nil
 	}
 	return clubCode, nil
@@ -3282,24 +3294,24 @@ func (bp *BotPlayer) GetClubCode(name string) (string, error) {
 
 // HostRequestSeatChange schedules to end the game after the current hand is finished.
 func (bp *BotPlayer) HostRequestSeatChange(gameCode string) error {
-	bp.logger.Info().Msgf("%s: Host is requesting to make seat changes in game [%s].", bp.logPrefix, gameCode)
+	bp.logger.Info().Msgf("Host is requesting to make seat changes in game [%s].", gameCode)
 
 	status, err := bp.gqlHelper.HostRequestSeatChange(gameCode)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Error while host is requesting to make seat changes  [%s]", bp.logPrefix, gameCode))
+		return errors.Wrap(err, fmt.Sprintf("Error while host is requesting to make seat changes  [%s]", gameCode))
 	}
 
-	bp.logger.Info().Msgf("%s: Successfully requested to make seat changes. Status: [%s]", bp.logPrefix, gameCode, status)
+	bp.logger.Info().Msgf("Successfully requested to make seat changes. Status: [%s]", gameCode, status)
 	return nil
 }
 
 // CreateClub creates a new club.
 func (bp *BotPlayer) ResetDB() error {
-	bp.logger.Info().Msgf("%s: Resetting database for testing [%s].", bp.logPrefix)
+	bp.logger.Info().Msgf("Resetting database for testing [%s].")
 
 	err := bp.gqlHelper.ResetDB()
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("%s: Resetting database failed", bp.logPrefix))
+		return errors.Wrap(err, "Resetting database failed")
 	}
 
 	return nil

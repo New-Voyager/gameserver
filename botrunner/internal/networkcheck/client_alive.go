@@ -7,11 +7,10 @@ import (
 )
 
 type ClientAliveCheck struct {
-	logger    *zerolog.Logger
-	logPrefix string
-	gameID    uint64
-	gameCode  string
-	inAction  bool
+	logger   *zerolog.Logger
+	gameID   uint64
+	gameCode string
+	inAction bool
 
 	chEnd      chan bool
 	chInAction chan bool
@@ -19,7 +18,7 @@ type ClientAliveCheck struct {
 	sendAliveMsg func()
 }
 
-func NewClientAliveCheck(logger *zerolog.Logger, logPrefix string, gameID uint64, gameCode string, sendAliveMsg func()) *ClientAliveCheck {
+func NewClientAliveCheck(logger *zerolog.Logger, gameID uint64, gameCode string, sendAliveMsg func()) *ClientAliveCheck {
 	c := ClientAliveCheck{
 		logger:       logger,
 		gameID:       gameID,
