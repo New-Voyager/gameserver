@@ -55,7 +55,6 @@ func (c *ClientAliveCheck) loop() {
 		case <-c.chEnd:
 			return
 		case isInAction := <-c.chInAction:
-			c.logger.Info().Msgf("[%s] INACTION: %v", c.logPrefix, isInAction)
 			c.inAction = isInAction
 			if isInAction {
 				// Immediately send one without waiting for the tick.

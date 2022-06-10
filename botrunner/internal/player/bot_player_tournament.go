@@ -141,9 +141,16 @@ func (bp *BotPlayer) setTournamentPlayerSeat(message *gamescript.NonProtoTournam
 }
 
 func (bp *BotPlayer) tournamentPlayerMoved(message *gamescript.NonProtoTournamentMsg) {
+	if message.TableNo == bp.tournamentTableNo {
+		bp.needsTournamentTableRefresh = true
+	} else if message.NewTableNo == bp.tournamentTableNo {
+		bp.needsTournamentTableRefresh = true
+	}
+
 	if message.PlayerID != bp.PlayerID {
 		return
 	}
+
 	bp.tournamentTableNo = message.NewTableNo
 	bp.tournamentSeatNo = message.SeatNo
 	bp.seatNo = message.SeatNo
@@ -151,11 +158,7 @@ func (bp *BotPlayer) tournamentPlayerMoved(message *gamescript.NonProtoTournamen
 		bp.logPrefix, message.TournamentId, bp.GetName(),
 		bp.tournamentSeatNo, bp.tournamentTableNo,
 		message.CurrentTableNo)
-	var e error
-	bp.tournamentTableInfo, e = bp.gqlHelper.GetTournamentTableInfo(bp.tournamentID, bp.tournamentTableNo)
-	if e != nil {
-		return
-	}
+	bp.refreshTournamentTableInfo()
 
 	bp.game = &gameView{
 		table: &tableView{
@@ -171,8 +174,7 @@ func (bp *BotPlayer) tournamentPlayerMoved(message *gamescript.NonProtoTournamen
 	bp.gameID = bp.tournamentTableInfo.GameID
 
 	playerChannelName := fmt.Sprintf("player.%d", bp.PlayerID)
-	var err error
-	err = bp.Subscribe(bp.tournamentTableInfo.GameToPlayerChannel,
+	err := bp.Subscribe(bp.tournamentTableInfo.GameToPlayerChannel,
 		bp.tournamentTableInfo.HandToAllChannel, bp.tournamentTableInfo.HandToPlayerChannel,
 		bp.tournamentTableInfo.HandToPlayerTextChannel, playerChannelName)
 	if err != nil {
@@ -186,4 +188,15 @@ func (bp *BotPlayer) tournamentPlayerMoved(message *gamescript.NonProtoTournamen
 	bp.logger.Info().Msgf("%s: Starting network check client", bp.logPrefix)
 	bp.clientAliveCheck = networkcheck.NewClientAliveCheck(bp.logger, bp.logPrefix, bp.gameID, bp.gameCode, bp.sendAliveMsg)
 	bp.clientAliveCheck.Run()
+}
+
+func (bp *BotPlayer) refreshTournamentTableInfo() error {
+	var err error
+	bp.tournamentTableInfo, err = bp.gqlHelper.GetTournamentTableInfo(bp.tournamentID, bp.tournamentTableNo)
+	if err != nil {
+		bp.logger.Error().Err(err).Msgf("%s: Could not get tournament table info", bp.logPrefix)
+		return err
+	}
+	bp.needsTournamentTableRefresh = false
+	return nil
 }

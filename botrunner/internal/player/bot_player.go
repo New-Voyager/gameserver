@@ -84,12 +84,13 @@ type BotPlayer struct {
 	RewardsNameToID map[string]uint32
 
 	// tournament flag
-	tournament          bool
-	tournamentID        uint64
-	tournamentInfo      game.TournamentInfo
-	tournamentTableInfo game.TournamentTableInfo
-	tournamentSeatNo    uint32
-	tournamentTableNo   uint32
+	tournament                  bool
+	tournamentID                uint64
+	tournamentInfo              game.TournamentInfo
+	tournamentTableInfo         game.TournamentTableInfo
+	tournamentSeatNo            uint32
+	tournamentTableNo           uint32
+	needsTournamentTableRefresh bool
 
 	// initial seat information (used for determining whether bot or human)
 	seatInfo map[uint32]game.SeatInfo // initial seat info (used in auto play games)
@@ -461,6 +462,8 @@ func (bp *BotPlayer) messageLoop() {
 		select {
 		case <-bp.end:
 			return
+		case message := <-bp.chTournament:
+			bp.processTournamentMessage(message)
 		case chItem := <-bp.chGame:
 			if chItem.ProtoGameMsg != nil {
 				if chItem.ProtoGameMsg.MessageType == "PLAYER_CONNECTIVITY_LOST" ||
@@ -476,10 +479,9 @@ func (bp *BotPlayer) messageLoop() {
 			bp.processHandMessage(message)
 		case message := <-bp.chHandText:
 			bp.processHandTextMessage(message)
-		case message := <-bp.chTournament:
-			bp.processTournamentMessage(message)
+		default:
+			time.Sleep(10 * time.Millisecond)
 		}
-		time.Sleep(10 * time.Millisecond)
 	}
 }
 
@@ -624,6 +626,9 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 
 		bp.hasNextHandBeenSetup = false // Not this hand, but the next one.
 
+		if bp.needsTournamentTableRefresh {
+			bp.refreshTournamentTableInfo()
+		}
 		if bp.IsHost() {
 			data, _ := protojson.Marshal(message)
 			bp.logger.Debug().Msgf("A new hand is started. Hand Num: %d, message: %s", message.HandNum, string(data))
@@ -751,9 +756,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 			bp.clientAliveCheck.NotInAction()
 			break
 		}
-		bp.logger.Info().Msgf("%s: Toggling inaction.", bp.logPrefix, game.HandYourAction)
 		bp.clientAliveCheck.InAction()
-		bp.logger.Info().Msgf("%s: Toggling inaction done.", bp.logPrefix, game.HandYourAction)
 		err := bp.event(BotEvent__RECEIVE_YOUR_ACTION)
 		if err != nil {
 			// State transition failed due to unexpected YOUR_ACTION message. Possible cause is game server sent a duplicate
