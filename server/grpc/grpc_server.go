@@ -46,7 +46,9 @@ func Stop() {
 func (s *TableServer) HostTable(ctx context.Context, in *rpc.HostTableInfo) (*rpc.Result, error) {
 	_, err := natsGameManager.NewTournamentGame(in.GameCode, uint64(in.TournamentId), uint32(in.TableNo))
 	if err != nil {
-		grpcLogger.Error().Msgf("Could not host table for tournament: %d, table: %d Error: %v", in.TournamentId, in.TableNo, err)
+		grpcLogger.Error().Err(err).
+			Str(logging.GameCodeKey, in.GameCode).
+			Msgf("Could not host table for tournament: %d, table: %d", in.TournamentId, in.TableNo)
 		return &rpc.Result{
 			Success: false,
 			Error:   err.Error(),

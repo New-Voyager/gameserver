@@ -62,9 +62,9 @@ func (gm *GameManager) NewGame(gameID uint64, gameCode string) (*NatsGame, error
 		Uint64(logging.GameIDKey, gameID).Str(logging.GameCodeKey, gameCode).
 		Msgf("New game %d:%s", gameID, gameCode)
 	gameIDStr := fmt.Sprintf("%d", gameID)
-	game, err := newNatsGame(gm.nc, gameID, gameCode)
+	game, err := newNatsGame(gm.nc, gameID, gameCode, 0, 0)
 	if err != nil {
-		return nil, errors.Wrap(err, "Could create new NATS game")
+		return nil, errors.Wrap(err, "Could not create new NATS game")
 	}
 	gm.activeGames.Set(gameIDStr, game)
 	gm.gameIDToCode.Set(gameIDStr, gameCode)
@@ -76,12 +76,13 @@ func (gm *GameManager) NewGame(gameID uint64, gameCode string) (*NatsGame, error
 func (gm *GameManager) NewTournamentGame(gameCode string, tournamentID uint64, tableNo uint32) (*NatsGame, error) {
 	gameID := tournamentID<<32 | uint64(tableNo)
 	natsGMLogger.Info().
-		Uint64(logging.GameIDKey, gameID).Str(logging.GameCodeKey, gameCode).
+		Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
 		Msgf("New Tournament game %d:%s", gameID, gameCode)
 	gameIDStr := fmt.Sprintf("%d", gameID)
-	game, err := newTournamentGame(gm.nc, tournamentID, tableNo, gameID, gameCode)
+	game, err := newNatsGame(gm.nc, gameID, gameCode, tournamentID, tableNo)
 	if err != nil {
-		return nil, errors.Wrap(err, "Could create new NATS game")
+		return nil, errors.Wrap(err, "Could not create new NATS game")
 	}
 	gm.activeGames.Set(gameIDStr, game)
 	gm.gameIDToCode.Set(gameIDStr, gameCode)
