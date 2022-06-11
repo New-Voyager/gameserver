@@ -59,29 +59,6 @@ func (gm *Manager) InitializeGame(messageSender MessageSender, gameID uint64, ga
 	return game, gameID, nil
 }
 
-func (gm *Manager) InitializeTournamentGame(messageSender MessageSender, tournamentID uint64, tableNo uint64, gameID uint64, gameCode string) (*Game, uint64, error) {
-	gameIDStr := fmt.Sprintf("%d", gameID)
-	game, err := NewPokerGame(
-		gameID,
-		gameCode,
-		tournamentID,
-		uint32(tableNo),
-		gm.isScriptTest,
-		gm,
-		&messageSender,
-		gm.delays,
-		gm.handStatePersist,
-		gm.handSetupPersist,
-		gm.encryptionKeyCache,
-		gm.apiServerURL)
-	gm.activeGames[gameIDStr] = game
-
-	if err != nil {
-		return nil, 0, err
-	}
-	return game, gameID, nil
-}
-
 func (gm *Manager) InitializeTestGame(messageSender MessageSender, gameID uint64, gameCode string, config *TestGameConfig) (*Game, uint64, error) {
 	gameIDStr := fmt.Sprintf("%d", config.GameId)
 	game, err := NewTestPokerGame(
