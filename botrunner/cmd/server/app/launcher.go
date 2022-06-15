@@ -144,7 +144,7 @@ func (l *Launcher) StartAppGame(clubCode string, name string, players *gamescrip
 	return nil
 }
 
-// JoinHumanGame starts a BotRunner that joins a human-created game.
+// RegisterTournament starts a BotRunner and register bots to play in tournament
 func (l *Launcher) RegisterTournament(clubCode string, tournamentID uint64, botCount int32) error {
 	_, exists := l.tournaments[tournamentID]
 	if exists {
@@ -158,5 +158,15 @@ func (l *Launcher) RegisterTournament(clubCode string, tournamentID uint64, botC
 	// bots will listen on the tournament channel for tournament messages
 	h.Launch()
 	l.tournaments[tournamentID] = h
+	return nil
+}
+
+// RegisterTournament starts a BotRunner and register bots to play in tournament
+func (l *Launcher) JoinTournament(tournamentID uint64) error {
+	tournament, exists := l.tournaments[tournamentID]
+	if !exists {
+		return fmt.Errorf("There is no tournament registered with id [%d]", tournamentID)
+	}
+	tournament.JoinTournament()
 	return nil
 }

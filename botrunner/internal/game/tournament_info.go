@@ -26,4 +26,6 @@ type TournamentTableInfo struct {
 	HandToPlayerChannel     string
 	HandToPlayerTextChannel string
 	ClientAliveChannel      string
+	Playing                 bool
+	TableNo                 int32
 }

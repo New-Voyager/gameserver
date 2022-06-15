@@ -36,6 +36,7 @@ func RunRestServer(portNo uint, logDir string) {
 	r.POST("/delete-human-game", deleteHumanGame)
 	r.POST("/start-app-game", startAppGame)
 	r.POST("/register-tournament", registerTournament)
+	r.POST("/join-tournament", joinTournament)
 	r.GET("/app-games", listAppGames)
 	r.Run(fmt.Sprintf(":%d", portNo))
 }
@@ -387,6 +388,29 @@ func registerTournament(c *gin.Context) {
 
 	launcher := GetLauncher()
 	err = launcher.RegisterTournament(clubCode, tournamentID, botCount)
+	if err != nil {
+		errMsg := fmt.Sprintf("Error while starting app game. Error: %s", err)
+		restLogger.Error().Msg(errMsg)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "Accepted"})
+}
+
+func joinTournament(c *gin.Context) {
+	tournamentIDStr := c.Query("tournament-id")
+	if tournamentIDStr == "" {
+		c.String(400, "Failed to read tournament-id param from join-tournament endpoint")
+	}
+	tournamentID, err := strconv.ParseUint(tournamentIDStr, 10, 64)
+	if err != nil {
+		c.String(400, "Failed to parse tournament-id  [%s] from join-tournament endpoint.", tournamentIDStr)
+		return
+	}
+
+	launcher := GetLauncher()
+	err = launcher.JoinTournament(tournamentID)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error while starting app game. Error: %s", err)
 		restLogger.Error().Msg(errMsg)

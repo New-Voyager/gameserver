@@ -62,3 +62,13 @@ func (t *Tournament) Launch() error {
 	// bots will listen for the tournament messages
 	return err
 }
+
+func (t *Tournament) JoinTournament() error {
+	// register bots to the tournament
+	err := t.instance.JoinTournament()
+	if err != nil {
+		t.logger.Error().Msgf("Bots joining tournament %d failed.", t.tournamentID)
+		return err
+	}
+	return nil
+}

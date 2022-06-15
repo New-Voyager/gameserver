@@ -22,6 +22,20 @@ func (bp *BotPlayer) RegisterTournament(tournamentID uint64) error {
 	return err
 }
 
+func (bp *BotPlayer) JoinTournament(tournamentID uint64) error {
+	bp.logger.Info().Msgf("Joining tournament %d", bp.tournamentID)
+	tournamentGameInfo, err := bp.gqlHelper.JoinTournament(tournamentID)
+	if err == nil {
+		bp.tournamentTableInfo = tournamentGameInfo.TournamentTableInfo
+		bp.logger.Info().Msgf("Joining tournament %d is successful. Playing: %v", bp.tournamentID, bp.tournamentTableInfo.Playing)
+		bp.tournamentTableNo = uint32(bp.tournamentTableInfo.TableNo)
+		// subscribe to game channels
+	} else {
+		bp.logger.Info().Msgf("Joining tournament %d is failed", bp.tournamentID)
+	}
+	return err
+}
+
 // enterTournament enters a game without taking a seat as a player.
 func (bp *BotPlayer) enterTournament() error {
 	var e error
@@ -81,8 +95,10 @@ func (bp *BotPlayer) processTournamentNonProtoMsg(message *gamescript.NonProtoTo
 	// }
 
 	switch message.Type {
-	case "TOURNAMENT_STARTED":
-		bp.tournamentStarted(message.TournamentId)
+	// case "TOURNAMENT_STARTED":
+	// 	bp.tournamentStarted(message.TournamentId)
+	case "TOURNAMENT_ABOUT_TO_START":
+		bp.tournamentAboutToStart(message.TournamentId)
 	case "TOURNAMENT_INITIAL_PLAYER_TABLE":
 		bp.setTournamentPlayerSeat(message)
 	case "TOURNAMENT_PLAYER_MOVED_TABLE":
@@ -90,12 +106,19 @@ func (bp *BotPlayer) processTournamentNonProtoMsg(message *gamescript.NonProtoTo
 	}
 }
 
-func (bp *BotPlayer) tournamentStarted(tournamentID uint64) {
-	bp.logger.Info().Msgf("Tournament started. Tournament ID [%d]", tournamentID)
+func (bp *BotPlayer) tournamentAboutToStart(tournamentID uint64) {
+	bp.logger.Info().Msgf("Tournament is about to start. Tournament ID [%d]", tournamentID)
 	bp.tournamentID = tournamentID
-	var e error
-	bp.tournamentTableInfo, e = bp.gqlHelper.GetTournamentTableInfo(bp.tournamentID, bp.tournamentTableNo)
-	if e != nil {
+	// var e error
+	// bp.tournamentTableInfo, e = bp.gqlHelper.GetTournamentTableInfo(bp.tournamentID, bp.tournamentTableNo)
+	// if e != nil {
+	// 	return
+	// }
+
+	var err error
+	err = bp.JoinTournament(tournamentID)
+	if err != nil {
+		bp.logger.Error().Err(err).Msgf("Could not join tournament %d", bp.tournamentID)
 		return
 	}
 
@@ -113,7 +136,6 @@ func (bp *BotPlayer) tournamentStarted(tournamentID uint64) {
 	bp.UpdateLogger()
 
 	playerChannelName := fmt.Sprintf("player.%d", bp.PlayerID)
-	var err error
 	err = bp.Subscribe(bp.tournamentTableInfo.GameToPlayerChannel,
 		bp.tournamentTableInfo.HandToAllChannel, bp.tournamentTableInfo.HandToPlayerChannel,
 		bp.tournamentTableInfo.HandToPlayerTextChannel, playerChannelName)
@@ -160,7 +182,6 @@ func (bp *BotPlayer) tournamentPlayerMoved(message *gamescript.NonProtoTournamen
 		bp.tournamentSeatNo, bp.tournamentTableNo,
 		message.CurrentTableNo)
 	bp.refreshTournamentTableInfo()
-
 	bp.game = &gameView{
 		table: &tableView{
 			playersBySeat: make(map[uint32]*player),

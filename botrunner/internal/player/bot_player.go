@@ -104,6 +104,7 @@ type BotPlayer struct {
 	havePair    bool
 	pairCard    uint32
 	balance     float64
+	currentRank string
 
 	// For message acknowledgement
 	clientLastMsgID   string
@@ -315,6 +316,7 @@ func (bp *BotPlayer) Reset() {
 	bp.PrivateTextMessages = make([]*gamescript.HandTextMessage, 0)
 	bp.tournamentID = 0
 	bp.needsTournamentTableRefresh = false
+	bp.currentRank = ""
 	bp.UpdateLogger()
 
 	go bp.messageLoop()
@@ -636,6 +638,7 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		bp.game.table.bbPos = newHand.GetBbPos()
 		bp.game.table.nextActionSeat = newHand.GetNextActionSeat()
 		bp.game.table.actionTracker = game.NewHandActionTracker()
+		bp.currentRank = ""
 
 		bp.hasNextHandBeenSetup = false // Not this hand, but the next one.
 
@@ -728,7 +731,6 @@ func (bp *BotPlayer) processMsgItem(message *game.HandMessage, msgItem *game.Han
 		if bp.IsHost() {
 			bp.verifyBoard()
 		}
-
 		// Game server evaluates player cards at every betting round and sends the rank string for each seat number.
 		// Verify they match the script.
 		bp.verifyCardRank(msgItem.GetFlop().GetPlayerCardRanks())
@@ -998,6 +1000,17 @@ func (bp *BotPlayer) updateBalance(playerBalances map[uint32]float64) {
 }
 
 func (bp *BotPlayer) verifyCardRank(currentRanks map[uint32]string) {
+	actualRank, exists := currentRanks[bp.seatNo]
+	if exists {
+		if util.Env.IsEncryptionEnabled() {
+			// Player rank string is encrypted and base64 encoded by the game server.
+			// It first needs to be b64 decoded and then decrypted using the player's
+			// encryption key.
+			actualRank = bp.decryptRankStr(actualRank)
+		}
+		bp.currentRank = actualRank
+	}
+
 	if bp.tournament {
 		return
 	}
@@ -1039,14 +1052,6 @@ func (bp *BotPlayer) verifyCardRank(currentRanks map[uint32]string) {
 	}
 	if expectedRank == "" {
 		return
-	}
-
-	var actualRank = currentRanks[bp.seatNo]
-	if util.Env.IsEncryptionEnabled() {
-		// Player rank string is encrypted and base64 encoded by the game server.
-		// It first needs to be b64 decoded and then decrypted using the player's
-		// encryption key.
-		actualRank = bp.decryptRankStr(actualRank)
 	}
 
 	if actualRank != expectedRank {
@@ -2574,22 +2579,51 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 			nextAction = game.ACTION_CHECK
 			nextAmt = 0.0
 		}
-
+		/*
+			1: "Straight Flush",
+			2: "Four of a Kind",
+			3: "Full House",
+			4: "Flush",				// 100% (minBet*15)
+			5: "Straight",			// 100% (minBet*10)
+			6: "Three of a Kind",	// 80% (minBet*5)
+			7: "Two Pair",			// 50% (minBet*3)
+			8: "Pair",
+			9: "High Card",
+		*/
 		// do I have a pair
+		// minBetMultiply := 0
+		// if bp.currentRank == "Two Pair" {
+		// 	minBetMultiply = 3
+		// } else if bp.currentRank == "Three of a Kind" {
+		// 	minBetMultiply = 5
+		// } else if bp.currentRank == "Straight" {
+		// 	minBetMultiply = 10
+		// } else if bp.currentRank == "Flush" {
+		// 	minBetMultiply = 15
+		// } else if bp.currentRank == "Full House" {
+		// 	minBetMultiply = 25
+		// } else if bp.currentRank == "Four of a Kind" {
+		// 	minBetMultiply = 50
+		// } else if bp.currentRank == "Straight Flush" {
+		// 	minBetMultiply = 100
+		// }
+		// nextAmt := minBet * float64(minBetMultiply)
+
 		if bp.havePair {
 			pairValue := (float64)(bp.pairCard / 16)
 			nextAmt = pairValue * minBet
-			if nextAmt > maxBet {
-				nextAmt = maxBet
-			}
-			if nextAmt == seatAction.AllInAmount {
-				nextAction = game.ACTION_ALLIN
-			} else {
-				if canBet {
-					nextAction = game.ACTION_BET
-				} else if canRaise {
-					nextAction = game.ACTION_RAISE
-				}
+		}
+		if nextAmt > maxBet {
+			nextAmt = maxBet
+		}
+
+		if nextAmt == seatAction.AllInAmount {
+			nextAction = game.ACTION_ALLIN
+		} else {
+			if canBet {
+				nextAction = game.ACTION_BET
+			} else if canRaise {
+				nextAction = game.ACTION_RAISE
 			}
 		}
 
@@ -3247,6 +3281,7 @@ func (bp *BotPlayer) getPlayerNameBySeatNo(seatNo uint32) string {
 				return p.Name
 			}
 		}
+		return "MISSING"
 	}
 	for _, p := range bp.gameInfo.SeatInfo.PlayersInSeats {
 		if p.SeatNo == seatNo {

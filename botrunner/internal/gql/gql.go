@@ -929,7 +929,7 @@ func (g *GQLHelper) PostBlind(gameCode string) (bool, error) {
 	return respData.Status, nil
 }
 
-// ResumeGame pauses the game in next hand
+// RegisterTournament registers for a tournament
 func (g *GQLHelper) RegisterTournament(tournamentID uint64) error {
 	req := graphql.NewRequest(RegisterTournamentGQL)
 
@@ -946,6 +946,25 @@ func (g *GQLHelper) RegisterTournament(tournamentID uint64) error {
 	}
 
 	return nil
+}
+
+// RegisterTournament registers for a tournament
+func (g *GQLHelper) JoinTournament(tournamentID uint64) (*TournamentTableInfoResp, error) {
+	req := graphql.NewRequest(JoinTournamentGQL)
+
+	req.Var("tournamentId", tournamentID)
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", g.authToken)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.timeoutSec)*time.Second)
+	defer cancel()
+	var respData TournamentTableInfoResp
+	err := g.client.Run(ctx, req, &respData)
+	if err != nil {
+		return nil, err
+	}
+
+	return &respData, nil
 }
 
 // GetTournamentInfo queries the game info from the api server.
@@ -1520,6 +1539,37 @@ const RegisterTournamentGQL = `mutation registerTournament($tournamentId: Int!) 
 	registerTournament(
 		tournamentId: $tournamentId
 	)
+}`
+
+const JoinTournamentGQL = `mutation joinTournament($tournamentId: Int!) {
+	tournamentTableInfo: joinTournament(
+		tournamentId: $tournamentId
+	) {
+		gameID
+		gameCode
+		smallBlind
+		bigBlind
+		level
+		nextLevel
+		nextLevelTimeInSecs
+		gameChatChannel
+		gameToPlayerChannel
+		playerToHandChannel
+		handToPlayerChannel
+		handToAllChannel
+		clientAliveChannel
+		players {
+		  playerId
+		  playerUuid
+		  playerName
+		  stack
+		  seatNo
+		  status
+		}
+		handToPlayerTextChannel
+		playing
+		tableNo
+	}
 }`
 
 type DeclineWaitListResp struct {

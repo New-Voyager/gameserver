@@ -147,3 +147,20 @@ func (br *TournamentRunner) ResetBots() {
 	}
 	//br.observerBot.Reset()
 }
+
+func (tr *TournamentRunner) JoinTournament() error {
+	var err error
+	// register bots for the tournament
+	for i, b := range tr.bots {
+		if i >= int(tr.botCount) {
+			// reached max number of bots
+			break
+		}
+
+		err = b.JoinTournament(tr.tournamentID)
+		if err != nil {
+			return errors.Wrapf(err, "%s cannot join tournament %d", b.GetName(), tr.tournamentID)
+		}
+	}
+	return nil
+}
