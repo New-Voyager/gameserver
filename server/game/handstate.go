@@ -553,6 +553,7 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 	if h.Ante > 0 {
 		pot := h.PreflopActions.PotStart
 		collectedAnte := float64(0)
+		seatsInPot := make([]uint32, 0)
 		for seatNoIdx, playerID := range h.ActiveSeats {
 			if playerID == 0 {
 				continue
@@ -575,11 +576,14 @@ func (h *HandState) setupPreflop(postedBlinds []uint32) {
 				player.Stack -= h.Ante
 				// update player balance
 				pot += h.Ante
+				collectedAnte += h.Ante
 			}
+			seatsInPot = append(seatsInPot, seatNo)
 		}
 		h.CollectedAnte = collectedAnte
 		h.PreflopActions.PotStart = pot
 		h.Pots[0].Pot = pot
+		h.Pots[0].Seats = seatsInPot
 	}
 
 	h.setupRound(HandStatus_PREFLOP)
