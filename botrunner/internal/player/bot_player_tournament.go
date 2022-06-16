@@ -89,7 +89,7 @@ func (bp *BotPlayer) processTournamentNonProtoMsg(message *gamescript.NonProtoTo
 		bp.logger.Info().Msgf("Bot is in error state. Ignoring hand message.")
 		return
 	}
-	fmt.Printf("HANDLING TOURNAMENT MESSAGE: %+v\n", message.Type)
+	//fmt.Printf("HANDLING TOURNAMENT MESSAGE: %+v\n", message.Type)
 	// if util.Env.ShouldPrintTournamentMsg() {
 	// 	fmt.Printf("HANDLING TOURNAMENT MESSAGE: %+v\n", message.Type)
 	// }
