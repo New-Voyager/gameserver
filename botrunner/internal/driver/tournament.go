@@ -50,7 +50,7 @@ func NewTournamentRunner(tournamentID uint64, clubCode string, botCount int32) (
 // when the bots join the tournament, we will start go routine for each bot to listen for hand/game messages
 
 // RegisterBots registers the bots for the tournament
-func (tr *TournamentRunner) CreateBots() error {
+func (tr *TournamentRunner) CreateBots(botCount int32) error {
 	fileName := "botrunner_scripts/players/tournament-players.csv"
 	bytes, err := ioutil.ReadFile(fileName)
 	if err != nil {
@@ -90,6 +90,9 @@ func (tr *TournamentRunner) CreateBots() error {
 		}
 		tr.bots = append(tr.bots, bot)
 		tr.botsByName[botName] = bot
+		if i == int(botCount) {
+			break
+		}
 	}
 	return nil
 }
@@ -148,6 +151,13 @@ func (br *TournamentRunner) ResetBots() {
 		bot.Reset()
 	}
 	//br.observerBot.Reset()
+}
+
+func (br *TournamentRunner) EndTournament() error {
+	for _, bot := range br.bots {
+		bot.EndTournament()
+	}
+	return nil
 }
 
 func (tr *TournamentRunner) JoinTournament() error {

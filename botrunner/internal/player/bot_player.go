@@ -2315,10 +2315,12 @@ func (bp *BotPlayer) LeaveGameImmediately() error {
 	if err != nil {
 		return errors.Wrap(err, "Error while unsubscribing from NATS subjects")
 	}
-	if bp.IsSeated() && !bp.hasSentLeaveGameRequest {
-		_, err = bp.gqlHelper.LeaveGame(bp.gameCode)
-		if err != nil {
-			return errors.Wrap(err, "Error while making a GQL request to leave game")
+	if !bp.tournament {
+		if bp.IsSeated() && !bp.hasSentLeaveGameRequest {
+			_, err = bp.gqlHelper.LeaveGame(bp.gameCode)
+			if err != nil {
+				return errors.Wrap(err, "Error while making a GQL request to leave game")
+			}
 		}
 	}
 	go func() {
@@ -2329,7 +2331,9 @@ func (bp *BotPlayer) LeaveGameImmediately() error {
 	bp.gameCode = ""
 	bp.gameID = 0
 	bp.UpdateLogger()
-	bp.clientAliveCheck.Destroy()
+	if bp.clientAliveCheck != nil {
+		bp.clientAliveCheck.Destroy()
+	}
 	bp.clientAliveCheck = nil
 	return nil
 }

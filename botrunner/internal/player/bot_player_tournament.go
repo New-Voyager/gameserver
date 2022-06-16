@@ -103,6 +103,8 @@ func (bp *BotPlayer) processTournamentNonProtoMsg(message *gamescript.NonProtoTo
 		bp.setTournamentPlayerSeat(message)
 	case "TOURNAMENT_PLAYER_MOVED_TABLE":
 		bp.tournamentPlayerMoved(message)
+	case "TOURNAMENT_ENDED":
+		bp.tournamentEnded(message)
 	}
 }
 
@@ -210,6 +212,18 @@ func (bp *BotPlayer) tournamentPlayerMoved(message *gamescript.NonProtoTournamen
 	bp.logger.Info().Msgf("Starting network check client")
 	bp.clientAliveCheck = networkcheck.NewClientAliveCheck(bp.logger, bp.gameID, bp.gameCode, bp.sendAliveMsg)
 	bp.clientAliveCheck.Run()
+}
+
+func (bp *BotPlayer) tournamentEnded(message *gamescript.NonProtoTournamentMsg) {
+	// re-establish connection with new table
+	bp.unsubscribe()
+	bp.gameCode = bp.tournamentTableInfo.GameCode
+	bp.gameID = bp.tournamentTableInfo.GameID
+	bp.UpdateLogger()
+}
+
+func (bp *BotPlayer) EndTournament() {
+	bp.LeaveGameImmediately()
 }
 
 func (bp *BotPlayer) refreshTournamentTableInfo() error {

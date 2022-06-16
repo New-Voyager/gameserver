@@ -156,17 +156,27 @@ func (l *Launcher) RegisterTournament(clubCode string, tournamentID uint64, botC
 	}
 	// will register bots and launch bots
 	// bots will listen on the tournament channel for tournament messages
-	h.Launch()
+	h.Launch(botCount)
 	l.tournaments[tournamentID] = h
 	return nil
 }
 
-// RegisterTournament starts a BotRunner and register bots to play in tournament
+// JoinTournament calls the registered bots to join the tournament
 func (l *Launcher) JoinTournament(tournamentID uint64) error {
 	tournament, exists := l.tournaments[tournamentID]
 	if !exists {
 		return fmt.Errorf("There is no tournament registered with id [%d]", tournamentID)
 	}
 	tournament.JoinTournament()
+	return nil
+}
+
+// EndTournament stops all the registered bots and unregisters the tournament
+func (l *Launcher) EndTournament(tournamentID uint64) error {
+	tournament, exists := l.tournaments[tournamentID]
+	if !exists {
+		return fmt.Errorf("There is no tournament registered with id [%d]", tournamentID)
+	}
+	tournament.EndTournament()
 	return nil
 }

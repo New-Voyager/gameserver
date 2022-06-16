@@ -28,7 +28,7 @@ func NewTournament(clubCode string, tournamentID uint64, botCount int32) (*Tourn
 	return &b, nil
 }
 
-func (t *Tournament) Launch() error {
+func (t *Tournament) Launch(botCount int32) error {
 	t.logger.Info().Msgf("Launching bot runners for tournament %d.", t.tournamentID)
 	var err error
 	t.instance, err = driver.NewTournamentRunner(t.tournamentID, t.clubCode, t.botCount)
@@ -36,7 +36,7 @@ func (t *Tournament) Launch() error {
 		t.logger.Error().Msgf("Launching tournament runner %d failed.", t.tournamentID)
 		return err
 	}
-	err = t.instance.CreateBots()
+	err = t.instance.CreateBots(botCount)
 	if err != nil {
 		t.logger.Error().Msgf("Registering bots for tournament %d failed.", t.tournamentID)
 		return err
@@ -68,6 +68,16 @@ func (t *Tournament) JoinTournament() error {
 	err := t.instance.JoinTournament()
 	if err != nil {
 		t.logger.Error().Msgf("Bots joining tournament %d failed.", t.tournamentID)
+		return err
+	}
+	return nil
+}
+
+func (t *Tournament) EndTournament() error {
+	// bots leave the tournament
+	err := t.instance.EndTournament()
+	if err != nil {
+		t.logger.Error().Msgf("Ending tournament %d failed.", t.tournamentID)
 		return err
 	}
 	return nil
