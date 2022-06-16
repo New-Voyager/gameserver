@@ -84,7 +84,9 @@ func (tr *TournamentRunner) CreateBots() error {
 			IsTournamentBot: true,
 		}, os.Stdout)
 		if err != nil {
-			return errors.Wrap(err, "Unable to create a new bot")
+			tr.logger.Info().Msgf("Unable to create bot %s", botName)
+
+			continue
 		}
 		tr.bots = append(tr.bots, bot)
 		tr.botsByName[botName] = bot
@@ -97,7 +99,7 @@ func (tr *TournamentRunner) BotsSignIn() error {
 	for _, b := range tr.bots {
 		var err error
 		signedIn := false
-		maxAttempts := 3
+		maxAttempts := 5
 		for attempts := 0; attempts < maxAttempts && !signedIn; attempts++ {
 			if attempts > 0 {
 				tr.logger.Info().Msgf("%s could not sign in (%d/%d)", b.GetName(), attempts, maxAttempts)
@@ -117,7 +119,7 @@ func (tr *TournamentRunner) BotsSignIn() error {
 			time.Sleep(2 * time.Second)
 		}
 		if !signedIn {
-			return errors.Wrapf(err, "%s cannot sign in", b.GetName())
+			tr.logger.Error().Msgf("%s cannot sign in", b.GetName())
 		}
 	}
 

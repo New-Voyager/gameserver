@@ -724,8 +724,10 @@ func (g *Game) dealNewHand(newHandInfo *NewHandInfo) error {
 
 		// if the player balance is 0, then don't deal card to him
 		if player.Stack == 0 {
-			handState.ActiveSeats[int(player.SeatNo)] = 0
-			continue
+			if handState.AllInPlayers[player.SeatNo] == 0 {
+				handState.ActiveSeats[int(player.SeatNo)] = 0
+				continue
+			}
 		}
 
 		// seatNo is the key, cards are value
