@@ -60,6 +60,23 @@ func (s *TableServer) HostTable(ctx context.Context, in *rpc.HostTableInfo) (*rp
 	}, nil
 }
 
+func (s *TableServer) PlayerMovedTable(ctx context.Context, in *rpc.PlayerMovedTableInput) (*rpc.Result, error) {
+	err := natsGameManager.HandlePlayerMovedTable(in.GameCode, in.TournamentId, in.OldTableNo, in.NewTableNo, in.NewTableSeatNo, in.PlayerId, in.GameInfo)
+	if err != nil {
+		grpcLogger.Error().Err(err).
+			Str(logging.GameCodeKey, in.GameCode).
+			Msgf("Could not handle player moved table")
+		return &rpc.Result{
+			Success: false,
+			Error:   err.Error(),
+		}, err
+	}
+	return &rpc.Result{
+		Success: true,
+		Error:   "",
+	}, nil
+}
+
 func (s *TableServer) TerimateTable(ctx context.Context, in *rpc.TerminateTableInfo) (*rpc.Result, error) {
 	return nil, nil
 }

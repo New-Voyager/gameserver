@@ -67,6 +67,7 @@ const (
 	HandAnnouncement     string = "ANNOUNCEMENT"
 	HandResultMessage2   string = "RESULT2"
 	HandBombPot          string = "BOMBPOT"
+	HandPlayerMovedTable string = "PLAYER_MOVED_TABLE"
 )
 
 // sub message types used in TableUpdate message

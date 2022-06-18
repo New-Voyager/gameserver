@@ -33,6 +33,7 @@ type MessageSender interface {
 	BroadcastGameMessage(message *GameMessage, noLog bool)
 	BroadcastHandMessage(message *HandMessage)
 	SendHandMessageToPlayer(message *HandMessage, playerID uint64)
+	SendHandMessageToTournamentPlayer(message *HandMessage, tournamentID uint32, playerID uint64)
 	SendGameMessageToPlayer(message *GameMessage, playerID uint64)
 }
 type Game struct {
@@ -1002,6 +1003,90 @@ func (g *Game) sendHandMessageToPlayer(message *HandMessage, playerID uint64) {
 	}
 }
 
+func (g *Game) sendTournamentMessageToPlayer(message *HandMessage, tournamentID uint32, playerID uint64) {
+	message.GameCode = g.gameCode
+	var outMsg *HandMessage = &HandMessage{}
+	err := g.convertToClientUnits(message, outMsg)
+	if err != nil {
+		msg := "Could not convert to client units"
+		g.logger.Error().Err(err).Msg(msg)
+		panic(msg)
+	}
+
+	if *g.messageSender != nil {
+		(*g.messageSender).SendHandMessageToTournamentPlayer(outMsg, tournamentID, playerID)
+	} else {
+		player := g.scriptTestPlayers[playerID]
+		if player == nil {
+			return
+		}
+		b, _ := proto.Marshal(outMsg)
+		player.chHand <- b
+	}
+}
+
+func (g *Game) HandlePlayerMovedTable(gameCode string, tournamentID uint32, oldTableNo uint32, newTableNo uint32, newSeatNo uint32, playerID uint64, gameInfo string) error {
+	playerMovedTable := PlayerMovedTable{
+		TournamentId:   tournamentID,
+		OldTableNo:     oldTableNo,
+		NewTableNo:     newTableNo,
+		NewTableSeatNo: newSeatNo,
+		GameCode:       gameCode,
+		PlayerId:       playerID,
+		GameInfo:       gameInfo,
+	}
+	tableMovedMsg := &HandMessageItem{
+		MessageType: HandPlayerMovedTable,
+		Content:     &HandMessageItem_PlayerMovedTable{PlayerMovedTable: &playerMovedTable},
+	}
+
+	handState, err := g.loadHandState()
+	if err != nil || handState == nil ||
+		handState.HandNum == 0 ||
+		handState.CurrentState == HandStatus_HAND_CLOSED {
+		currentHandState := CurrentHandState{
+			HandNum: 0,
+		}
+		handStateMsg := &HandMessageItem{
+			MessageType: HandQueryCurrentHand,
+			Content:     &HandMessageItem_CurrentHandState{CurrentHandState: &currentHandState},
+		}
+		serverMsg := &HandMessage{
+			PlayerId:  playerID,
+			HandNum:   0,
+			MessageId: "",
+			Messages:  []*HandMessageItem{tableMovedMsg, handStateMsg},
+		}
+		fmt.Println("##### g.HandlePlayerMovedTable 1")
+		g.sendTournamentMessageToPlayer(serverMsg, tournamentID, playerID)
+		fmt.Println("##### g.HandlePlayerMovedTable 2")
+		return nil
+	}
+
+	currentHandState, err := g.GetCurrentHandState(handState, playerID)
+	if err != nil {
+		return err
+	}
+
+	handStateMsg := &HandMessageItem{
+		MessageType: HandQueryCurrentHand,
+		Content:     &HandMessageItem_CurrentHandState{CurrentHandState: currentHandState},
+	}
+
+	serverMsg := &HandMessage{
+		PlayerId:   playerID,
+		HandNum:    handState.HandNum,
+		HandStatus: handState.CurrentState,
+		MessageId: g.GenerateMsgID("CURRENT_HAND", handState.HandNum,
+			handState.CurrentState, playerID, "", handState.CurrentActionNum),
+		Messages: []*HandMessageItem{tableMovedMsg, handStateMsg},
+	}
+	fmt.Println("##### g.HandlePlayerMovedTable 3")
+	g.sendTournamentMessageToPlayer(serverMsg, tournamentID, playerID)
+	fmt.Println("##### g.HandlePlayerMovedTable 4")
+	return nil
+}
+
 func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 	handState, err := g.loadHandState()
 	if err != nil || handState == nil ||
@@ -1024,6 +1109,29 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 		return nil
 	}
 
+	currentHandState, err := g.GetCurrentHandState(handState, playerID)
+	if err != nil {
+		return err
+	}
+
+	handStateMsg := &HandMessageItem{
+		MessageType: HandQueryCurrentHand,
+		Content:     &HandMessageItem_CurrentHandState{CurrentHandState: currentHandState},
+	}
+
+	serverMsg := &HandMessage{
+		PlayerId:   playerID,
+		HandNum:    handState.HandNum,
+		HandStatus: handState.CurrentState,
+		MessageId: g.GenerateMsgID("CURRENT_HAND", handState.HandNum,
+			handState.CurrentState, playerID, messageID, handState.CurrentActionNum),
+		Messages: []*HandMessageItem{handStateMsg},
+	}
+	g.sendHandMessageToPlayer(serverMsg, playerID)
+	return nil
+}
+
+func (g *Game) GetCurrentHandState(handState *HandState, playerID uint64) (*CurrentHandState, error) {
 	boardCards := make([]uint32, len(handState.BoardCards))
 	for i, card := range handState.BoardCards {
 		boardCards[i] = uint32(card)
@@ -1051,9 +1159,9 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 		if !ok || currentRoundState == nil {
 			b, err := json.Marshal(handState)
 			if err != nil {
-				return fmt.Errorf("unable to find current round state. currentRoundState: %+v. handState.CurrentState: %d handState.RoundState: %+v", currentRoundState, handState.CurrentState, handState.RoundState)
+				return nil, fmt.Errorf("unable to find current round state. currentRoundState: %+v. handState.CurrentState: %d handState.RoundState: %+v", currentRoundState, handState.CurrentState, handState.RoundState)
 			}
-			return fmt.Errorf("unable to find current round state. handState: %s", string(b))
+			return nil, fmt.Errorf("unable to find current round state. handState: %s", string(b))
 		}
 		currentBettingRound := currentRoundState.Betting
 		for _, bet := range currentBettingRound.SeatBet {
@@ -1166,21 +1274,7 @@ func (g *Game) HandleQueryCurrentHand(playerID uint64, messageID string) error {
 		currentHandState.PlayersStack[uint64(seatNo)] = player.Stack
 	}
 
-	handStateMsg := &HandMessageItem{
-		MessageType: HandQueryCurrentHand,
-		Content:     &HandMessageItem_CurrentHandState{CurrentHandState: &currentHandState},
-	}
-
-	serverMsg := &HandMessage{
-		PlayerId:   playerID,
-		HandNum:    handState.HandNum,
-		HandStatus: handState.CurrentState,
-		MessageId: g.GenerateMsgID("CURRENT_HAND", handState.HandNum,
-			handState.CurrentState, playerID, messageID, handState.CurrentActionNum),
-		Messages: []*HandMessageItem{handStateMsg},
-	}
-	g.sendHandMessageToPlayer(serverMsg, playerID)
-	return nil
+	return &currentHandState, nil
 }
 
 func (g *Game) HandleAliveMessage(message *ClientAliveMessage) {

@@ -304,5 +304,6 @@ message HandMessageItem {
     HandResultClient hand_result_client = 29;
     ExtendTimer extend_timer = 30;  // to extend action timer for the current action player
     ResetTimer reset_timer = 31;  // to reset action timer for the current action player
+    PlayerMovedTable player_moved_table = 32; // to notify tournament player on new table
   }
 }

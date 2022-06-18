@@ -205,6 +205,15 @@ func (n *NatsGame) setupHand(handSetup HandSetup) {
 	n.serverGame.QueueGameMessage(&message)
 }
 
+func (n *NatsGame) HandlePlayerMovedTable(gameCode string, tournamentID uint32, oldTableNo uint32, newTableNo uint32, newSeatNo uint32, playerID uint64, gameInfo string) error {
+	err := n.serverGame.HandlePlayerMovedTable(gameCode, tournamentID, oldTableNo, newTableNo, newSeatNo, playerID, gameInfo)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // messages sent from player to game hand
 func (n *NatsGame) player2Hand(msg *natsgo.Msg) {
 	var message game.HandMessage
@@ -362,6 +371,38 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 	if err != nil {
 		n.logger.Error().Err(err).Msgf("Could not publish hand message to player %d", playerID)
 	}
+}
+
+func (n NatsGame) SendHandMessageToTournamentPlayer(message *game.HandMessage, tournamentID uint32, playerID uint64) {
+	fmt.Println("##### SendHandMessageToTournamentPlayer 1")
+	tournamentPlayerSubject := GetTournamentPlayerSubject(tournamentID, playerID)
+	message.PlayerId = playerID
+	jsonData, err := protojson.Marshal(message)
+	if err != nil {
+		n.logger.Warn().Msg("Could not protojson-marshal tournament message to player for logging")
+	} else {
+		var msgTypes []string
+		for _, msgItem := range message.GetMessages() {
+			msgTypes = append(msgTypes, msgItem.MessageType)
+		}
+		n.logger.Debug().Str("Message", fmt.Sprintf("%v", msgTypes)).
+			Str(logging.NatsSubjectKey, tournamentPlayerSubject).
+			Msg(fmt.Sprintf("H->TP: %s", string(jsonData)))
+	}
+
+	// data, err := proto.Marshal(message)
+	// if err != nil {
+	// 	n.logger.Error().Err(err).Msgf("Could not pro-marshal tournament message to player %d", playerID)
+	// 	fmt.Println("##### SendHandMessageToTournamentPlayer 2")
+	// 	return
+	// }
+
+	err = n.natsConn.Publish(tournamentPlayerSubject, jsonData)
+	if err != nil {
+		fmt.Println("##### SendHandMessageToTournamentPlayer 3")
+		n.logger.Error().Err(err).Msgf("Could not publish tournament message to player %d", playerID)
+	}
+	fmt.Println("##### SendHandMessageToTournamentPlayer 4")
 }
 
 func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID uint64) {

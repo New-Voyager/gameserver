@@ -27,3 +27,7 @@ func GetHand2PlayerSubject(gameCode string, playerID uint64) string {
 func GetClientAliveSubject(gameCode string) string {
 	return fmt.Sprintf("clientalive.%s", gameCode)
 }
+
+func GetTournamentPlayerSubject(tournamentID uint32, playerID uint64) string {
+	return fmt.Sprintf("tournament.%d.player.%d", tournamentID, playerID)
+}
