@@ -6,6 +6,7 @@ import (
 
 	natsgo "github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 	"voyager.com/botrunner/internal/game"
 	"voyager.com/botrunner/internal/networkcheck"
 	"voyager.com/gamescript"
@@ -86,7 +87,17 @@ func (bp *BotPlayer) handleTournamentPrivateMsg(msg *natsgo.Msg) {
 	// if bp.printTournamentMsg {
 	// 	bp.logger.Info().Msgf("Received private tournament message %s", string(msg.Data))
 	// }
-	bp.logger.Info().Msgf("##### Received private tournament message %s", string(msg.Data))
+	var message game.HandMessage
+	err := proto.Unmarshal(msg.Data, &message)
+	if err != nil {
+		bp.logger.Error().Err(err).Msgf("Could not proto-unmarshal private tournament message")
+		return
+	}
+	var msgTypes []string
+	for _, msgItem := range message.GetMessages() {
+		msgTypes = append(msgTypes, msgItem.MessageType)
+	}
+	bp.logger.Info().Msgf("Received private tournament message %v", msgTypes)
 }
 
 func (bp *BotPlayer) processTournamentMessage(message *TournamentMessageChannelItem) {

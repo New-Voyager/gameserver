@@ -389,14 +389,13 @@ func (n NatsGame) SendHandMessageToTournamentPlayer(message *game.HandMessage, t
 			Msg(fmt.Sprintf("H->TP: %s", string(jsonData)))
 	}
 
-	// data, err := proto.Marshal(message)
-	// if err != nil {
-	// 	n.logger.Error().Err(err).Msgf("Could not pro-marshal tournament message to player %d", playerID)
-	// 	fmt.Println("##### SendHandMessageToTournamentPlayer 2")
-	// 	return
-	// }
+	data, err := proto.Marshal(message)
+	if err != nil {
+		n.logger.Error().Err(err).Msgf("Could not proto-marshal tournament message to player %d", playerID)
+		return
+	}
 
-	err = n.natsConn.Publish(tournamentPlayerSubject, jsonData)
+	err = n.natsConn.Publish(tournamentPlayerSubject, data)
 	if err != nil {
 		n.logger.Error().Err(err).Msgf("Could not publish tournament message to player %d", playerID)
 	}
