@@ -138,12 +138,13 @@ type BotPlayer struct {
 	tournamentChannelName  string
 
 	// Nats subscription objects
-	gameMsgSubscription           *natsgo.Subscription
-	handMsgAllSubscription        *natsgo.Subscription
-	handMsgPlayerSubscription     *natsgo.Subscription
-	handMsgPlayerTextSubscription *natsgo.Subscription
-	playerMsgPlayerSubscription   *natsgo.Subscription
-	tournamentMsgSubscription     *natsgo.Subscription
+	gameMsgSubscription             *natsgo.Subscription
+	handMsgAllSubscription          *natsgo.Subscription
+	handMsgPlayerSubscription       *natsgo.Subscription
+	handMsgPlayerTextSubscription   *natsgo.Subscription
+	playerMsgPlayerSubscription     *natsgo.Subscription
+	tournamentMsgSubscription       *natsgo.Subscription
+	tournamentPlayerMsgSubscription *natsgo.Subscription
 
 	game      *gameView
 	seatNo    uint32
@@ -306,6 +307,7 @@ func (bp *BotPlayer) Reset() {
 	bp.handMsgPlayerTextSubscription = nil
 	bp.playerMsgPlayerSubscription = nil
 	bp.tournamentMsgSubscription = nil
+	bp.tournamentPlayerMsgSubscription = nil
 	bp.game = nil
 	bp.observing = false
 	bp.hasNextHandBeenSetup = false

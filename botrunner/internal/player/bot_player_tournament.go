@@ -54,6 +54,15 @@ func (bp *BotPlayer) enterTournament() error {
 		bp.tournamentMsgSubscription = sub
 		bp.logger.Info().Msgf("Successfully subscribed to %s.", bp.tournamentInfo.TournamentChannel)
 	}
+	if bp.tournamentPlayerMsgSubscription == nil || !bp.tournamentPlayerMsgSubscription.IsValid() {
+		bp.logger.Info().Msgf("Subscribing to %s to receive hand messages sent to tournament player channel: %s", bp.tournamentInfo.PrivateChannel, bp.config.Name)
+		sub, err := bp.natsConn.Subscribe(bp.tournamentInfo.PrivateChannel, bp.handleTournamentPrivateMsg)
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("Unable to subscribe to the tournament player channel subject [%s]", bp.tournamentInfo.PrivateChannel))
+		}
+		bp.tournamentPlayerMsgSubscription = sub
+		bp.logger.Info().Msgf("Successfully subscribed to tournament player channel %s.", bp.tournamentInfo.PrivateChannel)
+	}
 
 	return nil
 }
@@ -71,6 +80,13 @@ func (bp *BotPlayer) handleTournamentMsg(msg *natsgo.Msg) {
 	} else {
 		// handle proto message here
 	}
+}
+
+func (bp *BotPlayer) handleTournamentPrivateMsg(msg *natsgo.Msg) {
+	// if bp.printTournamentMsg {
+	// 	bp.logger.Info().Msgf("Received private tournament message %s", string(msg.Data))
+	// }
+	bp.logger.Info().Msgf("##### Received private tournament message %s", string(msg.Data))
 }
 
 func (bp *BotPlayer) processTournamentMessage(message *TournamentMessageChannelItem) {

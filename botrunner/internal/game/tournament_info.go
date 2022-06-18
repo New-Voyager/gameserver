@@ -4,6 +4,7 @@ package game
 type TournamentInfo struct {
 	ID                uint64  `json:"id"`
 	TournamentChannel string  `json:"tournamentChannel"`
+	PrivateChannel    string  `json:"privateChannel"`
 	MinPlayers        int32   `json:"minPlayers"`
 	MaxPlayers        int32   `json:"maxPlayers"`
 	StartingChips     float32 `json:"startingChips"`

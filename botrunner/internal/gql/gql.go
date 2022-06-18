@@ -1673,6 +1673,7 @@ const TournamentInfoGQL = `query tournament_info($tournamentId: Int!) {
     tournamentInfo: getTournamentInfo(tournamentId: $tournamentId) {
 		id
 		tournamentChannel
+		privateChannel
 	}
 }
 `
