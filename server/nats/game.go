@@ -374,7 +374,6 @@ func (n NatsGame) SendHandMessageToPlayer(message *game.HandMessage, playerID ui
 }
 
 func (n NatsGame) SendHandMessageToTournamentPlayer(message *game.HandMessage, tournamentID uint32, playerID uint64) {
-	fmt.Println("##### SendHandMessageToTournamentPlayer 1")
 	tournamentPlayerSubject := GetTournamentPlayerSubject(tournamentID, playerID)
 	message.PlayerId = playerID
 	jsonData, err := protojson.Marshal(message)
@@ -399,10 +398,8 @@ func (n NatsGame) SendHandMessageToTournamentPlayer(message *game.HandMessage, t
 
 	err = n.natsConn.Publish(tournamentPlayerSubject, jsonData)
 	if err != nil {
-		fmt.Println("##### SendHandMessageToTournamentPlayer 3")
 		n.logger.Error().Err(err).Msgf("Could not publish tournament message to player %d", playerID)
 	}
-	fmt.Println("##### SendHandMessageToTournamentPlayer 4")
 }
 
 func (n NatsGame) SendGameMessageToPlayer(message *game.GameMessage, playerID uint64) {

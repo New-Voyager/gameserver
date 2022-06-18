@@ -1057,9 +1057,7 @@ func (g *Game) HandlePlayerMovedTable(gameCode string, tournamentID uint32, oldT
 			MessageId: "",
 			Messages:  []*HandMessageItem{tableMovedMsg, handStateMsg},
 		}
-		fmt.Println("##### g.HandlePlayerMovedTable 1")
 		g.sendTournamentMessageToPlayer(serverMsg, tournamentID, playerID)
-		fmt.Println("##### g.HandlePlayerMovedTable 2")
 		return nil
 	}
 
@@ -1081,9 +1079,7 @@ func (g *Game) HandlePlayerMovedTable(gameCode string, tournamentID uint32, oldT
 			handState.CurrentState, playerID, "", handState.CurrentActionNum),
 		Messages: []*HandMessageItem{tableMovedMsg, handStateMsg},
 	}
-	fmt.Println("##### g.HandlePlayerMovedTable 3")
 	g.sendTournamentMessageToPlayer(serverMsg, tournamentID, playerID)
-	fmt.Println("##### g.HandlePlayerMovedTable 4")
 	return nil
 }
 

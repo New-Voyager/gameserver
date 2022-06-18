@@ -92,7 +92,6 @@ func (gm *GameManager) NewTournamentGame(gameCode string, tournamentID uint64, t
 }
 
 func (gm *GameManager) HandlePlayerMovedTable(gameCode string, tournamentID uint32, oldTableNo uint32, newTableNo uint32, newSeatNo uint32, playerID uint64, gameInfo string) error {
-	fmt.Println("##### HandlePlayerMovedTable 1")
 	natsGMLogger.Info().
 		Str(logging.GameCodeKey, gameCode).
 		Uint64(logging.PlayerIDKey, playerID).
@@ -104,12 +103,9 @@ func (gm *GameManager) HandlePlayerMovedTable(gameCode string, tournamentID uint
 	if !exists {
 		return fmt.Errorf("game %s does not exist", gameCode)
 	}
-	fmt.Println("##### HandlePlayerMovedTable 2")
 
 	err := natsGame.(*NatsGame).HandlePlayerMovedTable(gameCode, tournamentID, oldTableNo, newTableNo, newSeatNo, playerID, gameInfo)
-	fmt.Println("##### HandlePlayerMovedTable 3")
 	if err != nil {
-		fmt.Println("##### HandlePlayerMovedTable 4")
 		return err
 	}
 	return nil
