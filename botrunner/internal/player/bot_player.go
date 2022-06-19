@@ -1962,6 +1962,20 @@ func (bp *BotPlayer) unsubscribe() error {
 		}
 		bp.handMsgPlayerSubscription = nil
 	}
+	if bp.tournamentMsgSubscription != nil {
+		err := bp.tournamentMsgSubscription.Unsubscribe()
+		if err != nil {
+			errMsg = fmt.Sprintf("%s Error [%s] while unsubscribing from subject [%s]", errMsg, err, bp.tournamentMsgSubscription.Subject)
+		}
+		bp.tournamentMsgSubscription = nil
+	}
+	if bp.tournamentPlayerMsgSubscription != nil {
+		err := bp.tournamentPlayerMsgSubscription.Unsubscribe()
+		if err != nil {
+			errMsg = fmt.Sprintf("%s Error [%s] while unsubscribing from subject [%s]", errMsg, err, bp.tournamentPlayerMsgSubscription.Subject)
+		}
+		bp.tournamentPlayerMsgSubscription = nil
+	}
 	bp.event(BotEvent__UNSUBSCRIBE)
 	if errMsg != "" {
 		return fmt.Errorf(errMsg)
