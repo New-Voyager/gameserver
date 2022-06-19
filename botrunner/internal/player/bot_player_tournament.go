@@ -96,6 +96,19 @@ func (bp *BotPlayer) handleTournamentPrivateMsg(msg *natsgo.Msg) {
 	var msgTypes []string
 	for _, msgItem := range message.GetMessages() {
 		msgTypes = append(msgTypes, msgItem.MessageType)
+		switch msgItem.MessageType {
+		case "PLAYER_MOVED_TABLE":
+			playerMoved := msgItem.GetPlayerMovedTable()
+			bp.logger.Info().Msgf("PLAYER_MOVED_TABLE tournament: %d", playerMoved.TournamentId)
+			bp.logger.Info().Msgf("PLAYER_MOVED_TABLE old table: %d", playerMoved.OldTableNo)
+			bp.logger.Info().Msgf("PLAYER_MOVED_TABLE new table: %d", playerMoved.NewTableNo)
+			bp.logger.Info().Msgf("PLAYER_MOVED_TABLE new seat: %d", playerMoved.NewTableSeatNo)
+			bp.logger.Info().Msgf("PLAYER_MOVED_TABLE game info: %s...", playerMoved.GameInfo[:100])
+		case "QUERY_CURRENT_HAND":
+			currentHand := msgItem.GetCurrentHandState()
+			bp.logger.Info().Msgf("QUERY_CURRENT_HAND hand num: %d", currentHand.HandNum)
+			bp.logger.Info().Msgf("QUERY_CURRENT_HAND button pos: %d", currentHand.ButtonPos)
+		}
 	}
 	bp.logger.Info().Msgf("Received private tournament message %v", msgTypes)
 }
