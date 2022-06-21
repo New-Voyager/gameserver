@@ -103,7 +103,7 @@ func (bp *BotPlayer) handleTournamentPrivateMsg(msg *natsgo.Msg) {
 			bp.logger.Info().Msgf("PLAYER_MOVED_TABLE old table: %d", playerMoved.OldTableNo)
 			bp.logger.Info().Msgf("PLAYER_MOVED_TABLE new table: %d", playerMoved.NewTableNo)
 			bp.logger.Info().Msgf("PLAYER_MOVED_TABLE new seat: %d", playerMoved.NewTableSeatNo)
-			bp.logger.Info().Msgf("PLAYER_MOVED_TABLE game info: %s...", playerMoved.GameInfo[:100])
+			//bp.logger.Info().Msgf("PLAYER_MOVED_TABLE game info: %s...", playerMoved.GameInfo[:100])
 		case "QUERY_CURRENT_HAND":
 			currentHand := msgItem.GetCurrentHandState()
 			bp.logger.Info().Msgf("QUERY_CURRENT_HAND hand num: %d", currentHand.HandNum)
