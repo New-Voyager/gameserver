@@ -250,7 +250,9 @@ func (bp *BotPlayer) tournamentPlayerMoved(message *gamescript.NonProtoTournamen
 	bp.clientAliveSubjectName = bp.tournamentTableInfo.ClientAliveChannel
 
 	bp.logger.Info().Msgf("Starting network check client")
-	bp.clientAliveCheck.Destroy()
+	if bp.clientAliveCheck != nil {
+		bp.clientAliveCheck.Destroy()
+	}
 	bp.clientAliveCheck = networkcheck.NewClientAliveCheck(bp.logger, bp.gameID, bp.gameCode, bp.sendAliveMsg)
 	bp.clientAliveCheck.Run()
 }
