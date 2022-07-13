@@ -342,13 +342,19 @@ func (hr *HandResultProcessor) determineWinners() *HandResultClient {
 			}
 		}
 	}
+	pauseTime := hs.ResultPauseTime
+
+	if hs.getLog().GetWonAt() != HandStatus_SHOW_DOWN {
+		// cut short pause time
+		pauseTime = 2000
+	}
 
 	result := &HandResultClient{
 		ActiveSeats:   seats,
 		WonAt:         hs.getLog().GetWonAt(),
 		PotWinners:    potWinners,
 		Boards:        hs.Boards,
-		PauseTimeSecs: hs.ResultPauseTime,
+		PauseTimeSecs: pauseTime,
 		PlayerInfo:    playerInfo,
 		Scoop:         scoop,
 		HandNum:       hs.HandNum,

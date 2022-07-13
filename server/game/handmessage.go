@@ -1508,21 +1508,13 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	totalPauseTime := uint32(0)
 	for _, pot := range handResult2Client.PotWinners {
 		for _, board := range pot.BoardWinners {
-			totalPauseTime = totalPauseTime + hs.ResultPauseTime
+			totalPauseTime = totalPauseTime + handResult2Client.PauseTimeSecs
 			if len(board.LowWinners) > 0 {
-				totalPauseTime = totalPauseTime + hs.ResultPauseTime
+				totalPauseTime = totalPauseTime + handResult2Client.PauseTimeSecs
 			}
 		}
 	}
 	hs.TotalResultPauseTime = totalPauseTime
-
-	// don't pause too long if we didn't go to showdown
-	if handResult2Client.WonAt != HandStatus_SHOW_DOWN {
-		hs.TotalResultPauseTime = 5000
-		handResult2Client.PauseTimeSecs = 5000
-	} else {
-		handResult2Client.PauseTimeSecs = hs.ResultPauseTime
-	}
 
 	allMsgItems = append(allMsgItems, msgItems...)
 	// send the hand to the database to store first
