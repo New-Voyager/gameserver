@@ -86,6 +86,13 @@ func (g *Game) handleGameMessage(message *GameMessage) error {
 			g.logger.Error().Err(err).Msg("Could not get hand log")
 			// Considering this not fatal for now. Just log the error and move on.
 		}
+
+	case LeftGame:
+		err = g.onPlayerLeftGame(message)
+		if err != nil {
+			g.logger.Error().Err(err).Msg("Could not handle player leaving game")
+			// Considering this not fatal for now. Just log the error and move on.
+		}
 	}
 
 	return nil
@@ -330,5 +337,14 @@ func (g *Game) broadcastTableState() error {
 	if *g.messageSender != nil {
 		(*g.messageSender).BroadcastGameMessage(&gameMessage, false)
 	}
+	return nil
+}
+
+func (g *Game) onPlayerLeftGame(message *GameMessage) error {
+	handState, err := g.loadHandState()
+	if err != nil {
+		return errors.Wrap(err, "Could not load hand state")
+	}
+	handState.playerLeftGame(message.PlayerId)
 	return nil
 }

@@ -1964,3 +1964,12 @@ func (h *HandState) allinCount() int {
 	}
 	return count
 }
+
+func (h *HandState) playerLeftGame(playerID uint64) {
+	for _, player := range h.PlayersInSeats {
+		if player.PlayerId == playerID {
+			player.Status = PlayerStatus_LEFT
+			break
+		}
+	}
+}

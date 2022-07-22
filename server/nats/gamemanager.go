@@ -171,6 +171,17 @@ func (gm *GameManager) ResumeGame(gameID uint64) {
 	}
 }
 
+func (gm *GameManager) LeftGame(gameID uint64, playerID uint64) {
+	gameIDStr := fmt.Sprintf("%d", gameID)
+	if g, ok := gm.activeGames.Get(gameIDStr); ok {
+		g.(*NatsGame).leftGame(playerID)
+	} else {
+		natsGMLogger.Error().
+			Uint64(logging.GameIDKey, gameID).
+			Msgf("Game ID does not exist")
+	}
+}
+
 func (gm *GameManager) SetupHand(handSetup HandSetup) {
 	// first check whether the game is hosted by this game server
 	gameIDStr := fmt.Sprintf("%d", handSetup.GameId)

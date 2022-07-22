@@ -41,6 +41,8 @@ const (
 	// Player Network Issue
 	GamePlayerConnectivityLost     string = "PLAYER_CONNECTIVITY_LOST"
 	GamePlayerConnectivityRestored string = "PLAYER_CONNECTIVITY_RESTORED"
+
+	LeftGame string = "LEFT_GAME"
 )
 
 // Hand messages
