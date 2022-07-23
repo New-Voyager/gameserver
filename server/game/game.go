@@ -781,7 +781,6 @@ func (g *Game) dealNewHand(newHandInfo *NewHandInfo) error {
 			allMsgItems = append(allMsgItems, messages...)
 		}
 	}
-	var nextSeatActionSeatNo uint32
 	var handMsg HandMessage
 	var nextFlowState FlowState
 	if handState.allActionComplete() {
@@ -828,8 +827,6 @@ func (g *Game) dealNewHand(newHandInfo *NewHandInfo) error {
 			Messages:   allMsgItems,
 		}
 		nextFlowState = FlowState_WAIT_FOR_NEXT_ACTION
-
-		nextSeatActionSeatNo = handState.NextSeatAction.SeatNo
 	}
 
 	g.broadcastHandMessage(&handMsg)
@@ -847,34 +844,6 @@ func (g *Game) dealNewHand(newHandInfo *NewHandInfo) error {
 	}
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_DEAL_6, 0)
 	g.handleHandEnded(handState, handState.TotalResultPauseTime, allMsgItems)
-
-	// if next action is to a player who has left the game, then fold his hand
-	if nextSeatActionSeatNo != 0 {
-		for _, player := range handState.PlayersInSeats {
-			if player.SeatNo == nextSeatActionSeatNo && player.Status == PlayerStatus_LEFT {
-				actionType := ACTION_FOLD
-				handAction := HandAction{SeatNo: player.SeatNo, Action: actionType, Amount: 0}
-
-				messages := make([]*HandMessageItem, 0)
-				messages = append(messages, &HandMessageItem{
-					MessageType: HandPlayerActed,
-					Content:     &HandMessageItem_PlayerActed{PlayerActed: &handAction},
-				})
-				// player left the game
-				handMessage := &HandMessage{
-					PlayerId: player.PlayerId,
-					GameCode: g.gameCode,
-					HandNum:  handState.HandNum,
-					Messages: messages,
-				}
-				g.logger.Info().
-					Uint32(logging.HandNumKey, handState.GetHandNum()).
-					Msgf("Player %d left the game %s", player.PlayerId, g.gameCode)
-				go g.handleHandMessage(handMessage)
-				break
-			}
-		}
-	}
 	return nil
 }
 
