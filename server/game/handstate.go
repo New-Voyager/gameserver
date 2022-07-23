@@ -1973,3 +1973,21 @@ func (h *HandState) playerLeftGame(playerID uint64) {
 		}
 	}
 }
+
+func (h *HandState) hasPlayerLeftGame(playerID uint64) bool {
+	for _, player := range h.PlayersInSeats {
+		if player.PlayerId == playerID {
+			return player.Status == PlayerStatus_LEFT
+		}
+	}
+	return false
+}
+
+func (h *HandState) getPlayerFromSeatNo(seatNo uint32) *PlayerInSeatState {
+	for _, player := range h.PlayersInSeats {
+		if player.SeatNo == seatNo {
+			return player
+		}
+	}
+	return nil
+}

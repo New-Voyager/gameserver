@@ -346,5 +346,15 @@ func (g *Game) onPlayerLeftGame(message *GameMessage) error {
 		return errors.Wrap(err, "Could not load hand state")
 	}
 	handState.playerLeftGame(message.PlayerId)
+	err = g.saveHandState(handState, handState.GetFlowState())
+	if err != nil {
+		msg := "Could not save hand state when recording a player who left the game"
+		g.logger.Error().
+			Err(err).
+			Uint32(logging.HandNumKey, handState.GetHandNum()).
+			Uint64(logging.PlayerIDKey, message.PlayerId).
+			Msgf(msg)
+		return err
+	}
 	return nil
 }
