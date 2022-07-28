@@ -151,6 +151,19 @@ func (n *NatsGame) resumeGame() {
 	n.serverGame.QueueGameMessage(&message2)
 }
 
+func (n *NatsGame) leftGame(playerID uint64) {
+	n.logger.Debug().
+		Msg(fmt.Sprintf("APIServer->Game: Left game. GameID: %d PlayerID: %d", n.gameID, playerID))
+
+	message2 := game.GameMessage{
+		GameId:      n.gameID,
+		GameCode:    n.gameCode,
+		MessageType: game.LeftGame,
+		PlayerId:    playerID,
+	}
+	n.serverGame.QueueGameMessage(&message2)
+}
+
 // message sent from bot to game
 func (n *NatsGame) setupHand(handSetup HandSetup) {
 	n.logger.Debug().

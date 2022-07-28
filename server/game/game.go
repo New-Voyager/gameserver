@@ -781,7 +781,6 @@ func (g *Game) dealNewHand(newHandInfo *NewHandInfo) error {
 			allMsgItems = append(allMsgItems, messages...)
 		}
 	}
-
 	var handMsg HandMessage
 	var nextFlowState FlowState
 	if handState.allActionComplete() {
@@ -1145,7 +1144,10 @@ func (g *Game) GetCurrentHandState(handState *HandState, playerID uint64) (*Curr
 	for _, pot := range handState.Pots {
 		pots = append(pots, pot.Pot)
 	}
-	currentPot := pots[len(pots)-1]
+	var currentPot float64 = 0
+	if len(pots) > 0 {
+		currentPot = pots[len(pots)-1]
+	}
 	bettingInProgress := handState.CurrentState == HandStatus_PREFLOP ||
 		handState.CurrentState == HandStatus_FLOP ||
 		handState.CurrentState == HandStatus_TURN ||
@@ -1421,10 +1423,21 @@ func (g *Game) EncryptForPlayer(data []byte, playerID uint64) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "Unable to get encryption key for player %d", playerID)
 	}
+	playerName := ""
+	seatNo := 0
+	for _, player := range g.PlayersInSeats {
+		if player.PlayerID == playerID {
+			playerName = player.Name
+			seatNo = int(player.SeatNo)
+			break
+		}
+	}
 	encryptedData, err := encryption.EncryptWithUUIDStrKey(data, encryptionKey)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Unable to encrypt message to player %d", playerID)
 	}
+	g.logger.Info().Msgf("ENCRYPT: [%s]: player: %s playerID: %d, seatNo: %d key: %s data: %s",
+		g.gameCode, playerName, playerID, seatNo, encryptionKey, encryption.B64EncodeToString(encryptedData))
 	return encryptedData, nil
 }
 

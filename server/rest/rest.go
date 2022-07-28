@@ -76,6 +76,7 @@ func RunRestServer(gameManager *nats.GameManager, endSystemTestCallback func()) 
 	r.GET("/ready", checkReady)
 	r.POST("/new-game", newGame)
 	r.POST("/resume-game", resumeGame)
+	r.POST("/left-game", leftGame)
 	r.POST("/end-game", endGame)
 	r.GET("/games", getGames)
 	r.GET("/current-hand-log", gameCurrentHandLog)
@@ -273,4 +274,35 @@ func gameCurrentHandLog(c *gin.Context) {
 func endSystemTest(c *gin.Context) {
 	onEndSystemTest()
 	return
+}
+
+func leftGame(c *gin.Context) {
+	gameIDStr := c.Query("game-id")
+	if gameIDStr == "" {
+		c.String(400, "Failed to read game-id param from resume-game endpoint")
+	}
+	gameID, err := strconv.ParseUint(gameIDStr, 10, 64)
+	if err != nil {
+		c.String(400, "Failed to parse game-id [%s] from resume-game endpoint.", gameIDStr)
+	}
+	playerIDStr := c.Query("player-id")
+	if gameIDStr == "" {
+		c.String(400, "Failed to read player-id param from resume-game endpoint")
+	}
+	playerID, err := strconv.ParseUint(playerIDStr, 10, 64)
+	if err != nil {
+		c.String(400, "Failed to parse game-id [%s] from resume-game endpoint.", playerIDStr)
+	}
+
+	gameCode, ok := caches.GameCodeCache.GameIDToCode(gameID)
+	if !ok {
+		// Should not get here.
+		gameCode = ""
+		restLogger.Warn().Uint64(logging.GameIDKey, gameID).Msgf("No game code found in cache while resuming game")
+	}
+	restLogger.Debug().
+		Uint64(logging.GameIDKey, gameID).
+		Str(logging.GameCodeKey, gameCode).
+		Msgf("Player %d left the game %s", playerID, gameCode)
+	natsGameManager.LeftGame(gameID, playerID)
 }

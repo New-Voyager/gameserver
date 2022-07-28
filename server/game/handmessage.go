@@ -714,6 +714,7 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3, playerMsg.PlayerId)
 	g.handleHandEnded(handState, handState.TotalResultPauseTime, allMsgItems)
+	g.handlePlayerLeft(handState)
 	return nil
 }
 
@@ -753,6 +754,44 @@ func (g *Game) handleHandEnded(handState *HandState, totalPauseTime uint32, allM
 		handState.CurrentState = HandStatus_HAND_CLOSED
 
 		g.queueMoveToNextHand()
+	}
+}
+
+func (g *Game) handlePlayerLeft(handState *HandState) {
+	if handState.NextSeatAction == nil {
+		return
+	}
+
+	nextSeat := handState.NextSeatAction.SeatNo
+	nextPlayer := handState.getPlayerFromSeatNo(nextSeat)
+	if handState.hasPlayerLeftGame(nextPlayer.PlayerId) {
+		g.logger.Info().
+			Uint32(logging.HandNumKey, handState.GetHandNum()).
+			Uint64(logging.PlayerIDKey, nextPlayer.PlayerId).
+			Str(logging.PlayerNameKey, nextPlayer.Name).
+			Msgf("Queueing a FOLD action for a player who has left the game")
+
+		handAction := HandAction{
+			SeatNo:   nextSeat,
+			Action:   ACTION_FOLD,
+			Amount:   0.0,
+			TimedOut: true,
+			ActionId: handState.NextSeatAction.ActionId,
+		}
+
+		handMessage := HandMessage{
+			HandNum:    handState.HandNum,
+			HandStatus: handState.CurrentState,
+			PlayerId:   nextPlayer.PlayerId,
+			SeatNo:     nextSeat,
+			Messages: []*HandMessageItem{
+				{
+					MessageType: HandPlayerActed,
+					Content:     &HandMessageItem_PlayerActed{PlayerActed: &handAction},
+				},
+			},
+		}
+		g.QueueHandMessage(&handMessage)
 	}
 }
 
