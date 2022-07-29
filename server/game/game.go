@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	cmap "github.com/orcaman/concurrent-map"
+
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -82,6 +84,8 @@ type Game struct {
 	actionTimer2       *timer.ActionTimer
 	networkCheck       *networkcheck.NetworkCheck
 	encryptionKeyCache *encryptionkey.Cache
+
+	lostConnectionPlayers cmap.ConcurrentMap // for these players we don't have connection
 }
 
 func NewPokerGame(
@@ -103,21 +107,22 @@ func NewPokerGame(
 		Str(logging.GameCodeKey, gameCode).
 		Logger()
 	g := Game{
-		logger:             &logger,
-		tournamentID:       tournamentID,
-		tableNo:            tableNo,
-		gameID:             gameID,
-		gameCode:           gameCode,
-		isScriptTest:       isScriptTest,
-		manager:            gameManager,
-		messageSender:      messageSender,
-		delays:             delays,
-		handSetupPersist:   handSetupPersist,
-		apiServerURL:       apiServerURL,
-		maxRetries:         10,
-		retryDelayMillis:   2000,
-		timerCushionSec:    5,
-		encryptionKeyCache: encryptionKeyCache,
+		logger:                &logger,
+		tournamentID:          tournamentID,
+		tableNo:               tableNo,
+		gameID:                gameID,
+		gameCode:              gameCode,
+		isScriptTest:          isScriptTest,
+		manager:               gameManager,
+		messageSender:         messageSender,
+		delays:                delays,
+		handSetupPersist:      handSetupPersist,
+		apiServerURL:          apiServerURL,
+		maxRetries:            10,
+		retryDelayMillis:      2000,
+		timerCushionSec:       5,
+		encryptionKeyCache:    encryptionKeyCache,
+		lostConnectionPlayers: cmap.New(),
 	}
 	g.scriptTestPlayers = make(map[uint64]*Player)
 	g.chGame = make(chan []byte, 10)
@@ -1454,6 +1459,11 @@ func (g *Game) GetRemainingActionTime() uint32 {
 }
 
 func (g *Game) onClientConnLost(a networkcheck.Action) {
+	g.lostConnectionPlayers.Set(fmt.Sprintf("%d", a.PlayerID), true)
+	handState, _ := g.loadHandState()
+	if handState != nil {
+		g.handleYourTurnIfNeeded(handState)
+	}
 	playerIDs := []uint64{a.PlayerID}
 	g.broadcastConnectivityLost(playerIDs)
 }
@@ -1479,6 +1489,7 @@ func (g *Game) broadcastConnectivityLost(playerIDs []uint64) {
 }
 
 func (g *Game) onClientConnRestored(a networkcheck.Action) {
+	g.lostConnectionPlayers.Set(fmt.Sprintf("%d", a.PlayerID), false)
 	playerIDs := []uint64{a.PlayerID}
 	g.broadcastConnectivityRestored(playerIDs)
 }

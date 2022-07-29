@@ -225,3 +225,29 @@ func (g *Game) requestEndGame(force bool) (endGameResp, error) {
 
 	return body, nil
 }
+
+func (g *Game) sendYourTurn(gameCode string, playerId uint64) {
+	url := fmt.Sprintf("%s/internal/send-notification", g.apiServerURL)
+	type payload struct {
+		GameCode string `json:"gameCode"`
+		PlayerId uint64 `json:"playerId"`
+	}
+	type message struct {
+		Type    string  `json:"type"`
+		Payload payload `json:"payload"`
+	}
+	data := message{
+		Type: "YOUR_TURN",
+		Payload: payload{
+			GameCode: gameCode,
+			PlayerId: playerId,
+		},
+	}
+	body, _ := json.Marshal(data)
+	g.logger.Info().Msgf("[%s] Notifying the player %d your turn", gameCode, playerId)
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(body))
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+}

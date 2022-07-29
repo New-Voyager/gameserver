@@ -439,7 +439,7 @@ func (g *Game) onPlayerActed(playerMsg *HandMessage, handState *HandState) error
 	g.sendActionAck(handState, playerMsg, handState.CurrentActionNum)
 
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_WAIT_FOR_NEXT_ACTION_2, playerMsg.PlayerId)
-
+	g.lostConnectionPlayers.Set(fmt.Sprintf("%d", playerMsg.PlayerId), false)
 	return g.prepareNextAction(handState, uint64(actedSeconds))
 }
 
@@ -715,6 +715,7 @@ func (g *Game) prepareNextAction(handState *HandState, actionResponseTime uint64
 	crashtest.Hit(g.gameCode, crashtest.CrashPoint_PREPARE_NEXT_ACTION_3, playerMsg.PlayerId)
 	g.handleHandEnded(handState, handState.TotalResultPauseTime, allMsgItems)
 	g.handlePlayerLeft(handState)
+	g.handleYourTurnIfNeeded(handState)
 	return nil
 }
 
@@ -754,6 +755,25 @@ func (g *Game) handleHandEnded(handState *HandState, totalPauseTime uint32, allM
 		handState.CurrentState = HandStatus_HAND_CLOSED
 
 		g.queueMoveToNextHand()
+	}
+}
+
+func (g *Game) handleYourTurnIfNeeded(handState *HandState) {
+	if handState.NextSeatAction == nil {
+		return
+	}
+
+	nextSeat := handState.NextSeatAction.SeatNo
+	nextPlayer := handState.getPlayerFromSeatNo(nextSeat)
+	v, exists := g.lostConnectionPlayers.Get(fmt.Sprintf("%d", nextPlayer.PlayerId))
+	if exists {
+		lost := v.(bool)
+		if lost && !handState.hasPlayerLeftGame(nextPlayer.PlayerId) {
+			g.logger.Debug().
+				Msgf("Sending your turn message to player: %d", nextPlayer.PlayerId)
+			// send your turn message
+			go g.sendYourTurn(g.gameCode, nextPlayer.PlayerId)
+		}
 	}
 }
 
