@@ -1,0 +1,105 @@
+# the button is dead due to a player leaving the game
+club:
+  name: Manchester Club
+  description: Club used for testing with the bot runner
+
+game:
+  create: true
+  title: "NLH Testing Game"
+  game-type: "HOLDEM"
+  small-blind: 1.0
+  big-blind: 2.0
+  utg-straddle-allowed: true
+  straddle-bet: 4.0
+  min-players: 2
+  max-players: 4
+  game-length: 60
+  buy-in-approval: true
+  rake-percentage: 5.0
+  rake-cap: 5.0
+  buy-in-min: 40
+  buy-in-max: 300
+  action-time: 100
+
+starting-seats:
+  - seat: 1
+    player: young
+    buy-in: 300
+    auto-reload: false
+  - seat: 2
+    player: carol
+    buy-in: 40
+    auto-reload: false
+  - seat: 3
+    player: matt
+    buy-in: 300
+  - seat: 4
+    player: emma
+    buy-in: 300
+
+tester:
+auto-play:
+  enabled: false
+
+# deal the following hands in the table
+hands:
+  - setup:
+      leave-game:
+        - seat: 3
+      button-pos: 1
+      board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-cards:
+        - seat: 2
+          cards: ["9h", "8s"]
+        - seat: 3
+          cards: ["Kh", "Qd"]
+        - seat: 4
+          cards: ["3s", "7s"]
+        - seat: 1
+          cards: ["9s", "3c"]
+
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 4, CALL, 2
+        - action: 1, CALL, 2
+        - action: 2, CALL, 2
+        - action: 3, CHECK
+
+    flop:
+      verify:
+        board: ["Ac", "Ad", "2c"]
+      seat-actions:
+        - action: 2, BET, 2
+        - action: 3, FOLD
+        - action: 4, FOLD
+        - action: 1, FOLD
+
+  # dead small. Player left. So button position should be 2, and small blind is 3, big blind is 4
+  - setup:
+      board: ["Ac", "Ad", "2c", "Td", "4s"]
+      seat-cards:
+        - seat: 2
+          cards: ["9h", "8s"]
+        - seat: 4
+          cards: ["3s", "7s"]
+        - seat: 1
+          cards: ["9s", "3c"]
+      verify:
+          button-pos: 2
+          sb-pos: 3
+          bb-pos: 4
+
+    # simulate pre-flop action
+    preflop:
+      seat-actions:
+        # seat number/action/amount
+        - action: 1, FOLD
+        - action: 2, FOLD
+  - setup:
+      auto: true
+      verify:
+          button-pos: 3
+          sb-pos: 4
+          bb-pos: 1
