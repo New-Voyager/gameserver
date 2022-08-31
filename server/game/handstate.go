@@ -1739,6 +1739,11 @@ func (h *HandState) prepareNextAction(actionSeat uint32, straddleAvailable bool)
 }
 
 func (h *HandState) everyOneFoldedWinners() {
+	// let us settle the round
+	// bettingState := h.RoundState[uint32(h.CurrentState)]
+	// currentBettingRound := bettingState.Betting
+	// h.addChipsToPot(currentBettingRound.SeatBet, true)
+
 	seatNo := 0
 	for i, playerID := range h.ActiveSeats {
 		if playerID != 0 {

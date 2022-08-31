@@ -1542,13 +1542,13 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 			continue
 		}
 		// if current pot has only one player, return the money to the player
-		if len(currentPot.Seats) == 1 {
-			activePlayer := currentPot.Seats[0]
-			player := hs.PlayersInSeats[activePlayer]
-			player.Stack += currentPot.Pot
-			// remove the pot
-			hs.Pots = hs.Pots[:len(hs.Pots)-1]
-		}
+		// if len(currentPot.Seats) == 1 {
+		// 	activePlayer := currentPot.Seats[0]
+		// 	player := hs.PlayersInSeats[activePlayer]
+		// 	player.Stack += currentPot.Pot
+		// 	// remove the pot
+		// 	hs.Pots = hs.Pots[:len(hs.Pots)-1]
+		// }
 	}
 
 	handResultProcessor := NewHandResultProcessor(handState, g.chipUnit, uint32(handState.MaxSeats), nil)
@@ -1620,20 +1620,19 @@ func (g *Game) generateAndSendResult(handState *HandState) ([]*HandMessageItem, 
 	sendResultToAPI := !g.isScriptTest
 	if sendResultToAPI {
 		if g.tournamentID != 0 {
-			saveResult, err := g.saveTournamentHandResult2ToAPIServer(g.tournamentURL, handResultServer)
+			_, err := g.saveTournamentHandResult2ToAPIServer(g.tournamentURL, handResultServer)
 			if err != nil {
 				return nil, errors.Wrapf(err, "Could not save hand result to api server")
-			}
-			if saveResult != nil {
-				// retry here
 			}
 		} else {
-			saveResult, err := g.saveHandResult2ToAPIServer(handResultServer)
+			_, err := g.saveHandResult2ToAPIServer(handResultServer)
 			if err != nil {
-				return nil, errors.Wrapf(err, "Could not save hand result to api server")
-			}
-			if saveResult != nil {
-				// retry here
+				// if save hand failed, don't return error
+				// return nil, errors.Wrapf(err, "Could not save hand result to api server")
+				g.logger.Error().
+					Uint32(logging.HandNumKey, handState.GetHandNum()).
+					Msgf("Saving hand failed. Error: %s", err.Error())
+				return nil, nil
 			}
 		}
 	}
