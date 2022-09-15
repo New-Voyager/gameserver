@@ -2563,9 +2563,10 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		checkAvailable := false
 		callAvailable := false
 		allInAvailable := false
-		allInAmount := float64(0.0)
-		minBet := float64(0.0)
-		maxBet := float64(0.0)
+		minBet := seatAction.MinRaiseAmount
+		maxBet := seatAction.MaxRaiseAmount
+		allInAmount := seatAction.AllInAmount
+
 		// we are in auto play now
 		for _, action := range seatAction.AvailableActions {
 			if action == game.ACTION_CHECK {
@@ -2578,17 +2579,12 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 			}
 			if action == game.ACTION_BET {
 				canBet = true
-				minBet = seatAction.MinRaiseAmount
-				maxBet = seatAction.MaxRaiseAmount
 			}
-			if action == game.ACTION_BET {
+			if action == game.ACTION_RAISE {
 				canRaise = true
-				minBet = seatAction.MinRaiseAmount
-				maxBet = seatAction.MaxRaiseAmount
 			}
 			if action == game.ACTION_ALLIN {
 				allInAvailable = true
-				allInAmount = seatAction.AllInAmount
 			}
 			if action == game.ACTION_RUN_IT_TWICE_PROMPT {
 				runItTwiceActionPrompt = true
@@ -2610,29 +2606,36 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 			8: "Pair",
 			9: "High Card",
 		*/
-		// do I have a pair
-		// minBetMultiply := 0
-		// if bp.currentRank == "Two Pair" {
-		// 	minBetMultiply = 3
-		// } else if bp.currentRank == "Three of a Kind" {
-		// 	minBetMultiply = 5
-		// } else if bp.currentRank == "Straight" {
-		// 	minBetMultiply = 10
-		// } else if bp.currentRank == "Flush" {
-		// 	minBetMultiply = 15
-		// } else if bp.currentRank == "Full House" {
-		// 	minBetMultiply = 25
-		// } else if bp.currentRank == "Four of a Kind" {
-		// 	minBetMultiply = 50
-		// } else if bp.currentRank == "Straight Flush" {
-		// 	minBetMultiply = 100
-		// }
-		// nextAmt := minBet * float64(minBetMultiply)
 
-		if bp.havePair {
-			pairValue := (float64)(bp.pairCard / 16)
-			nextAmt = pairValue * minBet
+		if bp.tournament && bp.game.handStatus != game.HandStatus_PREFLOP {
+			// do I have a pair
+			minBetMultiply := 0
+			if bp.currentRank == "Two Pair" {
+				minBetMultiply = 3
+			} else if bp.currentRank == "Three of a Kind" {
+				minBetMultiply = 5
+			} else if bp.currentRank == "Straight" {
+				minBetMultiply = 10
+			} else if bp.currentRank == "Flush" {
+				minBetMultiply = 15
+			} else if bp.currentRank == "Full House" {
+				minBetMultiply = 25
+			} else if bp.currentRank == "Four of a Kind" {
+				minBetMultiply = 50
+			} else if bp.currentRank == "Straight Flush" {
+				minBetMultiply = 100
+			}
+			nextAmt = minBet * float64(minBetMultiply)
+			if nextAmt > 0 {
+				nextAmt = nextAmt * 1.0
+			}
+		} else {
+			if bp.havePair {
+				pairValue := (float64)(bp.pairCard / 16)
+				nextAmt = pairValue * minBet
+			}
 		}
+
 		if nextAmt > maxBet {
 			nextAmt = maxBet
 		}
@@ -2640,10 +2643,12 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 		if nextAmt == seatAction.AllInAmount {
 			nextAction = game.ACTION_ALLIN
 		} else {
-			if canBet {
-				nextAction = game.ACTION_BET
-			} else if canRaise {
-				nextAction = game.ACTION_RAISE
+			if nextAmt > 0.0 {
+				if canBet {
+					nextAction = game.ACTION_BET
+				} else if canRaise {
+					nextAction = game.ACTION_RAISE
+				}
 			}
 		}
 
@@ -2875,7 +2880,18 @@ func (bp *BotPlayer) act(seatAction *game.NextSeatAction, handStatus game.HandSt
 			bp.logger.Info().Msgf("Seat %d (%s) sleeping for %d milliseconds", bp.seatNo, playerName, actionDelayOverride)
 		}
 		if bp.tournament {
-			time.Sleep(1 * time.Second)
+			start := uint32(2)
+			end := uint32(3)
+			if bp.game.handStatus == game.HandStatus_TURN {
+				end = 2
+			}
+			if bp.game.handStatus == game.HandStatus_RIVER ||
+				bp.game.handStatus == game.HandStatus_SHOW_DOWN {
+				end = 3
+			}
+
+			actionTimeDelay := util.GetRandomUint32(start, end)
+			time.Sleep(time.Duration(actionTimeDelay) * time.Second)
 		} else {
 			time.Sleep(bp.getActionDelay(actionDelayOverride))
 		}

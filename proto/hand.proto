@@ -241,6 +241,7 @@ message CurrentHandState {
   bool bomb_pot = 36;
   bool double_board = 37;
   double bomb_pot_bet = 38;
+  double ante = 39;
 }
 
 message HandWinner {

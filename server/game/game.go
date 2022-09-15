@@ -1228,6 +1228,7 @@ func (g *Game) GetCurrentHandState(handState *HandState, playerID uint64) (*Curr
 		SmallBlind:    handState.SmallBlind,
 		BigBlind:      handState.BigBlind,
 		NoCards:       g.NumCards(handState.GameType),
+		Ante:          handState.Ante,
 	}
 	currentHandState.PlayersActed = make(map[uint32]*PlayerActRound)
 
