@@ -76,6 +76,7 @@ func s2cQueryCurrentHand(msgItem *HandMessageItem) {
 	c := msgItem.GetCurrentHandState()
 	c.BigBlind = util.CentsToChips(c.BigBlind)
 	c.SmallBlind = util.CentsToChips(c.SmallBlind)
+	c.Ante = util.CentsToChips(c.Ante)
 	c.Straddle = util.CentsToChips(c.Straddle)
 	c.PotUpdates = util.CentsToChips(c.PotUpdates)
 	c.BombPotBet = util.CentsToChips(c.BombPotBet)
