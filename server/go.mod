@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/MichaelTJones/walk v0.0.0-20161122175330-4748e29d5718 // indirect
 	github.com/db47h/rand64/v3 v3.1.0
-	github.com/gin-gonic/gin v1.6.3
+	github.com/gin-gonic/gin v1.7.7
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/go-redis/redis/v8 v8.3.3
 	github.com/golang/protobuf v1.5.2
@@ -33,6 +33,7 @@ require (
 	voyager.com/caching v0.0.0-00010101000000-000000000000
 	voyager.com/encryption v0.0.0-00010101000000-000000000000
 	voyager.com/logging v0.0.0-00010101000000-000000000000
+	voyager.com/server/rpc v0.0.0-00010101000000-000000000000
 )
 
 replace voyager.com/server/internal => ./internal
