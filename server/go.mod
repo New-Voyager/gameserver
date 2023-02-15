@@ -19,7 +19,7 @@ require (
 	github.com/nats-io/nats.go v1.10.1-0.20210330225420-a0b1f60162f8
 	github.com/orcaman/concurrent-map v0.0.0-20210501183033-44dafcb38ecc
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/client_golang v1.11.1
 	github.com/rs/zerolog v1.25.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.7.0
@@ -33,6 +33,7 @@ require (
 	voyager.com/caching v0.0.0-00010101000000-000000000000
 	voyager.com/encryption v0.0.0-00010101000000-000000000000
 	voyager.com/logging v0.0.0-00010101000000-000000000000
+	voyager.com/server/rpc v0.0.0-00010101000000-000000000000
 )
 
 replace voyager.com/server/internal => ./internal
