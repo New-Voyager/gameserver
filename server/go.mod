@@ -15,8 +15,9 @@ require (
 	github.com/json-iterator/go v1.1.11
 	github.com/lib/pq v1.10.0
 	github.com/mgutz/str v1.2.0 // indirect
-	github.com/nats-io/nats-server/v2 v2.2.1 // indirect
-	github.com/nats-io/nats.go v1.10.1-0.20210330225420-a0b1f60162f8
+	github.com/nats-io/jwt v1.2.2 // indirect
+	github.com/nats-io/nats-server/v2 v2.7.4 // indirect
+	github.com/nats-io/nats.go v1.13.1-0.20220308171302-2f2f6968e98d
 	github.com/orcaman/concurrent-map v0.0.0-20210501183033-44dafcb38ecc
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
@@ -24,7 +25,6 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.7.0
 	github.com/ugorji/go v1.2.0 // indirect
-	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	google.golang.org/grpc v1.46.2
 	google.golang.org/protobuf v1.28.0
 	gopkg.in/godo.v2 v2.0.9
@@ -33,6 +33,7 @@ require (
 	voyager.com/caching v0.0.0-00010101000000-000000000000
 	voyager.com/encryption v0.0.0-00010101000000-000000000000
 	voyager.com/logging v0.0.0-00010101000000-000000000000
+	voyager.com/server/rpc v0.0.0-00010101000000-000000000000
 )
 
 replace voyager.com/server/internal => ./internal
